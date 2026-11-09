@@ -12,6 +12,8 @@
 - `BASE_SHA`: `b4fd54513af749d68bb7bce4c06110cd9981be39`.
 - `HEAD_SHA` at start of implementation: `b4fd54513af749d68bb7bce4c06110cd9981be39`.
 - The feature branch was created locally from exactly this SHA.
+- Integrated implementation candidate: `4d220f1e2e045298a93c7186380eb5dddf603f0f`.
+- Full local validation is recorded in `docs/EVIDENCE_BUNDLE.md`; hosted CI is still pending at this point.
 - Prior to bootstrap the remote was empty (`git ls-remote` returned no refs), and the workspace was empty. There was no prior code, checkpoint, ADR, workflow, branch, or PR to preserve.
 - Base working tree was clean before the feature branch was created.
 

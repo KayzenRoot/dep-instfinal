@@ -4,6 +4,7 @@
 - **Repository:** `KayzenRoot/dep-instfinal`
 - **Execution branch:** `feat/dif-studio-mvp-001`
 - **Base SHA:** `b4fd54513af749d68bb7bce4c06110cd9981be39`
+- **Implementation candidate SHA:** `4d220f1e2e045298a93c7186380eb5dddf603f0f`
 - **Evidence date:** 2026-11-09
 - **Status:** implementation assembled; Draft PR and hosted CI evidence pending
 
