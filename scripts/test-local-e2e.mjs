@@ -89,7 +89,15 @@ async function verifyLocalPasswordGrant(email, password, expectedUserId) {
 		body: JSON.stringify({ email, password }),
 	});
 	if (!response.ok) {
-		throw new Error(`Local Auth rejected a synthetic password grant with HTTP ${response.status}.`);
+		const payload = await response.json().catch(() => ({}));
+		const candidate = payload.code ?? payload.error_code ?? payload.error;
+		const safeCode =
+			typeof candidate === 'string' && /^[a-z0-9_-]{1,48}$/i.test(candidate)
+				? candidate
+				: 'unknown';
+		throw new Error(
+			`Local Auth rejected a synthetic password grant with HTTP ${response.status} (${safeCode}).`,
+		);
 	}
 	const session = await response.json();
 	if (session.user?.id !== expectedUserId) {
