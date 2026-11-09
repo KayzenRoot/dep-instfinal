@@ -81,6 +81,7 @@ test('a valid owner can persist a series across a new session', async ({ page })
 	await page.getByRole('button', { name: /Abrir novo arquivo/ }).click();
 	await expect(page).toHaveURL(/\/app\/series\/[0-9a-f-]+$/);
 	await expect(page.getByRole('heading', { name: 'Arquivo E2E persistido' })).toBeVisible();
+	await page.goto('/app');
 	await page.getByRole('button', { name: 'Encerrar sessão' }).click();
 	await expect(page).toHaveURL(/\/login\?logged-out=1$/);
 	await page.getByLabel('E-mail do proprietário').fill(process.env.E2E_OWNER_EMAIL!);
