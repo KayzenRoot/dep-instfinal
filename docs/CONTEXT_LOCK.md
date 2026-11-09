@@ -12,8 +12,10 @@
 - `BASE_SHA`: `b4fd54513af749d68bb7bce4c06110cd9981be39`.
 - `HEAD_SHA` at start of implementation: `b4fd54513af749d68bb7bce4c06110cd9981be39`.
 - The feature branch was created locally from exactly this SHA.
-- Integrated implementation candidate: `4d220f1e2e045298a93c7186380eb5dddf603f0f`.
-- Full local validation is recorded in `docs/EVIDENCE_BUNDLE.md`; hosted CI is still pending at this point.
+- Initial implementation candidate: `4d220f1e2e045298a93c7186380eb5dddf603f0f`.
+- Source and CI workflow passed hosted validation at `c84ab7833f5417c77ea49727e97bc0c52edda94f`; the Evidence Bundle records the run and remaining limits.
+- Draft PR #14 targets `main`; hosted checks passed `npm ci`, the full baseline, Supabase migrations/PgTAP, 8/8 authenticated browser cases, and evidence artifact upload.
+- Local Supabase remained unavailable because Docker registry pulls returned EOF/HTTP 500; hosted CI ran the complete disposable stack.
 - Prior to bootstrap the remote was empty (`git ls-remote` returned no refs), and the workspace was empty. There was no prior code, checkpoint, ADR, workflow, branch, or PR to preserve.
 - Base working tree was clean before the feature branch was created.
 

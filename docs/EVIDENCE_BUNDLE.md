@@ -4,9 +4,9 @@
 - **Repository:** `KayzenRoot/dep-instfinal`
 - **Execution branch:** `feat/dif-studio-mvp-001`
 - **Base SHA:** `b4fd54513af749d68bb7bce4c06110cd9981be39`
-- **Implementation candidate SHA:** `4d220f1e2e045298a93c7186380eb5dddf603f0f`
+- **CI-verified source and workflow SHA:** `c84ab7833f5417c77ea49727e97bc0c52edda94f`
 - **Evidence date:** 2026-11-09
-- **Status:** implementation assembled; Draft PR and hosted CI evidence pending
+- **Status:** hosted CI passed on the verified source/workflow SHA above; Draft PR awaits independent review
 
 ## Delivery summary
 
@@ -21,8 +21,8 @@ The MVP implementation and operational documentation are prepared on one feature
 | Unit tests                                               | PASS · 10/10                   | Four Vitest files; includes input schemas, manual provider state, 120-second/15-scene timeline, and SRT/CSV formatting.                                                                                                                                                                            |
 | Anonymous browser E2E (`npm run test:e2e`)               | PASS · 5 passed, 3 skipped     | Health/setup, anonymous boundary, CSRF, private media redirect, and login layout at 360/768/1440 px. The skipped cases require an initialized local Supabase Auth stack.                                                                                                                           |
 | Local database tests (`npm run test:db`)                 | BLOCKED · exit 1               | Local Postgres at `127.0.0.1:54322` refused the connection because the Supabase stack could not start. Docker Desktop became available, but registry pulls for Postgres, Postgres Meta, Edge Runtime and Logflare returned EOF/HTTP 500 errors. PgTAP SQL is present but was not executed locally. |
-| Owner/non-owner browser E2E (`npm run test:e2e:local`)   | BLOCKED · exit 1               | The Supabase CLI is installed. Stack startup failed on the registry errors above; the wrapper stops before provisioning test identities.                                                                                                                                                           |
-| GitHub Actions                                           | PENDING                        | Runs clean install, baseline, local Supabase migration/PgTAP tests, and authenticated owner/non-owner browser E2E after push.                                                                                                                                                                      |
+| Owner/non-owner browser E2E (`npm run test:e2e:local`)   | PASS · 8/8 on GitHub Actions   | Hosted runner started the local Supabase stack and verified owner login, non-owner rejection, invalid-password rejection, series persistence across logout/login, anonymous boundaries, CSRF, media, and responsive layout. Local Docker registry failures still prevent a local run.              |
+| GitHub Actions                                           | PASS · exact SHA above         | Both push and PR runs passed `npm ci`, baseline, Supabase startup, PgTAP/RLS tests, authenticated Playwright E2E (8/8), and artifact upload. Actions use Node 24-compatible releases; one informational `ubuntu-latest` migration notice remains.                                                  |
 | Backup/restore exercise                                  | NOT RUN                        | Restore steps are documented; no external project or backup location was provisioned.                                                                                                                                                                                                              |
 | Live Supabase, Cloudinary, AI, Flow, social integrations | BLOCKED · configuration absent | No external credentials were supplied or used.                                                                                                                                                                                                                                                     |
 
@@ -34,19 +34,19 @@ The table records implementation and evidence honestly; it does not claim extern
 
 | Issue   | Implementation                                                                                             | Evidence / remaining validation                                                                                                                                 |
 | ------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DIF-001 | Foundation, locked dependencies, Source Pack, CI                                                           | Clean install, lint, typecheck, unit tests, build and audit pass locally; hosted CI pending.                                                                    |
-| DIF-002 | Supabase owner allowlist, private auth routes, recovery, same-origin mutation checks                       | Anonymous, CSRF and private-media boundaries pass. Owner, invalid-password and non-owner scenarios are in CI E2E; local Supabase is unavailable.                |
+| DIF-001 | Foundation, locked dependencies, Source Pack, CI                                                           | Clean install, lint, typecheck, unit tests, build and audit pass locally and on hosted CI.                                                                      |
+| DIF-002 | Supabase owner allowlist, private auth routes, recovery, same-origin mutation checks                       | Hosted E2E passes owner login, invalid-password and non-owner scenarios, plus anonymous, CSRF and private-media boundaries. Local Supabase remains unavailable. |
 | DIF-003 | Responsive pt-BR dark-horror login and studio UI                                                           | Login has no horizontal overflow at 360/768/1440 px. Screenshots below. Authenticated workspace visual checks await local/CI Supabase.                          |
-| DIF-004 | PostgreSQL schema, 14 forced-RLS tables, composite owner foreign keys, transactional RPCs, backup manifest | Static policy audit passes for all 14 tables. PgTAP/RLS execution and persistent CRUD E2E await CI because local Docker is unavailable.                         |
+| DIF-004 | PostgreSQL schema, 14 forced-RLS tables, composite owner foreign keys, transactional RPCs, backup manifest | Static policy audit and hosted PgTAP/RLS execution pass across the 14 tables. Local Docker is unavailable.                                                      |
 | DIF-005 | Structured `TextProvider`; honest manual-only fallback                                                     | Unit tests verify `NOT_CONFIGURED` and two-choice schema validation. No AI provider or billing is configured.                                                   |
-| DIF-006 | Series, seasons, characters, lore and continuity screens/actions                                           | Source and owner-scoped data paths are implemented; persisted create/edit/reopen awaits DB-backed E2E.                                                          |
-| DIF-007 | Episode authoring, options, revisions and publication guards                                               | Schema and RPC guards are implemented; input validation unit tests pass. DB transition tests await CI.                                                          |
+| DIF-006 | Series, seasons, characters, lore and continuity screens/actions                                           | Hosted owner E2E creates a series and verifies it persists across logout and a new login; remaining workflows need focused acceptance coverage.                 |
+| DIF-007 | Episode authoring, options, revisions and publication guards                                               | Hosted PgTAP validates database integrity and publication guards; input validation unit tests pass. Authenticated episode authoring still needs focused E2E.    |
 | DIF-008 | Contiguous eight-second scene timeline and storyboard editor                                               | Unit test verifies 120 seconds gives 15 scenes, and validates the 90–150 second range. Persisted storyboard E2E awaits DB-backed CI.                            |
 | DIF-009 | PNG/JPEG/WebP validation, Sharp decode, Cloudinary authenticated upload, owner-checked private proxy       | Static security audit passes. Live upload, deletion/reconciliation and private delivery cannot be tested without a selected Cloudinary account and credentials. |
-| DIF-010 | Manual poll/result verification, append-only retification and explicit canon decisions                     | Database constraints/RPCs and owner-scoped screens are implemented. PgTAP execution awaits CI; no real poll or audience data was used.                          |
+| DIF-010 | Manual poll/result verification, append-only retification and explicit canon decisions                     | Hosted PgTAP validates database constraints/RPCs; owner-scoped screens are implemented. No real poll or audience data was used.                                 |
 | DIF-011 | Authenticated Flow/CapCut ZIP with manifest, prompts, CSV and missing-frame report                         | Export route is implemented; unit tests cover CSV formatting. DB-backed archive and private-frame integration await CI/provider configuration.                  |
 | DIF-012 | pt-BR narration, SRT, captions and timeline export                                                         | Unit tests verify ordered SRT cues, UTF-8 content, and CSV escaping. Full authenticated package validation awaits DB-backed E2E.                                |
-| DIF-013 | Operations, security policy audit, CI and this Evidence Bundle                                             | Static policy audit and local baseline pass. Hosted CI, independent audit, backup/restore, and final checkpoint promotion remain pending.                       |
+| DIF-013 | Operations, security policy audit, CI and this Evidence Bundle                                             | Static audit, local baseline, and hosted CI pass. Independent audit and backup/restore remain pending; checkpoint promotion is outside this Work Order.         |
 
 ## Browser captures
 
@@ -63,7 +63,7 @@ CI also uploads browser screenshots and the Playwright report as the `dif-studio
 - Static policy audit: **10/10 invariants pass**, including all 14 public owner-scoped tables, forced RLS, append-only grants, verified server UID ownership, same-origin mutations, content-decoded media uploads, owner-bound private media, and expiring export links.
 - No service-role key is passed to the app/browser. The local E2E wrapper uses a local admin key only to create disposable test users, then supplies the app only the local anon key and exact owner UID.
 - No credentials, provider keys, user content, social identifiers, or external-project identifiers were added to the repository.
-- Database policy and data-integrity tests are authored under `supabase/tests/rls_and_integrity.sql`; they still need a successful Supabase local-stack run in CI.
+- Database policy and data-integrity tests under `supabase/tests/rls_and_integrity.sql` passed on the hosted Supabase local stack.
 - Only source code, configuration templates, documentation, and login screenshots are included. `.env` and generated build/test directories are ignored.
 
 ## Cost and free-tier estimate
@@ -81,4 +81,4 @@ The current private-media proxy fetches an expiring Cloudinary `private_download
 
 ## Delivery gate
 
-The intended change is one Draft PR linking DIF-001 through DIF-013. Keep the PR in draft while hosted CI and independent review run. Do not merge, deploy, promote the checkpoint, provision external accounts, or incur provider spend under this Work Order.
+The change is one Draft PR linking DIF-001 through DIF-013. Hosted CI passed on the recorded source/workflow SHA; keep the PR in draft for independent review. Do not merge, deploy, promote the checkpoint, provision external accounts, or incur provider spend under this Work Order.
