@@ -18,7 +18,7 @@ DIF Studio is a private, single-owner workspace for writing and producing intera
 ### Required
 
 - Owner-only login, persistent series/season/character/lore/episode/revision/scene/poll/asset metadata, and responsive dark-horror UI.
-- Manual editing works when AI, Supabase, or Cloudinary are not configured. AI may only be enabled through an eligible official provider flow or a separately configured BYOK provider; no credentials or external projects were supplied for this work.
+- Manual prompt and response editing works when AI is unavailable. Supabase Auth/PostgreSQL is required to open the private studio and persist data; without it the app stays in setup/login mode, with no SQLite or in-memory substitute. Cloudinary is required for image upload and private delivery, while story editing remains available when Supabase is configured. AI may only be enabled through an eligible official provider flow or a separately configured BYOK provider; no credentials or external projects were supplied for this work.
 - Episode options 1/2, verified manual vote totals, auditable retifications, and author-approved canon updates. No result is inferred or invented.
 - Default 8-second storyboard scenes; exactly 120 seconds yields 15 contiguous scenes. Prompts for image/motion are English; narration and interface are pt-BR.
 - Secure Cloudinary image upload/delivery with binaries outside Postgres. Original frames are preserved; derived crops use safe zones.
@@ -55,27 +55,27 @@ All routes, server actions, exports, upload/download endpoints, and asset access
 4. The owner imports up to 30 PNG/JPEG/WebP frames for 15 scenes; invalid MIME, oversized, malformed and oversized-dimension images are rejected. Private assets require an authorized session.
 5. The owner records a verified 1/2 result with source/time/totals, handles ties and retifications under a published rule, reviews consequences, and explicitly approves the next canonical state.
 6. Authenticated export produces consistent manifest, named prompts, timeline CSV, narration TXT, valid UTF-8 SRT, captions and available private image files, with missing frames clearly listed.
-7. The same manual workflow remains usable when AI or external credentials are absent. No failed or mocked integration is reported as live.
+7. The same manual workflow remains usable when AI credentials are absent. Supabase is still required for login/persistence; Cloudinary is required only for image operations. No failed or mocked integration is reported as live.
 
 Responsive acceptance widths are 360, 768 and 1440 px. Keyboard operation, visible focus, labels, contrast, and `prefers-reduced-motion` are required. Controls must work or state plainly why they are unavailable.
 
 ## Issue map
 
-| Issue | Increment | Risk | Evidence expected |
-|---|---|---:|---|
-| DIF-001 | Foundation, Source Pack, scaffold, CI | Standard | clean install, dev, lint, typecheck, tests, build |
-| DIF-002 | Owner-only Supabase Auth | High assurance | anonymous/non-owner/session/CSRF/rate-limit checks |
-| DIF-003 | Responsive horror design system | Standard | keyboard, reduced motion, 360/768/1440 checks and screenshots |
-| DIF-004 | Postgres schema, RLS, persistence, recovery | Elevated | migrations, CRUD, owner RLS and backup/restore evidence |
-| DIF-005 | TextProvider and usable manual fallback | High assurance | structured validation and honest provider status |
-| DIF-006 | Series bible, seasons, characters and lore | Standard | create/edit/reopen and contradiction review |
-| DIF-007 | Episode editing, options and revisions | Standard | duration/options/revision/canon protections |
-| DIF-008 | Scene decomposition and storyboard | Standard | exact timeline boundaries and prompt fields |
-| DIF-009 | Cloudinary media and frame library | Elevated | file validation, ownership, private delivery or explicit external block |
-| DIF-010 | Manual voting and continuity | Standard | both branches, tie/no-vote/retification and history |
-| DIF-011 | Flow package and estimates | Standard | authenticated ZIP/JSON/CSV and incomplete-scene warnings |
-| DIF-012 | Narration, SRT, captions and edit manifest | Standard | monotonic in-range timestamps and UTF-8 exports |
-| DIF-013 | Final QA, security, operations and evidence | Elevated | unit/integration/E2E, lint, typecheck, build, CI, backup/restore, final audit |
+| Issue   | Increment                                   |           Risk | Evidence expected                                                             |
+| ------- | ------------------------------------------- | -------------: | ----------------------------------------------------------------------------- |
+| DIF-001 | Foundation, Source Pack, scaffold, CI       |       Standard | clean install, dev, lint, typecheck, tests, build                             |
+| DIF-002 | Owner-only Supabase Auth                    | High assurance | anonymous/non-owner/session/CSRF/rate-limit checks                            |
+| DIF-003 | Responsive horror design system             |       Standard | keyboard, reduced motion, 360/768/1440 checks and screenshots                 |
+| DIF-004 | Postgres schema, RLS, persistence, recovery |       Elevated | migrations, CRUD, owner RLS and backup/restore evidence                       |
+| DIF-005 | TextProvider and usable manual fallback     | High assurance | structured validation and honest provider status                              |
+| DIF-006 | Series bible, seasons, characters and lore  |       Standard | create/edit/reopen and contradiction review                                   |
+| DIF-007 | Episode editing, options and revisions      |       Standard | duration/options/revision/canon protections                                   |
+| DIF-008 | Scene decomposition and storyboard          |       Standard | exact timeline boundaries and prompt fields                                   |
+| DIF-009 | Cloudinary media and frame library          |       Elevated | file validation, ownership, private delivery or explicit external block       |
+| DIF-010 | Manual voting and continuity                |       Standard | both branches, tie/no-vote/retification and history                           |
+| DIF-011 | Flow package and estimates                  |       Standard | authenticated ZIP/JSON/CSV and incomplete-scene warnings                      |
+| DIF-012 | Narration, SRT, captions and edit manifest  |       Standard | monotonic in-range timestamps and UTF-8 exports                               |
+| DIF-013 | Final QA, security, operations and evidence |       Elevated | unit/integration/E2E, lint, typecheck, build, CI, backup/restore, final audit |
 
 The #4 issue title says “local persistence”; its body and approved delta explicitly supersede that title with Supabase PostgreSQL. The PDF and latest issue deltas agree on the remaining constraints.
 
@@ -96,13 +96,13 @@ Deployment documentation may describe a future Node + HTTPS deployment. This Wor
 
 ## Decisions ledger
 
-| ID | Decision | Status |
-|---|---|---|
-| ADR-001 | SvelteKit SSR + Supabase Auth/Postgres; owner UID allowlist and RLS; no SQLite | Approved in 2026-11-09 deltas |
-| ADR-002 | Cloudinary binaries with authenticated delivery; Postgres metadata only | Approved in 2026-11-09 deltas |
-| ADR-003 | Manual, verified voting and explicit immutable canon revisions | Approved in Work Order and issues |
-| ADR-004 | Provider abstraction; manual operation is the guaranteed fallback | Approved; live AI eligibility/configuration unverified |
-| ADR-005 | One integrated feature branch and one Draft PR; stop before merge/deploy | Approved |
+| ID      | Decision                                                                       | Status                                                 |
+| ------- | ------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| ADR-001 | SvelteKit SSR + Supabase Auth/Postgres; owner UID allowlist and RLS; no SQLite | Approved in 2026-11-09 deltas                          |
+| ADR-002 | Cloudinary binaries with authenticated delivery; Postgres metadata only        | Approved in 2026-11-09 deltas                          |
+| ADR-003 | Manual, verified voting and explicit immutable canon revisions                 | Approved in Work Order and issues                      |
+| ADR-004 | Provider abstraction; manual operation is the guaranteed fallback              | Approved; live AI eligibility/configuration unverified |
+| ADR-005 | One integrated feature branch and one Draft PR; stop before merge/deploy       | Approved                                               |
 
 ## Definition of Done
 

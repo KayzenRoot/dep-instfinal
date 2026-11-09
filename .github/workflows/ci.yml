@@ -1,0 +1,43 @@
+name: DIF Studio CI
+
+on:
+  push:
+    branches: [main, feat/dif-studio-mvp-001]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dif-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:baseline
+      - uses: supabase/setup-cli@v3.2.0
+        with:
+          version: 2.113.0
+      - run: supabase start
+      - run: npm run test:db
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:local
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dif-studio-browser-evidence
+          path: |
+            test-results/screenshots/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14

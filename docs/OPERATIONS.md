@@ -4,16 +4,16 @@
 
 Requirements: Node.js 24+ and npm 11+. Use the lockfile-backed install (`npm ci`), then `npm run dev`. The app runs as a Node SSR service; do not expose it to a public network without HTTPS, an explicitly configured trusted proxy, and owner-only review.
 
-Copy `.env.example` to `.env` and configure a dedicated Supabase project and Cloudinary account only when the owner selects them. Never commit `.env` or share secret values in chat. Without credentials the app stays in clearly labeled setup/manual mode. There is no local substitute database presented as production persistence.
+Copy `.env.example` to `.env` and configure a dedicated Supabase project and Cloudinary account only when the owner selects them. Never commit `.env` or share secret values in chat. Without Supabase credentials the app stays on its setup/login surface; there is no local substitute database or offline persistence. Once Supabase is configured, manual story editing works without AI. Missing Cloudinary configuration blocks image upload/private delivery while leaving text editing available.
 
 ## Supabase owner setup
 
 1. Create/select a dedicated project explicitly; this Work Order creates none and does not authorize modifying another app's project.
 2. Apply `supabase/migrations` using the official Supabase CLI or dashboard SQL editor; verify RLS is enabled on every exposed table.
-3. Create the one owner identity through Supabase Auth's official dashboard/admin flow. Disable public signups in Auth settings. Set its immutable UID in server configuration as `SUPABASE_OWNER_USER_ID`.
+3. Create the one owner identity through Supabase Auth's official dashboard/admin flow. Disable public signups in Auth settings. Set its immutable UID with `node scripts/set-owner-uid.mjs <AUTH_USER_UUID>`; the script writes only the UID to `.env`, does not display credentials, and refuses symbolic links or duplicate UID entries.
 4. Configure only the project URL and publishable/anon key in the app environment. Do not configure service-role keys in this app.
 5. Set approved redirect URLs for the local origin and, when separately authorized, the eventual HTTPS host. Use Supabase's official recovery flow; revoke sessions after account recovery.
-6. Run the security tests against a dedicated test project or local Supabase stack before enabling real data.
+6. Run `supabase start`, then `npm run test:db` and `npm run test:e2e:local` against the local Supabase stack before enabling real data. The E2E wrapper rejects non-local URLs and creates disposable synthetic users with the local admin key; that key is never passed to the app or browser.
 
 ## Cloudinary setup
 

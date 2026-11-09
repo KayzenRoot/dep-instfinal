@@ -17,9 +17,9 @@
 
 ## Base fingerprints (SHA-256)
 
-| File at base | SHA-256 |
-|---|---|
-| `README.md` | `BB5711B757FDC9B38612F207B5F25CFD485855B424C67AE81AEA4538C2C543DE` |
+| File at base | SHA-256                                                            |
+| ------------ | ------------------------------------------------------------------ |
+| `README.md`  | `BB5711B757FDC9B38612F207B5F25CFD485855B424C67AE81AEA4538C2C543DE` |
 | `.gitignore` | `599F2C11DEB8C3CA3FB2B948EB5822292C019D502C7F6832E8274CB3219DB629` |
 
 ## Canonical sources checked
