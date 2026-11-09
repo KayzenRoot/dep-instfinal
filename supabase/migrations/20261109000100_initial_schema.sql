@@ -369,9 +369,10 @@ declare
   v_owner_id uuid;
   v_episode_id uuid;
 begin
-  if tg_op = 'UPDATE' and tg_table_name in ('scenes', 'choices')
-    and new.episode_id is distinct from old.episode_id then
-    raise exception 'episode_children_cannot_be_reassigned' using errcode = '55000';
+  if tg_table_name in ('scenes', 'choices') then
+    if tg_op = 'UPDATE' and new.episode_id is distinct from old.episode_id then
+      raise exception 'episode_children_cannot_be_reassigned' using errcode = '55000';
+    end if;
   end if;
 
   if tg_table_name = 'episodes' then
