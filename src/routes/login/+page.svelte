@@ -43,7 +43,7 @@
 				inputmode="email"
 				maxlength="254"
 				required
-				value={form?.email ?? ''}
+				value={form?.email}
 				placeholder="nome@exemplo.com"
 				disabled={!configured}
 			/>
