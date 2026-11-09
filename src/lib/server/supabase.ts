@@ -18,6 +18,7 @@ export function createSupabaseServerClient(event: RequestEvent): SupabaseClient 
 			secure,
 			sameSite: 'lax',
 		},
+		global: { fetch: event.fetch },
 		cookies: {
 			getAll: () => event.cookies.getAll(),
 			setAll: (cookiesToSet) => {

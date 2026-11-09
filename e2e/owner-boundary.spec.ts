@@ -50,12 +50,16 @@ test('login layout fits 360, 768, and 1440 pixel viewports', async ({ page }) =>
 	}
 });
 
-test('private media endpoint redirects anonymous visitors', async ({ request }) => {
+test('private media endpoint rejects anonymous visitors', async ({ request }) => {
 	const response = await request.get('/api/media/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
 		maxRedirects: 0,
 	});
-	expect(response.status()).toBe(303);
-	expect(response.headers().location).toBe('/login?setup=required');
+	if (process.env.PUBLIC_SUPABASE_URL && process.env.SUPABASE_OWNER_USER_ID) {
+		expect(response.status()).toBe(401);
+	} else {
+		expect(response.status()).toBe(303);
+		expect(response.headers().location).toBe('/login?setup=required');
+	}
 });
 
 test('cross-origin mutations are rejected before reaching their handlers', async ({ request }) => {

@@ -79,8 +79,28 @@ async function createLocalUser(email, password) {
 	return user.id;
 }
 
+async function verifyLocalPasswordGrant(email, password, expectedUserId) {
+	const response = await fetch(new URL('/auth/v1/token?grant_type=password', apiUrl), {
+		method: 'POST',
+		headers: {
+			apikey: localEnvironment.ANON_KEY,
+			'content-type': 'application/json',
+		},
+		body: JSON.stringify({ email, password }),
+	});
+	if (!response.ok) {
+		throw new Error(`Local Auth rejected a synthetic password grant with HTTP ${response.status}.`);
+	}
+	const session = await response.json();
+	if (session.user?.id !== expectedUserId) {
+		throw new Error('Local Auth returned an unexpected synthetic identity.');
+	}
+}
+
 const ownerId = await createLocalUser(ownerEmail, ownerPassword);
-await createLocalUser(otherEmail, otherPassword);
+const otherId = await createLocalUser(otherEmail, otherPassword);
+await verifyLocalPasswordGrant(ownerEmail, ownerPassword, ownerId);
+await verifyLocalPasswordGrant(otherEmail, otherPassword, otherId);
 
 const childEnvironment = {
 	PATH: process.env.PATH,
