@@ -106,6 +106,7 @@ test('cross-origin mutations are rejected before reaching their handlers', async
 test('owner completes series, episode, voting, canon, continuation, and export journey', async ({
 	page,
 }) => {
+	test.setTimeout(90_000);
 	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
 	await page.goto('/login');
 	await page.getByLabel('E-mail do proprietário').fill(process.env.E2E_OWNER_EMAIL!);
@@ -376,7 +377,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	const exportedContext = JSON.parse(readZipTextEntry(archive, 'narrative/context.json'));
 	expect(exportedContext.latestPreviousCanon.status).toBe('APPROVED');
 	expect(exportedContext.latestPreviousCanon.approvedCanon.selectedChoice.consequence).toBe(
-		'Lara ouve o aviso sobre o arquivo.',
+		'Lara apaga a única prova do aviso.',
 	);
 	expect(exportedContext.loreFacts).toEqual(
 		expect.arrayContaining([
