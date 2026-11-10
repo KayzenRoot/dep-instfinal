@@ -114,6 +114,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.getByRole('status')).toHaveText(
 		'Alterações salvas. Uma nova revisão foi registrada.',
 	);
+	await page.waitForLoadState('networkidle');
 	const choiceForm = page.locator('form.choice-grid');
 	await choiceForm.locator('[name="option1Label"]').fill('Ouvir a fita');
 	await choiceForm
