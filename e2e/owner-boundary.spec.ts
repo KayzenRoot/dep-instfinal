@@ -115,7 +115,14 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await page.locator('[name="option1Consequence"]').fill('Lara ouve o aviso sobre o arquivo.');
 	await page.locator('[name="option2Label"]').fill('Destruir a fita');
 	await page.locator('[name="option2Consequence"]').fill('Lara apaga a única prova do aviso.');
+	const invalidChoiceFields = await page.locator('form.choice-grid').evaluate((form) =>
+		Array.from(form.querySelectorAll('input, textarea'))
+			.filter((field) => !field.checkValidity())
+			.map((field) => ({ name: field.getAttribute('name'), message: field.validationMessage })),
+	);
+	expect(invalidChoiceFields).toEqual([]);
 	await page.getByRole('button', { name: 'Salvar as duas opções' }).click();
+	await expect(page.getByText('2 de 2', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
 	await expect(page.getByText('READY', { exact: true })).toBeVisible();
 	await page.getByLabel(/Revisei texto, continuidade e cenas\./).check();
