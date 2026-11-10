@@ -1,35 +1,32 @@
-# Checkpoint Delta — CD03
+# Checkpoint Delta — CD04
 
 - **Work Order:** `DIF-MVP-ALL-001`
 - **Repository / branch / PR:** `KayzenRoot/dep-instfinal` / `feat/dif-studio-mvp-001` / Draft PR #14
-- **Audit base SHA revalidated:** `546353727d69b930f016b1faffa99d0e16bf6115`
-- **Implementation SHA:** `49665849f97fcb6f25064dcddff33dbe41decb13`
-- **Final code/test HEAD:** `1766b158c8a4e1054e6cb6c2a0c7a3aa79515d92`
-- **Hosted PR CI:** [`42881078808`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42881078808) — PASS
-- **Hosted push CI:** [`42881066718`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42881066718) — PASS
+- **CD04 base HEAD revalidated:** `34ab6b7c9156de054dfd4969e761d456cc4890c4`
+- **Implementation commit:** `3c560489788d0c1efaf16dd26d81b709daad4406`
+- **Final code/test HEAD:** `45840f9199783c251c4da8b10bff3fcda14de629`
+- **Hosted PR CI:** [run `42898556365`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898556365) — PASS
+- **Hosted push CI:** [run `42898547547`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898547547) — PASS
 - **Status:** **PROPOSED — NOT PROMOTED**
 - **Proposed verdict:** **BLOCKED — Work Order not complete**
 
-## CD03 delta
+## CD04 delta
 
-1. Added a PostgreSQL publication gate shared by the `set_episode_status` RPC and direct status transitions. If the immediately preceding episode exists and requires voting, continuation publication requires its poll to be closed and verified, its latest result to be verified with a valid winner, and the latest author-approved canonical decision to reference that exact result and episode. Database locking serializes this validation with result updates.
-2. Added clear user-facing messages for an open or unverified vote, a missing or invalid result, and a missing or stale canonical approval. A failed gate leaves the continuation in its existing draft/ready state; conditional branches remain `HYPOTHETICAL_NOT_CANON` and do not become canon automatically.
-3. Derived finale status from `planned_episode_count` in PostgreSQL, rejected episode numbers beyond the plan, and locked the season plan after episode creation. The final planned episode can be imported and published with zero choices and cannot open a poll; all other episodes still require exactly two distinct choices.
-4. Preserved CD01 owner-boundary protections and CD02 manual prompt/response import, verified-continuity context, separate hypothetical branches, and ZIP export behavior.
-5. Added PgTAP and E2E checks for premature publication, unverified and stale latest results, the matching approved decision, different branch contexts, and a finale imported/published without voting choices. Direct `INSERT`/`UPDATE` bypass attempts are covered by database tests.
+1. `assert_episode_publication_allowed` now rejects publication of every episode numbered above 1 when its immediately preceding episode is absent. The PostgreSQL assertion is shared by `set_episode_status` and direct status-transition triggers. Episode 1 remains publishable without a predecessor.
+2. Draft creation, edits, and imports remain available outside sequence. They do not update canon. The UI explains that the immediately preceding episode must be created and published before the continuation can publish.
+3. When the predecessor exists and requires a vote, CD03 validation remains unchanged: closed and verified poll, latest verified result with a valid winner, and explicit author approval for that exact result and episode. Out-of-order publication becomes possible only after the missing predecessor is published and its continuity is valid.
+4. PgTAP and authenticated E2E cover editable out-of-order drafts, missing-predecessor rejection through RPC and direct PostgreSQL update, publication after valid continuity, the complete episode 1–10 chain, and episode 10 import/publication with no choices or own vote. Other episodes retain two distinct choices.
+5. CD01–CD03 owner protection, manual verified voting, explicit append-only canon, hypothetical branches, context/export, and vote-free finale behavior remain covered.
 
 ## Validation
 
-- Hosted `npm run check:baseline`: **PASS** in PR run `42881078808` and push run `42881066718` at `1766b158`.
-- Hosted `npm run test:db`: **PASS** in both runs, including CD03 publication and finale constraints.
-- Hosted authenticated E2E: **PASS · 8/8, no retries** in both runs. The journey verifies pending publication, a revised result invalidating an older decision, publication after the matching approval, distinct hypothetical branches, episode 10 as the planned finale, finale publication without a poll, and rejection of finale poll creation.
-- Local `npm test`: **PASS · 23/23**; `npm run lint`, `npm run typecheck` (0 Svelte errors/warnings), `npm run build`, and `npm run audit:policy` (15 invariants across 14 tables): **PASS**.
-- Local `npm audit --audit-level=high`: **UNAVAILABLE on the latest run**; npm registry request ended with `socket hang up`. A prior successful audit found four LOW transitive `deepmerge` advisories. `npm audit fix --force` proposes a breaking SvelteKit downgrade and was not applied. The hosted baseline passed the configured high threshold on the final code/test SHA.
-- Local `npm run check:baseline`: **PARTIAL**; Windows `format:check` reports 13 files. Lint, typecheck, unit tests, build, and policy checks pass individually; the hosted baseline passes.
-- Local Supabase PgTAP/authenticated E2E: **BLOCKED locally** because Supabase was unavailable at `127.0.0.1:54322`; hosted PgTAP and 8/8 authenticated E2E are the successful evidence.
+- Hosted PR CI `42898556365` and push CI `42898547547`: **PASS** on code/test HEAD `45840f9`. Hosted baseline passed; PgTAP reported **20 tests, PASS**; authenticated Playwright reported **8 passed** with the owner continuity journey completed in 1.6 minutes. No E2E retries were reported.
+- The earlier CI attempt at `3c56048` failed because the PgTAP fixture tried to transition an already-`READY` out-of-order episode to `READY` again. The duplicate transition was removed; the complete CI passed at `45840f9`.
+- Local `npm run lint`, `npm run typecheck` (0 Svelte errors/warnings), `npm test` (**23/23**), `npm run build`, and `npm run audit:policy` (**15 invariants**) passed. `npm run audit:deps` exited successfully at the configured high threshold and listed four LOW transitive `deepmerge` advisories.
+- Local `npm run check:baseline` stops at Windows `format:check`, which reports 13 pre-existing files. The hosted baseline passed. Local PgTAP and authenticated E2E could not run because the Supabase stack was not active at `127.0.0.1:54322`; the hosted database and authenticated E2E passed.
 
 ## Gate
 
-The CD03 code, database, and authenticated browser checks pass at `1766b158c8a4e1054e6cb6c2a0c7a3aa79515d92`. Live Cloudinary acceptance, external backup/restore, and independent review remain essential pending gates. No account, service, credential, or billing was created. Keep PR #14 open and Draft, keep this checkpoint **PROPOSED — NOT PROMOTED**, and do not represent the Work Order or release as complete. No merge, deployment, spend, external provisioning, or promotion occurred.
+Live Cloudinary acceptance, external backup/restore, and independent review remain essential pending gates. CD04's code and hosted test suite pass, but the Work Order and release are not complete. Keep PR #14 open and Draft; keep this checkpoint **PROPOSED — NOT PROMOTED** with verdict **BLOCKED**. No merge, deployment, spend, external service, or checkpoint promotion occurred.
 
-CD01 and CD02 implementation/history remain in `docs/CONTEXT_LOCK.md`; full evidence and the enumerated Cloudinary acceptance steps remain in `docs/EVIDENCE_BUNDLE.md`.
+CD01–CD03 history remains in `docs/CONTEXT_LOCK.md`; detailed evidence and pending Cloudinary acceptance steps remain in `docs/EVIDENCE_BUNDLE.md`.

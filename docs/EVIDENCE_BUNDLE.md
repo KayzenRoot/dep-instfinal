@@ -1,18 +1,44 @@
 # DIF Studio — Evidence Bundle
 
 - **Work Order:** `DIF-MVP-ALL-001`
-- **Correction Delta:** `CD03`
+- **Correction Delta:** `CD04`
 - **Repository:** `KayzenRoot/dep-instfinal`
 - **Branch / PR:** `feat/dif-studio-mvp-001` / [Draft PR #14](https://github.com/KayzenRoot/dep-instfinal/pull/14)
-- **CD03 audit base SHA:** `546353727d69b930f016b1faffa99d0e16bf6115`
-- **CD03 implementation SHA:** `49665849f97fcb6f25064dcddff33dbe41decb13`
-- **CD03 final code/test HEAD:** `1766b158c8a4e1054e6cb6c2a0c7a3aa79515d92`
-- **Hosted PR CI:** [run `42881078808`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42881078808) — PASS
-- **Hosted push CI:** [run `42881066718`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42881066718) — PASS
+- **CD04 audit base SHA:** `34ab6b7c9156de054dfd4969e761d456cc4890c4`
+- **CD04 implementation commit:** `3c560489788d0c1efaf16dd26d81b709daad4406`
+- **CD04 final code/test HEAD:** `45840f9199783c251c4da8b10bff3fcda14de629`
+- **Hosted PR CI:** [run `42898556365`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898556365) — PASS
+- **Hosted push CI:** [run `42898547547`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898547547) — PASS
 - **Evidence date:** 2026-11-10
 - **Checkpoint Delta:** **PROPOSED — NOT PROMOTED**; see `docs/CHECKPOINT_DELTA.md`.
 
-## CD03 result
+## CD04 result
+
+PostgreSQL now rejects publication for every episode above number 1 if the immediate predecessor is missing. This assertion is shared by the `set_episode_status` RPC and direct status transitions. Creating, editing, and importing an out-of-sequence draft remain allowed; no poll result or hypothesis becomes canon automatically. The UI tells the owner to create and publish the immediately preceding episode first.
+
+Once that predecessor exists, all CD03 checks still apply when it requires a vote: the poll is closed and verified, the latest result is verified with a valid winner, and the latest explicit author-approved canonical decision refers to that exact result and episode. The 10-episode E2E journey publishes the previously blocked continuation only after the missing episode is published with verified voting and approved canon. Episode 10 still imports and publishes with no choices or own poll; every other episode requires two distinct choices.
+
+CD01/CD02 owner isolation, manual prompt/import and context/export coverage, and CD03 latest-result/canon and hypothetical branch behavior remain in scope and pass in the hosted suite.
+
+## CD04 verification record
+
+| Check                                                          | Result                       | Evidence / limit                                                                                                                                                                                                                                                |
+| -------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hosted baseline                                                | PASS                         | PR run `42898556365` and push run `42898547547` passed `npm run check:baseline` on code/test HEAD `45840f9`.                                                                                                                                                    |
+| Hosted PgTAP/RLS                                               | PASS · 20 tests              | `npm run test:db` passed on both hosted runs. Covers RPC and direct-write rejection when the predecessor is missing, draft editability without canon changes, valid sequential publication, and the vote-free season finale.                                    |
+| Hosted authenticated E2E                                       | PASS · 8/8                   | Both hosted runs passed. The owner journey covers an out-of-order editable draft, missing-predecessor publication block, publication after valid continuity, sequential episodes 1–10, distinct hypothetical branches, and finale 10 without choices or a poll. |
+| Local lint and typecheck                                       | PASS                         | `npm run lint`; `npm run typecheck` with 0 Svelte errors and warnings.                                                                                                                                                                                          |
+| Local unit tests                                               | PASS · 23/23                 | Seven Vitest files.                                                                                                                                                                                                                                             |
+| Local production build                                         | PASS                         | `npm run build`.                                                                                                                                                                                                                                                |
+| Local security policy                                          | PASS · 15 invariants         | `npm run audit:policy`, covering 14 owner-scoped public tables and policy invariants.                                                                                                                                                                           |
+| Dependency audit                                               | PASS at high threshold       | Local `npm run audit:deps` exited 0 and reported four LOW transitive `deepmerge` advisories. No breaking forced fix was applied.                                                                                                                                |
+| Local full baseline                                            | PARTIAL · format gate failed | `npm run check:baseline` stops at Windows `format:check`, reporting 13 existing workspace files. The hosted baseline passed.                                                                                                                                    |
+| Local PgTAP/authenticated E2E                                  | BLOCKED locally              | Local Supabase was not active at `127.0.0.1:54322`. Hosted PgTAP and authenticated E2E passed.                                                                                                                                                                  |
+| Cloudinary live acceptance, backup/restore, independent review | NOT RUN / PENDING            | Essential external gates remain pending; no service, account, credential, or backup destination was created.                                                                                                                                                    |
+
+The first CD04 CI run at `3c56048` exposed a repeated `READY` transition in the new out-of-order test fixture. The fixture was corrected at `45840f9`; both complete hosted workflows passed on that final code/test HEAD.
+
+## CD03 historical result
 
 Publication continuity is enforced in PostgreSQL and in `set_episode_status`. If the immediately preceding episode exists and requires a vote, the next episode remains unpublished until that poll is closed and verified, the latest verified result has a valid winner, and the owner's latest canonical decision approves that exact result and episode. Direct status writes receive the same database guard. The user sees which vote, result, or approval is still pending.
 
@@ -20,7 +46,7 @@ Conditional branches stay drafts and are marked `HYPOTHETICAL_NOT_CANON`; neithe
 
 CD03 adds PgTAP and authenticated E2E coverage for premature publication, an unverified latest result, a stale canonical decision, the approved latest decision, distinct branch contexts, and a vote-free final episode. CD01 owner isolation and CD02 manual prompt/import, continuity context, and export paths remain covered.
 
-## CD03 verification record
+## CD03 historical verification record
 
 | Check                                                          | Result                       | Evidence / limit                                                                                                                                                                                                                                                                |
 | -------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -85,4 +111,4 @@ The existing mocked tests cover owner-scoped lookup, private `READY` delivery, u
 
 ## Proposed verdict
 
-**BLOCKED — Work Order not complete.** CD03 code, database/RLS, and authenticated E2E checks passed on `1766b158c8a4e1054e6cb6c2a0c7a3aa79515d92`. Live Cloudinary account acceptance, external backup/restore, and independent review remain essential gates. Keep PR #14 Draft and the checkpoint **PROPOSED — NOT PROMOTED**. No merge, deployment, spend, external provisioning, or promotion occurred.
+**BLOCKED — Work Order not complete.** CD04 code, database/RLS, and authenticated E2E checks passed on `45840f9199783c251c4da8b10bff3fcda14de629`. Live Cloudinary account acceptance, external backup/restore, and independent review remain essential gates. Keep PR #14 Draft and the checkpoint **PROPOSED — NOT PROMOTED**. No merge, deployment, spend, external provisioning, or promotion occurred.
