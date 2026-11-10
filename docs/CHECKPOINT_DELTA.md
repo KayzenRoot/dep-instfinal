@@ -1,37 +1,35 @@
-# Checkpoint Delta — CD02
+# Checkpoint Delta — CD03
 
 - **Work Order:** `DIF-MVP-ALL-001`
 - **Repository / branch / PR:** `KayzenRoot/dep-instfinal` / `feat/dif-studio-mvp-001` / Draft PR #14
-- **Audit base SHA:** `a7cfc9edce735bd4d0900ca7de2b9e12c434bab4`
-- **Validated application and test SHA:** `68b4f867274e296a52c763851537ebf326f5eb8e`
-- **Hosted PR CI:** [`42833608157`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42833608157) — PASS
-- **Hosted push CI:** [`42833596156`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42833596156) — PASS
+- **Audit base SHA revalidated:** `546353727d69b930f016b1faffa99d0e16bf6115`
+- **Implementation SHA:** `49665849f97fcb6f25064dcddff33dbe41decb13`
+- **Final code/test HEAD:** `9537cc49cd2bbc2470211b87062aaab527c105f1`
+- **Hosted PR CI:** [`42869698167`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42869698167) — PASS
+- **Hosted push CI:** [`42869684557`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42869684557) — PASS
 - **Status:** **PROPOSED — NOT PROMOTED**
-- **Proposed verdict:** **BLOCKED**
+- **Proposed verdict:** **BLOCKED — Work Order not complete**
 
-## CD02 delta
+## CD03 delta
 
-1. Added one owner-filtered continuity context builder for the target draft and earlier published episodes. It carries series/season bible data, character states, lore statuses, narrative events, scene notes, both choices and consequences, poll results, and append-only canonical decisions.
-2. Continuity accepts a decision only when the poll is `VERIFIED`, the latest result is verified and has a winner, and the latest author decision refers to that exact result. Open polls, pending or missing results, missing approval, and stale decisions remain non-canonical.
-3. Branch 1 and branch 2 prompt exports build different hypothetical contexts and carry the explicit `HYPOTHETICAL_NOT_CANON` marker. The preview does not mutate the approved state.
-4. Added authenticated private prompt export with the complete context and a structured JSON response template. The owner can import a response after validation of required narrative fields, distinct labels/consequences, 90–150 second estimated duration, and configurable 80–220 word-per-minute speech speed.
-5. Added an owner-checked transactional RPC that saves the response, social copy, two choices, timeline, and one append-only episode revision. Import returns the episode to `DRAFT`; invalid choices roll back the content update.
-6. Episode ZIP export now includes `narrative/context.json`, a continuation prompt, and separate platform copy. Existing Cloudinary provider-boundary authorization, upload failure, orphan reconciliation, and export mocks remain.
-7. No official AI provider was confirmed eligible and configured. No AI request, private ChatGPT/Google Flow session, key creation, paid API, or billing was used. `ManualTextProvider` remains `NOT_CONFIGURED`; manual prompt export and validated response import work.
+1. Added a PostgreSQL publication gate shared by the `set_episode_status` RPC and direct status transitions. If the immediately preceding episode exists and requires voting, continuation publication requires its poll to be closed and verified, its latest result to be verified with a valid winner, and the latest author-approved canonical decision to reference that exact result and episode. Database locking serializes this validation with result updates.
+2. Added clear user-facing messages for an open or unverified vote, a missing or invalid result, and a missing or stale canonical approval. A failed gate leaves the continuation in its existing draft/ready state; conditional branches remain `HYPOTHETICAL_NOT_CANON` and do not become canon automatically.
+3. Derived finale status from `planned_episode_count` in PostgreSQL, rejected episode numbers beyond the plan, and locked the season plan after episode creation. The final planned episode can be imported and published with zero choices and cannot open a poll; all other episodes still require exactly two distinct choices.
+4. Preserved CD01 owner-boundary protections and CD02 manual prompt/response import, verified-continuity context, separate hypothetical branches, and ZIP export behavior.
+5. Added PgTAP and E2E checks for premature publication, unverified and stale latest results, the matching approved decision, different branch contexts, and a finale imported/published without voting choices. Direct `INSERT`/`UPDATE` bypass attempts are covered by database tests.
 
 ## Validation
 
-- `npm run check:baseline`: **PASS** — formatting, lint, typecheck, 23 unit tests, production build, 15 policy invariants, and high-severity dependency audit.
-- `npm run test:e2e`: **PASS** — 5 anonymous tests passed; 3 auth-dependent cases skipped without a local Supabase stack.
-- Hosted `npm run test:db`: **PASS** — PgTAP/RLS includes atomic manual import, invalid-import rollback, role grant checks, and rejection of canonization after a pending result supersedes a verified result.
-- Hosted authenticated E2E: **PASS · 8/8** — complete story/vote/canon/continuation/export journey, distinct branch contexts, no premature canon, prior facts retained, prompt/response import, and ZIP contents.
-- Hosted direct Supabase Data API: **PASS** — another authenticated user cannot read or insert owner data.
-- Local `npx supabase test db`: **BLOCKED** — connection refused at `127.0.0.1:54322`; the stack is not running and local disk had only 1.1 GB available. The hosted CI run is the successful database evidence.
-- `npm audit --audit-level=high`: **PASS**, with four existing transitive LOW advisories for `deepmerge`; the suggested forced fix would downgrade SvelteKit incompatibly and was not used.
-- Cloudinary live acceptance and backup/restore against a real external project: **NOT RUN**. No credentials/account were provided or created. Exact Cloudinary acceptance tests are listed in `docs/EVIDENCE_BUNDLE.md`.
+- Hosted `npm run check:baseline`: **PASS** in PR run `42869698167` and push run `42869684557` at `9537cc49`.
+- Hosted `npm run test:db`: **PASS** in both runs, including CD03 publication and finale constraints.
+- Hosted authenticated E2E: **PASS · 8/8** in both runs. The journey verifies pending publication, a revised result invalidating an older decision, publication after the matching approval, distinct hypothetical branches, finale publication without a poll, and rejection of finale poll creation.
+- Local `npm test`: **PASS · 23/23**; `npm run lint`, `npm run typecheck` (0 Svelte errors/warnings), `npm run build`, and `npm run audit:policy` (15 invariants across 14 tables): **PASS**.
+- Local `npm audit --audit-level=high`: **PASS** with four LOW transitive `deepmerge` advisories. `npm audit fix --force` proposes a breaking SvelteKit downgrade and was not applied.
+- Local `npm run check:baseline`: **PARTIAL**; Windows `format:check` reports 15 files. Other checks above were run individually, and the hosted baseline passes.
+- Local Supabase PgTAP/authenticated E2E: **BLOCKED locally** because Supabase was unavailable at `127.0.0.1:54322`; hosted PgTAP and 8/8 authenticated E2E are the successful evidence.
 
 ## Gate
 
-Hosted code, database/RLS, Data API, and browser checks passed on `68b4f86`. Live Cloudinary signing/upload/private delivery/reconciliation/export checks and independent review remain essential external gates. This task prohibits provisioning the account or creating credentials, so keep the release incomplete, the PR Draft, and this checkpoint **PROPOSED — NOT PROMOTED** with proposed verdict **BLOCKED**. No merge, deployment, spend, or automatic checkpoint promotion is authorized.
+The CD03 code, database, and authenticated browser checks pass at `9537cc49cd2bbc2470211b87062aaab527c105f1`. Live Cloudinary acceptance, external backup/restore, and independent review remain essential pending gates. No account, service, credential, or billing was created. Keep PR #14 open and Draft, keep this checkpoint **PROPOSED — NOT PROMOTED**, and do not represent the Work Order or release as complete. No merge, deployment, spend, external provisioning, or promotion occurred.
 
-CD01 history and repository provenance remain recorded in `docs/CONTEXT_LOCK.md`; full check evidence and exact Cloudinary acceptance steps are in `docs/EVIDENCE_BUNDLE.md`.
+CD01 and CD02 implementation/history remain in `docs/CONTEXT_LOCK.md`; full evidence and the enumerated Cloudinary acceptance steps remain in `docs/EVIDENCE_BUNDLE.md`.

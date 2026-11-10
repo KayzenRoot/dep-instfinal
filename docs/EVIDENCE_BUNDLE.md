@@ -1,17 +1,41 @@
 # DIF Studio — Evidence Bundle
 
 - **Work Order:** `DIF-MVP-ALL-001`
-- **Correction Delta:** `CD02`
+- **Correction Delta:** `CD03`
 - **Repository:** `KayzenRoot/dep-instfinal`
 - **Branch / PR:** `feat/dif-studio-mvp-001` / [Draft PR #14](https://github.com/KayzenRoot/dep-instfinal/pull/14)
-- **CD02 audit base SHA:** `a7cfc9edce735bd4d0900ca7de2b9e12c434bab4`
-- **CD02 code/test SHA:** `68b4f867274e296a52c763851537ebf326f5eb8e`
-- **Hosted PR CI:** [run `42833608157`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42833608157) — PASS
-- **Hosted push CI:** [run `42833596156`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42833596156) — PASS
+- **CD03 audit base SHA:** `546353727d69b930f016b1faffa99d0e16bf6115`
+- **CD03 implementation SHA:** `49665849f97fcb6f25064dcddff33dbe41decb13`
+- **CD03 final code/test HEAD:** `9537cc49cd2bbc2470211b87062aaab527c105f1`
+- **Hosted PR CI:** [run `42869698167`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42869698167) — PASS
+- **Hosted push CI:** [run `42869684557`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42869684557) — PASS
 - **Evidence date:** 2026-11-10
 - **Checkpoint Delta:** **PROPOSED — NOT PROMOTED**; see `docs/CHECKPOINT_DELTA.md`.
 
-## CD02 result
+## CD03 result
+
+Publication continuity is enforced in PostgreSQL and in `set_episode_status`. If the immediately preceding episode exists and requires a vote, the next episode remains unpublished until that poll is closed and verified, the latest verified result has a valid winner, and the owner's latest canonical decision approves that exact result and episode. Direct status writes receive the same database guard. The user sees which vote, result, or approval is still pending.
+
+Conditional branches stay drafts and are marked `HYPOTHETICAL_NOT_CANON`; neither a pending vote nor a revised result is adopted as canon automatically. The finale is derived from the season plan, and that plan cannot change after episodes are created. The final planned episode can be imported and published with zero voting choices and cannot open a poll. Every other episode still requires two distinct options.
+
+CD03 adds PgTAP and authenticated E2E coverage for premature publication, an unverified latest result, a stale canonical decision, the approved latest decision, distinct branch contexts, and a vote-free final episode. CD01 owner isolation and CD02 manual prompt/import, continuity context, and export paths remain covered.
+
+## CD03 verification record
+
+| Check | Result | Evidence / limit |
+| --- | --- | --- |
+| Hosted baseline | PASS | PR run `42869698167` and push run `42869684557`; `check:baseline` passed on HEAD `9537cc49`. |
+| Hosted PgTAP/RLS | PASS | Both hosted runs passed `npm run test:db`, including database transition protection, latest-result/canon checks, season-finale exception, and direct table-write rejection. |
+| Hosted authenticated E2E | PASS · 8/8 | Both hosted runs passed; exercises pending publication, stale result, corrected approval, branch 1/2 differences, import/publish of finale 12 without choices, and rejection of a poll for the finale. |
+| Local unit tests | PASS · 23/23 | Seven Vitest files. |
+| Local lint and typecheck | PASS | `npm run lint`; `npm run typecheck` with 0 Svelte errors and warnings. |
+| Local production build | PASS | `npm run build`. |
+| Security policy and dependency audit | PASS at configured gates | 15 policy invariants across 14 tables; `npm audit --audit-level=high` exits 0 with four LOW transitive `deepmerge` advisories. |
+| Local full baseline | PARTIAL · format gate failed | Windows `format:check` reported 15 files; lint, typecheck, tests, build, and security checks were run separately. Hosted baseline passed. |
+| Local PgTAP/authenticated E2E | BLOCKED locally | Local Supabase was unavailable at `127.0.0.1:54322`; the hosted database and authenticated browser checks passed. |
+| Cloudinary live acceptance, backup/restore, independent review | NOT RUN / PENDING | These essential external gates require an owner-selected service/account and review. No external service or credentials were created. |
+
+## CD02 historical result
 
 The next-episode preparation now loads the owner’s series and season bible, all characters and lore statuses, and every earlier published episode’s story, scenes, choices, consequences, poll revisions, and canonical decisions. A previous decision is applied only when the poll and latest result are verified, the result has a winner, and the owner’s latest decision points to that exact result. Open polls, pending results, missing approvals, and stale decisions remain non-canonical.
 
@@ -21,7 +45,7 @@ No official AI provider was both confirmed eligible and configured for this repo
 
 CD01 owner-only protections remain in place: all 14 exposed tables have forced owner-scoped RLS with the signed App Metadata claim; server routes verify the configured owner UID. The hosted Data API check still verifies that a different authenticated user cannot read or create owner data.
 
-## Verification record
+## CD02 historical verification record
 
 | Check                                    | Result                                    | Evidence / limit                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ---------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -36,7 +60,7 @@ CD01 owner-only protections remain in place: all 14 exposed tables have forced o
 | Dependency audit                         | PASS at high threshold · 4 LOW advisories | `deepmerge` is a transitive advisory through the Svelte/Vite plugin chain. `npm audit --audit-level=high` exits 0. `npm audit fix --force` proposes a breaking SvelteKit downgrade and was not applied.                                                                                                                                                                                                                                    |
 | Backup/restore                           | NOT RUN                                   | No external Supabase project or backup destination was provisioned.                                                                                                                                                                                                                                                                                                                                                                        |
 
-Both hosted workflows passed on CD02 code SHA `68b4f867274e296a52c763851537ebf326f5eb8e`: baseline, Supabase startup, PgTAP/RLS, authenticated Data API checks, the 8/8 authenticated browser journey, and artifact upload. CI uses synthetic accounts only in its disposable local Supabase stack.
+Both hosted CD02 workflows passed on code SHA `68b4f867274e296a52c763851537ebf326f5eb8e`: baseline, Supabase startup, PgTAP/RLS, authenticated Data API checks, the 8/8 authenticated browser journey, and artifact upload. This is historical CD02 evidence; CD03 results are recorded above. CI uses synthetic accounts only in its disposable local Supabase stack.
 
 ## Cloudinary acceptance pending a real account
 
@@ -61,4 +85,4 @@ The existing mocked tests cover owner-scoped lookup, private `READY` delivery, u
 
 ## Proposed verdict
 
-**BLOCKED.** CD02 code, database/RLS, authenticated Data API, and authenticated E2E checks passed. Live Cloudinary account acceptance and independent review remain essential gates, and the current task explicitly prohibits creating credentials, provisioning a service, or activating billing. Keep PR #14 Draft and the checkpoint **PROPOSED — NOT PROMOTED**. No merge, deployment, spend, or promotion is authorized.
+**BLOCKED — Work Order not complete.** CD03 code, database/RLS, and authenticated E2E checks passed on `9537cc49cd2bbc2470211b87062aaab527c105f1`. Live Cloudinary account acceptance, external backup/restore, and independent review remain essential gates. Keep PR #14 Draft and the checkpoint **PROPOSED — NOT PROMOTED**. No merge, deployment, spend, external provisioning, or promotion occurred.
