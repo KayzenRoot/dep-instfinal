@@ -1,5 +1,26 @@
 -- CD03: enforce publication continuity in PostgreSQL and allow vote-free finales.
 
+create or replace function public.prevent_season_plan_change_after_episode_creation()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public
+as $$
+begin
+  if new.planned_episode_count is distinct from old.planned_episode_count and exists (
+    select 1 from public.episodes e
+    where e.owner_id = old.owner_id and e.season_id = old.id
+  ) then
+    raise exception 'season_plan_locked_after_episode_creation' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.prevent_season_plan_change_after_episode_creation() from public, anon, authenticated;
+create trigger prevent_season_plan_change_after_episode_creation
+before update of planned_episode_count on public.seasons
+for each row execute function public.prevent_season_plan_change_after_episode_creation();
+
 create or replace function public.sync_episode_finale_from_season()
 returns trigger
 language plpgsql

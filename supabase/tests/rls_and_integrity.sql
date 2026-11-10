@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(13);
+select plan(14);
 
 do $$
 declare
@@ -62,6 +62,11 @@ insert into public.seasons (id, series_id, season_number, title)
 values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 1, 'Season one');
 insert into public.episodes (id, season_id, episode_number, title, duration_ms)
 values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 1, 'Pilot', 90000);
+select throws_ok(
+  $$update public.seasons set planned_episode_count = 13 where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';$$,
+  '23514', 'season_plan_locked_after_episode_creation',
+  'the planned finale cannot change after an episode establishes the season structure'
+);
 
 insert into public.scenes (owner_id, episode_id, scene_index, start_ms, end_ms)
 select '11111111-1111-4111-8111-111111111111',
