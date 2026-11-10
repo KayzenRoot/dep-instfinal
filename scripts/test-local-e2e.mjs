@@ -61,7 +61,7 @@ const ownerPassword = randomBytes(24).toString('base64url');
 const otherEmail = `non-owner-${runId}@example.test`;
 const otherPassword = randomBytes(24).toString('base64url');
 
-async function createLocalUser(email, password) {
+async function createLocalUser(email, password, isOwner = false) {
 	const response = await fetch(new URL('/auth/v1/admin/users', apiUrl), {
 		method: 'POST',
 		headers: {
@@ -69,7 +69,12 @@ async function createLocalUser(email, password) {
 			Authorization: `Bearer ${localEnvironment.SERVICE_ROLE_KEY}`,
 			'content-type': 'application/json',
 		},
-		body: JSON.stringify({ email, password, email_confirm: true }),
+		body: JSON.stringify({
+			email,
+			password,
+			email_confirm: true,
+			app_metadata: isOwner ? { dif_studio_owner: true } : {},
+		}),
 	});
 	if (!response.ok) {
 		throw new Error(`The local Auth admin endpoint returned HTTP ${response.status}.`);
@@ -102,12 +107,45 @@ async function verifyLocalPasswordGrant(email, password, expectedUserId) {
 	if (session.user?.id !== expectedUserId) {
 		throw new Error('Local Auth returned an unexpected synthetic identity.');
 	}
+	return session.access_token;
 }
 
-const ownerId = await createLocalUser(ownerEmail, ownerPassword);
+const ownerId = await createLocalUser(ownerEmail, ownerPassword, true);
 const otherId = await createLocalUser(otherEmail, otherPassword);
-await verifyLocalPasswordGrant(ownerEmail, ownerPassword, ownerId);
-await verifyLocalPasswordGrant(otherEmail, otherPassword, otherId);
+const ownerToken = await verifyLocalPasswordGrant(ownerEmail, ownerPassword, ownerId);
+const otherToken = await verifyLocalPasswordGrant(otherEmail, otherPassword, otherId);
+
+async function postgrest(path, accessToken, method, body) {
+	return fetch(new URL(`/rest/v1/${path}`, apiUrl), {
+		method,
+		headers: {
+			apikey: localEnvironment.ANON_KEY,
+			Authorization: `Bearer ${accessToken}`,
+			'content-type': 'application/json',
+			Prefer: 'return=representation',
+		},
+		...(body ? { body: JSON.stringify(body) } : {}),
+	});
+}
+
+const dataApiOwnerWrite = await postgrest('series?select=id,title', ownerToken, 'POST', {
+	title: `RLS Data API ${runId}`,
+});
+if (!dataApiOwnerWrite.ok) {
+	throw new Error(
+		`The owner identity could not write through the Supabase Data API (HTTP ${dataApiOwnerWrite.status}).`,
+	);
+}
+const dataApiOtherRead = await postgrest('series?select=id,title', otherToken, 'GET');
+if (!dataApiOtherRead.ok || (await dataApiOtherRead.json()).length !== 0) {
+	throw new Error('The non-owner identity could read owner records through the Supabase Data API.');
+}
+const dataApiOtherWrite = await postgrest('series?select=id', otherToken, 'POST', {
+	title: `Non-owner attempt ${runId}`,
+});
+if (dataApiOtherWrite.ok) {
+	throw new Error('The non-owner identity could write through the Supabase Data API.');
+}
 
 const childEnvironment = {
 	PATH: process.env.PATH,

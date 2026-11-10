@@ -32,7 +32,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 			const { data, error: authError } = await supabase.auth.getUser();
 			if (!authError && data.user) {
 				event.locals.supabaseUser = data.user;
-				if (data.user.id === config.ownerUserId) event.locals.owner = data.user;
+				if (
+					data.user.id === config.ownerUserId &&
+					data.user.app_metadata?.dif_studio_owner === true
+				)
+					event.locals.owner = data.user;
 			}
 		} catch {
 			// A failed remote auth check fails closed; protected pages will redirect to login.

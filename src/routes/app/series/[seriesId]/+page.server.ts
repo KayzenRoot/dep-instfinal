@@ -94,9 +94,14 @@ export const actions: Actions = {
 			return fail(400, {
 				message: 'Informe temporada, título e um plano entre 10 e 15 episódios.',
 			});
-		const { error: insertError } = await db
-			.from('seasons')
-			.insert({ ...parsed.data, owner_id: owner.id });
+		const { error: insertError } = await db.from('seasons').insert({
+			owner_id: owner.id,
+			series_id: parsed.data.seriesId,
+			season_number: parsed.data.seasonNumber,
+			title: parsed.data.title,
+			planned_episode_count: parsed.data.plannedEpisodeCount,
+			summary: parsed.data.summary,
+		});
 		if (insertError)
 			return fail(409, {
 				message: 'Não foi possível criar a temporada. Verifique se o número já existe.',
@@ -172,9 +177,17 @@ export const actions: Actions = {
 			arcNotes: readFormText(form, 'arcNotes'),
 		});
 		if (!parsed.success) return fail(400, { message: 'Informe ao menos o nome do personagem.' });
-		const { error: insertError } = await db
-			.from('characters')
-			.insert({ ...parsed.data, season_id: parsed.data.seasonId || null, owner_id: owner.id });
+		const { error: insertError } = await db.from('characters').insert({
+			owner_id: owner.id,
+			series_id: parsed.data.seriesId,
+			season_id: parsed.data.seasonId || null,
+			name: parsed.data.name,
+			role: parsed.data.role,
+			description: parsed.data.description,
+			visual_description: parsed.data.visualDescription,
+			voice_notes: parsed.data.voiceNotes,
+			arc_notes: parsed.data.arcNotes,
+		});
 		if (insertError) return fail(500, { message: 'Não foi possível salvar o personagem.' });
 		return { characterCreated: true };
 	},
@@ -193,9 +206,16 @@ export const actions: Actions = {
 		});
 		if (!parsed.success)
 			return fail(400, { message: 'Revise a categoria, o título e o fato de continuidade.' });
-		const { error: insertError } = await db
-			.from('lore_facts')
-			.insert({ ...parsed.data, season_id: parsed.data.seasonId || null, owner_id: owner.id });
+		const { error: insertError } = await db.from('lore_facts').insert({
+			owner_id: owner.id,
+			series_id: parsed.data.seriesId,
+			season_id: parsed.data.seasonId || null,
+			category: parsed.data.category,
+			title: parsed.data.title,
+			fact: parsed.data.fact,
+			importance: parsed.data.importance,
+			status: parsed.data.status,
+		});
 		if (insertError) return fail(500, { message: 'Não foi possível salvar o fato.' });
 		return { loreCreated: true };
 	},

@@ -69,7 +69,9 @@ test('cross-origin mutations are rejected before reaching their handlers', async
 	expect(response.status()).toBe(403);
 });
 
-test('a valid owner can persist a series across a new session', async ({ page }) => {
+test('owner completes series, episode, voting, canon, continuation, and export journey', async ({
+	page,
+}) => {
 	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
 	await page.goto('/login');
 	await page.getByLabel('E-mail do proprietário').fill(process.env.E2E_OWNER_EMAIL!);
@@ -81,6 +83,74 @@ test('a valid owner can persist a series across a new session', async ({ page })
 	await page.getByRole('button', { name: /Abrir novo arquivo/ }).click();
 	await expect(page).toHaveURL(/\/app\/series\/[0-9a-f-]+$/);
 	await expect(page.getByRole('heading', { name: 'Arquivo E2E persistido' })).toBeVisible();
+	const seriesUrl = page.url();
+	await page.getByLabel('Número', { exact: true }).fill('1');
+	await page.getByLabel('Episódios planejados').fill('12');
+	await page.getByLabel('Título', { exact: true }).nth(1).fill('Temporada um');
+	await page.getByRole('button', { name: 'Adicionar temporada' }).click();
+	await expect(page.getByText('Temporada um')).toBeVisible();
+	await page.getByLabel('Nome').fill('Lara E2E');
+	await page.getByLabel('Papel na história').fill('Arquivista');
+	await page.getByRole('button', { name: 'Salvar personagem' }).click();
+	await expect(page.getByText('Lara E2E')).toBeVisible();
+	await page.getByLabel('Categoria').selectOption('RULE');
+	await page.getByLabel('Título', { exact: true }).last().fill('Regra do arquivo');
+	await page.getByLabel('Fato').fill('Uma fita não pode gravar o futuro.');
+	await page.getByRole('button', { name: 'Registrar fato' }).click();
+	await expect(page.getByText('Regra do arquivo')).toBeVisible();
+	await page.getByPlaceholder('Título do episódio').fill('A fita de amanhã');
+	await page.getByLabel('Duração').fill('120');
+	await page.getByRole('button', { name: 'Criar rascunho' }).click();
+	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
+	const firstEpisodeUrl = page.url();
+	const firstEpisodeId = firstEpisodeUrl.split('/').at(-1)!;
+	await expect(page.getByText('120 s · 15 cenas')).toBeVisible();
+	await page.getByLabel('Título', { exact: true }).fill('A fita de amanhã');
+	await page.getByLabel('Narrativa').fill('Lara encontra uma fita gravada com sua própria voz.');
+	await page
+		.getByLabel('Narração completa · português brasileiro')
+		.fill('A fita começa a tocar antes de ser ligada.');
+	await page.getByRole('button', { name: 'Salvar roteiro e revisar timeline' }).click();
+	await page.locator('[name="option1Label"]').fill('Ouvir a fita');
+	await page.locator('[name="option1Consequence"]').fill('Lara ouve o aviso sobre o arquivo.');
+	await page.locator('[name="option2Label"]').fill('Destruir a fita');
+	await page.locator('[name="option2Consequence"]').fill('Lara apaga a única prova do aviso.');
+	await page.getByRole('button', { name: 'Salvar as duas opções' }).click();
+	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
+	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await page.getByLabel(/Revisei texto, continuidade e cenas\./).check();
+	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
+	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
+	await page.getByLabel('Referência do post').fill('manual-e2e');
+	await page.getByLabel('Horas até encerrar').fill('1');
+	await page
+		.getByLabel('Regra publicada para desempate')
+		.fill('A opção 1 vence em caso de empate.');
+	await page.getByRole('button', { name: 'Abrir registro da votação' }).click();
+	await page.getByRole('button', { name: 'Registrar encerramento manual' }).click();
+	await page.getByLabel('Votos · opção 1').fill('14');
+	await page.getByLabel('Votos · opção 2').fill('9');
+	await page.getByLabel('Fonte consultada').fill('Contagem sintética da aceitação E2E');
+	await page.getByLabel(/Conferi estes totais/).check();
+	await page.getByRole('button', { name: 'Salvar resultado verificado' }).click();
+	await expect(page.getByText('Vence opção 1')).toBeVisible();
+	await page.locator('[name="canonSnapshot"]').fill('{"ramo":"Lara ouviu o aviso"}');
+	await page.getByLabel('Justificativa da autora').fill('Aprovado para esta aceitação sintética.');
+	await page.getByLabel(/Revisei e aprovo este estado como novo cânone/).check();
+	await page.getByRole('button', { name: 'Registrar decisão append-only' }).click();
+	await expect(page.getByText('DECISÃO R01')).toBeVisible();
+	await page.goto(seriesUrl);
+	await page.getByPlaceholder('Título do episódio').fill('O aviso continua');
+	await page.locator('[name="episodeNumber"]').fill('2');
+	await page.getByRole('button', { name: 'Criar rascunho' }).click();
+	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
+	const continuationId = page.url().split('/').at(-1)!;
+	expect(continuationId).not.toBe(firstEpisodeId);
+	const exportResponse = await page.request.get(`/api/export/${continuationId}`);
+	expect(exportResponse.status()).toBe(200);
+	expect(exportResponse.headers()['content-type']).toContain('application/zip');
+	const archive = Buffer.from(await exportResponse.body());
+	expect(archive.subarray(0, 2).toString()).toBe('PK');
 	await page.goto('/app');
 	await page.getByRole('button', { name: 'Encerrar sessão' }).click();
 	await expect(page).toHaveURL(/\/login\?logged-out=1$/);

@@ -119,11 +119,13 @@ export const POST: RequestHandler = async (event) => {
 	try {
 		uploadResult = await uploadAuthenticated(bytes, publicId);
 	} catch {
-		await db
+		const { error: statusError } = await db
 			.from('media_assets')
-			.update({ upload_status: 'FAILED', safe_error_code: 'CLOUDINARY_UPLOAD_FAILED' })
+			.update({ upload_status: 'ORPHANED', safe_error_code: 'CLOUDINARY_UPLOAD_OUTCOME_UNKNOWN' })
 			.eq('id', placeholder.id)
 			.eq('owner_id', owner.id);
+		if (statusError)
+			error(503, 'O resultado do upload é incerto; o registro precisa de reconciliação.');
 		redirect(303, '/app/library?upload=failed');
 	}
 	const { error: finalizeError } = await db
@@ -143,18 +145,28 @@ export const POST: RequestHandler = async (event) => {
 		.eq('id', placeholder.id)
 		.eq('owner_id', owner.id);
 	if (finalizeError) {
+		let cloudinaryRemoved = false;
 		try {
-			await cloudinary.uploader.destroy(publicId, {
+			const destroyResult = await cloudinary.uploader.destroy(publicId, {
 				resource_type: 'image',
 				type: 'authenticated',
 				invalidate: true,
 			});
-			await db
-				.from('media_assets')
-				.update({ upload_status: 'FAILED', safe_error_code: 'METADATA_FINALIZATION_FAILED' })
-				.eq('id', placeholder.id)
-				.eq('owner_id', owner.id);
+			cloudinaryRemoved = destroyResult.result === 'ok' || destroyResult.result === 'not found';
 		} catch {
+			// The default is false: keep the database record available for reconciliation.
+		}
+		const { error: recoveryError } = await db
+			.from('media_assets')
+			.update({
+				upload_status: cloudinaryRemoved ? 'FAILED' : 'ORPHANED',
+				safe_error_code: cloudinaryRemoved
+					? 'METADATA_FINALIZATION_FAILED'
+					: 'CLOUDINARY_CLEANUP_FAILED',
+			})
+			.eq('id', placeholder.id)
+			.eq('owner_id', owner.id);
+		if (recoveryError) {
 			await db
 				.from('media_assets')
 				.update({ upload_status: 'ORPHANED', safe_error_code: 'METADATA_FINALIZATION_FAILED' })

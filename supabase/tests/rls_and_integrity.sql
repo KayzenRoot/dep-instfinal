@@ -14,6 +14,7 @@ declare
   ];
   v_rls boolean;
   v_policy_count integer;
+  v_unguarded_policy_count integer;
 begin
   foreach v_table in array v_tables loop
     select c.relrowsecurity into v_rls
@@ -26,6 +27,13 @@ begin
     select count(*) into v_policy_count from pg_catalog.pg_policies p
     where p.schemaname = 'public' and p.tablename = v_table
       and p.policyname in ('owner_select', 'owner_insert', 'owner_update', 'owner_delete');
+    select count(*) into v_unguarded_policy_count from pg_catalog.pg_policies p
+    where p.schemaname = 'public' and p.tablename = v_table
+      and p.policyname in ('owner_select', 'owner_insert', 'owner_update', 'owner_delete')
+      and (coalesce(p.qual, '') || coalesce(p.with_check, '')) not ilike '%dif_studio_owner%';
+    if v_unguarded_policy_count <> 0 then
+      raise exception 'owner claim missing from RLS policy on public.%', v_table;
+    end if;
     if v_table in ('episode_revisions', 'poll_results', 'canonical_decisions') then
       if v_policy_count <> 2 then raise exception 'append-only policies missing for public.%', v_table; end if;
       if has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
@@ -46,7 +54,7 @@ end;
 $$;
 
 set local role authenticated;
-select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
 
 insert into public.series (id, title, premise)
 values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'RLS test series', 'Synthetic owner-only fixture');
@@ -139,13 +147,26 @@ begin
 end;
 $$;
 
-select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-222222222222', true);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{}}', true);
 
 do $$
 begin
   if exists (select 1 from public.series where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') then
     raise exception 'second owner read another owner series';
   end if;
+  begin
+    insert into public.series (owner_id, title)
+    values ('22222222-2222-4222-8222-222222222222', 'Unmarked user must not write');
+    raise exception 'authenticated user without owner claim unexpectedly inserted its own data';
+  exception when insufficient_privilege then
+    null;
+  end;
+  begin
+    perform public.set_episode_status('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'READY');
+    raise exception 'unmarked authenticated user unexpectedly called a privileged RPC';
+  exception when insufficient_privilege then
+    null;
+  end;
   begin
     insert into public.series (id, owner_id, title)
     values ('99999999-9999-4999-8999-999999999999', '11111111-1111-4111-8111-111111111111', 'Spoofed owner');
@@ -161,6 +182,6 @@ begin
 end;
 $$;
 
-select pass('owner RLS, append-only history, revisions, voting, and immutable publication invariants hold');
+select pass('single-owner RLS, append-only history, revisions, voting, and immutable publication invariants hold');
 select * from finish();
 rollback;

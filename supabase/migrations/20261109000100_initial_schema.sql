@@ -653,7 +653,9 @@ declare
   v_episode public.episodes;
   v_revision_number integer;
 begin
-  if v_owner_id is null then raise exception 'owner_auth_required' using errcode = '42501'; end if;
+  if v_owner_id is null or (select auth.jwt() -> 'app_metadata' ->> 'dif_studio_owner') is distinct from 'true' then
+    raise exception 'owner_auth_required' using errcode = '42501';
+  end if;
   select e.* into v_episode from public.episodes e
   where e.owner_id = v_owner_id and e.id = p_episode_id for update;
   if not found then raise exception 'episode_not_found' using errcode = 'P0002'; end if;
@@ -698,7 +700,9 @@ declare
   v_scene_count integer;
   v_scene integer;
 begin
-  if v_owner_id is null then raise exception 'owner_auth_required' using errcode = '42501'; end if;
+  if v_owner_id is null or (select auth.jwt() -> 'app_metadata' ->> 'dif_studio_owner') is distinct from 'true' then
+    raise exception 'owner_auth_required' using errcode = '42501';
+  end if;
   if p_duration_ms not between 90000 and 150000 then raise exception 'episode_duration_out_of_range' using errcode = '23514'; end if;
   select e.* into v_episode from public.episodes e
   where e.owner_id = v_owner_id and e.id = p_episode_id for update;
@@ -741,7 +745,9 @@ declare
   v_owner_id uuid := auth.uid();
   v_episode_id uuid;
 begin
-  if v_owner_id is null then raise exception 'owner_auth_required' using errcode = '42501'; end if;
+  if v_owner_id is null or (select auth.jwt() -> 'app_metadata' ->> 'dif_studio_owner') is distinct from 'true' then
+    raise exception 'owner_auth_required' using errcode = '42501';
+  end if;
   if p_start_asset_id is not null and p_start_asset_id = p_end_asset_id then
     raise exception 'frame_assets_must_be_distinct' using errcode = '23514';
   end if;
@@ -772,7 +778,9 @@ declare
   v_owner_id uuid := auth.uid();
   v_episode_id uuid;
 begin
-  if v_owner_id is null then raise exception 'owner_auth_required' using errcode = '42501'; end if;
+  if v_owner_id is null or (select auth.jwt() -> 'app_metadata' ->> 'dif_studio_owner') is distinct from 'true' then
+    raise exception 'owner_auth_required' using errcode = '42501';
+  end if;
   select s.episode_id into v_episode_id from public.scenes s
   join public.episodes e on e.owner_id = s.owner_id and e.id = s.episode_id
   where s.owner_id = v_owner_id and s.id = p_scene_id and e.status <> 'PUBLISHED' for update of e;
@@ -803,7 +811,9 @@ as $$
 declare
   v_owner_id uuid := auth.uid();
 begin
-  if v_owner_id is null then raise exception 'owner_auth_required' using errcode = '42501'; end if;
+  if v_owner_id is null or (select auth.jwt() -> 'app_metadata' ->> 'dif_studio_owner') is distinct from 'true' then
+    raise exception 'owner_auth_required' using errcode = '42501';
+  end if;
   if lower(btrim(p_option_1_label)) = lower(btrim(p_option_2_label))
     or lower(btrim(p_option_1_consequence)) = lower(btrim(p_option_2_consequence)) then
     raise exception 'episode_choices_must_differ' using errcode = '23514';
@@ -828,7 +838,9 @@ declare
   v_old_status text;
   v_revision_number integer;
 begin
-  if v_owner_id is null then raise exception 'owner_auth_required' using errcode = '42501'; end if;
+  if v_owner_id is null or (select auth.jwt() -> 'app_metadata' ->> 'dif_studio_owner') is distinct from 'true' then
+    raise exception 'owner_auth_required' using errcode = '42501';
+  end if;
   if p_status not in ('READY', 'PUBLISHED') then raise exception 'invalid_episode_status_transition' using errcode = '23514'; end if;
   select e.status into v_old_status from public.episodes e
   where e.owner_id = v_owner_id and e.id = p_episode_id for update;
@@ -883,13 +895,13 @@ begin
     execute format('alter table public.%I enable row level security', v_table);
     execute format('alter table public.%I force row level security', v_table);
     execute format('revoke all on table public.%I from public, anon', v_table);
-    execute format('create policy owner_select on public.%I for select to authenticated using (owner_id = (select auth.uid()))', v_table);
-    execute format('create policy owner_insert on public.%I for insert to authenticated with check (owner_id = (select auth.uid()))', v_table);
+    execute format('create policy owner_select on public.%I for select to authenticated using (owner_id = (select auth.uid()) and (select auth.jwt() -> ''app_metadata'' ->> ''dif_studio_owner'') = ''true'')', v_table);
+    execute format('create policy owner_insert on public.%I for insert to authenticated with check (owner_id = (select auth.uid()) and (select auth.jwt() -> ''app_metadata'' ->> ''dif_studio_owner'') = ''true'')', v_table);
     if v_table = any(v_append_only) then
       execute format('grant select, insert on table public.%I to authenticated', v_table);
     else
-      execute format('create policy owner_update on public.%I for update to authenticated using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()))', v_table);
-      execute format('create policy owner_delete on public.%I for delete to authenticated using (owner_id = (select auth.uid()))', v_table);
+      execute format('create policy owner_update on public.%I for update to authenticated using (owner_id = (select auth.uid()) and (select auth.jwt() -> ''app_metadata'' ->> ''dif_studio_owner'') = ''true'') with check (owner_id = (select auth.uid()) and (select auth.jwt() -> ''app_metadata'' ->> ''dif_studio_owner'') = ''true'')', v_table);
+      execute format('create policy owner_delete on public.%I for delete to authenticated using (owner_id = (select auth.uid()) and (select auth.jwt() -> ''app_metadata'' ->> ''dif_studio_owner'') = ''true'')', v_table);
       execute format('grant select, insert, update, delete on table public.%I to authenticated', v_table);
     end if;
   end loop;

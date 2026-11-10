@@ -15,6 +15,12 @@
 	description="Quadros originais ficam no Cloudinary autenticado. O banco guarda somente metadados e vínculos."
 />
 {#if form?.message}<p class="form-error" role="alert">{form.message}</p>{/if}
+{#if form?.reconciled}<p class="form-success" role="status">
+		Registro reconciliado com Cloudinary e imagem revalidada.
+	</p>{:else if form?.reconciled === false}<p class="form-error" role="status">
+		O ativo não foi encontrado no Cloudinary ou a consulta falhou. O estado foi preservado para nova
+		conferência.
+	</p>{/if}
 {#if data.uploadState === 'success'}<p class="form-success" role="status">
 		Imagem validada e armazenada com acesso autenticado.
 	</p>{:else if data.uploadState === 'failed'}<p class="form-error" role="status">
@@ -115,6 +121,13 @@
 							>{/if}<time datetime={asset.created_at}
 							>{new Date(asset.created_at).toLocaleString('pt-BR')}</time
 						>
+						{#if data.cloudinaryConfigured && ['UPLOADING', 'FAILED', 'ORPHANED'].includes(asset.upload_status)}<form
+								method="POST"
+								action="?/reconcileAsset"
+							>
+								<input type="hidden" name="assetId" value={asset.id} />
+								<button type="submit">Conferir com Cloudinary</button>
+							</form>{/if}
 					</div>
 				</article>{/each}
 		</div>{:else}<Panel
@@ -274,6 +287,15 @@
 	.asset-meta .error-code {
 		color: #ed9aaa;
 		font-family: var(--mono);
+	}
+	.asset-meta form button {
+		padding: 0.35rem 0.5rem;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-sm);
+		background: #0b0d10;
+		color: var(--ink);
+		font-size: 0.68rem;
+		cursor: pointer;
 	}
 	.form-error,
 	.form-success {

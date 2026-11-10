@@ -6,6 +6,7 @@ const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
 const mediaDownload = await readFile('src/routes/api/media/[assetId]/+server.ts', 'utf8');
+const mediaLibrary = await readFile('src/routes/app/library/+page.server.ts', 'utf8');
 const exportRoute = await readFile('src/routes/api/export/[episodeId]/+server.ts', 'utf8');
 const provider = await readFile('src/lib/providers/text-provider.ts', 'utf8');
 
@@ -18,7 +19,8 @@ const checks = [
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
 			migration.includes('force row level security') &&
-			migration.includes('owner_id = (select auth.uid())'),
+			migration.includes('owner_id = (select auth.uid())') &&
+			migration.includes("auth.jwt() -> ''app_metadata'' ->> ''dif_studio_owner''"),
 	],
 	[
 		'append-only history revokes update/delete',
@@ -46,6 +48,14 @@ const checks = [
 		mediaUpload.includes("type: 'authenticated'") &&
 			mediaUpload.includes('detectedImageFormat') &&
 			mediaUpload.includes('sharp(bytes'),
+	],
+	[
+		'ambiguous upload failures remain reconcilable and private records are owner-scoped',
+		mediaUpload.includes("upload_status: 'ORPHANED'") &&
+			mediaUpload.includes('CLOUDINARY_UPLOAD_OUTCOME_UNKNOWN') &&
+			mediaLibrary.includes("eq('owner_id', owner.id)") &&
+			mediaLibrary.includes('private_download_url') &&
+			mediaLibrary.includes("upload_status: 'READY'"),
 	],
 	[
 		'media is owner-bound and delivered privately',

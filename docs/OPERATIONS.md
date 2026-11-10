@@ -10,9 +10,9 @@ Copy `.env.example` to `.env` and configure a dedicated Supabase project and Clo
 
 1. Create/select a dedicated project explicitly; this Work Order creates none and does not authorize modifying another app's project.
 2. Apply `supabase/migrations` using the official Supabase CLI or dashboard SQL editor; verify RLS is enabled on every exposed table.
-3. Create the one owner identity through Supabase Auth's official dashboard/admin flow. Disable public signups in Auth settings. Set its immutable UID with `node scripts/set-owner-uid.mjs <AUTH_USER_UUID>`; the script writes only the UID to `.env`, does not display credentials, and refuses symbolic links or duplicate UID entries.
+3. Create the one owner identity through Supabase Auth's official dashboard/admin flow. Disable public signups in Auth settings. In the user's **App Metadata** (not editable User Metadata), set `dif_studio_owner` to boolean `true`; do not set this claim on any other identity. RLS on every exposed table requires this signed Auth claim as well as `owner_id = auth.uid()`, so an authenticated identity without it cannot read or create even its own rows through the Data API. Set the same user's immutable UID with `node scripts/set-owner-uid.mjs <AUTH_USER_UUID>`; the script writes only the UID to `.env`, does not display credentials, and refuses symbolic links or duplicate UID entries.
 4. Configure only the project URL and publishable/anon key in the app environment. Do not configure service-role keys in this app.
-5. Set approved redirect URLs for the local origin and, when separately authorized, the eventual HTTPS host. Use Supabase's official recovery flow; revoke sessions after account recovery.
+5. Set approved redirect URLs for the local origin and, when separately authorized, the eventual HTTPS host. After changing App Metadata, refresh/revoke existing sessions so new access tokens contain the signed owner claim. Use Supabase's official recovery flow; revoke sessions after account recovery.
 6. Run `supabase start`, then `npm run test:db` and `npm run test:e2e:local` against the local Supabase stack before enabling real data. The E2E wrapper rejects non-local URLs and creates disposable synthetic users with the local admin key; that key is never passed to the app or browser.
 
 ## Cloudinary setup

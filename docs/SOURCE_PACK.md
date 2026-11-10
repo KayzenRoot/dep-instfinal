@@ -81,7 +81,7 @@ The #4 issue title says “local persistence”; its body and approved delta exp
 
 ## Security and privacy
 
-- No public signup, multi-user behavior, secrets in source/browser/logs, service-role key in client, or authorization by user-editable metadata.
+- No public signup, multi-user behavior, secrets in source/browser/logs, service-role key in client, or authorization by user-editable metadata. Server routes also verify the configured immutable owner UID; Postgres RLS additionally requires the signed, admin-managed `app_metadata.dif_studio_owner=true` claim and the row UID to match `auth.uid()`.
 - RLS applies to every table exposed through PostgREST. Storage for images is Cloudinary only. Private media/export endpoints do not reveal permanent public URLs.
 - Images require content-based validation, strict size/dimension limits, generated names, path-safe IDs, ownership checks, and no SVG.
 - Login/mutation throttling, same-origin checks, safe error messages, secure headers, and backup handling are part of acceptance.
