@@ -108,16 +108,17 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 }) => {
 	test.setTimeout(90_000);
 	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
+	const seriesTitle = `Arquivo E2E persistido ${crypto.randomUUID().slice(0, 8)}`;
 	await page.goto('/login');
 	await page.getByLabel('E-mail do proprietário').fill(process.env.E2E_OWNER_EMAIL!);
 	await page.getByLabel('Senha').fill(process.env.E2E_OWNER_PASSWORD!);
 	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
 	await expect(page).toHaveURL(/\/app$/);
-	await page.getByLabel('Título', { exact: true }).fill('Arquivo E2E persistido');
+	await page.getByLabel('Título', { exact: true }).fill(seriesTitle);
 	await page.getByLabel('Premissa').fill('Registro de aceitação com Supabase local.');
 	await page.getByRole('button', { name: /Abrir novo arquivo/ }).click();
 	await expect(page).toHaveURL(/\/app\/series\/[0-9a-f-]+$/);
-	await expect(page.getByRole('heading', { name: 'Arquivo E2E persistido' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: seriesTitle })).toBeVisible();
 	const seriesUrl = page.url();
 	await page.getByLabel('Número', { exact: true }).fill('1');
 	await page.getByLabel('Episódios planejados').fill('10');
@@ -468,14 +469,24 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.getByText('DECISÃO R01')).toBeVisible();
 	await page.goto(seriesUrl);
 	await page.getByPlaceholder('Título do episódio').fill('O último registro');
-	await page.locator('[name="episodeNumber"]').fill('10');
+	const finaleNumber = page.locator('[name="episodeNumber"]');
+	await finaleNumber.fill('10');
+	await expect(finaleNumber).toHaveValue('10');
 	await page.getByLabel('Duração').fill('120');
 	await page.getByRole('button', { name: 'Criar rascunho' }).click();
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
 	const finaleId = page.url().split('/').at(-1)!;
 	const finalePrompt = await page.request.get(`/api/narrative-prompt/${finaleId}`);
 	expect(finalePrompt.status()).toBe(200);
-	expect(await finalePrompt.text()).toContain('"choices": []');
+	const finalePromptText = await finalePrompt.text();
+	const finaleContext = finalePromptText.match(
+		/## Contexto canônico \(JSON\)\r?\n```json\r?\n([\s\S]*?)\r?\n```/,
+	);
+	expect(finaleContext).not.toBeNull();
+	expect(JSON.parse(finaleContext![1])).toMatchObject({
+		preparedFor: { episodeNumber: 10, isSeasonFinale: true },
+	});
+	expect(finalePromptText).toContain('"choices": []');
 	const finaleResponse = { ...manualResponse, title: 'O último registro', choices: [] };
 	const finaleImport = page.locator('form.narrative-import-form');
 	await finaleImport.locator('[name="responseJson"]').fill(JSON.stringify(finaleResponse));
@@ -512,7 +523,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await page.getByLabel('Senha').fill(process.env.E2E_OWNER_PASSWORD!);
 	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
 	await expect(page).toHaveURL(/\/app$/);
-	await expect(page.getByRole('link', { name: /Arquivo E2E persistido/ })).toBeVisible();
+	await expect(page.getByRole('link', { name: new RegExp(seriesTitle) })).toBeVisible();
 });
 
 test('a valid non-owner Supabase identity is rejected', async ({ page }) => {
