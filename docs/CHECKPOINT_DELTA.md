@@ -4,9 +4,9 @@
 - **Repository / branch / PR:** `KayzenRoot/dep-instfinal` / `feat/dif-studio-mvp-001` / Draft PR #14
 - **Audit base SHA revalidated:** `546353727d69b930f016b1faffa99d0e16bf6115`
 - **Implementation SHA:** `49665849f97fcb6f25064dcddff33dbe41decb13`
-- **Final code/test HEAD:** `9537cc49cd2bbc2470211b87062aaab527c105f1`
-- **Hosted PR CI:** [`42869698167`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42869698167) — PASS
-- **Hosted push CI:** [`42869684557`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42869684557) — PASS
+- **Final code/test HEAD:** `92ff6428c318b6fc21c7611ce9d7db5c5227fb45`
+- **Hosted PR CI:** [`42875079025`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42875079025) — PASS
+- **Hosted push CI:** [`42875066540`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42875066540) — PASS
 - **Status:** **PROPOSED — NOT PROMOTED**
 - **Proposed verdict:** **BLOCKED — Work Order not complete**
 
@@ -20,7 +20,7 @@
 
 ## Validation
 
-- Hosted `npm run check:baseline`: **PASS** in PR run `42869698167` and push run `42869684557` at `9537cc49`.
+- Hosted `npm run check:baseline`: **PASS** in PR run `42875079025` and push run `42875066540` at `92ff6428`.
 - Hosted `npm run test:db`: **PASS** in both runs, including CD03 publication and finale constraints.
 - Hosted authenticated E2E: **PASS · 8/8** in both runs. The journey verifies pending publication, a revised result invalidating an older decision, publication after the matching approval, distinct hypothetical branches, finale publication without a poll, and rejection of finale poll creation.
 - Local `npm test`: **PASS · 23/23**; `npm run lint`, `npm run typecheck` (0 Svelte errors/warnings), `npm run build`, and `npm run audit:policy` (15 invariants across 14 tables): **PASS**.
@@ -30,6 +30,6 @@
 
 ## Gate
 
-The CD03 code, database, and authenticated browser checks pass at `9537cc49cd2bbc2470211b87062aaab527c105f1`. Live Cloudinary acceptance, external backup/restore, and independent review remain essential pending gates. No account, service, credential, or billing was created. Keep PR #14 open and Draft, keep this checkpoint **PROPOSED — NOT PROMOTED**, and do not represent the Work Order or release as complete. No merge, deployment, spend, external provisioning, or promotion occurred.
+The CD03 code, database, and authenticated browser checks pass at `92ff6428c318b6fc21c7611ce9d7db5c5227fb45`. Live Cloudinary acceptance, external backup/restore, and independent review remain essential pending gates. No account, service, credential, or billing was created. Keep PR #14 open and Draft, keep this checkpoint **PROPOSED — NOT PROMOTED**, and do not represent the Work Order or release as complete. No merge, deployment, spend, external provisioning, or promotion occurred.
 
 CD01 and CD02 implementation/history remain in `docs/CONTEXT_LOCK.md`; full evidence and the enumerated Cloudinary acceptance steps remain in `docs/EVIDENCE_BUNDLE.md`.

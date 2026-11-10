@@ -6,9 +6,9 @@
 - **Branch / PR:** `feat/dif-studio-mvp-001` / [Draft PR #14](https://github.com/KayzenRoot/dep-instfinal/pull/14)
 - **CD03 audit base SHA:** `546353727d69b930f016b1faffa99d0e16bf6115`
 - **CD03 implementation SHA:** `49665849f97fcb6f25064dcddff33dbe41decb13`
-- **CD03 final code/test HEAD:** `9537cc49cd2bbc2470211b87062aaab527c105f1`
-- **Hosted PR CI:** [run `42869698167`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42869698167) — PASS
-- **Hosted push CI:** [run `42869684557`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42869684557) — PASS
+- **CD03 final code/test HEAD:** `92ff6428c318b6fc21c7611ce9d7db5c5227fb45`
+- **Hosted PR CI:** [run `42875079025`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42875079025) — PASS
+- **Hosted push CI:** [run `42875066540`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42875066540) — PASS
 - **Evidence date:** 2026-11-10
 - **Checkpoint Delta:** **PROPOSED — NOT PROMOTED**; see `docs/CHECKPOINT_DELTA.md`.
 
@@ -24,7 +24,7 @@ CD03 adds PgTAP and authenticated E2E coverage for premature publication, an unv
 
 | Check                                                          | Result                       | Evidence / limit                                                                                                                                                                                  |
 | -------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hosted baseline                                                | PASS                         | PR run `42869698167` and push run `42869684557`; `check:baseline` passed on HEAD `9537cc49`.                                                                                                      |
+| Hosted baseline                                                | PASS                         | PR run `42875079025` and push run `42875066540`; `check:baseline` passed on HEAD `92ff6428`.                                                                                                      |
 | Hosted PgTAP/RLS                                               | PASS                         | Both hosted runs passed `npm run test:db`, including database transition protection, latest-result/canon checks, season-finale exception, and direct table-write rejection.                       |
 | Hosted authenticated E2E                                       | PASS · 8/8                   | Both hosted runs passed; exercises pending publication, stale result, corrected approval, branch 1/2 differences, import/publish of the vote-free finale, and rejection of a poll for the finale. |
 | Local unit tests                                               | PASS · 23/23                 | Seven Vitest files.                                                                                                                                                                               |
@@ -85,4 +85,4 @@ The existing mocked tests cover owner-scoped lookup, private `READY` delivery, u
 
 ## Proposed verdict
 
-**BLOCKED — Work Order not complete.** CD03 code, database/RLS, and authenticated E2E checks passed on `9537cc49cd2bbc2470211b87062aaab527c105f1`. Live Cloudinary account acceptance, external backup/restore, and independent review remain essential gates. Keep PR #14 Draft and the checkpoint **PROPOSED — NOT PROMOTED**. No merge, deployment, spend, external provisioning, or promotion occurred.
+**BLOCKED — Work Order not complete.** CD03 code, database/RLS, and authenticated E2E checks passed on `92ff6428c318b6fc21c7611ce9d7db5c5227fb45`. Live Cloudinary account acceptance, external backup/restore, and independent review remain essential gates. Keep PR #14 Draft and the checkpoint **PROPOSED — NOT PROMOTED**. No merge, deployment, spend, external provisioning, or promotion occurred.
