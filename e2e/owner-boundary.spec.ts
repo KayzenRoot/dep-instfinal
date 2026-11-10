@@ -138,7 +138,9 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.getByText('2 de 2', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
 	await expect(page.getByText('READY', { exact: true })).toBeVisible();
-	await page.getByLabel(/Revisei texto, continuidade e cenas\./).check();
+	const publishConfirmation = page.locator('form.publish-form input[name="publishConfirmed"]');
+	await expect(publishConfirmation).toBeVisible();
+	await publishConfirmation.check();
 	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
 	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
 	await page.getByLabel('Referência do post').fill('manual-e2e');
