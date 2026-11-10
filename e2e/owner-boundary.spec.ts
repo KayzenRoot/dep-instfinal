@@ -158,7 +158,9 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.getByText('Vence opção 1')).toBeVisible();
 	await page.locator('[name="canonSnapshot"]').fill('{"ramo":"Lara ouviu o aviso"}');
 	await page.getByLabel('Justificativa da autora').fill('Aprovado para esta aceitação sintética.');
-	await page.getByLabel(/Revisei e aprovo este estado como novo cânone/).check();
+	const canonConfirmation = page.locator('form[action="?/approveCanon"] input[name="acceptCanon"]');
+	await expect(canonConfirmation).toBeVisible();
+	await canonConfirmation.check();
 	await page.getByRole('button', { name: 'Registrar decisão append-only' }).click();
 	await expect(page.getByText('DECISÃO R01')).toBeVisible();
 	await page.goto(seriesUrl);
