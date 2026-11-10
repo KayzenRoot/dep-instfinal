@@ -1,8 +1,8 @@
 # DIF Studio Source Pack
 
-**Work Order:** `DIF-MVP-ALL-001`  
-**Revision:** 1.0  
-**Status:** approved scope; CD01 code validated on `89bc16c05912a7b50b47ac3cf2cc3e9b2eef5359`; external Cloudinary validation and independent review remain pending
+**Work Order:** `DIF-MVP-ALL-001`
+**Revision:** 1.1
+**Status:** approved scope; CD02 code validated on `68b4f867274e296a52c763851537ebf326f5eb8e`; live Cloudinary acceptance and independent review remain pending
 **Last reconciled:** 2026-11-10
 
 ## Source hierarchy and context
@@ -112,6 +112,10 @@ Deployment documentation may describe a future Node + HTTPS deployment. This Wor
 - README, `.env.example`, SQL migrations, operational/backup instructions and Evidence Bundle match the actual code.
 - One branch `feat/dif-studio-mvp-001`, one Draft PR, no merge/deploy/spend. Checkpoint Delta is PROPOSED only.
 
-## Initial checkpoint
+## Historical bootstrap checkpoint
 
-**Checkpoint Delta: PROPOSED — NOT PROMOTED.** The original authorized bootstrap base is `b4fd54513af749d68bb7bce4c06110cd9981be39`; CD01 began at `d7887cfdee219f5b9e081c89e79d4ae61ee0c8f5`. Hosted PgTAP/RLS, authenticated Data API checks, and the complete E2E passed on code SHA `89bc16c05912a7b50b47ac3cf2cc3e9b2eef5359`. Keep the release incomplete and the proposed verdict at **CORRECTION REQUIRED** until live Cloudinary behavior can be validated and the independent review is complete. See `docs/CHECKPOINT_DELTA.md` and `docs/EVIDENCE_BUNDLE.md` for the current evidence and limits.
+At the end of CD01, the Checkpoint Delta was **PROPOSED — NOT PROMOTED**. The original authorized bootstrap base is `b4fd54513af749d68bb7bce4c06110cd9981be39`; CD01 began at `d7887cfdee219f5b9e081c89e79d4ae61ee0c8f5`. Hosted PgTAP/RLS, authenticated Data API checks, and the complete E2E passed on code SHA `89bc16c05912a7b50b47ac3cf2cc3e9b2eef5359`. At that historical checkpoint the proposed verdict was **CORRECTION REQUIRED** while live Cloudinary verification and independent review remained pending. The current CD02 state is recorded below and in `docs/CHECKPOINT_DELTA.md` and `docs/EVIDENCE_BUNDLE.md`.
+
+## Current checkpoint after CD02
+
+The CD02 audit base `a7cfc9edce735bd4d0900ca7de2b9e12c434bab4` was revalidated before implementation. Hosted PR and push CI passed against application/test SHA `68b4f867274e296a52c763851537ebf326f5eb8e`, including database/RLS, authenticated owner-boundary Data API checks, and the complete continuation/export browser journey. Manual story generation remains supported through full-context prompt export and validated response import. No eligible configured official AI provider was established, so automatic generation remains pending. The Cloudinary mocks are not live account evidence. The current Checkpoint Delta remains **PROPOSED — NOT PROMOTED** with proposed verdict **BLOCKED** pending the real-account Cloudinary acceptance and independent review. The PR remains Draft; no merge, deployment, paid service, external provisioning, or promotion occurred. The Evidence Bundle documents exact pending external acceptance steps.
