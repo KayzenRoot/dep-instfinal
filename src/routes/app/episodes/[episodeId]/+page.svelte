@@ -9,6 +9,9 @@
 	const option = (key: string) => data.choices.find((choice) => choice.option_key === key);
 	const latestResult = $derived(data.results[0]);
 	const metadata = $derived(data.episode.platform_metadata ?? {});
+	const hasPreviousChoices = $derived(
+		data.narrativeContext.priorEpisodes.at(-1)?.choices.length === 2,
+	);
 	const formatTime = (value: number) => {
 		const seconds = Math.floor(value / 1000);
 		return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -39,6 +42,12 @@
 		role="status"
 	>
 		Alterações salvas. Uma nova revisão foi registrada.
+		{#if form?.episodeSaved}
+			Estimativa atual da narração: {form.estimatedDurationSeconds} s.{/if}
+	</p>{/if}
+{#if form?.responseImported}<p class="form-success" role="status">
+		Resposta validada importada como rascunho. Estimativa de narração: {form.estimatedDurationSeconds}
+		s; uma revisão foi registrada.
 	</p>{/if}
 
 <div class="editor-grid">
@@ -68,15 +77,25 @@
 						value={Math.floor(data.episode.duration_ms / 1000)}
 						disabled={isPublished}
 					/></label
-				><label class="check-label"
-					><input
-						type="checkbox"
-						name="isSeasonFinale"
-						checked={data.episode.is_season_finale}
+				><label
+					>Velocidade de fala · palavras/minuto<input
+						name="speechSpeedWpm"
+						type="number"
+						min="80"
+						max="220"
+						value={metadata.speech_speed_wpm ?? 145}
 						disabled={isPublished}
-					/> Final da temporada</label
+					/></label
 				>
 			</div>
+			<label class="check-label"
+				><input
+					type="checkbox"
+					name="isSeasonFinale"
+					checked={data.episode.is_season_finale}
+					disabled={isPublished}
+				/> Final da temporada</label
+			>
 			<label
 				>Logline<input
 					name="logline"
@@ -114,21 +133,61 @@
 				></label
 			>
 			<label
-				>Legenda / CTA · TikTok<textarea
-					name="tiktokCaption"
-					maxlength="2200"
-					rows="3"
-					disabled={isPublished}>{metadata.tiktok_caption ?? ''}</textarea
+				>Sugestão de tela<textarea
+					name="screenSuggestion"
+					maxlength="4000"
+					rows="2"
+					disabled={isPublished}>{metadata.screen_suggestion ?? ''}</textarea
 				></label
 			>
 			<label
-				>Legenda / CTA · Instagram<textarea
-					name="instagramCaption"
-					maxlength="2200"
-					rows="3"
-					disabled={isPublished}>{metadata.instagram_caption ?? ''}</textarea
+				>Sugestão de som<textarea
+					name="soundSuggestion"
+					maxlength="2000"
+					rows="2"
+					disabled={isPublished}>{metadata.sound_suggestion ?? ''}</textarea
 				></label
 			>
+			<fieldset class="platform-fields" disabled={isPublished}>
+				<legend>Saída para TikTok · título, CTA e descrição</legend>
+				<label
+					>Título<input
+						name="tiktokTitle"
+						maxlength="300"
+						value={metadata.tiktok_title ?? ''}
+					/></label
+				>
+				<label
+					>CTA<input name="tiktokCta" maxlength="500" value={metadata.tiktok_cta ?? ''} /></label
+				>
+				<label
+					>Descrição<textarea name="tiktokDescription" maxlength="2200" rows="2"
+						>{metadata.tiktok_description ?? metadata.tiktok_caption ?? ''}</textarea
+					></label
+				>
+			</fieldset>
+			<fieldset class="platform-fields" disabled={isPublished}>
+				<legend>Saída para Instagram Reels · título, CTA e descrição</legend>
+				<label
+					>Título<input
+						name="instagramTitle"
+						maxlength="300"
+						value={metadata.instagram_title ?? ''}
+					/></label
+				>
+				<label
+					>CTA<input
+						name="instagramCta"
+						maxlength="500"
+						value={metadata.instagram_cta ?? ''}
+					/></label
+				>
+				<label
+					>Descrição<textarea name="instagramDescription" maxlength="2200" rows="2"
+						>{metadata.instagram_description ?? metadata.instagram_caption ?? ''}</textarea
+					></label
+				>
+			</fieldset>
 			<label
 				>Texto de capa<input
 					name="coverText"
@@ -199,8 +258,72 @@
 				>Preparar pacote ZIP <span aria-hidden="true">↗</span></a
 			>
 		</Panel>
+		<Panel
+			eyebrow="CONTEXTO CANÔNICO"
+			title="Preparar continuação"
+			description="O provedor de IA está em modo manual. O arquivo baixado inclui bíblia, personagens, fatos, episódios anteriores e apenas decisões verificadas e aprovadas."
+		>
+			<p class="quiet-copy">
+				Estado do episódio anterior: {data.narrativeContext.latestPreviousCanon?.status ??
+					'SEM EPISÓDIO ANTERIOR'}. Ramos alternativos são sempre hipóteses e não alteram o cânone.
+			</p>
+			<form
+				method="GET"
+				action={resolve('/api/narrative-prompt/[episodeId]', { episodeId: data.episode.id })}
+				class="form-stack prompt-export-form"
+			>
+				<label
+					>Contexto da próxima narrativa<select name="branch">
+						<option value="canonical">Continuidade aprovada</option>
+						{#if hasPreviousChoices}<option value="1">Hipótese: opção 1</option>
+							<option value="2">Hipótese: opção 2</option>{/if}
+					</select></label
+				>
+				<label
+					>Velocidade estimada · palavras/minuto<input
+						name="wpm"
+						type="number"
+						min="80"
+						max="220"
+						value={metadata.speech_speed_wpm ?? 145}
+						required
+					/></label
+				>
+				<button class="secondary-button" type="submit">Exportar prompt e contexto completos</button>
+			</form>
+		</Panel>
 	</div>
 </div>
+
+{#if !isPublished}
+	<section class="narrative-import-section" aria-labelledby="narrative-import-title">
+		<Panel
+			eyebrow="FALLBACK MANUAL · SEM CHAMADA DE IA"
+			title="Importar resposta narrativa"
+			description="Cole o JSON devolvido no fluxo manual. O servidor valida roteiro, duas consequências diferentes e duração estimada antes de gravar roteiro, saídas sociais e opções em uma transação."
+		>
+			<form
+				method="POST"
+				action="?/importNarrativeResponse"
+				class="form-stack narrative-import-form"
+			>
+				<label
+					>Resposta JSON<textarea
+						name="responseJson"
+						rows="10"
+						maxlength="60000"
+						required
+						placeholder="Cole aqui o objeto JSON do prompt exportado."></textarea></label
+				>
+				<label class="check-label"
+					><input type="checkbox" name="confirmImport" required /> Revisei a resposta; ela substituirá
+					o conteúdo e as duas opções deste rascunho.</label
+				>
+				<button class="primary-button" type="submit">Validar e importar resposta</button>
+			</form>
+		</Panel>
+	</section>
+{/if}
 
 <section class="storyboard-section" aria-labelledby="storyboard-title">
 	<header class="section-heading">
@@ -550,7 +673,8 @@
 	}
 	.storyboard-section,
 	.choices-section,
-	.continuity-section {
+	.continuity-section,
+	.narrative-import-section {
 		margin-top: 2.3rem;
 	}
 	.section-heading {
@@ -573,7 +697,8 @@
 		gap: 0.7rem;
 	}
 	.form-stack label,
-	.choice-grid label {
+	.choice-grid label,
+	.platform-fields label {
 		display: grid;
 		gap: 0.25rem;
 		color: var(--muted);
@@ -583,13 +708,32 @@
 	.form-stack textarea,
 	.form-stack select,
 	.choice-grid input,
-	.choice-grid textarea {
+	.choice-grid textarea,
+	.platform-fields input,
+	.platform-fields textarea {
 		width: 100%;
 		padding: 0.58rem 0.65rem;
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-sm);
 		background: #0b0d10;
 		color: var(--ink);
+	}
+	.platform-fields {
+		display: grid;
+		gap: 0.7rem;
+		margin: 0;
+		padding: 0.75rem;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-sm);
+	}
+	.platform-fields legend {
+		padding: 0 0.25rem;
+		color: var(--ink);
+		font-size: 0.72rem;
+	}
+	.prompt-export-form,
+	.narrative-import-form {
+		margin-top: 0.75rem;
 	}
 	.form-stack textarea,
 	.choice-grid textarea {

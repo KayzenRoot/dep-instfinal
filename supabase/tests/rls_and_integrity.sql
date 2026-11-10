@@ -92,6 +92,56 @@ select public.save_episode_content(
   '{"tiktok_caption":"A fita chegou ontem.","instagram_caption":"O arquivo não estava vazio."}'::jsonb
 );
 select public.set_episode_status('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'READY');
+select public.import_narrative_response(
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  'Imported Pilot', 'A narração chega ao arquivo.', 'A fita fala antes de ser ligada.',
+  'Lara encontra uma fita marcada para amanhã.', 'A voz gravada conhece a sala.',
+  'A câmera mostra uma figura atrás dela.', 'A fita começa com uma voz distante.',
+  90000,
+  '{"screen_suggestion":"Close no gravador.","sound_suggestion":"Ruído de fita.","tiktok_title":"A fita","instagram_title":"O arquivo"}'::jsonb,
+  'Ouvir a fita', 'Lara descobre quem enviou o sinal.',
+  'Destruir a fita', 'Lara perde a única cópia e alerta o arquivo.'
+);
+do $$
+begin
+  if not exists (
+    select 1 from public.episodes
+    where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+      and title = 'Imported Pilot'
+      and status = 'DRAFT'
+      and platform_metadata ->> 'screen_suggestion' = 'Close no gravador.'
+  ) then
+    raise exception 'manual response import did not persist the episode and platform copy';
+  end if;
+  begin
+    perform public.import_narrative_response(
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      'Must Roll Back', 'A narração chega ao arquivo.', 'A fita fala antes de ser ligada.',
+      'Lara encontra uma fita marcada para amanhã.', 'A voz gravada conhece a sala.',
+      'A câmera mostra uma figura atrás dela.', 'A fita começa com uma voz distante.',
+      90000, '{}'::jsonb,
+      'Ouvir a fita', 'Mesma consequência.', 'Ouvir a fita', 'Mesma consequência.'
+    );
+    raise exception 'manual import with duplicate choices unexpectedly succeeded';
+  exception when check_violation then
+    null;
+  end;
+  if exists (
+    select 1 from public.episodes
+    where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and title = 'Must Roll Back'
+  ) then
+    raise exception 'failed manual import partially changed episode content';
+  end if;
+  if has_function_privilege(
+    'anon',
+    'public.import_narrative_response(uuid,text,text,text,text,text,text,text,integer,jsonb,text,text,text,text)',
+    'EXECUTE'
+  ) then
+    raise exception 'anonymous role can call manual narrative import';
+  end if;
+end;
+$$;
+select public.set_episode_status('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'READY');
 select public.set_episode_status('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'PUBLISHED');
 
 do $$
@@ -143,6 +193,57 @@ begin
   end if;
   if not exists (select 1 from public.polls where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' and status = 'VERIFIED') then
     raise exception 'verified result did not advance poll state';
+  end if;
+end;
+$$;
+
+-- A newer result that is not verified invalidates the earlier winner for canon purposes.
+insert into public.poll_results (
+  id, poll_id, revision_number, option_1_count, option_2_count, winner_option,
+  verification_status, evidence_source, captured_at, verified_at, supersedes_result_id
+)
+values (
+  'abababab-abab-4aba-8aba-abababababab',
+  'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 2, 13, 9, null,
+  'PENDING', '', now(), null, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
+);
+
+do $$
+begin
+  if not exists (
+    select 1 from public.polls
+    where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' and status = 'CLOSED'
+  ) then
+    raise exception 'pending correction did not remove verified poll status';
+  end if;
+  if not exists (
+    select 1 from public.poll_results
+    where id = 'abababab-abab-4aba-8aba-abababababab'
+      and verification_status = 'PENDING' and winner_option is null
+  ) then
+    raise exception 'pending result was not preserved as unverified';
+  end if;
+  begin
+    insert into public.canonical_decisions (
+      poll_id, episode_id, poll_result_id, revision_number, supersedes_decision_id,
+      canon_snapshot, rationale
+    ) values (
+      'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      'abababab-abab-4aba-8aba-abababababab', 2,
+      'ffffffff-ffff-4fff-8fff-ffffffffffff',
+      '{"winner":"1","approved":true}'::jsonb,
+      'This invalid decision must be rejected.'
+    );
+    raise exception 'unverified result was unexpectedly canonized';
+  exception when check_violation then
+    null;
+  end;
+  if exists (
+    select 1 from public.canonical_decisions
+    where poll_result_id = 'abababab-abab-4aba-8aba-abababababab'
+  ) then
+    raise exception 'an unverified result has a canonical decision';
   end if;
 end;
 $$;

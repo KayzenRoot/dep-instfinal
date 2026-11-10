@@ -5,6 +5,26 @@ const cloudinary = vi.hoisted(() => ({
 	utils: { private_download_url: vi.fn(() => 'https://cloudinary.test/private.png') },
 }));
 const authorized = vi.hoisted(() => ({ ownerDatabase: vi.fn() }));
+const narrativeContext = vi.hoisted(() => ({
+	loadNarrativeContext: vi.fn(async () => ({
+		schemaVersion: 'dif-narrative-context/v1',
+		preparedFor: {
+			id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+			episodeNumber: 1,
+			seasonNumber: 1,
+			seasonTitle: 'Season one',
+			title: 'Fixture episode',
+			durationSeconds: 120,
+		},
+		series: { title: 'Fixture series' },
+		seasons: [],
+		characters: [],
+		loreFacts: [],
+		priorEpisodes: [],
+		latestPreviousCanon: null,
+		hypotheticalBranch: null,
+	})),
+}));
 const appConfig = vi.hoisted(() => ({
 	getAppConfig: vi.fn(() => ({
 		cloudinaryConfigured: true,
@@ -17,6 +37,7 @@ const appConfig = vi.hoisted(() => ({
 vi.mock('cloudinary', () => ({ v2: cloudinary }));
 vi.mock('#lib/server/authorized.js', () => authorized);
 vi.mock('#lib/server/config.js', () => appConfig);
+vi.mock('#lib/server/narrative-context.js', () => narrativeContext);
 
 import { GET as exportEpisode } from '../export/[episodeId]/+server.js';
 import { GET as privateMedia } from './[assetId]/+server.js';

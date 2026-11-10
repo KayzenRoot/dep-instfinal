@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { estimateNarrationDurationSeconds } from '#lib/domain/narrative-context.js';
 
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).default('');
@@ -57,12 +58,96 @@ export const episodeEditSchema = z.object({
 	reveal: optionalText(2_000),
 	cliffhanger: optionalText(2_000),
 	narrationPtBr: optionalText(30_000),
-	tiktokCaption: optionalText(2_200),
-	instagramCaption: optionalText(2_200),
+	screenSuggestion: optionalText(4_000),
+	soundSuggestion: optionalText(2_000),
+	tiktokTitle: optionalText(300),
+	tiktokCta: optionalText(500),
+	tiktokDescription: optionalText(2_200),
+	instagramTitle: optionalText(300),
+	instagramCta: optionalText(500),
+	instagramDescription: optionalText(2_200),
 	coverText: optionalText(300),
 	durationSeconds: z.coerce.number().int().min(90).max(150),
+	speechSpeedWpm: z.coerce.number().int().min(80).max(220).default(145),
 	isSeasonFinale: z.boolean().default(false),
 });
+
+export const narrativeResponseSchema = z
+	.object({
+		title: requiredText(180),
+		logline: requiredText(1_000),
+		hook: requiredText(2_000),
+		narrative: requiredText(30_000),
+		narrationPtBr: requiredText(30_000),
+		reveal: requiredText(2_000),
+		cliffhanger: requiredText(2_000),
+		durationSeconds: z.number().int().min(90).max(150),
+		speechSpeedWpm: z.number().int().min(80).max(220),
+		screenSuggestion: requiredText(4_000),
+		soundSuggestion: requiredText(2_000),
+		coverText: requiredText(300),
+		tiktok: z.object({
+			title: requiredText(300),
+			cta: requiredText(500),
+			description: requiredText(2_200),
+		}),
+		instagram: z.object({
+			title: requiredText(300),
+			cta: requiredText(500),
+			description: requiredText(2_200),
+		}),
+		choices: z
+			.array(
+				z.object({
+					label: requiredText(180),
+					consequence: requiredText(4_000),
+				}),
+			)
+			.length(2),
+	})
+	.superRefine((response, context) => {
+		if (response.choices.length !== 2) return;
+		if (
+			response.choices[0].label.toLocaleLowerCase() ===
+			response.choices[1].label.toLocaleLowerCase()
+		) {
+			context.addIssue({
+				code: 'custom',
+				path: ['choices', 1, 'label'],
+				message: 'As opções precisam ser diferentes.',
+			});
+		}
+		if (
+			response.choices[0].consequence.toLocaleLowerCase() ===
+			response.choices[1].consequence.toLocaleLowerCase()
+		) {
+			context.addIssue({
+				code: 'custom',
+				path: ['choices', 1, 'consequence'],
+				message: 'As consequências precisam ser diferentes.',
+			});
+		}
+		const estimatedSeconds = estimateNarrationDurationSeconds(
+			response.narrationPtBr,
+			response.speechSpeedWpm,
+		);
+		if (estimatedSeconds < 90 || estimatedSeconds > 150) {
+			context.addIssue({
+				code: 'custom',
+				path: ['narrationPtBr'],
+				message: 'A estimativa por palavras precisa ficar entre 90 e 150 segundos.',
+			});
+		}
+		if (Math.abs(estimatedSeconds - response.durationSeconds) > 15) {
+			context.addIssue({
+				code: 'custom',
+				path: ['durationSeconds'],
+				message: 'A duração declarada precisa corresponder à estimativa da narração.',
+			});
+		}
+	});
+
+export type NarrativeResponse = z.infer<typeof narrativeResponseSchema>;
 
 export const sceneEditSchema = z.object({
 	sceneId: z.string().uuid(),

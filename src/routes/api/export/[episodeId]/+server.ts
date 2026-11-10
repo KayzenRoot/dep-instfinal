@@ -4,9 +4,11 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { v2 as cloudinary } from 'cloudinary';
 import { buildSrt, csvCell, formatSrtTime } from '#lib/domain/timeline.js';
+import { renderNarrativePrompt } from '#lib/domain/narrative-context.js';
 import { ownerDatabase } from '#lib/server/authorized.js';
 import { getAppConfig } from '#lib/server/config.js';
 import { firstRelation } from '#lib/server/relations.js';
+import { loadNarrativeContext } from '#lib/server/narrative-context.js';
 
 function safeTime(value: number): string {
 	return `${(value / 1000).toFixed(3)}s`;
@@ -26,6 +28,12 @@ export const GET: RequestHandler = async (event) => {
 	if (episodeError || !episode) error(404, 'Episódio não encontrado.');
 	const season = firstRelation(episode.seasons);
 	const series = firstRelation(season?.series);
+	let narrativeContext;
+	try {
+		narrativeContext = await loadNarrativeContext(db, owner.id, episode.id);
+	} catch {
+		error(503, 'Não foi possível preparar o contexto de continuidade da exportação.');
+	}
 	const [scenesQuery, choicesQuery] = await Promise.all([
 		db
 			.from('scenes')
@@ -140,6 +148,12 @@ export const GET: RequestHandler = async (event) => {
 			label: choice.label,
 			consequence: choice.consequence,
 		})),
+		continuity: {
+			status: narrativeContext.latestPreviousCanon?.status ?? 'NO_PREVIOUS_PUBLISHED_EPISODE',
+			previousEpisodeId: narrativeContext.latestPreviousCanon?.episodeId ?? null,
+			approvedCanon: narrativeContext.latestPreviousCanon?.approvedCanon ?? null,
+			contextPath: 'narrative/context.json',
+		},
 		scenes: scenes.map((scene) => ({
 			index: scene.scene_index,
 			startMs: scene.start_ms,
@@ -159,6 +173,12 @@ export const GET: RequestHandler = async (event) => {
 	archive.on('error', (cause: Error) => output.destroy(cause));
 	archive.pipe(output);
 	archive.append(`${JSON.stringify(manifest, null, 2)}\n`, { name: 'manifest.json' });
+	archive.append(`${JSON.stringify(narrativeContext, null, 2)}\n`, {
+		name: 'narrative/context.json',
+	});
+	archive.append(renderNarrativePrompt(narrativeContext, 145), {
+		name: 'narrative/continuation-prompt.md',
+	});
 	archive.append(`${timelineRows}\r\n`, { name: 'timeline.csv' });
 	archive.append(episode.narration_pt_br ?? '', { name: 'narration/narration-pt-BR.txt' });
 	archive.append(srt, { name: 'captions/captions.srt' });
@@ -177,6 +197,28 @@ export const GET: RequestHandler = async (event) => {
 	archive.append(String(metadata.instagram_caption ?? ''), {
 		name: 'social/instagram-caption.txt',
 	});
+	archive.append(
+		`${JSON.stringify(
+			{
+				speechSpeedWpm: metadata.speech_speed_wpm ?? 145,
+				screenSuggestion: metadata.screen_suggestion ?? '',
+				soundSuggestion: metadata.sound_suggestion ?? '',
+				tiktok: {
+					title: metadata.tiktok_title ?? '',
+					cta: metadata.tiktok_cta ?? '',
+					description: metadata.tiktok_description ?? '',
+				},
+				instagram: {
+					title: metadata.instagram_title ?? '',
+					cta: metadata.instagram_cta ?? '',
+					description: metadata.instagram_description ?? '',
+				},
+			},
+			null,
+			2,
+		)}\n`,
+		{ name: 'social/platform-copy.json' },
+	);
 	archive.append(
 		`${JSON.stringify({ coverText: metadata.cover_text ?? '', master: '9:16 / 1080x1920', safeZones: 'Keep title, captions and key subject inside the central safe area. Confirm overlays in the target app.' }, null, 2)}\n`,
 		{ name: 'social/cover-metadata.json' },

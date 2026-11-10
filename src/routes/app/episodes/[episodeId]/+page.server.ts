@@ -4,11 +4,14 @@ import {
 	canonicalDecisionSchema,
 	choiceEditSchema,
 	episodeEditSchema,
+	narrativeResponseSchema,
 	pollResultSchema,
 	sceneEditSchema,
 } from '#lib/schemas/story.js';
 import { ownerDatabase, readFormText } from '#lib/server/authorized.js';
 import { firstRelation } from '#lib/server/relations.js';
+import { loadNarrativeContext } from '#lib/server/narrative-context.js';
+import { estimateNarrationDurationSeconds } from '#lib/domain/narrative-context.js';
 
 export const load: PageServerLoad = async (event) => {
 	const { db, owner } = ownerDatabase(event);
@@ -104,6 +107,12 @@ export const load: PageServerLoad = async (event) => {
 		results = resultQuery.data ?? [];
 		decisions = decisionQuery.data ?? [];
 	}
+	let narrativeContext;
+	try {
+		narrativeContext = await loadNarrativeContext(db, owner.id, episodeId);
+	} catch {
+		error(503, 'Não foi possível preparar o contexto narrativo e canônico.');
+	}
 	return {
 		episode,
 		scenes: scenesResult.data ?? [],
@@ -113,6 +122,7 @@ export const load: PageServerLoad = async (event) => {
 		poll,
 		results,
 		decisions,
+		narrativeContext,
 		ownerId: owner.id,
 	};
 };
@@ -131,10 +141,17 @@ export const actions: Actions = {
 			reveal: readFormText(form, 'reveal'),
 			cliffhanger: readFormText(form, 'cliffhanger'),
 			narrationPtBr: readFormText(form, 'narrationPtBr'),
-			tiktokCaption: readFormText(form, 'tiktokCaption'),
-			instagramCaption: readFormText(form, 'instagramCaption'),
+			screenSuggestion: readFormText(form, 'screenSuggestion'),
+			soundSuggestion: readFormText(form, 'soundSuggestion'),
+			tiktokTitle: readFormText(form, 'tiktokTitle'),
+			tiktokCta: readFormText(form, 'tiktokCta'),
+			tiktokDescription: readFormText(form, 'tiktokDescription'),
+			instagramTitle: readFormText(form, 'instagramTitle'),
+			instagramCta: readFormText(form, 'instagramCta'),
+			instagramDescription: readFormText(form, 'instagramDescription'),
 			coverText: readFormText(form, 'coverText'),
 			durationSeconds: readFormText(form, 'durationSeconds'),
+			speechSpeedWpm: readFormText(form, 'speechSpeedWpm') || 145,
 			isSeasonFinale: form.get('isSeasonFinale') === 'on',
 		});
 		if (!parsed.success)
@@ -151,8 +168,29 @@ export const actions: Actions = {
 			p_duration_ms: parsed.data.durationSeconds * 1000,
 			p_is_season_finale: parsed.data.isSeasonFinale,
 			p_platform_metadata: {
-				tiktok_caption: parsed.data.tiktokCaption,
-				instagram_caption: parsed.data.instagramCaption,
+				speech_speed_wpm: parsed.data.speechSpeedWpm,
+				screen_suggestion: parsed.data.screenSuggestion,
+				sound_suggestion: parsed.data.soundSuggestion,
+				tiktok_title: parsed.data.tiktokTitle,
+				tiktok_cta: parsed.data.tiktokCta,
+				tiktok_description: parsed.data.tiktokDescription,
+				instagram_title: parsed.data.instagramTitle,
+				instagram_cta: parsed.data.instagramCta,
+				instagram_description: parsed.data.instagramDescription,
+				tiktok_caption: [
+					parsed.data.tiktokTitle,
+					parsed.data.tiktokCta,
+					parsed.data.tiktokDescription,
+				]
+					.filter(Boolean)
+					.join('\n\n'),
+				instagram_caption: [
+					parsed.data.instagramTitle,
+					parsed.data.instagramCta,
+					parsed.data.instagramDescription,
+				]
+					.filter(Boolean)
+					.join('\n\n'),
 				cover_text: parsed.data.coverText,
 			},
 		});
@@ -161,7 +199,86 @@ export const actions: Actions = {
 				message:
 					'Não foi possível salvar. Episódios publicados são imutáveis; revise a duração e as imagens associadas.',
 			});
-		return { episodeSaved: true };
+		return {
+			episodeSaved: true,
+			estimatedDurationSeconds: estimateNarrationDurationSeconds(
+				parsed.data.narrationPtBr,
+				parsed.data.speechSpeedWpm,
+			),
+		};
+	},
+	importNarrativeResponse: async (event) => {
+		const { db } = ownerDatabase(event);
+		const form = await event.request.formData().catch(() => null);
+		if (!form) return fail(400, { message: 'Não foi possível ler a resposta narrativa.' });
+		if (form.get('confirmImport') !== 'on')
+			return fail(400, { message: 'Confirme que revisou a resposta antes de importar.' });
+		const serializedResponse = readFormText(form, 'responseJson');
+		if (serializedResponse.length > 60_000)
+			return fail(413, { message: 'A resposta excede o limite de 60 KB.' });
+		let decoded: unknown;
+		try {
+			decoded = JSON.parse(serializedResponse);
+		} catch {
+			return fail(400, { message: 'A resposta precisa conter um objeto JSON válido.' });
+		}
+		const parsed = narrativeResponseSchema.safeParse(decoded);
+		if (!parsed.success)
+			return fail(400, {
+				message:
+					'JSON inválido: revise campos obrigatórios, duas opções distintas e duração estimada entre 90 e 150 segundos.',
+			});
+		const response = parsed.data;
+		const metadata = {
+			speech_speed_wpm: response.speechSpeedWpm,
+			screen_suggestion: response.screenSuggestion,
+			sound_suggestion: response.soundSuggestion,
+			cover_text: response.coverText,
+			tiktok_title: response.tiktok.title,
+			tiktok_cta: response.tiktok.cta,
+			tiktok_description: response.tiktok.description,
+			tiktok_caption: [
+				response.tiktok.title,
+				response.tiktok.cta,
+				response.tiktok.description,
+			].join('\n\n'),
+			instagram_title: response.instagram.title,
+			instagram_cta: response.instagram.cta,
+			instagram_description: response.instagram.description,
+			instagram_caption: [
+				response.instagram.title,
+				response.instagram.cta,
+				response.instagram.description,
+			].join('\n\n'),
+		};
+		const { error: importError } = await db.rpc('import_narrative_response', {
+			p_episode_id: event.params.episodeId,
+			p_title: response.title,
+			p_logline: response.logline,
+			p_hook: response.hook,
+			p_narrative: response.narrative,
+			p_reveal: response.reveal,
+			p_cliffhanger: response.cliffhanger,
+			p_narration_pt_br: response.narrationPtBr,
+			p_duration_ms: response.durationSeconds * 1000,
+			p_platform_metadata: metadata,
+			p_option_1_label: response.choices[0].label,
+			p_option_1_consequence: response.choices[0].consequence,
+			p_option_2_label: response.choices[1].label,
+			p_option_2_consequence: response.choices[1].consequence,
+		});
+		if (importError)
+			return fail(409, {
+				message:
+					'A resposta não foi importada. O episódio publicado ou a revisão não foi alterado.',
+			});
+		return {
+			responseImported: true,
+			estimatedDurationSeconds: estimateNarrationDurationSeconds(
+				response.narrationPtBr,
+				response.speechSpeedWpm,
+			),
+		};
 	},
 	saveScene: async (event) => {
 		const { db, owner } = ownerDatabase(event);
