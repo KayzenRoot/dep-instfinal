@@ -120,7 +120,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.getByRole('heading', { name: 'Arquivo E2E persistido' })).toBeVisible();
 	const seriesUrl = page.url();
 	await page.getByLabel('Número', { exact: true }).fill('1');
-	await page.getByLabel('Episódios planejados').fill('4');
+	await page.getByLabel('Episódios planejados').fill('10');
 	await page.getByLabel('Título', { exact: true }).nth(1).fill('Temporada um');
 	await page.getByRole('button', { name: 'Adicionar temporada' }).click();
 	await expect(page.getByText('Temporada um')).toBeVisible();
@@ -468,7 +468,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.getByText('DECISÃO R01')).toBeVisible();
 	await page.goto(seriesUrl);
 	await page.getByPlaceholder('Título do episódio').fill('O último registro');
-	await page.locator('[name="episodeNumber"]').fill('4');
+	await page.locator('[name="episodeNumber"]').fill('10');
 	await page.getByLabel('Duração').fill('120');
 	await page.getByRole('button', { name: 'Criar rascunho' }).click();
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
