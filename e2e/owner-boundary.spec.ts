@@ -187,7 +187,9 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await importForm.locator('[name="responseJson"]').fill(JSON.stringify(manualResponse));
 	await importForm.locator('[name="confirmImport"]').check();
 	await importForm.getByRole('button', { name: 'Validar e importar resposta' }).click();
-	await expect(page.getByRole('status')).toContainText('Estimativa de narração: 120 s');
+	await expect(page.locator('p.form-success[role="status"]')).toContainText(
+		'Estimativa de narração: 120 s',
+	);
 	await page.waitForLoadState('networkidle');
 	const choiceForm = page.locator('form.choice-grid');
 	await expect(choiceForm.locator('[name="option1Label"]')).toHaveValue('Ouvir a fita');
@@ -272,7 +274,9 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		.fill(JSON.stringify(continuationResponse));
 	await continuationImport.locator('[name="confirmImport"]').check();
 	await continuationImport.getByRole('button', { name: 'Validar e importar resposta' }).click();
-	await expect(page.getByRole('status')).toContainText('Estimativa de narração: 120 s');
+	await expect(page.locator('p.form-success[role="status"]')).toContainText(
+		'Estimativa de narração: 120 s',
+	);
 	await expect(page.getByText('DRAFT', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
 	await expect(page.getByText('READY', { exact: true })).toBeVisible();
@@ -414,7 +418,9 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		.fill(JSON.stringify(penultimateResponse));
 	await penultimateImport.locator('[name="confirmImport"]').check();
 	await penultimateImport.getByRole('button', { name: 'Validar e importar resposta' }).click();
-	await expect(page.getByRole('status')).toContainText('Estimativa de narração: 120 s');
+	await expect(page.locator('p.form-success[role="status"]')).toContainText(
+		'Estimativa de narração: 120 s',
+	);
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
 	await expect(page.getByText('READY', { exact: true })).toBeVisible();
 	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
@@ -453,7 +459,9 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await finaleImport.locator('[name="responseJson"]').fill(JSON.stringify(finaleResponse));
 	await finaleImport.locator('[name="confirmImport"]').check();
 	await finaleImport.getByRole('button', { name: 'Validar e importar resposta' }).click();
-	await expect(page.getByRole('status')).toContainText('Estimativa de narração: 120 s');
+	await expect(page.locator('p.form-success[role="status"]')).toContainText(
+		'Estimativa de narração: 120 s',
+	);
 	await expect(
 		page.getByText('Este é o episódio final planejado e não precisa de opções nem votação.'),
 	).toBeVisible();
