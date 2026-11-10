@@ -111,11 +111,23 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		.getByLabel('Narração completa · português brasileiro')
 		.fill('A fita começa a tocar antes de ser ligada.');
 	await page.getByRole('button', { name: 'Salvar roteiro e revisar timeline' }).click();
-	await page.locator('[name="option1Label"]').fill('Ouvir a fita');
-	await page.locator('[name="option1Consequence"]').fill('Lara ouve o aviso sobre o arquivo.');
-	await page.locator('[name="option2Label"]').fill('Destruir a fita');
-	await page.locator('[name="option2Consequence"]').fill('Lara apaga a única prova do aviso.');
-	const invalidChoiceFields = await page.locator('form.choice-grid').evaluate((form) =>
+	await expect(page.getByRole('status')).toHaveText(
+		'Alterações salvas. Uma nova revisão foi registrada.',
+	);
+	const choiceForm = page.locator('form.choice-grid');
+	await choiceForm.locator('[name="option1Label"]').fill('Ouvir a fita');
+	await choiceForm
+		.locator('[name="option1Consequence"]')
+		.fill('Lara ouve o aviso sobre o arquivo.');
+	await choiceForm.locator('[name="option2Label"]').fill('Destruir a fita');
+	await choiceForm
+		.locator('[name="option2Consequence"]')
+		.fill('Lara apaga a única prova do aviso.');
+	await expect(choiceForm.locator('[name="option1Label"]')).toHaveValue('Ouvir a fita');
+	await expect(choiceForm.locator('[name="option1Consequence"]')).toHaveValue(
+		'Lara ouve o aviso sobre o arquivo.',
+	);
+	const invalidChoiceFields = await choiceForm.evaluate((form) =>
 		Array.from(form.querySelectorAll('input, textarea'))
 			.filter((field) => !field.checkValidity())
 			.map((field) => ({ name: field.getAttribute('name'), message: field.validationMessage })),
