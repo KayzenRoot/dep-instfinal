@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(14);
+select plan(20);
 
 do $$
 declare
@@ -322,6 +322,168 @@ insert into public.canonical_decisions (
 select lives_ok(
   $$select public.set_episode_status('13131313-1313-4131-8131-131313131313', 'PUBLISHED');$$,
   'publication succeeds after the latest verified result is canonically approved'
+);
+
+-- CD04: an out-of-order draft can be created and edited, but publication waits for its immediate predecessor.
+insert into public.episodes (id, season_id, episode_number, title, duration_ms)
+values ('51515151-5151-4151-8151-515151515151', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 5, 'Out of order draft', 90000);
+update public.episodes set title = 'Edited out of order draft'
+where id = '51515151-5151-4151-8151-515151515151';
+insert into public.scenes (owner_id, episode_id, scene_index, start_ms, end_ms)
+select '11111111-1111-4111-8111-111111111111', '51515151-5151-4151-8151-515151515151', n,
+       (n - 1) * 8000, case when n = 12 then 90000 else n * 8000 end
+from generate_series(1, 12) as n;
+insert into public.choices (owner_id, episode_id, option_key, label, consequence)
+values
+  ('11111111-1111-4111-8111-111111111111', '51515151-5151-4151-8151-515151515151', '1', 'Preserve the page', 'The archive keeps the note.'),
+  ('11111111-1111-4111-8111-111111111111', '51515151-5151-4151-8151-515151515151', '2', 'Burn the page', 'The archive loses the note.');
+select ok(
+  (select status = 'DRAFT' and title = 'Edited out of order draft'
+      and not exists (select 1 from public.polls where episode_id = '51515151-5151-4151-8151-515151515151')
+      and not exists (select 1 from public.canonical_decisions where episode_id = '51515151-5151-4151-8151-515151515151')
+   from public.episodes where id = '51515151-5151-4151-8151-515151515151'),
+  'out-of-order drafts remain editable without creating polls or canonical decisions'
+);
+select public.set_episode_status('51515151-5151-4151-8151-515151515151', 'READY');
+select throws_ok(
+  $$select public.set_episode_status('51515151-5151-4151-8151-515151515151', 'PUBLISHED');$$,
+  '23514', 'episode_previous_episode_missing',
+  'RPC publication is blocked when the immediate previous episode is missing'
+);
+select throws_ok(
+  $$update public.episodes set status = 'PUBLISHED', published_at = now()
+    where id = '51515151-5151-4151-8151-515151515151';$$,
+  '23514', 'episode_previous_episode_missing',
+  'direct PostgreSQL updates are blocked when the immediate previous episode is missing'
+);
+
+insert into public.episodes (id, season_id, episode_number, title, duration_ms)
+values
+  ('41414141-4141-4141-8141-414141414141', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 4, 'Episode four', 90000),
+  ('61616161-6161-4161-8161-616161616161', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 6, 'Episode six', 90000),
+  ('71717171-7171-4171-8171-717171717171', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 7, 'Episode seven', 90000),
+  ('81818181-8181-4181-8181-818181818181', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 8, 'Episode eight', 90000),
+  ('91919191-9191-4191-8191-919191919191', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 9, 'Episode nine', 90000),
+  ('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 10, 'Episode ten', 90000);
+insert into public.scenes (owner_id, episode_id, scene_index, start_ms, end_ms)
+select '11111111-1111-4111-8111-111111111111', e.id, n,
+       (n - 1) * 8000, case when n = 12 then 90000 else n * 8000 end
+from public.episodes e cross join generate_series(1, 12) as n
+where e.id in (
+  '41414141-4141-4141-8141-414141414141', '61616161-6161-4161-8161-616161616161',
+  '71717171-7171-4171-8171-717171717171', '81818181-8181-4181-8181-818181818181',
+  '91919191-9191-4191-8191-919191919191', 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1'
+);
+insert into public.choices (owner_id, episode_id, option_key, label, consequence)
+select '11111111-1111-4111-8111-111111111111', e.id, branch.option_key, branch.label, branch.consequence
+from public.episodes e
+cross join (values ('1', 'Keep the record', 'The archive preserves the trace.'),
+                   ('2', 'Erase the record', 'The archive removes the trace.')) as branch(option_key, label, consequence)
+where e.id in (
+  '41414141-4141-4141-8141-414141414141', '61616161-6161-4161-8161-616161616161',
+  '71717171-7171-4171-8171-717171717171', '81818181-8181-4181-8181-818181818181',
+  '91919191-9191-4191-8191-919191919191', 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1'
+);
+select public.set_episode_status('41414141-4141-4141-8141-414141414141', 'READY');
+select public.set_episode_status('51515151-5151-4151-8151-515151515151', 'READY');
+select public.set_episode_status('61616161-6161-4161-8161-616161616161', 'READY');
+select public.set_episode_status('71717171-7171-4171-8171-717171717171', 'READY');
+select public.set_episode_status('81818181-8181-4181-8181-818181818181', 'READY');
+select public.set_episode_status('91919191-9191-4191-8191-919191919191', 'READY');
+select public.set_episode_status('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', 'READY');
+
+-- Episode 3 has a verified, explicitly approved result, so episode 4 can publish.
+insert into public.polls (id, episode_id, opened_at, closes_at, tie_break_rule, tie_break_option)
+values ('33333333-3333-4333-8333-333333333333', '13131313-1313-4131-8131-131313131313',
+  now(), now() + interval '1 day', 'If totals tie, option 1 wins.', '1');
+update public.polls set status = 'CLOSED', closed_at = now()
+where id = '33333333-3333-4333-8333-333333333333';
+insert into public.poll_results (
+  id, poll_id, revision_number, option_1_count, option_2_count, winner_option,
+  verification_status, evidence_source, captured_at, verified_at
+) values (
+  '34343434-3434-4434-8434-343434343434', '33333333-3333-4333-8333-333333333333',
+  1, 10, 5, '1', 'VERIFIED', 'Synthetic episode three vote.', now(), now()
+);
+insert into public.canonical_decisions (
+  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+) values (
+  '35353535-3535-4535-8535-353535353535', '33333333-3333-4333-8333-333333333333',
+  '13131313-1313-4131-8131-131313131313', '34343434-3434-4434-8434-343434343434',
+  1, '{"selectedOption":"1"}'::jsonb, 'Synthetic explicit owner approval before episode four.'
+);
+select lives_ok(
+  $$select public.set_episode_status('41414141-4141-4141-8141-414141414141', 'PUBLISHED');$$,
+  'publication is allowed once the missing predecessor exists with verified and approved continuity'
+);
+
+-- Approve episode 4 before publishing the previously blocked episode 5 draft.
+insert into public.polls (id, episode_id, opened_at, closes_at, tie_break_rule, tie_break_option)
+values ('44444444-4444-4444-8444-444444444444', '41414141-4141-4141-8141-414141414141',
+  now(), now() + interval '1 day', 'If totals tie, option 1 wins.', '1');
+update public.polls set status = 'CLOSED', closed_at = now()
+where id = '44444444-4444-4444-8444-444444444444';
+insert into public.poll_results (
+  id, poll_id, revision_number, option_1_count, option_2_count, winner_option,
+  verification_status, evidence_source, captured_at, verified_at
+) values (
+  '45454545-4545-4545-8545-454545454545', '44444444-4444-4444-8444-444444444444',
+  1, 10, 5, '1', 'VERIFIED', 'Synthetic episode four vote.', now(), now()
+);
+insert into public.canonical_decisions (
+  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+) values (
+  '46464646-4646-4646-8646-464646464646', '44444444-4444-4444-8444-444444444444',
+  '41414141-4141-4141-8141-414141414141', '45454545-4545-4545-8545-454545454545',
+  1, '{"selectedOption":"1"}'::jsonb, 'Synthetic explicit owner approval before episode five.'
+);
+select lives_ok(
+  $$select public.set_episode_status('51515151-5151-4151-8151-515151515151', 'PUBLISHED');$$,
+  'the out-of-order episode publishes after its immediate predecessor has valid verified continuity'
+);
+
+do $$
+declare
+  v_episode_number smallint;
+  v_episode_id uuid;
+  v_poll_id uuid;
+  v_result_id uuid;
+  v_next_episode_id uuid;
+begin
+  for v_episode_number in 5..10 loop
+    select id into v_episode_id from public.episodes
+    where season_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' and episode_number = v_episode_number;
+    v_poll_id := gen_random_uuid();
+    v_result_id := gen_random_uuid();
+    insert into public.polls (id, episode_id, opened_at, closes_at, tie_break_rule, tie_break_option)
+    values (v_poll_id, v_episode_id, now(), now() + interval '1 day', 'If totals tie, option 1 wins.', '1');
+    update public.polls set status = 'CLOSED', closed_at = now() where id = v_poll_id;
+    insert into public.poll_results (
+      id, poll_id, revision_number, option_1_count, option_2_count, winner_option,
+      verification_status, evidence_source, captured_at, verified_at
+    ) values (
+      v_result_id, v_poll_id, 1, 10, 5, '1', 'VERIFIED',
+      format('Synthetic episode %s vote.', v_episode_number), now(), now()
+    );
+    insert into public.canonical_decisions (
+      poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+    ) values (
+      v_poll_id, v_episode_id, v_result_id, 1, '{"selectedOption":"1"}'::jsonb,
+      format('Synthetic explicit owner approval for episode %s.', v_episode_number)
+    );
+    if v_episode_number < 10 then
+      select id into v_next_episode_id from public.episodes
+      where season_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' and episode_number = v_episode_number + 1;
+      perform public.set_episode_status(v_next_episode_id, 'PUBLISHED');
+    end if;
+  end loop;
+end;
+$$;
+select ok(
+  (select count(*) = 7 from public.episodes
+   where season_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+     and episode_number between 4 and 10 and status = 'PUBLISHED'),
+  'episodes four through ten publish only as each immediate predecessor gains verified approved continuity'
 );
 
 insert into public.episodes (id, season_id, episode_number, title, duration_ms)

@@ -15,6 +15,8 @@ import { estimateNarrationDurationSeconds } from '#lib/domain/narrative-context.
 
 function publicationBlockMessage(message: string): string {
 	const reason = message.toLowerCase();
+	if (reason.includes('episode_previous_episode_missing'))
+		return 'A publicação está aguardando: crie e publique o episódio imediatamente anterior antes desta continuação.';
 	if (reason.includes('episode_previous_poll_missing'))
 		return 'A publicação está aguardando: registre e encerre a votação do episódio anterior.';
 	if (reason.includes('episode_previous_vote_open'))
