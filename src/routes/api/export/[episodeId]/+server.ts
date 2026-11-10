@@ -20,7 +20,7 @@ export const GET: RequestHandler = async (event) => {
 	const { data: episode, error: episodeError } = await db
 		.from('episodes')
 		.select(
-			'id,title,episode_number,status,duration_ms,narration_pt_br,logline,hook,reveal,cliffhanger,platform_metadata,is_season_finale,seasons(title,series(title,premise,tone))',
+			'id,title,episode_number,status,duration_ms,narration_pt_br,logline,hook,reveal,cliffhanger,platform_metadata,is_season_finale,seasons(title,planned_episode_count,series(title,premise,tone))',
 		)
 		.eq('id', event.params.episodeId)
 		.eq('owner_id', owner.id)
@@ -28,6 +28,7 @@ export const GET: RequestHandler = async (event) => {
 	if (episodeError || !episode) error(404, 'Episódio não encontrado.');
 	const season = firstRelation(episode.seasons);
 	const series = firstRelation(season?.series);
+	const isSeasonFinale = Number(episode.episode_number) === Number(season?.planned_episode_count);
 	let narrativeContext;
 	try {
 		narrativeContext = await loadNarrativeContext(db, owner.id, episode.id);
@@ -129,7 +130,7 @@ export const GET: RequestHandler = async (event) => {
 			title: episode.title,
 			status: episode.status,
 			durationMs: episode.duration_ms,
-			isSeasonFinale: episode.is_season_finale,
+			isSeasonFinale,
 			logline: episode.logline,
 			hook: episode.hook,
 			reveal: episode.reveal,
@@ -165,8 +166,7 @@ export const GET: RequestHandler = async (event) => {
 	};
 	if (!scenes.length) manifest.warnings.push('NO_SCENES');
 	if (!srt) manifest.warnings.push('NO_NARRATION_FOR_CAPTIONS');
-	if (choices.length !== 2 && !episode.is_season_finale)
-		manifest.warnings.push('TWO_CHOICES_MISSING');
+	if (choices.length !== 2 && !isSeasonFinale) manifest.warnings.push('TWO_CHOICES_MISSING');
 
 	const output = new PassThrough();
 	const archive = new ZipArchive({ zlib: { level: 6 } });

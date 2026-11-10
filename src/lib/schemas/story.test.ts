@@ -82,6 +82,7 @@ describe('story input validation', () => {
 			],
 		};
 		expect(narrativeResponseSchema.safeParse(response).success).toBe(true);
+		expect(narrativeResponseSchema.safeParse({ ...response, choices: [] }).success).toBe(true);
 		expect(
 			narrativeResponseSchema.safeParse({
 				...response,

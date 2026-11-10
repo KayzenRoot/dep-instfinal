@@ -6,9 +6,31 @@
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	let { data, form }: PageProps = $props();
 	const isPublished = $derived(data.episode.status === 'PUBLISHED');
+	const isSeasonFinale = $derived(Boolean(data.episode.is_season_finale));
 	const option = (key: string) => data.choices.find((choice) => choice.option_key === key);
 	const latestResult = $derived(data.results[0]);
 	const metadata = $derived(data.episode.platform_metadata ?? {});
+	const publicationValidationMessage = $derived.by(() => {
+		const status = data.narrativeContext.latestPreviousCanon?.status;
+		if (!status || status === 'APPROVED') return null;
+		if (status === 'NO_POLL')
+			return 'Registre e encerre a votação do episódio anterior antes de publicar a continuação.';
+		if (status === 'VOTE_OPEN')
+			return 'A continuação só pode ser publicada depois que a votação do episódio anterior for encerrada.';
+		if (status === 'POLL_CANCELLED' || status === 'POLL_NOT_VERIFIED')
+			return 'A votação do episódio anterior precisa estar encerrada e verificada antes da publicação.';
+		if (status === 'RESULT_MISSING')
+			return 'Registre os totais verificados da votação do episódio anterior antes de publicar a continuação.';
+		if (status === 'RESULT_UNVERIFIED')
+			return 'Verifique o resultado mais recente da votação do episódio anterior antes de publicar a continuação.';
+		if (status === 'NO_VERIFIED_WINNER')
+			return 'O resultado do episódio anterior precisa ter um vencedor válido, opção 1 ou 2.';
+		if (status === 'STALE_DECISION')
+			return 'A decisão canônica está desatualizada. Aprove a decisão correspondente ao resultado mais recente antes de publicar.';
+		if (status === 'OWNER_APPROVAL_PENDING')
+			return 'Revise e aprove a decisão canônica do resultado mais recente antes de publicar a continuação.';
+		return 'A votação do episódio anterior precisa ser encerrada, verificada e aprovada antes da publicação.';
+	});
 	const hasPreviousChoices = $derived(
 		data.narrativeContext.priorEpisodes.at(-1)?.choices.length === 2,
 	);
@@ -89,12 +111,8 @@
 				>
 			</div>
 			<label class="check-label"
-				><input
-					type="checkbox"
-					name="isSeasonFinale"
-					checked={data.episode.is_season_finale}
-					disabled={isPublished}
-				/> Final da temporada</label
+				><input type="checkbox" name="isSeasonFinale" checked={isSeasonFinale} disabled /> Final da temporada
+				conforme o plano de episódios</label
 			>
 			<label
 				>Logline<input
@@ -217,8 +235,18 @@
 					>{Math.floor(data.episode.duration_ms / 1000)} s · {data.scenes.length} cenas</strong
 				>
 			</div>
-			<div class="status-line"><span>OPÇÕES</span><strong>{data.choices.length} de 2</strong></div>
+			<div class="status-line">
+				<span>OPÇÕES</span><strong
+					>{isSeasonFinale ? 'dispensadas · final' : `${data.choices.length} de 2`}</strong
+				>
+			</div>
 			<div class="status-line"><span>REVISÕES</span><strong>{data.revisions.length}</strong></div>
+			{#if !isPublished && publicationValidationMessage}<p
+					class="publication-gate-note"
+					role="status"
+				>
+					{publicationValidationMessage}
+				</p>{/if}
 			{#if !isPublished && data.episode.status === 'DRAFT'}<form method="POST" action="?/markReady">
 					<button class="secondary-button full" type="submit">Validar e marcar pronto</button>
 				</form>{/if}
@@ -300,7 +328,9 @@
 		<Panel
 			eyebrow="FALLBACK MANUAL · SEM CHAMADA DE IA"
 			title="Importar resposta narrativa"
-			description="Cole o JSON devolvido no fluxo manual. O servidor valida roteiro, duas consequências diferentes e duração estimada antes de gravar roteiro, saídas sociais e opções em uma transação."
+			description={isSeasonFinale
+				? 'Cole o JSON devolvido no fluxo manual. No final da temporada, choices pode estar vazio; o servidor valida o roteiro e a duração antes de gravar o rascunho.'
+				: 'Cole o JSON devolvido no fluxo manual. O servidor valida roteiro, duas consequências diferentes e duração estimada antes de gravar roteiro, saídas sociais e opções em uma transação.'}
 		>
 			<form
 				method="POST"
@@ -317,7 +347,7 @@
 				>
 				<label class="check-label"
 					><input type="checkbox" name="confirmImport" required /> Revisei a resposta; ela substituirá
-					o conteúdo e as duas opções deste rascunho.</label
+					o conteúdo e as opções deste rascunho.</label
 				>
 				<button class="primary-button" type="submit">Validar e importar resposta</button>
 			</form>
@@ -460,37 +490,46 @@
 <section class="choices-section" aria-labelledby="choices-title">
 	<Panel
 		eyebrow="DECISÃO DO PÚBLICO"
-		title="Duas opções narrativas"
-		description="A temporada pode terminar sem ramificação. Votos nunca são coletados automaticamente."
+		title={isSeasonFinale ? 'Encerramento da temporada' : 'Duas opções narrativas'}
+		description={isSeasonFinale
+			? 'Este é o episódio final planejado e não precisa de opções nem votação.'
+			: 'As duas opções devem levar a consequências diferentes. Votos nunca são coletados automaticamente.'}
 	>
-		<form method="POST" action="?/saveChoices" class="choice-grid">
-			{#each ['1', '2'] as key (key)}
-				{@const saved = option(key)}
-				<fieldset disabled={isPublished}>
-					<legend>OPÇÃO {key}</legend><label
-						>Rótulo<input
-							name={`option${key}Label`}
-							maxlength="180"
-							required
-							value={saved?.label ?? ''}
-						/></label
-					><label
-						>Consequência<textarea
-							name={`option${key}Consequence`}
-							rows="4"
-							maxlength="4000"
-							required>{saved?.consequence ?? ''}</textarea
-						></label
-					>
-				</fieldset>
-			{/each}
-			{#if !isPublished}<button class="primary-button" type="submit">Salvar as duas opções</button
-				>{/if}
-		</form>
+		{#if isSeasonFinale}
+			<p class="quiet-copy">
+				O roteiro final pode ser importado com <code>"choices": []</code>. Nenhuma hipótese será
+				transformada em cânone.
+			</p>
+		{:else}
+			<form method="POST" action="?/saveChoices" class="choice-grid">
+				{#each ['1', '2'] as key (key)}
+					{@const saved = option(key)}
+					<fieldset disabled={isPublished}>
+						<legend>OPÇÃO {key}</legend><label
+							>Rótulo<input
+								name={`option${key}Label`}
+								maxlength="180"
+								required
+								value={saved?.label ?? ''}
+							/></label
+						><label
+							>Consequência<textarea
+								name={`option${key}Consequence`}
+								rows="4"
+								maxlength="4000"
+								required>{saved?.consequence ?? ''}</textarea
+							></label
+						>
+					</fieldset>
+				{/each}
+				{#if !isPublished}<button class="primary-button" type="submit">Salvar as duas opções</button
+					>{/if}
+			</form>
+		{/if}
 	</Panel>
 </section>
 
-{#if isPublished && !data.episode.is_season_finale}
+{#if isPublished && !isSeasonFinale}
 	<section class="continuity-section" aria-labelledby="continuity-title">
 		<Panel
 			eyebrow="CONTINUIDADE · MANUAL"
@@ -805,6 +844,14 @@
 	.published-note {
 		color: var(--muted);
 		font-size: 0.76rem;
+	}
+	.publication-gate-note {
+		padding: 0.8rem 0.9rem;
+		border-left: 2px solid var(--danger);
+		background: color-mix(in srgb, var(--danger) 9%, transparent);
+		color: var(--text);
+		font-size: 0.78rem;
+		line-height: 1.5;
 	}
 	.publish-form {
 		margin-top: 0.7rem;

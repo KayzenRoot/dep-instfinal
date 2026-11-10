@@ -7,7 +7,7 @@ export const load: PageServerLoad = async (event) => {
 	const { data, error } = await db
 		.from('episodes')
 		.select(
-			'id,title,episode_number,status,duration_ms,is_season_finale,seasons(title,series(title))',
+			'id,title,episode_number,status,duration_ms,is_season_finale,seasons(title,planned_episode_count,series(title))',
 		)
 		.eq('owner_id', owner.id)
 		.order('updated_at', { ascending: false });
@@ -17,6 +17,7 @@ export const load: PageServerLoad = async (event) => {
 			const season = firstRelation(episode.seasons);
 			return {
 				...episode,
+				is_season_finale: Number(episode.episode_number) === Number(season?.planned_episode_count),
 				seasons: season ? { ...season, series: firstRelation(season.series) } : null,
 			};
 		}),

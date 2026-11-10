@@ -20,7 +20,7 @@ export async function loadNarrativeContext(
 	const targetQuery = await db
 		.from('episodes')
 		.select(
-			'id,season_id,episode_number,title,status,duration_ms,seasons(id,title,season_number,summary,bible,chronology,series_id,series(id,title,premise,subgenre,tone,audience))',
+			'id,season_id,episode_number,title,status,duration_ms,seasons(id,title,season_number,planned_episode_count,summary,bible,chronology,series_id,series(id,title,premise,subgenre,tone,audience))',
 		)
 		.eq('id', episodeId)
 		.eq('owner_id', ownerId)
@@ -36,7 +36,7 @@ export async function loadNarrativeContext(
 	const [seasonsQuery, charactersQuery, loreQuery] = await Promise.all([
 		db
 			.from('seasons')
-			.select('id,season_number,title,summary,bible,chronology,status')
+			.select('id,season_number,title,planned_episode_count,summary,bible,chronology,status')
 			.eq('series_id', seriesId)
 			.eq('owner_id', ownerId)
 			.order('season_number'),
@@ -223,6 +223,8 @@ export async function loadNarrativeContext(
 				seasonTitle: String(currentSeason?.title ?? ''),
 				title: String(target.title),
 				durationSeconds: Math.floor(Number(target.duration_ms) / 1000),
+				isSeasonFinale:
+					Number(target.episode_number) === Number(currentSeason?.planned_episode_count),
 			},
 			characters: (charactersQuery.data ?? []) as unknown as DbRow[],
 			loreFacts: (loreQuery.data ?? []) as unknown as DbRow[],

@@ -47,13 +47,20 @@ export const load: PageServerLoad = async (event) => {
 				.order('episode_number')
 		: { data: [], error: null };
 	if (episodesResult.error) error(503, 'Não foi possível carregar os episódios.');
+	const plannedEpisodeCountBySeason = new Map(
+		(seasonsResult.data ?? []).map((season) => [season.id, Number(season.planned_episode_count)]),
+	);
 	return {
 		ownerLabel: owner.email ?? 'Proprietária',
 		series: seriesResult.data,
 		seasons: seasonsResult.data ?? [],
 		characters: charactersResult.data ?? [],
 		lore: loreResult.data ?? [],
-		episodes: episodesResult.data ?? [],
+		episodes: (episodesResult.data ?? []).map((episode) => ({
+			...episode,
+			is_season_finale:
+				Number(episode.episode_number) === plannedEpisodeCountBySeason.get(episode.season_id),
+		})),
 	};
 };
 
@@ -123,13 +130,17 @@ export const actions: Actions = {
 			return fail(400, { message: 'Revise o número, o título e a duração (90–150 segundos).' });
 		const { data: season, error: seasonError } = await db
 			.from('seasons')
-			.select('id,series_id')
+			.select('id,series_id,planned_episode_count')
 			.eq('id', parsed.data.seasonId)
 			.eq('series_id', event.params.seriesId)
 			.eq('owner_id', owner.id)
 			.maybeSingle();
 		if (seasonError || !season)
 			return fail(404, { message: 'Temporada não encontrada neste arquivo.' });
+		if (parsed.data.episodeNumber > season.planned_episode_count)
+			return fail(400, {
+				message: `O número do episódio ultrapassa o plano desta temporada (${season.planned_episode_count} episódios).`,
+			});
 		const { data: episode, error: episodeError } = await db
 			.from('episodes')
 			.insert({

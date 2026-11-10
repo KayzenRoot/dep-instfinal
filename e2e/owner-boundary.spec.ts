@@ -176,6 +176,14 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		],
 	};
 	const importForm = page.locator('form.narrative-import-form');
+	await importForm
+		.locator('[name="responseJson"]')
+		.fill(JSON.stringify({ ...manualResponse, choices: [] }));
+	await importForm.locator('[name="confirmImport"]').check();
+	await importForm.getByRole('button', { name: 'Validar e importar resposta' }).click();
+	await expect(page.getByRole('alert')).toContainText(
+		'Este episódio ainda terá continuação e exige duas opções de votação diferentes.',
+	);
 	await importForm.locator('[name="responseJson"]').fill(JSON.stringify(manualResponse));
 	await importForm.locator('[name="confirmImport"]').check();
 	await importForm.getByRole('button', { name: 'Validar e importar resposta' }).click();
@@ -249,6 +257,31 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 			}),
 		]),
 	);
+	const continuationResponse = {
+		...manualResponse,
+		title: 'O aviso continua',
+		logline: 'Lara encontra uma segunda faixa na fita.',
+		choices: [
+			{ label: 'Ouvir a fita', consequence: 'Lara ouve o aviso sobre o arquivo.' },
+			{ label: 'Destruir a fita', consequence: 'Lara apaga a única prova do aviso.' },
+		],
+	};
+	const continuationImport = page.locator('form.narrative-import-form');
+	await continuationImport
+		.locator('[name="responseJson"]')
+		.fill(JSON.stringify(continuationResponse));
+	await continuationImport.locator('[name="confirmImport"]').check();
+	await continuationImport.getByRole('button', { name: 'Validar e importar resposta' }).click();
+	await expect(page.getByRole('status')).toContainText('Estimativa de narração: 120 s');
+	await expect(page.getByText('DRAFT', { exact: true })).toBeVisible();
+	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
+	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
+	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
+	await expect(page.getByRole('alert')).toContainText(
+		'encerre a votação aberta do episódio anterior',
+	);
+	expect(await page.getByText('READY', { exact: true }).count()).toBe(1);
 	await page.goto(firstEpisodeUrl);
 	await page.getByRole('button', { name: 'Registrar encerramento manual' }).click();
 	await page.getByLabel('Votos · opção 1').fill('14');
@@ -265,7 +298,33 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await page.getByRole('button', { name: 'Registrar decisão append-only' }).click();
 	await expect(page.getByText('DECISÃO R01')).toBeVisible();
 	expect(continuationId).not.toBe(firstEpisodeId);
+	await page.getByLabel('Votos · opção 1').fill('5');
+	await page.getByLabel('Votos · opção 2').fill('14');
+	await page.getByLabel('Fonte consultada').fill('Retificação sintética da aceitação E2E');
+	await page.getByLabel(/Conferi estes totais/).check();
+	await page.getByRole('button', { name: 'Salvar resultado verificado' }).click();
+	await expect(page.getByText('Vence opção 2')).toBeVisible();
 	await page.goto(`/app/episodes/${continuationId}`);
+	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
+	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
+	await expect(page.getByRole('alert')).toContainText('decisão aprovada está desatualizada');
+	await page.goto(firstEpisodeUrl);
+	await page
+		.locator('[name="canonSnapshot"]')
+		.fill('{"ramo":"Lara destruiu a fita após retificação"}');
+	await page
+		.getByLabel('Justificativa da autora')
+		.fill('A retificação aprovada substitui a decisão anterior.');
+	const correctedCanonConfirmation = page.locator(
+		'form[action="?/approveCanon"] input[name="acceptCanon"]',
+	);
+	await correctedCanonConfirmation.check();
+	await page.getByRole('button', { name: 'Registrar decisão append-only' }).click();
+	await expect(page.getByText('DECISÃO R02')).toBeVisible();
+	await page.goto(`/app/episodes/${continuationId}`);
+	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
+	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
+	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
 	const branchOnePrompt = await page.request.get(
 		`/api/narrative-prompt/${continuationId}?branch=1&wpm=145`,
 	);
@@ -277,9 +336,9 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	const branchOneContext = contextFromNarrativePrompt(await branchOnePrompt.text());
 	const branchTwoContext = contextFromNarrativePrompt(await branchTwoPrompt.text());
 	expect(branchOneContext.latestPreviousCanon.status).toBe('APPROVED');
-	expect(branchOneContext.latestPreviousCanon.approvedCanon.selectedOption).toBe('1');
+	expect(branchOneContext.latestPreviousCanon.approvedCanon.selectedOption).toBe('2');
 	expect(branchOneContext.latestPreviousCanon.approvedCanon.selectedChoice.label).toBe(
-		'Ouvir a fita',
+		'Destruir a fita',
 	);
 	expect(branchOneContext.hypotheticalBranch).toMatchObject({
 		status: 'HYPOTHETICAL_NOT_CANON',
@@ -336,6 +395,82 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		tiktok: { title: 'A fita de amanhã', cta: 'Escolha o próximo passo.' },
 		instagram: { title: 'A voz de amanhã', cta: 'Vote na continuação.' },
 	});
+	await page.goto(seriesUrl);
+	await page.getByPlaceholder('Título do episódio').fill('A antecâmara do fim');
+	await page.locator('[name="episodeNumber"]').fill('11');
+	await page.getByRole('button', { name: 'Criar rascunho' }).click();
+	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
+	const penultimateResponse = {
+		...manualResponse,
+		title: 'A antecâmara do fim',
+		choices: [
+			{ label: 'Abrir a sala', consequence: 'Lara encontra a origem do sinal.' },
+			{ label: 'Selar a sala', consequence: 'Lara preserva o arquivo e perde o sinal.' },
+		],
+	};
+	const penultimateImport = page.locator('form.narrative-import-form');
+	await penultimateImport
+		.locator('[name="responseJson"]')
+		.fill(JSON.stringify(penultimateResponse));
+	await penultimateImport.locator('[name="confirmImport"]').check();
+	await penultimateImport.getByRole('button', { name: 'Validar e importar resposta' }).click();
+	await expect(page.getByRole('status')).toContainText('Estimativa de narração: 120 s');
+	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
+	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
+	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
+	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
+	await page.getByLabel('Referência do post').fill('manual-e2e-penultimate');
+	await page.getByLabel('Horas até encerrar').fill('1');
+	await page
+		.getByLabel('Regra publicada para desempate')
+		.fill('A opção 1 vence em caso de empate.');
+	await page.getByRole('button', { name: 'Abrir registro da votação' }).click();
+	await page.getByRole('button', { name: 'Registrar encerramento manual' }).click();
+	await page.getByLabel('Votos · opção 1').fill('12');
+	await page.getByLabel('Votos · opção 2').fill('7');
+	await page.getByLabel('Fonte consultada').fill('Contagem sintética anterior ao final E2E');
+	await page.getByLabel(/Conferi estes totais/).check();
+	await page.getByRole('button', { name: 'Salvar resultado verificado' }).click();
+	await expect(page.getByText('Vence opção 1')).toBeVisible();
+	await page.locator('[name="canonSnapshot"]').fill('{"ramo":"Lara abriu a sala"}');
+	await page.getByLabel('Justificativa da autora').fill('Cânone aprovado para o teste final.');
+	await page.locator('form[action="?/approveCanon"] input[name="acceptCanon"]').check();
+	await page.getByRole('button', { name: 'Registrar decisão append-only' }).click();
+	await expect(page.getByText('DECISÃO R01')).toBeVisible();
+	await page.goto(seriesUrl);
+	await page.getByPlaceholder('Título do episódio').fill('O último registro');
+	await page.locator('[name="episodeNumber"]').fill('12');
+	await page.getByLabel('Duração').fill('120');
+	await page.getByRole('button', { name: 'Criar rascunho' }).click();
+	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
+	const finaleId = page.url().split('/').at(-1)!;
+	const finalePrompt = await page.request.get(`/api/narrative-prompt/${finaleId}`);
+	expect(finalePrompt.status()).toBe(200);
+	expect(await finalePrompt.text()).toContain('"choices": []');
+	const finaleResponse = { ...manualResponse, title: 'O último registro', choices: [] };
+	const finaleImport = page.locator('form.narrative-import-form');
+	await finaleImport.locator('[name="responseJson"]').fill(JSON.stringify(finaleResponse));
+	await finaleImport.locator('[name="confirmImport"]').check();
+	await finaleImport.getByRole('button', { name: 'Validar e importar resposta' }).click();
+	await expect(page.getByRole('status')).toContainText('Estimativa de narração: 120 s');
+	await expect(
+		page.getByText('Este é o episódio final planejado e não precisa de opções nem votação.'),
+	).toBeVisible();
+	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
+	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
+	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
+	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
+	const finalePollResponse = await page.request.post(`/app/episodes/${finaleId}?/createPoll`, {
+		form: {
+			durationHours: '1',
+			tieBreakOption: '1',
+			tieBreakRule: 'A opção 1 venceria em empate.',
+			externalPostId: '',
+		},
+	});
+	expect(finalePollResponse.status()).toBe(409);
 	await page.goto('/app');
 	await page.getByRole('button', { name: 'Encerrar sessão' }).click();
 	await expect(page).toHaveURL(/\/login\?logged-out=1$/);

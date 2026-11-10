@@ -13,6 +13,27 @@ import { firstRelation } from '#lib/server/relations.js';
 import { loadNarrativeContext } from '#lib/server/narrative-context.js';
 import { estimateNarrationDurationSeconds } from '#lib/domain/narrative-context.js';
 
+function publicationBlockMessage(message: string): string {
+	const reason = message.toLowerCase();
+	if (reason.includes('episode_previous_poll_missing'))
+		return 'A publicação está aguardando: registre e encerre a votação do episódio anterior.';
+	if (reason.includes('episode_previous_vote_open'))
+		return 'A publicação está aguardando: encerre a votação aberta do episódio anterior.';
+	if (reason.includes('episode_previous_vote_not_verified'))
+		return 'A publicação está aguardando: a votação do episódio anterior precisa ser encerrada e verificada.';
+	if (reason.includes('episode_previous_result_missing'))
+		return 'A publicação está aguardando: registre os totais verificados da votação anterior.';
+	if (reason.includes('episode_previous_result_unverified'))
+		return 'A publicação está aguardando: verifique o resultado mais recente da votação anterior.';
+	if (reason.includes('episode_previous_winner_invalid'))
+		return 'A publicação está aguardando: o resultado anterior precisa ter um vencedor válido, opção 1 ou 2.';
+	if (reason.includes('episode_previous_canon_stale'))
+		return 'A publicação está aguardando: a decisão aprovada está desatualizada. Revise e aprove a decisão correspondente ao resultado mais recente.';
+	if (reason.includes('episode_previous_canon_pending'))
+		return 'A publicação está aguardando: revise e aprove a decisão canônica do resultado verificado mais recente.';
+	return 'Não foi possível publicar. Revise o estado do episódio e as validações da temporada.';
+}
+
 export const load: PageServerLoad = async (event) => {
 	const { db, owner } = ownerDatabase(event);
 	const episodeId = event.params.episodeId;
@@ -69,6 +90,8 @@ export const load: PageServerLoad = async (event) => {
 	const season = firstRelation(episodeResult.data.seasons);
 	const episode = {
 		...episodeResult.data,
+		is_season_finale:
+			Number(episodeResult.data.episode_number) === Number(season?.planned_episode_count),
 		seasons: season ? { ...season, series: firstRelation(season.series) } : null,
 	};
 	let results: Array<{
@@ -208,7 +231,7 @@ export const actions: Actions = {
 		};
 	},
 	importNarrativeResponse: async (event) => {
-		const { db } = ownerDatabase(event);
+		const { db, owner } = ownerDatabase(event);
 		const form = await event.request.formData().catch(() => null);
 		if (!form) return fail(400, { message: 'Não foi possível ler a resposta narrativa.' });
 		if (form.get('confirmImport') !== 'on')
@@ -226,9 +249,24 @@ export const actions: Actions = {
 		if (!parsed.success)
 			return fail(400, {
 				message:
-					'JSON inválido: revise campos obrigatórios, duas opções distintas e duração estimada entre 90 e 150 segundos.',
+					'JSON inválido: revise campos obrigatórios, duas opções distintas (exceto no final da temporada) e duração estimada entre 90 e 150 segundos.',
 			});
 		const response = parsed.data;
+		const { data: targetEpisode, error: targetEpisodeError } = await db
+			.from('episodes')
+			.select('id,episode_number,seasons(planned_episode_count)')
+			.eq('id', event.params.episodeId)
+			.eq('owner_id', owner.id)
+			.maybeSingle();
+		const targetSeason = targetEpisode ? firstRelation(targetEpisode.seasons) : null;
+		if (targetEpisodeError || !targetEpisode || !targetSeason)
+			return fail(404, { message: 'Episódio não encontrado nesta temporada.' });
+		const isSeasonFinale =
+			Number(targetEpisode.episode_number) === Number(targetSeason.planned_episode_count);
+		if (!isSeasonFinale && response.choices.length !== 2)
+			return fail(400, {
+				message: 'Este episódio ainda terá continuação e exige duas opções de votação diferentes.',
+			});
 		const metadata = {
 			speech_speed_wpm: response.speechSpeedWpm,
 			screen_suggestion: response.screenSuggestion,
@@ -262,10 +300,10 @@ export const actions: Actions = {
 			p_narration_pt_br: response.narrationPtBr,
 			p_duration_ms: response.durationSeconds * 1000,
 			p_platform_metadata: metadata,
-			p_option_1_label: response.choices[0].label,
-			p_option_1_consequence: response.choices[0].consequence,
-			p_option_2_label: response.choices[1].label,
-			p_option_2_consequence: response.choices[1].consequence,
+			p_option_1_label: response.choices[0]?.label ?? null,
+			p_option_1_consequence: response.choices[0]?.consequence ?? null,
+			p_option_2_label: response.choices[1]?.label ?? null,
+			p_option_2_consequence: response.choices[1]?.consequence ?? null,
 		});
 		if (importError)
 			return fail(409, {
@@ -420,7 +458,7 @@ export const actions: Actions = {
 		});
 		if (statusError)
 			return fail(409, {
-				message: 'A publicação exige um episódio pronto, cenas contínuas e opções distintas.',
+				message: publicationBlockMessage(statusError.message),
 			});
 		return { statusSaved: true };
 	},
@@ -447,11 +485,16 @@ export const actions: Actions = {
 		}
 		const { data: episode, error: episodeError } = await db
 			.from('episodes')
-			.select('id,status,is_season_finale')
+			.select('id,status,episode_number,seasons(planned_episode_count)')
 			.eq('id', event.params.episodeId)
 			.eq('owner_id', owner.id)
 			.maybeSingle();
-		if (episodeError || !episode || episode.status !== 'PUBLISHED' || episode.is_season_finale)
+		const pollSeason = episode ? firstRelation(episode.seasons) : null;
+		const isSeasonFinale =
+			episode && pollSeason
+				? Number(episode.episode_number) === Number(pollSeason.planned_episode_count)
+				: false;
+		if (episodeError || !episode || episode.status !== 'PUBLISHED' || isSeasonFinale)
 			return fail(409, {
 				message: 'A votação exige um episódio publicado que não seja final de temporada.',
 			});

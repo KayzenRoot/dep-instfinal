@@ -49,6 +49,7 @@ export type NarrativeContextInput = {
 		seasonTitle: string;
 		title: string;
 		durationSeconds: number;
+		isSeasonFinale?: boolean;
 	};
 	characters: Array<Record<string, unknown>>;
 	loreFacts: Array<Record<string, unknown>>;
@@ -164,7 +165,9 @@ export function renderNarrativePrompt(
 		'- Só considere definitivo um resultado cujo estado esteja `APPROVED`. Votação aberta, resultado pendente, decisão ausente ou revisão obsoleta não são cânone.',
 		'- Se houver uma hipótese de ramo, ela está marcada `HYPOTHETICAL_NOT_CANON`; desenvolva apenas essa possibilidade para este rascunho e não a descreva como fato ocorrido.',
 		'- Não invente votação, vencedor, consequência aprovada, personagem, regra ou fato ausente do contexto.',
-		'- Escreva em português brasileiro. Inclua gancho, escalada, revelação e cliffhanger; apresente duas opções genuinamente distintas com consequências diferentes.',
+		context.preparedFor.isSeasonFinale
+			? '- Escreva em português brasileiro. Inclua gancho, escalada, revelação e encerramento; como este é o episódio final da temporada, não inclua opções de votação.'
+			: '- Escreva em português brasileiro. Inclua gancho, escalada, revelação e cliffhanger; apresente duas opções genuinamente distintas com consequências diferentes.',
 		'- A narração deve estimar de 90 a 150 segundos sem cortar acontecimentos essenciais. Use a velocidade informada e revise o texto completo até a estimativa corresponder à duração declarada.',
 		'- Não altere o cânone: a resposta será importada como rascunho editável e só uma aprovação explícita pode registrar decisão canônica.',
 		'',
@@ -198,17 +201,21 @@ export function renderNarrativePrompt(
 				coverText: '',
 				tiktok: { title: '', cta: '', description: '' },
 				instagram: { title: '', cta: '', description: '' },
-				choices: [
-					{ label: '', consequence: '' },
-					{ label: '', consequence: '' },
-				],
+				choices: context.preparedFor.isSeasonFinale
+					? []
+					: [
+							{ label: '', consequence: '' },
+							{ label: '', consequence: '' },
+						],
 			},
 			null,
 			2,
 		),
 		'```',
 		'',
-		'Importe o objeto no editor DIF Studio. A validação confere campos, opções distintas e estimativa de duração antes de salvar o rascunho.',
+		context.preparedFor.isSeasonFinale
+			? 'Importe o objeto no editor DIF Studio. Este episódio final pode usar choices vazio; a validação confere os campos narrativos e a estimativa de duração antes de salvar o rascunho.'
+			: 'Importe o objeto no editor DIF Studio. A validação confere campos, duas opções distintas e estimativa de duração antes de salvar o rascunho.',
 		'',
 		'',
 	].join('\n');

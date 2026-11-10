@@ -103,7 +103,9 @@ export const narrativeResponseSchema = z
 					consequence: requiredText(4_000),
 				}),
 			)
-			.length(2),
+			.refine((choices) => choices.length === 0 || choices.length === 2, {
+				message: 'Informe as duas opções ou deixe ambas vazias no episódio final da temporada.',
+			}),
 	})
 	.superRefine((response, context) => {
 		if (response.choices.length !== 2) return;

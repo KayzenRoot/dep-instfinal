@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(1);
+select plan(13);
 
 do $$
 declare
@@ -162,6 +162,48 @@ values (
   now(), now() + interval '1 day',
   'If totals tie, option 1 wins; published before voting opened.', '1'
 );
+
+insert into public.episodes (id, season_id, episode_number, title, duration_ms)
+values ('12121212-1212-4121-8121-121212121212', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 2, 'Continuation', 90000);
+insert into public.scenes (owner_id, episode_id, scene_index, start_ms, end_ms)
+select '11111111-1111-4111-8111-111111111111',
+       '12121212-1212-4121-8121-121212121212',
+       n, (n - 1) * 8000, case when n = 12 then 90000 else n * 8000 end
+from generate_series(1, 12) as n;
+insert into public.choices (owner_id, episode_id, option_key, label, consequence)
+values
+  ('11111111-1111-4111-8111-111111111111', '12121212-1212-4121-8121-121212121212', '1', 'Follow the signal', 'Lara finds the second archive room.'),
+  ('11111111-1111-4111-8111-111111111111', '12121212-1212-4121-8121-121212121212', '2', 'Destroy the tape', 'Lara erases the only recording.');
+select public.set_episode_status('12121212-1212-4121-8121-121212121212', 'READY');
+
+select throws_ok(
+  $$select public.import_narrative_response(
+    '12121212-1212-4121-8121-121212121212', 'Must keep choices', 'A logline.', 'A hook.',
+    'A narrative.', 'A reveal.', 'A cliffhanger.', 'A complete narration.', 90000, '{}'::jsonb,
+    null, null, null, null
+  );$$,
+  '23514', 'episode_requires_two_choices_unless_finale',
+  'non-final narrative import still requires both voting options'
+);
+
+select throws_ok(
+  $$select public.set_episode_status('12121212-1212-4121-8121-121212121212', 'PUBLISHED');$$,
+  '23514', 'episode_previous_vote_open',
+  'continuation cannot publish while the prior vote is open'
+);
+select throws_ok(
+  $$update public.episodes set status = 'PUBLISHED', published_at = now()
+    where id = '12121212-1212-4121-8121-121212121212';$$,
+  '23514', 'episode_previous_vote_open',
+  'direct PostgreSQL updates cannot bypass the publication gate'
+);
+select throws_ok(
+  $$insert into public.episodes (id, season_id, episode_number, title, duration_ms, status, published_at)
+    values ('23232323-2323-4323-8323-232323232323', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 4,
+      'Cannot insert published', 90000, 'PUBLISHED', now());$$,
+  '23514', 'invalid_episode_status_transition',
+  'direct PostgreSQL inserts cannot create already-published episodes'
+);
 update public.polls set status = 'CLOSED', closed_at = now() where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 
 insert into public.poll_results (
@@ -196,6 +238,151 @@ begin
   end if;
 end;
 $$;
+
+select lives_ok(
+  $$select public.set_episode_status('12121212-1212-4121-8121-121212121212', 'PUBLISHED');$$,
+  'closed verified winner with its approved canonical decision permits publication'
+);
+
+insert into public.polls (id, episode_id, opened_at, closes_at, tie_break_rule, tie_break_option)
+values (
+  '14141414-1414-4141-8141-141414141414',
+  '12121212-1212-4121-8121-121212121212',
+  now(), now() + interval '1 day', 'If totals tie, option 2 wins.', '2'
+);
+update public.polls set status = 'CLOSED', closed_at = now()
+where id = '14141414-1414-4141-8141-141414141414';
+insert into public.poll_results (
+  id, poll_id, revision_number, option_1_count, option_2_count, winner_option,
+  verification_status, evidence_source, captured_at, verified_at
+) values (
+  '15151515-1515-4151-8151-151515151515', '14141414-1414-4141-8141-141414141414',
+  1, 8, 12, '2', 'VERIFIED', 'Synthetic continuation vote.', now(), now()
+);
+insert into public.canonical_decisions (
+  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+) values (
+  '16161616-1616-4161-8161-161616161616', '14141414-1414-4141-8141-141414141414',
+  '12121212-1212-4121-8121-121212121212', '15151515-1515-4151-8151-151515151515',
+  1, '{"selectedOption":"2"}'::jsonb, 'Synthetic owner approval of the latest result.'
+);
+
+insert into public.episodes (id, season_id, episode_number, title, duration_ms)
+values ('13131313-1313-4131-8131-131313131313', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 3, 'Next continuation', 90000);
+insert into public.scenes (owner_id, episode_id, scene_index, start_ms, end_ms)
+select '11111111-1111-4111-8111-111111111111',
+       '13131313-1313-4131-8131-131313131313',
+       n, (n - 1) * 8000, case when n = 12 then 90000 else n * 8000 end
+from generate_series(1, 12) as n;
+insert into public.choices (owner_id, episode_id, option_key, label, consequence)
+values
+  ('11111111-1111-4111-8111-111111111111', '13131313-1313-4131-8131-131313131313', '1', 'Keep the light on', 'The archive reveals a new corridor.'),
+  ('11111111-1111-4111-8111-111111111111', '13131313-1313-4131-8131-131313131313', '2', 'Cut the power', 'The tape begins recording by itself.');
+select public.set_episode_status('13131313-1313-4131-8131-131313131313', 'READY');
+
+insert into public.poll_results (
+  id, poll_id, revision_number, option_1_count, option_2_count, winner_option,
+  verification_status, evidence_source, captured_at, supersedes_result_id
+) values (
+  '17171717-1717-4171-8171-171717171717', '14141414-1414-4141-8141-141414141414',
+  2, 9, 12, null, 'PENDING', '', now(), '15151515-1515-4151-8151-151515151515'
+);
+select throws_ok(
+  $$select public.set_episode_status('13131313-1313-4131-8131-131313131313', 'PUBLISHED');$$,
+  '23514', 'episode_previous_result_unverified',
+  'a newer pending result blocks publication even when the prior result was approved'
+);
+
+insert into public.poll_results (
+  id, poll_id, revision_number, option_1_count, option_2_count, winner_option,
+  verification_status, evidence_source, captured_at, verified_at, supersedes_result_id
+) values (
+  '18181818-1818-4181-8181-181818181818', '14141414-1414-4141-8141-141414141414',
+  3, 15, 12, '1', 'VERIFIED', 'Synthetic corrected continuation vote.', now(), now(),
+  '17171717-1717-4171-8171-171717171717'
+);
+select throws_ok(
+  $$select public.set_episode_status('13131313-1313-4131-8131-131313131313', 'PUBLISHED');$$,
+  '23514', 'episode_previous_canon_stale',
+  'a verified correction still blocks publication until its result is approved'
+);
+insert into public.canonical_decisions (
+  id, poll_id, episode_id, poll_result_id, revision_number, supersedes_decision_id, canon_snapshot, rationale
+) values (
+  '19191919-1919-4191-8191-191919191919', '14141414-1414-4141-8141-141414141414',
+  '12121212-1212-4121-8121-121212121212', '18181818-1818-4181-8181-181818181818',
+  2, '16161616-1616-4161-8161-161616161616', '{"selectedOption":"1"}'::jsonb,
+  'Synthetic owner approval of the corrected latest result.'
+);
+select lives_ok(
+  $$select public.set_episode_status('13131313-1313-4131-8131-131313131313', 'PUBLISHED');$$,
+  'publication succeeds after the latest verified result is canonically approved'
+);
+
+insert into public.episodes (id, season_id, episode_number, title, duration_ms)
+values ('21212121-2121-4121-8121-212121212121', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 11, 'Pre-finale episode', 90000);
+insert into public.scenes (owner_id, episode_id, scene_index, start_ms, end_ms)
+select '11111111-1111-4111-8111-111111111111',
+       '21212121-2121-4121-8121-212121212121',
+       n, (n - 1) * 8000, case when n = 12 then 90000 else n * 8000 end
+from generate_series(1, 12) as n;
+insert into public.choices (owner_id, episode_id, option_key, label, consequence)
+values
+  ('11111111-1111-4111-8111-111111111111', '21212121-2121-4121-8121-212121212121', '1', 'Open the last room', 'Lara finds the source of the signal.'),
+  ('11111111-1111-4111-8111-111111111111', '21212121-2121-4121-8121-212121212121', '2', 'Seal the last room', 'Lara preserves the archive but loses the signal.');
+select public.set_episode_status('21212121-2121-4121-8121-212121212121', 'READY');
+select public.set_episode_status('21212121-2121-4121-8121-212121212121', 'PUBLISHED');
+insert into public.polls (id, episode_id, opened_at, closes_at, tie_break_rule, tie_break_option)
+values ('22222222-2222-4222-8222-222222222222', '21212121-2121-4121-8121-212121212121',
+  now(), now() + interval '1 day', 'If totals tie, option 1 wins.', '1');
+update public.polls set status = 'CLOSED', closed_at = now()
+where id = '22222222-2222-4222-8222-222222222222';
+insert into public.poll_results (
+  id, poll_id, revision_number, option_1_count, option_2_count, winner_option,
+  verification_status, evidence_source, captured_at, verified_at
+) values (
+  '24242424-2424-4424-8424-242424242424', '22222222-2222-4222-8222-222222222222',
+  1, 11, 4, '1', 'VERIFIED', 'Synthetic pre-finale vote.', now(), now()
+);
+insert into public.canonical_decisions (
+  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+) values (
+  '25252525-2525-4525-8525-252525252525', '22222222-2222-4222-8222-222222222222',
+  '21212121-2121-4121-8121-212121212121', '24242424-2424-4424-8424-242424242424',
+  1, '{"selectedOption":"1"}'::jsonb, 'Synthetic owner approval before the season finale.'
+);
+
+insert into public.episodes (id, season_id, episode_number, title, duration_ms)
+values ('20202020-2020-4020-8020-202020202020', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 12, 'Season finale', 90000);
+insert into public.scenes (owner_id, episode_id, scene_index, start_ms, end_ms)
+select '11111111-1111-4111-8111-111111111111',
+       '20202020-2020-4020-8020-202020202020',
+       n, (n - 1) * 8000, case when n = 12 then 90000 else n * 8000 end
+from generate_series(1, 12) as n;
+select lives_ok(
+  $$select public.import_narrative_response(
+    '20202020-2020-4020-8020-202020202020', 'Season finale', 'The last logline.', 'The last hook.',
+    'The final narrative.', 'The final reveal.', 'The story ends.', 'A complete final narration.',
+    90000, '{}'::jsonb, null, null, null, null
+  );$$,
+  'final-season narrative imports without voting options'
+);
+select public.set_episode_status('20202020-2020-4020-8020-202020202020', 'READY');
+select lives_ok(
+  $$select public.set_episode_status('20202020-2020-4020-8020-202020202020', 'PUBLISHED');$$,
+  'final-season episode publishes without its own poll or choices'
+);
+select ok(
+  (select is_season_finale and not exists (select 1 from public.choices where episode_id = '20202020-2020-4020-8020-202020202020')
+     and not exists (select 1 from public.polls where episode_id = '20202020-2020-4020-8020-202020202020')
+   from public.episodes where id = '20202020-2020-4020-8020-202020202020'),
+  'finale is derived from planned season length and has neither choices nor a poll'
+);
+select ok(
+  (select count(*) = 2 and count(distinct consequence) = 2
+   from public.choices where episode_id = '12121212-1212-4121-8121-121212121212'),
+  'both published continuation branches retain different consequences'
+);
 
 -- A newer result that is not verified invalidates the earlier winner for canon purposes.
 insert into public.poll_results (
