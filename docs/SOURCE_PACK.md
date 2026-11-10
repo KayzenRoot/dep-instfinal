@@ -2,8 +2,8 @@
 
 **Work Order:** `DIF-MVP-ALL-001`  
 **Revision:** 1.0  
-**Status:** approved scope; implementation/evidence pending final verification  
-**Last reconciled:** 2026-11-09
+**Status:** approved scope; CD01 code validated on `89bc16c05912a7b50b47ac3cf2cc3e9b2eef5359`; external Cloudinary validation and independent review remain pending
+**Last reconciled:** 2026-11-10
 
 ## Source hierarchy and context
 
@@ -114,4 +114,4 @@ Deployment documentation may describe a future Node + HTTPS deployment. This Wor
 
 ## Initial checkpoint
 
-**Checkpoint Delta: PROPOSED.** The repository was empty before the authorized bootstrap. Baseline is `b4fd54513af749d68bb7bce4c06110cd9981be39`. No implementation or external integrations are considered validated at this point. Promote only after independent audit and owner approval.
+**Checkpoint Delta: PROPOSED — NOT PROMOTED.** The original authorized bootstrap base is `b4fd54513af749d68bb7bce4c06110cd9981be39`; CD01 began at `d7887cfdee219f5b9e081c89e79d4ae61ee0c8f5`. Hosted PgTAP/RLS, authenticated Data API checks, and the complete E2E passed on code SHA `89bc16c05912a7b50b47ac3cf2cc3e9b2eef5359`. Keep the release incomplete and the proposed verdict at **CORRECTION REQUIRED** until live Cloudinary behavior can be validated and the independent review is complete. See `docs/CHECKPOINT_DELTA.md` and `docs/EVIDENCE_BUNDLE.md` for the current evidence and limits.
