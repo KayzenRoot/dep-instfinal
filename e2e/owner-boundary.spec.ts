@@ -121,7 +121,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.getByRole('heading', { name: seriesTitle })).toBeVisible();
 	const seriesUrl = page.url();
 	await page.getByLabel('Número', { exact: true }).fill('1');
-	await page.getByLabel('Episódios planejados').fill('5');
+	await page.getByLabel('Episódios planejados').fill('10');
 	await page.getByLabel('Título', { exact: true }).nth(1).fill('Temporada um');
 	await page.getByRole('button', { name: 'Adicionar temporada' }).click();
 	await expect(page.getByText('Temporada um')).toBeVisible();
@@ -176,6 +176,67 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 			{ label: 'Ouvir a fita', consequence: 'Lara ouve o aviso sobre o arquivo.' },
 			{ label: 'Destruir a fita', consequence: 'Lara apaga a única prova do aviso.' },
 		],
+	};
+	const recordVoteAndCanon = async (episodeId: string, suffix: string) => {
+		await page.goto(`/app/episodes/${episodeId}`);
+		await page.getByLabel('Referência do post').fill(`manual-e2e-${suffix}`);
+		await page.getByLabel('Horas até encerrar').fill('1');
+		await page
+			.getByLabel('Regra publicada para desempate')
+			.fill('A opção 1 vence em caso de empate.');
+		await page.getByRole('button', { name: 'Abrir registro da votação' }).click();
+		await page.getByRole('button', { name: 'Registrar encerramento manual' }).click();
+		await page.getByLabel('Votos · opção 1').fill('15');
+		await page.getByLabel('Votos · opção 2').fill('8');
+		await page.getByLabel('Fonte consultada').fill(`Contagem sintética ${suffix}`);
+		await page.getByLabel(/Conferi estes totais/).check();
+		await page.getByRole('button', { name: 'Salvar resultado verificado' }).click();
+		await expect(page.getByText('Vence opção 1')).toBeVisible();
+		await page.locator('[name="canonSnapshot"]').fill(`{"ramo":"Aprovado ${suffix}"}`);
+		await page.getByLabel('Justificativa da autora').fill(`Cânone aprovado para ${suffix}.`);
+		await page.locator('form[action="?/approveCanon"] input[name="acceptCanon"]').check();
+		await page.getByRole('button', { name: 'Registrar decisão append-only' }).click();
+		await expect(page.getByText('DECISÃO R01')).toBeVisible();
+	};
+	const createPublishAndApproveEpisode = async (episodeNumber: number, title: string) => {
+		await page.goto(seriesUrl);
+		await page.waitForLoadState('networkidle');
+		await page.getByPlaceholder('Título do episódio').fill(title);
+		const numberInput = page.locator('[name="episodeNumber"]');
+		await numberInput.fill(String(episodeNumber));
+		await expect(numberInput).toHaveValue(String(episodeNumber));
+		await page.getByLabel('Duração').fill('120');
+		await page.getByRole('button', { name: 'Criar rascunho' }).click();
+		await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
+		const episodeId = page.url().split('/').at(-1)!;
+		const response = {
+			...manualResponse,
+			title,
+			choices: [
+				{
+					label: `Seguir ${episodeNumber}`,
+					consequence: `O arquivo preserva o ramo ${episodeNumber}.`,
+				},
+				{
+					label: `Parar ${episodeNumber}`,
+					consequence: `O arquivo encerra o ramo ${episodeNumber}.`,
+				},
+			],
+		};
+		const narrativeImport = page.locator('form.narrative-import-form');
+		await narrativeImport.locator('[name="responseJson"]').fill(JSON.stringify(response));
+		await narrativeImport.locator('[name="confirmImport"]').check();
+		await narrativeImport.getByRole('button', { name: 'Validar e importar resposta' }).click();
+		await expect(page.locator('p.form-success[role="status"]')).toContainText(
+			'Estimativa de narração: 120 s',
+		);
+		await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
+		await expect(page.getByText('READY', { exact: true })).toBeVisible();
+		await page.locator('form.publish-form input[name="publishConfirmed"]').check();
+		await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
+		await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
+		await recordVoteAndCanon(episodeId, `episode-${episodeNumber}`);
+		return episodeId;
 	};
 	const importForm = page.locator('form.narrative-import-form');
 	await importForm
@@ -469,15 +530,72 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.getByText('DECISÃO R01')).toBeVisible();
 	await page.goto(seriesUrl);
 	await page.waitForLoadState('networkidle');
+	await page.getByPlaceholder('Título do episódio').fill('Ramo futuro fora de sequência');
+	const outOfOrderNumber = page.locator('[name="episodeNumber"]');
+	await outOfOrderNumber.fill('5');
+	await expect(outOfOrderNumber).toHaveValue('5');
+	await page.getByLabel('Duração').fill('120');
+	await page.getByRole('button', { name: 'Criar rascunho' }).click();
+	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
+	const outOfOrderId = page.url().split('/').at(-1)!;
+	await expect(page.getByText('DRAFT', { exact: true })).toBeVisible();
+	const outOfOrderPrompt = await page.request.get(`/api/narrative-prompt/${outOfOrderId}`);
+	expect(outOfOrderPrompt.status()).toBe(200);
+	const outOfOrderContext = contextFromNarrativePrompt(await outOfOrderPrompt.text());
+	expect(outOfOrderContext).toMatchObject({
+		preparedFor: { episodeNumber: 5, isSeasonFinale: false },
+	});
+	const outOfOrderResponse = {
+		...manualResponse,
+		title: 'Ramo futuro fora de sequência',
+		choices: [
+			{ label: 'Ouvir o eco', consequence: 'Lara preserva a gravação futura.' },
+			{ label: 'Silenciar a fita', consequence: 'Lara interrompe o eco futuro.' },
+		],
+	};
+	const outOfOrderImport = page.locator('form.narrative-import-form');
+	await outOfOrderImport.locator('[name="responseJson"]').fill(JSON.stringify(outOfOrderResponse));
+	await outOfOrderImport.locator('[name="confirmImport"]').check();
+	await outOfOrderImport.getByRole('button', { name: 'Validar e importar resposta' }).click();
+	await expect(page.locator('p.form-success[role="status"]')).toContainText(
+		'Estimativa de narração: 120 s',
+	);
+	const draftForm = page.locator('form[action="?/saveEpisode"]');
+	await draftForm.locator('[name="title"]').fill('Rascunho 5 editado fora de sequência');
+	await draftForm.getByRole('button', { name: 'Salvar roteiro e revisar timeline' }).click();
+	await expect(page.locator('p.form-success[role="status"]')).toContainText(
+		'Estimativa atual da narração',
+	);
+	await expect(page.getByText('DRAFT', { exact: true })).toBeVisible();
+	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
+	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
+	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
+	await expect(page.getByRole('alert')).toContainText(
+		'crie e publique o episódio imediatamente anterior',
+	);
+	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+
+	await createPublishAndApproveEpisode(4, 'A ponte cronológica');
+	await page.goto(`/app/episodes/${outOfOrderId}`);
+	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
+	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
+	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
+	await recordVoteAndCanon(outOfOrderId, 'episode-5');
+	for (const episodeNumber of [6, 7, 8, 9]) {
+		await createPublishAndApproveEpisode(episodeNumber, `Continuação ${episodeNumber}`);
+	}
+
+	await page.goto(seriesUrl);
+	await page.waitForLoadState('networkidle');
 	await page.getByPlaceholder('Título do episódio').fill('O último registro');
 	const finaleNumber = page.locator('[name="episodeNumber"]');
-	await finaleNumber.fill('5');
-	await expect(finaleNumber).toHaveValue('5');
+	await finaleNumber.fill('10');
+	await expect(finaleNumber).toHaveValue('10');
 	await page.getByLabel('Duração').fill('120');
 	await page.getByRole('button', { name: 'Criar rascunho' }).click();
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
 	const finaleId = page.url().split('/').at(-1)!;
-	await expect(page.getByText('DRAFT', { exact: true })).toBeVisible();
 	const finalePrompt = await page.request.get(`/api/narrative-prompt/${finaleId}`);
 	expect(finalePrompt.status()).toBe(200);
 	const finalePromptText = await finalePrompt.text();
@@ -486,7 +604,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	);
 	expect(finaleContext).not.toBeNull();
 	expect(JSON.parse(finaleContext![1])).toMatchObject({
-		preparedFor: { episodeNumber: 5, isSeasonFinale: true },
+		preparedFor: { episodeNumber: 10, isSeasonFinale: true },
 	});
 	expect(finalePromptText).toContain('"choices": []');
 	const finaleResponse = { ...manualResponse, title: 'O último registro', choices: [] };
@@ -497,73 +615,11 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.locator('p.form-success[role="status"]')).toContainText(
 		'Estimativa de narração: 120 s',
 	);
-	const draftForm = page.locator('form[action="?/saveEpisode"]');
-	await draftForm.locator('[name="title"]').fill('Rascunho final editado fora de sequência');
-	await draftForm.getByRole('button', { name: 'Salvar roteiro e revisar timeline' }).click();
-	await expect(page.locator('p.form-success[role="status"]')).toContainText(
-		'Estimativa atual da narração',
-	);
-	await expect(page.getByText('DRAFT', { exact: true })).toBeVisible();
 	await expect(
 		page.getByText('Este é o episódio final planejado e não precisa de opções nem votação.'),
 	).toBeVisible();
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
 	await expect(page.getByText('READY', { exact: true })).toBeVisible();
-	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
-	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
-	await expect(page.getByRole('alert')).toContainText(
-		'crie e publique o episódio imediatamente anterior',
-	);
-	await expect(page.getByText('READY', { exact: true })).toBeVisible();
-
-	// Episode 5 can remain a draft outside the sequence until episode 4 has valid continuity.
-	await page.goto(seriesUrl);
-	await page.waitForLoadState('networkidle');
-	await page.getByPlaceholder('Título do episódio').fill('A ponte cronológica');
-	await page.locator('[name="episodeNumber"]').fill('4');
-	await page.getByRole('button', { name: 'Criar rascunho' }).click();
-	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
-	const bridgeId = page.url().split('/').at(-1)!;
-	expect(bridgeId).not.toBe(finaleId);
-	const bridgeResponse = {
-		...manualResponse,
-		title: 'A ponte cronológica',
-		choices: [
-			{ label: 'Seguir a luz', consequence: 'Lara encontra a passagem aberta.' },
-			{ label: 'Fechar o arquivo', consequence: 'Lara sela a passagem para sempre.' },
-		],
-	};
-	const bridgeImport = page.locator('form.narrative-import-form');
-	await bridgeImport.locator('[name="responseJson"]').fill(JSON.stringify(bridgeResponse));
-	await bridgeImport.locator('[name="confirmImport"]').check();
-	await bridgeImport.getByRole('button', { name: 'Validar e importar resposta' }).click();
-	await expect(page.locator('p.form-success[role="status"]')).toContainText(
-		'Estimativa de narração: 120 s',
-	);
-	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
-	await expect(page.getByText('READY', { exact: true })).toBeVisible();
-	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
-	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
-	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
-	await page.getByLabel('Referência do post').fill('manual-e2e-bridge');
-	await page.getByLabel('Horas até encerrar').fill('1');
-	await page
-		.getByLabel('Regra publicada para desempate')
-		.fill('A opção 1 vence em caso de empate.');
-	await page.getByRole('button', { name: 'Abrir registro da votação' }).click();
-	await page.getByRole('button', { name: 'Registrar encerramento manual' }).click();
-	await page.getByLabel('Votos · opção 1').fill('15');
-	await page.getByLabel('Votos · opção 2').fill('8');
-	await page.getByLabel('Fonte consultada').fill('Contagem sintética para episódio quatro');
-	await page.getByLabel(/Conferi estes totais/).check();
-	await page.getByRole('button', { name: 'Salvar resultado verificado' }).click();
-	await expect(page.getByText('Vence opção 1')).toBeVisible();
-	await page.locator('[name="canonSnapshot"]').fill('{"ramo":"Lara seguiu a luz"}');
-	await page.getByLabel('Justificativa da autora').fill('Cânone aprovado para liberar o final.');
-	await page.locator('form[action="?/approveCanon"] input[name="acceptCanon"]').check();
-	await page.getByRole('button', { name: 'Registrar decisão append-only' }).click();
-	await expect(page.getByText('DECISÃO R01')).toBeVisible();
-	await page.goto(`/app/episodes/${finaleId}`);
 	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
 	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
 	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();

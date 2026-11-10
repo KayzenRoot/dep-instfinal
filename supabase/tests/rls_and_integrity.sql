@@ -385,7 +385,6 @@ where e.id in (
   '91919191-9191-4191-8191-919191919191', 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1'
 );
 select public.set_episode_status('41414141-4141-4141-8141-414141414141', 'READY');
-select public.set_episode_status('51515151-5151-4151-8151-515151515151', 'READY');
 select public.set_episode_status('61616161-6161-4161-8161-616161616161', 'READY');
 select public.set_episode_status('71717171-7171-4171-8171-717171717171', 'READY');
 select public.set_episode_status('81818181-8181-4181-8181-818181818181', 'READY');
