@@ -472,6 +472,10 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
 	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
 	const finalePollResponse = await page.request.post(`/app/episodes/${finaleId}?/createPoll`, {
+		headers: {
+			accept: 'application/json',
+			origin: new URL(page.url()).origin,
+		},
 		form: {
 			durationHours: '1',
 			tieBreakOption: '1',
