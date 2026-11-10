@@ -4,9 +4,9 @@
 - **Repository / branch / PR:** `KayzenRoot/dep-instfinal` / `feat/dif-studio-mvp-001` / Draft PR #14
 - **Audit base SHA revalidated:** `546353727d69b930f016b1faffa99d0e16bf6115`
 - **Implementation SHA:** `49665849f97fcb6f25064dcddff33dbe41decb13`
-- **Final code/test HEAD:** `92ff6428c318b6fc21c7611ce9d7db5c5227fb45`
-- **Hosted PR CI:** [`42875079025`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42875079025) — PASS
-- **Hosted push CI:** [`42875066540`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42875066540) — PASS
+- **Final code/test HEAD:** `1766b158c8a4e1054e6cb6c2a0c7a3aa79515d92`
+- **Hosted PR CI:** [`42881078808`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42881078808) — PASS
+- **Hosted push CI:** [`42881066718`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42881066718) — PASS
 - **Status:** **PROPOSED — NOT PROMOTED**
 - **Proposed verdict:** **BLOCKED — Work Order not complete**
 
@@ -20,16 +20,16 @@
 
 ## Validation
 
-- Hosted `npm run check:baseline`: **PASS** in PR run `42875079025` and push run `42875066540` at `92ff6428`.
+- Hosted `npm run check:baseline`: **PASS** in PR run `42881078808` and push run `42881066718` at `1766b158`.
 - Hosted `npm run test:db`: **PASS** in both runs, including CD03 publication and finale constraints.
-- Hosted authenticated E2E: **PASS · 8/8** in both runs. The journey verifies pending publication, a revised result invalidating an older decision, publication after the matching approval, distinct hypothetical branches, finale publication without a poll, and rejection of finale poll creation.
+- Hosted authenticated E2E: **PASS · 8/8, no retries** in both runs. The journey verifies pending publication, a revised result invalidating an older decision, publication after the matching approval, distinct hypothetical branches, episode 10 as the planned finale, finale publication without a poll, and rejection of finale poll creation.
 - Local `npm test`: **PASS · 23/23**; `npm run lint`, `npm run typecheck` (0 Svelte errors/warnings), `npm run build`, and `npm run audit:policy` (15 invariants across 14 tables): **PASS**.
-- Local `npm audit --audit-level=high`: **PASS** with four LOW transitive `deepmerge` advisories. `npm audit fix --force` proposes a breaking SvelteKit downgrade and was not applied.
-- Local `npm run check:baseline`: **PARTIAL**; Windows `format:check` reports 15 files. Other checks above were run individually, and the hosted baseline passes.
+- Local `npm audit --audit-level=high`: **UNAVAILABLE on the latest run**; npm registry request ended with `socket hang up`. A prior successful audit found four LOW transitive `deepmerge` advisories. `npm audit fix --force` proposes a breaking SvelteKit downgrade and was not applied. The hosted baseline passed the configured high threshold on the final code/test SHA.
+- Local `npm run check:baseline`: **PARTIAL**; Windows `format:check` reports 13 files. Lint, typecheck, unit tests, build, and policy checks pass individually; the hosted baseline passes.
 - Local Supabase PgTAP/authenticated E2E: **BLOCKED locally** because Supabase was unavailable at `127.0.0.1:54322`; hosted PgTAP and 8/8 authenticated E2E are the successful evidence.
 
 ## Gate
 
-The CD03 code, database, and authenticated browser checks pass at `92ff6428c318b6fc21c7611ce9d7db5c5227fb45`. Live Cloudinary acceptance, external backup/restore, and independent review remain essential pending gates. No account, service, credential, or billing was created. Keep PR #14 open and Draft, keep this checkpoint **PROPOSED — NOT PROMOTED**, and do not represent the Work Order or release as complete. No merge, deployment, spend, external provisioning, or promotion occurred.
+The CD03 code, database, and authenticated browser checks pass at `1766b158c8a4e1054e6cb6c2a0c7a3aa79515d92`. Live Cloudinary acceptance, external backup/restore, and independent review remain essential pending gates. No account, service, credential, or billing was created. Keep PR #14 open and Draft, keep this checkpoint **PROPOSED — NOT PROMOTED**, and do not represent the Work Order or release as complete. No merge, deployment, spend, external provisioning, or promotion occurred.
 
 CD01 and CD02 implementation/history remain in `docs/CONTEXT_LOCK.md`; full evidence and the enumerated Cloudinary acceptance steps remain in `docs/EVIDENCE_BUNDLE.md`.
