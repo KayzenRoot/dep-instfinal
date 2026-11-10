@@ -480,7 +480,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	expect(finalePrompt.status()).toBe(200);
 	const finalePromptText = await finalePrompt.text();
 	const finaleContext = finalePromptText.match(
-		/## Contexto canônico \(JSON\)\r?\n```json\r?\n([\s\S]*?)\r?\n```/,
+		/## Contexto canônico \(JSON\)\r?\n\r?\n```json\r?\n([\s\S]*?)\r?\n```/,
 	);
 	expect(finaleContext).not.toBeNull();
 	expect(JSON.parse(finaleContext![1])).toMatchObject({
