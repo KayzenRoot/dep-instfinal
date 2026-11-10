@@ -468,6 +468,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await page.getByRole('button', { name: 'Registrar decisão append-only' }).click();
 	await expect(page.getByText('DECISÃO R01')).toBeVisible();
 	await page.goto(seriesUrl);
+	await page.waitForLoadState('networkidle');
 	await page.getByPlaceholder('Título do episódio').fill('O último registro');
 	const finaleNumber = page.locator('[name="episodeNumber"]');
 	await finaleNumber.fill('10');
