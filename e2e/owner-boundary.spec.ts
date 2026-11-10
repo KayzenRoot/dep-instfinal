@@ -120,7 +120,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.getByRole('heading', { name: 'Arquivo E2E persistido' })).toBeVisible();
 	const seriesUrl = page.url();
 	await page.getByLabel('Número', { exact: true }).fill('1');
-	await page.getByLabel('Episódios planejados').fill('12');
+	await page.getByLabel('Episódios planejados').fill('4');
 	await page.getByLabel('Título', { exact: true }).nth(1).fill('Temporada um');
 	await page.getByRole('button', { name: 'Adicionar temporada' }).click();
 	await expect(page.getByText('Temporada um')).toBeVisible();
@@ -400,9 +400,30 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		tiktok: { title: 'A fita de amanhã', cta: 'Escolha o próximo passo.' },
 		instagram: { title: 'A voz de amanhã', cta: 'Vote na continuação.' },
 	});
+	await page.goto(`/app/episodes/${continuationId}`);
+	await page.getByLabel('Referência do post').fill('manual-e2e-continuation');
+	await page.getByLabel('Horas até encerrar').fill('1');
+	await page
+		.getByLabel('Regra publicada para desempate')
+		.fill('A opção 1 vence em caso de empate.');
+	await page.getByRole('button', { name: 'Abrir registro da votação' }).click();
+	await page.getByRole('button', { name: 'Registrar encerramento manual' }).click();
+	await page.getByLabel('Votos · opção 1').fill('12');
+	await page.getByLabel('Votos · opção 2').fill('7');
+	await page.getByLabel('Fonte consultada').fill('Contagem sintética para o episódio seguinte');
+	await page.getByLabel(/Conferi estes totais/).check();
+	await page.getByRole('button', { name: 'Salvar resultado verificado' }).click();
+	await expect(page.getByText('Vence opção 1')).toBeVisible();
+	await page.locator('[name="canonSnapshot"]').fill('{"ramo":"Lara seguiu o aviso"}');
+	await page
+		.getByLabel('Justificativa da autora')
+		.fill('Cânone aprovado para a continuação seguinte.');
+	await page.locator('form[action="?/approveCanon"] input[name="acceptCanon"]').check();
+	await page.getByRole('button', { name: 'Registrar decisão append-only' }).click();
+	await expect(page.getByText('DECISÃO R01')).toBeVisible();
 	await page.goto(seriesUrl);
 	await page.getByPlaceholder('Título do episódio').fill('A antecâmara do fim');
-	await page.locator('[name="episodeNumber"]').fill('11');
+	await page.locator('[name="episodeNumber"]').fill('3');
 	await page.getByRole('button', { name: 'Criar rascunho' }).click();
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
 	const penultimateResponse = {
@@ -447,7 +468,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await expect(page.getByText('DECISÃO R01')).toBeVisible();
 	await page.goto(seriesUrl);
 	await page.getByPlaceholder('Título do episódio').fill('O último registro');
-	await page.locator('[name="episodeNumber"]').fill('12');
+	await page.locator('[name="episodeNumber"]').fill('4');
 	await page.getByLabel('Duração').fill('120');
 	await page.getByRole('button', { name: 'Criar rascunho' }).click();
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
