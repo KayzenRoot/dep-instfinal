@@ -1,0 +1,33 @@
+name: DIF OIDC formatting one-shot
+on:
+  push:
+    branches: [feat/dif-studio-mvp-001]
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Format OIDC correction only
+        run: |
+          npx prettier --write src/lib/server/ai-episode.ts src/lib/server/ai-episode.test.ts \
+            'src/routes/app/episodes/[episodeId]/+page.server.ts'
+      - name: Commit only three corrected files
+        run: |
+          git add src/lib/server/ai-episode.ts src/lib/server/ai-episode.test.ts \
+            'src/routes/app/episodes/[episodeId]/+page.server.ts'
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'style: format OIDC gateway correction'
+          git push origin HEAD:feat/dif-studio-mvp-001
