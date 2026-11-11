@@ -132,7 +132,6 @@ CD06 implemented the remaining issue-level acceptance gaps on top of CD05: confi
 
 A real logical backup/restore was executed against the hosted project and a local Supabase target: restored counts matched, owner login returned 200, anonymous REST returned 401, and the restored Cloudinary asset hash matched. Hosted PR `43080981120` and push `43080968791` passed at final code/test HEAD `b23d40c` (PgTAP 28 tests; E2E 9 passed in 2.3 minutes, no retry), unit tests are 28/28, and the independent reviewer agent returned **APPROVED** with only LOW residuals. The checkpoint remains **PROPOSED — NOT PROMOTED** with proposed verdict **APPROVED — ready for owner promotion**; no merge or promotion occurred.
 
-
 ## Owner-approved release extension — DIF-REL-001 (2026-11-11)
 
 **Status:** approved scope change, implementation pending evidence; previous V1 auto-generation exclusion is superseded only for text generation. Final checkpoint remains PROPOSED until audited.
