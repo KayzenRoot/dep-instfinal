@@ -79,12 +79,14 @@ describe('pacote de IA do DIF Studio', () => {
 
 	it('usa um Gemini Flash-Lite disponível para chaves de projetos novos', async () => {
 		vi.stubEnv('GEMINI_API_KEY', 'test-only-key');
-		const mockFetch = vi.fn().mockResolvedValue(
-			new Response(
-				JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }] }),
-				{ status: 200 },
-			),
-		);
+		const mockFetch = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(
+					JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }] }),
+					{ status: 200 },
+				),
+			);
 		vi.stubGlobal('fetch', mockFetch);
 		await expect(generateEpisodeJson('test')).resolves.toEqual({ ok: true });
 		const args = mockFetch.mock.calls[0] as [string, RequestInit];
