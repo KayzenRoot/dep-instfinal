@@ -6,6 +6,7 @@
 - **Branch / PR:** `feat/dif-studio-mvp-001` / [Draft PR #14](https://github.com/KayzenRoot/dep-instfinal/pull/14)
 - **CD05 reconciliation fix:** `b89240f061d9976a0a7db28003d63d5daf977dfe`
 - **CD05 final code/test HEAD:** `852b970c03f38233b6e02e6af308dbd01bef5b72`
+- **CD05 documentation/helper HEAD:** `e47ecaa6a4207fbbc66519bde10121026e1eadcb` — hosted CI PASS ([PR `43041393787`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43041393787), [push `43041387125`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43041387125))
 - **Hosted PR CI (CD05):** [run `43038342557`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43038342557) — PASS
 - **Hosted push CI (CD05):** [run `43038328934`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43038328934) — PASS
 - **CD05 live acceptance date:** 2026-11-11
