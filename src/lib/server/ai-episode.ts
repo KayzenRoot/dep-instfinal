@@ -88,9 +88,15 @@ export function deploymentOidcToken(request: Request): string | undefined {
 	return token;
 }
 
-export function availableGenerationProvider(oidcToken?: string): 'gemini-free-key' | 'vercel-gateway' | 'manual' {
+export function availableGenerationProvider(
+	oidcToken?: string,
+): 'gemini-free-key' | 'vercel-gateway' | 'manual' {
 	if (process.env.GEMINI_API_KEY?.trim()) return 'gemini-free-key';
-	if (process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim() || oidcToken) {
+	if (
+		process.env.AI_GATEWAY_API_KEY?.trim() ||
+		process.env.VERCEL_OIDC_TOKEN?.trim() ||
+		oidcToken
+	) {
 		return 'vercel-gateway';
 	}
 	return 'manual';
