@@ -70,7 +70,8 @@
 {#if form?.responseImported}<p class="form-success" role="status">
 		Resposta validada importada como rascunho. Estimativa de narração: {form.estimatedDurationSeconds}
 		s; uma revisão foi registrada.
-		{#if form.generatedScenesImported} {form.generatedScenesImported} cenas receberam prompts iniciais, finais e de movimento.{/if}
+		{#if form.generatedScenesImported}
+			{form.generatedScenesImported} cenas receberam prompts iniciais, finais e de movimento.{/if}
 	</p>{/if}
 
 <div class="editor-grid">
@@ -447,14 +448,28 @@
 			description="Usa o contexto aprovado da temporada para produzir narração, escolhas 1/2 e prompts de imagem inicial, final e vídeo em inglês. Nada é salvo até você revisar o JSON e confirmar a importação."
 		>
 			{#if data.aiProvider === 'manual'}
-				<p class="muted-note">Geração automática indisponível neste ambiente. Configure uma chave Gemini API de nível gratuito ou execute na Vercel com acesso permitido ao AI Gateway. O fluxo manual continua funcionando.</p>
+				<p class="muted-note">
+					Geração automática indisponível neste ambiente. Configure uma chave Gemini API de nível
+					gratuito ou execute na Vercel com acesso permitido ao AI Gateway. O fluxo manual continua
+					funcionando.
+				</p>
 			{:else}
-				<p class="muted-note">Provedor: {data.aiProvider === 'gemini-free-key' ? 'Gemini API' : 'Vercel AI Gateway (créditos sujeitos à cota disponível)'}. Máximo de 6 solicitações por hora. A operação pode consumir parte da franquia gratuita.</p>
+				<p class="muted-note">
+					Provedor: {data.aiProvider === 'gemini-free-key'
+						? 'Gemini API'
+						: 'Vercel AI Gateway (créditos sujeitos à cota disponível)'}. Máximo de 6 solicitações
+					por hora. A operação pode consumir parte da franquia gratuita.
+				</p>
 				<form method="POST" action="?/generateAiPackage" class="form-stack">
-					<button class="primary-button" type="submit">Gerar história e prompts de todas as cenas</button>
+					<button class="primary-button" type="submit"
+						>Gerar história e prompts de todas as cenas</button
+					>
 				</form>
 				{#if form?.generatedJson}
-					<p class="form-success" role="status">Gerados {form.generatedCount} quadros de storyboard. Revise o JSON abaixo e confirme para salvar como rascunho.</p>
+					<p class="form-success" role="status">
+						Gerados {form.generatedCount} quadros de storyboard. Revise o JSON abaixo e confirme para
+						salvar como rascunho.
+					</p>
 				{/if}
 			{/if}
 		</Panel>
@@ -476,7 +491,9 @@
 						rows="10"
 						maxlength="60000"
 						required
-						placeholder="Cole o JSON manual ou revise o pacote gerado pela IA.">{form?.generatedJson ?? ''}</textarea></label
+						placeholder="Cole o JSON manual ou revise o pacote gerado pela IA."
+						>{form?.generatedJson ?? ''}</textarea
+					></label
 				>
 				<label class="check-label"
 					><input type="checkbox" name="confirmImport" required /> Revisei a resposta; ela substituirá

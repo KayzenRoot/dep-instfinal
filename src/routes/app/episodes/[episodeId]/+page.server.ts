@@ -169,30 +169,60 @@ export const actions: Actions = {
 	generateAiPackage: async (event) => {
 		const { db, owner } = ownerDatabase(event);
 		const provider = availableGenerationProvider();
-		if (provider === 'manual') return fail(503, { message: 'A geração automática não está configurada nesta hospedagem. Use o prompt manual.' });
+		if (provider === 'manual')
+			return fail(503, {
+				message: 'A geração automática não está configurada nesta hospedagem. Use o prompt manual.',
+			});
 		const limit = checkRateLimit(`ai-episode:${owner.id}`, 6, 60 * 60 * 1000);
-		if (!limit.allowed) return fail(429, { message: 'Limite de 6 gerações por hora atingido. Aguarde para tentar novamente.' });
-		const { data: episode, error: episodeError } = await db.from('episodes')
+		if (!limit.allowed)
+			return fail(429, {
+				message: 'Limite de 6 gerações por hora atingido. Aguarde para tentar novamente.',
+			});
+		const { data: episode, error: episodeError } = await db
+			.from('episodes')
 			.select('id,status,duration_ms,scene_duration_ms,episode_number')
-			.eq('id', event.params.episodeId).eq('owner_id', owner.id).maybeSingle();
+			.eq('id', event.params.episodeId)
+			.eq('owner_id', owner.id)
+			.maybeSingle();
 		if (episodeError || !episode) return fail(404, { message: 'Episódio não encontrado.' });
-		if (episode.status !== 'DRAFT') return fail(409, { message: 'A geração só é permitida em rascunhos. Conteúdo pronto ou publicado é protegido.' });
+		if (episode.status !== 'DRAFT')
+			return fail(409, {
+				message: 'A geração só é permitida em rascunhos. Conteúdo pronto ou publicado é protegido.',
+			});
 		try {
 			const context = await loadNarrativeContext(db, owner.id, event.params.episodeId);
-			if (Number(episode.episode_number) > 1 && context.latestPreviousCanon?.status !== 'APPROVED') {
-				return fail(409, { message: 'É preciso verificar a votação anterior e aprovar o cânone antes de gerar a continuação oficial.' });
+			if (
+				Number(episode.episode_number) > 1 &&
+				context.latestPreviousCanon?.status !== 'APPROVED'
+			) {
+				return fail(409, {
+					message:
+						'É preciso verificar a votação anterior e aprovar o cânone antes de gerar a continuação oficial.',
+				});
 			}
 			const sceneDurationMs = Number(episode.scene_duration_ms ?? 8000);
 			const durationMs = Number(episode.duration_ms);
 			const prompt = buildEpisodeGenerationPrompt(context, durationMs, sceneDurationMs);
 			const generated = await generateEpisodeJson(prompt);
-			const validated = validateGeneratedEpisode(generated, durationMs, sceneDurationMs, Boolean(context.preparedFor.isSeasonFinale));
-			return { generatedJson: JSON.stringify(validated, null, 2), generatedCount: validated.scenes.length };
+			const validated = validateGeneratedEpisode(
+				generated,
+				durationMs,
+				sceneDurationMs,
+				Boolean(context.preparedFor.isSeasonFinale),
+			);
+			return {
+				generatedJson: JSON.stringify(validated, null, 2),
+				generatedCount: validated.scenes.length,
+			};
 		} catch (cause) {
 			if (cause instanceof AiGenerationError) {
-				return fail(cause.code === 'QUOTA' ? 429 : cause.code === 'NOT_CONFIGURED' ? 503 : 502, { message: cause.message });
+				return fail(cause.code === 'QUOTA' ? 429 : cause.code === 'NOT_CONFIGURED' ? 503 : 502, {
+					message: cause.message,
+				});
 			}
-			return fail(502, { message: 'Não foi possível gerar um roteiro válido. Nenhuma alteração foi salva.' });
+			return fail(502, {
+				message: 'Não foi possível gerar um roteiro válido. Nenhuma alteração foi salva.',
+			});
 		}
 	},
 	saveEpisode: async (event) => {
@@ -339,7 +369,9 @@ export const actions: Actions = {
 			return fail(400, { message: 'A resposta precisa conter um objeto JSON válido.' });
 		}
 		const generatedPackage = generatedEpisodeSchema.safeParse(decoded);
-		const parsed = narrativeResponseSchema.safeParse(generatedPackage.success ? generatedPackage.data.narrative : decoded);
+		const parsed = narrativeResponseSchema.safeParse(
+			generatedPackage.success ? generatedPackage.data.narrative : decoded,
+		);
 		if (!parsed.success)
 			return fail(400, {
 				message:
@@ -348,7 +380,9 @@ export const actions: Actions = {
 		const response = parsed.data;
 		const { data: targetEpisode, error: targetEpisodeError } = await db
 			.from('episodes')
-			.select('id,episode_number,platform_metadata,duration_ms,scene_duration_ms,status,seasons(planned_episode_count)')
+			.select(
+				'id,episode_number,platform_metadata,duration_ms,scene_duration_ms,status,seasons(planned_episode_count)',
+			)
 			.eq('id', event.params.episodeId)
 			.eq('owner_id', owner.id)
 			.maybeSingle();
@@ -363,9 +397,17 @@ export const actions: Actions = {
 			});
 		if (generatedPackage.success) {
 			try {
-				validateGeneratedEpisode(generatedPackage.data, Number(targetEpisode.duration_ms), Number(targetEpisode.scene_duration_ms ?? 8000), isSeasonFinale);
+				validateGeneratedEpisode(
+					generatedPackage.data,
+					Number(targetEpisode.duration_ms),
+					Number(targetEpisode.scene_duration_ms ?? 8000),
+					isSeasonFinale,
+				);
 			} catch {
-				return fail(400, { message: 'O pacote de IA não corresponde à duração ou à quantidade de cenas configuradas.' });
+				return fail(400, {
+					message:
+						'O pacote de IA não corresponde à duração ou à quantidade de cenas configuradas.',
+				});
 			}
 		}
 		const existingMetadata =
@@ -419,14 +461,28 @@ export const actions: Actions = {
 					'A resposta não foi importada. O episódio publicado ou a revisão não foi alterado.',
 			});
 		if (generatedPackage.success) {
-			const { data: targetScenes, error: sceneQueryError } = await db.from('scenes')
-				.select('id,scene_index').eq('owner_id', owner.id).eq('episode_id', event.params.episodeId).order('scene_index');
-			if (sceneQueryError || !targetScenes || targetScenes.length !== generatedPackage.data.scenes.length) {
-				return fail(503, { message: 'Roteiro salvo, mas as cenas não puderam ser recuperadas. Não publique; reimporte o pacote para concluir os prompts.' });
+			const { data: targetScenes, error: sceneQueryError } = await db
+				.from('scenes')
+				.select('id,scene_index')
+				.eq('owner_id', owner.id)
+				.eq('episode_id', event.params.episodeId)
+				.order('scene_index');
+			if (
+				sceneQueryError ||
+				!targetScenes ||
+				targetScenes.length !== generatedPackage.data.scenes.length
+			) {
+				return fail(503, {
+					message:
+						'Roteiro salvo, mas as cenas não puderam ser recuperadas. Não publique; reimporte o pacote para concluir os prompts.',
+				});
 			}
 			for (const [index, scene] of generatedPackage.data.scenes.entries()) {
 				const target = targetScenes[index];
-				if (target.scene_index !== scene.sceneIndex) return fail(503, { message: 'A ordem das cenas mudou. Revise o rascunho antes de continuar.' });
+				if (target.scene_index !== scene.sceneIndex)
+					return fail(503, {
+						message: 'A ordem das cenas mudou. Revise o rascunho antes de continuar.',
+					});
 				const { error: sceneError } = await db.rpc('save_episode_scene', {
 					p_scene_id: target.id,
 					p_narration_pt_br: scene.narrationPtBr,
@@ -438,7 +494,10 @@ export const actions: Actions = {
 					p_motion_prompt_en: scene.motionPromptEn,
 					p_audio_notes: scene.audioNotes,
 				});
-				if (sceneError) return fail(503, { message: `Roteiro salvo, mas o prompt da cena ${index + 1} não foi salvo. Reimporte o pacote antes de publicar.` });
+				if (sceneError)
+					return fail(503, {
+						message: `Roteiro salvo, mas o prompt da cena ${index + 1} não foi salvo. Reimporte o pacote antes de publicar.`,
+					});
 				const { error: productionError } = await db.rpc('save_scene_production', {
 					p_scene_id: target.id,
 					p_location: scene.location,
@@ -448,7 +507,10 @@ export const actions: Actions = {
 					p_prompt_status: 'READY',
 					p_generation_attempts: 0,
 				});
-				if (productionError) return fail(503, { message: `Roteiro salvo, mas a direção da cena ${index + 1} falhou. Reimporte o pacote antes de publicar.` });
+				if (productionError)
+					return fail(503, {
+						message: `Roteiro salvo, mas a direção da cena ${index + 1} falhou. Reimporte o pacote antes de publicar.`,
+					});
 			}
 		}
 		return {

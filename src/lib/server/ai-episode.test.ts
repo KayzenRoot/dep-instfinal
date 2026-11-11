@@ -57,8 +57,9 @@ describe('pacote de IA do DIF Studio', () => {
 		expect(result.narrative.choices).toHaveLength(2);
 	});
 	it('rejeita quantidade incorreta de cenas antes de salvar no banco', () => {
-		expect(() => validateGeneratedEpisode({ narrative, scenes: scenes.slice(1) }, 120000, 8000, false))
-			.toThrow(AiGenerationError);
+		expect(() =>
+			validateGeneratedEpisode({ narrative, scenes: scenes.slice(1) }, 120000, 8000, false),
+		).toThrow(AiGenerationError);
 	});
 	it('aceita final de temporada sem votação própria', () => {
 		const result = validateGeneratedEpisode(
@@ -70,7 +71,11 @@ describe('pacote de IA do DIF Studio', () => {
 		expect(result.narrative.choices).toEqual([]);
 	});
 	it('cria prompt 9:16 sem tratar hipóteses como cânone', () => {
-		const prompt = buildEpisodeGenerationPrompt({ latestPreviousCanon: { status: 'APPROVED' } }, 120000, 8000);
+		const prompt = buildEpisodeGenerationPrompt(
+			{ latestPreviousCanon: { status: 'APPROVED' } },
+			120000,
+			8000,
+		);
 		expect(prompt).toContain('15');
 		expect(prompt).toContain('9:16');
 		expect(prompt).toContain('HYPOTHETICAL_NOT_CANON');
@@ -82,7 +87,10 @@ describe('pacote de IA do DIF Studio', () => {
 	});
 	it('nunca retorna texto cru de erro do provedor', async () => {
 		vi.stubEnv('AI_GATEWAY_API_KEY', 'test-only-token');
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('secret-in-error', { status: 500 })));
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(new Response('secret-in-error', { status: 500 })),
+		);
 		await expect(generateEpisodeJson('story')).rejects.toThrow('temporariamente indisponível');
 	});
 });
