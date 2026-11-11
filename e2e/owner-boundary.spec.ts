@@ -270,7 +270,10 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	expect(invalidChoiceFields).toEqual([]);
 	await page.getByRole('button', { name: 'Salvar as duas opções' }).click();
 	await expect(page.getByText('2 de 2', { exact: true })).toBeVisible();
-	await page.locator('input[name="targetPlatforms"][value="TIKTOK"]').check();
+	await page.waitForLoadState('networkidle');
+	const tiktokTarget = page.locator('input[name="targetPlatforms"][value="TIKTOK"]');
+	await tiktokTarget.check();
+	await expect(tiktokTarget).toBeChecked();
 	await page.getByLabel('Preset de enquadramento').selectOption('9:16');
 	await page.getByLabel('Hashtags TikTok').fill('#dif #horroranalogico');
 	await page
@@ -280,6 +283,8 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await page.getByLabel('Créditos por clipe').fill('2');
 	await page.getByRole('button', { name: 'Salvar roteiro e revisar timeline' }).click();
 	await expect(page.getByText('Alterações salvas. Uma nova revisão foi registrada.')).toBeVisible();
+	await page.waitForLoadState('networkidle');
+	await expect(tiktokTarget).toBeChecked();
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
 	await expect(page.locator('.status-pill').filter({ hasText: 'READY' }).first()).toBeVisible();
 	const publishConfirmation = page.locator('form.publish-form input[name="publishConfirmed"]');
