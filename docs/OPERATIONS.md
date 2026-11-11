@@ -27,6 +27,18 @@ Set the cloud name, API key and API secret in server-only environment variables.
 - Restore into a dedicated test project first; apply migrations, restore Postgres, then reconcile every manifest entry against Cloudinary. Verify an episode, its scene references and its images before replacing any live data.
 - The supplied Work Order does not provision backup storage or guarantee automatic backups on a free tier.
 
+### Verified logical backup and restore (2026-11-11)
+
+The Free project was backed up without relying on provider snapshots:
+
+1. Export every public table with `select coalesce(json_agg(to_jsonb(t) order by t.id), '[]'::json)` through the Supabase Management API, plus the owner identity metadata (never the password hash) to an owner-controlled file outside the repository.
+2. Provision a dedicated restore target with the migrations applied. Insert the owner into `auth.users` with the original UUID and `app_metadata.dif_studio_owner=true`; re-provision the password instead of restoring a hash.
+3. Restore public rows in dependency order (series → seasons → characters/lore → episodes → revisions → media metadata → scenes → choices → polls → results → canon → references → jobs) inside a transaction with `session_replication_role = replica` to avoid publication-trigger interference.
+4. Verify per-table row counts, owner password login, owner-scoped REST reads, anonymous rejection, and every restored `READY` media `public_id`/SHA-256 against Cloudinary. Reconcile any missing or mismatched object before replacing live data.
+5. Store the backup encrypted, restrict access, record retention, and repeat the restore into a disposable target after schema changes.
+
+This procedure was executed against the hosted `dif` project and a local Supabase target on 2026-11-11; the restored counts matched the export, the owner login returned 200, anonymous REST returned 401, and the private Cloudinary image returned 235 bytes with a matching SHA-256. Auth passwords are intentionally re-provisioned, not copied from the backup.
+
 ## Temporary public access via Cloudflare Tunnel (owner-authorized)
 
 The owner may expose the local production server through a free Cloudflare quick tunnel for private use:

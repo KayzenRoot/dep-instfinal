@@ -1,9 +1,13 @@
 # DIF Studio — Evidence Bundle
 
 - **Work Order:** `DIF-MVP-ALL-001`
-- **Correction Delta:** `CD05`
+- **Correction Delta:** `CD06`
 - **Repository:** `KayzenRoot/dep-instfinal`
 - **Branch / PR:** `feat/dif-studio-mvp-001` / [Draft PR #14](https://github.com/KayzenRoot/dep-instfinal/pull/14)
+- **CD06 base HEAD:** `d5e43f258101af8388d030554c6ca9c0084d7309`
+- **CD06 implementation commit:** `218f18f74e7720105d136c2fa3f0546ba789e9fd`
+- **CD06 hosted CI:** [PR `43072519345`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43072519345) and [push `43072509538`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43072509538) — PASS (PgTAP 25 tests; E2E 9 passed in 2.0 minutes)
+- **CD06 evidence date:** 2026-11-11
 - **CD05 reconciliation fix:** `b89240f061d9976a0a7db28003d63d5daf977dfe`
 - **CD05 final code/test HEAD:** `852b970c03f38233b6e02e6af308dbd01bef5b72`
 - **CD05 documentation/helper HEAD:** `e47ecaa6a4207fbbc66519bde10121026e1eadcb` — hosted CI PASS ([PR `43041393787`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43041393787), [push `43041387125`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43041387125))
@@ -16,6 +20,29 @@
 - **Hosted PR CI (CD04):** [run `42898556365`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898556365) — PASS
 - **Hosted push CI (CD04):** [run `42898547547`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898547547) — PASS
 - **Checkpoint Delta:** **PROPOSED — NOT PROMOTED**; see `docs/CHECKPOINT_DELTA.md`.
+
+## CD06 — issue-closing production workflow
+
+CD06 closes the acceptance gaps identified in issues #3, #6, #8, #9, #11, and #12, and adds the missing backup/restore evidence for #4/#13.
+
+| Area               | Implementation                                                                                                                                                                                                               | Verification                                                                                                                                                                                                                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scene duration     | `episodes.scene_duration_ms` supports 4/6/8 s. `set_episode_scene_duration` rebuilds an empty draft timeline and rejects any episode with scene content, frames, or references.                                              | PgTAP rebuilds 96 s at 6 s and 4 s without gaps; live RPC rebuilt 120 s at 6 s (20 scenes, last end 120000) and rejected a non-empty timeline with `23514`.                                                                                                                                       |
+| Scene direction    | New columns `location`, `character_notes`, `vhs_effects`, `transition`, `prompt_status`, `generation_attempts`; `save_scene_production` enforces owner, unpublished status, status enum, and attempt bounds.                 | PgTAP persists all fields and rejects `INVALID`; live RPC returned 204 and the REST read matched.                                                                                                                                                                                                 |
+| Reorder            | `swap_scene_order` uses the deferrable unique constraint and recalculates fixed-duration timestamps.                                                                                                                         | PgTAP swaps adjacent scenes and verifies ids/timings; live RPC returned 204 and swapped scene ids.                                                                                                                                                                                                |
+| Platform presets   | Episode metadata accepts TikTok/Reels/Stories/Feed targets and a 9:16/4:5/3:4 preset; UI exposes the selector and safe-zone preview.                                                                                         | Code + E2E selector; library preview renders 9:16, 4:5, and 3:4.                                                                                                                                                                                                                                  |
+| Library preview    | Signed server-side derived variants (`variant=thumb`, `variant=4x5`, `variant=3x4`), side-by-side comparison, crop warning.                                                                                                  | Live: thumb 123 bytes, 4:5 144 bytes, 3:4 146 bytes, all `private, no-store`; invalid variant 400. Live 30-frame acceptance: 15 scenes received 30 authenticated frames, the ZIP contained 30 `media/` entries and `missing_frames.json` was empty; fixtures were removed after evidence capture. |
+| Continuity review  | Deterministic warnings for DECEASED/MISSING/ARCHIVED characters and SUPERSEDED/ARCHIVED lore titles; canon approval requires explicit review when warnings exist and stores `continuity_review`.                             | Unit tests cover deceased, active, superseded and deduplication; canon insert stores the reviewed warnings.                                                                                                                                                                                       |
+| Production package | ZIP now includes `production/assembly-manifest.md`, `production/checklist.md`, `social/hashtags.txt`, `social/ai-disclosure.txt`, per-channel covers/hashtags, credit estimate, scene status/attempts, and updated warnings. | Live export: 33 entries; manifest production block present; warnings `SCENE_PROMPTS_NOT_APPROVED`, `TARGET_PLATFORMS_EMPTY`, `AI_DISCLOSURE_EMPTY`.                                                                                                                                               |
+| Backup/restore     | Logical export of all 14 public tables and the owner UUID; restore into a dedicated local Supabase target with the same owner UID and public rows in dependency order.                                                       | Counts matched (series 1, season 1, episode 1, media 4, scenes 15, choices 2); owner login 200; anonymous REST 401; Cloudinary private image 235 bytes with matching SHA-256.                                                                                                                     |
+| Tests              | New unit tests, 5 new PgTAP assertions, responsive screenshots at 360/768/1440 for all studio pages, E2E metadata/checklist assertions.                                                                                      | Unit 27/27; typecheck 0 errors/warnings; lint pass; PgTAP 25/25 local and hosted; hosted E2E 9 passed in 2.0 minutes.                                                                                                                                                                             |
+
+### CD06 limits
+
+- The local Windows E2E run is materially slower than CI and was flaky while reusing a stale dev server; the authoritative E2E evidence is the hosted workflow, which passed 9/9 in 2.0 minutes at `218f18f`.
+- The production credit estimate is deliberately manual and never queries a live Google Flow balance.
+- The continuity review is advisory and deterministic; it does not read images or infer plot logic. The owner still approves or rejects canon.
+- External independent review is recorded separately in `docs/CHECKPOINT_DELTA.md`; no checkpoint promotion or merge occurred.
 
 ## CD05 — live external acceptance
 

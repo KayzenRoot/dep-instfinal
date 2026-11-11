@@ -2,7 +2,7 @@
 
 **Work Order:** `DIF-MVP-ALL-001`
 **Revision:** 1.1
-**Status:** approved scope; CD05 live Supabase/Cloudinary acceptance and hosted CI recorded on `852b970`; external backup/restore and independent review remain pending
+**Status:** approved scope; CD06 issue-closing production workflow implemented on `218f18f`; hosted CI passed; independent review pending reconciliation
 **Last reconciled:** 2026-11-11
 
 ## Source hierarchy and context
@@ -125,3 +125,9 @@ The CD02 audit base `a7cfc9edce735bd4d0900ca7de2b9e12c434bab4` was revalidated b
 Live acceptance was executed on 2026-11-11 against the dedicated Supabase project `dif` and Cloudinary environment `dt4qdzuus`; credentials stayed in the git-ignored `.env`. Migrations produced 14 tables, 50 policies, 22 functions, and RLS on every table. The owner login, private media upload/delivery, unauthenticated and cross-owner denial, upload rejection, failed-upload preservation, reconciliation, signed-URL expiry, and authenticated ZIP export with private media all passed. Live reconciliation exposed an SDK 404 error-shape mismatch, corrected in commit `b89240f061d9976a0a7db28003d63d5daf977dfe` with unit coverage.
 
 External backup/restore remains **NOT RUN** because the Free plan exposes no scheduled backups and no restore target was provisioned. Independent review remains pending. Hosted PR CI `43038342557` and push CI `43038328934` passed at final code/test HEAD `852b970` (baseline, PgTAP 20, E2E 8/8), and PR `43041393787` / push `43041387125` passed at documentation/helper HEAD `e47ecaa`. A temporary owner-authorized Cloudflare quick tunnel was validated for public access; it is ephemeral, has no Cloudflare Access policy, and is not a production deployment. The checkpoint remains **PROPOSED — NOT PROMOTED** with proposed verdict **BLOCKED**; PR #14 remains Draft. No merge, production deployment, paid service, or promotion occurred.
+
+## Current checkpoint after CD06
+
+CD06 implemented the remaining issue-level acceptance gaps on top of CD05: configurable 4/6/8-second scene durations with safe rebuild, scene reorder, location/character/VHS/transition fields, prompt status and attempt counts, deterministic continuity warnings before canon approval, platform target/aspect presets, private thumbnail/crop variants with side-by-side comparison, and a production-ready ZIP with checklist, AI disclosure, hashtags, covers, credit estimates and assembly manifest. It also adds five PgTAP assertions (25/25 total) and responsive screenshots for every studio page at 360/768/1440.
+
+A real logical backup/restore was executed against the hosted project and a local Supabase target: restored counts matched, owner login returned 200, anonymous REST returned 401, and the restored Cloudinary asset hash matched. Hosted PR `43072519345` and push `43072509538` passed at `218f18f` (PgTAP 25 tests; E2E 9 passed in 2.0 minutes). The independent agent review remains pending. The checkpoint stays **PROPOSED — NOT PROMOTED** / **BLOCKED** until that review is reconciled; no merge or promotion occurred.
