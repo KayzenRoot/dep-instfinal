@@ -5,6 +5,10 @@
 	import Panel from '#lib/components/Panel.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	let { data, form }: PageProps = $props();
+	let reviewedJson = $state('');
+	$effect(() => {
+		if (form?.generatedJson) reviewedJson = form.generatedJson;
+	});
 	const isPublished = $derived(data.episode.status === 'PUBLISHED');
 	const isSeasonFinale = $derived(Boolean(data.episode.is_season_finale));
 	const option = (key: string) => data.choices.find((choice) => choice.option_key === key);
@@ -492,7 +496,7 @@
 						maxlength="60000"
 						required
 						placeholder="Cole o JSON manual ou revise o pacote gerado pela IA."
-						>{form?.generatedJson ?? ''}</textarea
+						bind:value={reviewedJson}></textarea
 					></label
 				>
 				<label class="check-label"
