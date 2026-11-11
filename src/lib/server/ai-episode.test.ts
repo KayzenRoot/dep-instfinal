@@ -40,6 +40,7 @@ const scenes = Array.from({ length: 15 }, (_, i) => ({
 
 describe('pacote de IA do DIF Studio', () => {
 	beforeEach(() => {
+		vi.stubEnv('VERCEL', '');
 		vi.stubEnv('GEMINI_API_KEY', '');
 		vi.stubEnv('AI_GATEWAY_API_KEY', '');
 		vi.stubEnv('VERCEL_OIDC_TOKEN', '');
