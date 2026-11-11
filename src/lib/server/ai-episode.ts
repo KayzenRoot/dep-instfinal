@@ -214,7 +214,7 @@ export async function generateEpisodeJson(prompt: string, oidcToken?: string): P
 	const geminiKey = process.env.GEMINI_API_KEY?.trim();
 	if (geminiKey) {
 		const result = await postJson(
-			'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
+			'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',
 			{ 'x-goog-api-key': geminiKey },
 			{
 				contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -248,7 +248,7 @@ export async function generateEpisodeJson(prompt: string, oidcToken?: string): P
 		'https://ai-gateway.vercel.sh/v1/chat/completions',
 		{ authorization: `Bearer ${token}` },
 		{
-			model: 'google/gemini-2.5-flash-lite',
+			model: 'google/gemini-3.5-flash-lite',
 			messages: [{ role: 'user', content: prompt }],
 			temperature: 0.8,
 			max_tokens: 12000,
