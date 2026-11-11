@@ -134,7 +134,8 @@
 								type="checkbox"
 								name="targetPlatforms"
 								{value}
-								checked={(metadata.target_platforms ?? []).includes(value)}
+								checked={Array.isArray(metadata.target_platforms) &&
+									metadata.target_platforms.includes(value)}
 							/>
 							{label}</label
 						>

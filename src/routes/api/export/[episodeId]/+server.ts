@@ -76,6 +76,7 @@ export const GET: RequestHandler = async (event) => {
 	if (assetError) error(503, 'Não foi possível validar os quadros vinculados.');
 	const assetsById = new Map((assets ?? []).map((asset) => [asset.id, asset]));
 	const metadata = episode.platform_metadata ?? {};
+	const targetPlatforms = Array.isArray(metadata.target_platforms) ? metadata.target_platforms : [];
 	const timelineRows = [
 		[
 			'scene',
@@ -158,7 +159,7 @@ export const GET: RequestHandler = async (event) => {
 		},
 		production: {
 			sceneDurationMs: episode.scene_duration_ms ?? 8000,
-			targetPlatforms: metadata.target_platforms ?? [],
+			targetPlatforms,
 			aspectPreset: metadata.aspect_preset ?? '9:16',
 			creditModel: metadata.credit_model ?? '',
 			creditCostPerClip: Number(metadata.credit_cost_per_clip ?? 0),
@@ -196,8 +197,7 @@ export const GET: RequestHandler = async (event) => {
 	if (choices.length !== 2 && !isSeasonFinale) manifest.warnings.push('TWO_CHOICES_MISSING');
 	if (scenes.some((scene) => scene.prompt_status !== 'APPROVED'))
 		manifest.warnings.push('SCENE_PROMPTS_NOT_APPROVED');
-	if (!Array.isArray(metadata.target_platforms) || metadata.target_platforms.length === 0)
-		manifest.warnings.push('TARGET_PLATFORMS_EMPTY');
+	if (targetPlatforms.length === 0) manifest.warnings.push('TARGET_PLATFORMS_EMPTY');
 	if (!String(metadata.ai_disclosure ?? '').trim()) manifest.warnings.push('AI_DISCLOSURE_EMPTY');
 
 	const output = new PassThrough();
@@ -283,7 +283,7 @@ export const GET: RequestHandler = async (event) => {
 		'# Assembly manifest',
 		'',
 		`Master: 9:16 / 1080x1920 · preset: ${metadata.aspect_preset ?? '9:16'}`,
-		`Targets: ${(metadata.target_platforms ?? []).join(', ') || 'not selected'}`,
+		`Targets: ${targetPlatforms.join(', ') || 'not selected'}`,
 		`Scene duration: ${episode.scene_duration_ms ?? 8000} ms`,
 		`Estimated Flow credits: ${scenes.length * Number(metadata.credit_cost_per_clip ?? 0)} (${metadata.credit_model ?? 'model not set'}) — estimate only.`,
 		'',

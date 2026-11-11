@@ -47,6 +47,13 @@
 		<p class="manual-note">
 			O pacote não gera vídeo nem publica conteúdo. Quadros com entrega privada indisponível são
 			descritos em <code>missing_frames.json</code>.
+		</p>
+		<p class="manual-note">
+			<a href="https://labs.google/flow" target="_blank" rel="noopener noreferrer"
+				>Abrir Google Flow em nova aba</a
+			>
+			— o DIF Studio não automatiza a interface nem usa cookies do Google. Copie os prompts do pacote
+			manualmente.
 		</p></Panel
 	>
 </div>
