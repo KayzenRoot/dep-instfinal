@@ -717,7 +717,17 @@ export const actions: Actions = {
 		if (!form) return fail(400, { message: 'Não foi possível ler o formulário.' });
 		if (form.get('acceptCanon') !== 'on')
 			return fail(400, { message: 'Confirme a aprovação do novo cânone.' });
-		const continuityWarnings = await loadContinuityWarnings(db, owner.id, event.params.episodeId);
+		let continuityWarnings;
+		try {
+			continuityWarnings = await loadContinuityWarnings(db, owner.id, event.params.episodeId, {
+				strict: true,
+			});
+		} catch {
+			return fail(503, {
+				message:
+					'Não foi possível verificar a continuidade agora. A decisão não foi registrada; tente novamente.',
+			});
+		}
 		if (continuityWarnings.length > 0 && form.get('continuityReviewed') !== 'on')
 			return fail(409, {
 				message:

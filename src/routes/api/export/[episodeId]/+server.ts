@@ -77,6 +77,7 @@ export const GET: RequestHandler = async (event) => {
 	const assetsById = new Map((assets ?? []).map((asset) => [asset.id, asset]));
 	const metadata = episode.platform_metadata ?? {};
 	const targetPlatforms = Array.isArray(metadata.target_platforms) ? metadata.target_platforms : [];
+	const aiDisclosure = String(metadata.ai_disclosure ?? '').trim();
 	const timelineRows = [
 		[
 			'scene',
@@ -195,10 +196,18 @@ export const GET: RequestHandler = async (event) => {
 	if (!scenes.length) manifest.warnings.push('NO_SCENES');
 	if (!srt) manifest.warnings.push('NO_NARRATION_FOR_CAPTIONS');
 	if (choices.length !== 2 && !isSeasonFinale) manifest.warnings.push('TWO_CHOICES_MISSING');
-	if (scenes.some((scene) => scene.prompt_status !== 'APPROVED'))
+	if (
+		scenes.some(
+			(scene) =>
+				scene.prompt_status !== 'APPROVED' ||
+				!String(scene.start_frame_prompt_en ?? '').trim() ||
+				!String(scene.end_frame_prompt_en ?? '').trim() ||
+				!String(scene.motion_prompt_en ?? '').trim(),
+		)
+	)
 		manifest.warnings.push('SCENE_PROMPTS_NOT_APPROVED');
 	if (targetPlatforms.length === 0) manifest.warnings.push('TARGET_PLATFORMS_EMPTY');
-	if (!String(metadata.ai_disclosure ?? '').trim()) manifest.warnings.push('AI_DISCLOSURE_EMPTY');
+	if (!aiDisclosure) manifest.warnings.push('AI_DISCLOSURE_EMPTY');
 
 	const output = new PassThrough();
 	const archive = new ZipArchive({ zlib: { level: 6 } });
@@ -249,7 +258,7 @@ export const GET: RequestHandler = async (event) => {
 					hashtags: metadata.instagram_hashtags ?? '',
 					coverText: metadata.instagram_cover_text ?? metadata.cover_text ?? '',
 				},
-				aiDisclosure: metadata.ai_disclosure ?? '',
+				aiDisclosure,
 			},
 			null,
 			2,
@@ -276,7 +285,7 @@ export const GET: RequestHandler = async (event) => {
 		{ name: 'social/hashtags.txt' },
 	);
 	archive.append(
-		`${metadata.ai_disclosure ?? 'Nenhuma declaração de IA registrada. Revise antes de publicar.'}\n`,
+		`${aiDisclosure || 'Nenhuma declaração de IA registrada. Revise antes de publicar.'}\n`,
 		{ name: 'social/ai-disclosure.txt' },
 	);
 	const assemblyLines = [

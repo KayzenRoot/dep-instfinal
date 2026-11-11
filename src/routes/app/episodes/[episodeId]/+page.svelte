@@ -59,7 +59,7 @@
 </PageHeading>
 
 {#if form?.message}<p class="form-error" role="alert">{form.message}</p>{/if}
-{#if form?.episodeSaved || form?.sceneSaved || form?.choicesSaved || form?.statusSaved}<p
+{#if form?.episodeSaved || form?.sceneSaved || form?.sceneMoved || form?.choicesSaved || form?.statusSaved}<p
 		class="form-success"
 		role="status"
 	>

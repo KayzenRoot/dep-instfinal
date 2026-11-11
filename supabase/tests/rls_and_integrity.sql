@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(25);
+select plan(28);
 
 do $$
 declare
@@ -187,6 +187,20 @@ select ok(
   'an empty draft timeline rebuilds for 4-second scenes without gaps'
 );
 
+select public.import_narrative_response(
+  'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+  'CD06 import', 'Logline importada.', 'Hook importado.',
+  'Narrativa importada.', 'Revelação importada.', 'Cliffhanger importado.',
+  'Narração importada.', 96000, '{}'::jsonb,
+  'Opção A', 'Consequência A.', 'Opção B', 'Consequência B.'
+);
+select ok(
+  (select count(*) = 24 from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6')
+  and (select end_ms = 4000 from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1)
+  and (select max(end_ms) = 96000 from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  'narrative import preserves the configured 4-second scene timeline'
+);
+
 select public.save_scene_production(
   (select id from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1),
   'Archive room', 'Lara at the door', 'VHS tracking lines', 'Cut to black', 'READY', 2
@@ -215,6 +229,27 @@ select throws_ok(
   );$$,
   '22023', 'invalid_prompt_status',
   'an invalid prompt status is rejected'
+);
+select throws_ok(
+  $$select public.save_scene_production(
+    (select id from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1),
+    '', '', '', '', 'APPROVED', 0
+  );$$,
+  '23514', 'approved_scene_requires_prompts',
+  'APPROVED requires the three scene prompts'
+);
+select public.save_scene_production(
+  (select id from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 24),
+  'Tail scene', '', '', '', 'TODO', 0
+);
+select throws_ok(
+  $$select public.import_narrative_response(
+    'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+    'Truncated import', 'Logline.', 'Hook.', 'Narrative.', 'Reveal.', 'Cliffhanger.',
+    'Narração.', 90000, '{}'::jsonb, 'A', 'Consequence A.', 'B', 'Consequence B.'
+  );$$,
+  '23514', 'episode_scenes_would_be_truncated',
+  'import cannot silently truncate a content-bearing scene'
 );
 
 select public.set_episode_status('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'PUBLISHED');
@@ -292,7 +327,7 @@ values (
 );
 
 insert into public.canonical_decisions (
-  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale, continuity_review
 )
 values (
   'ffffffff-ffff-4fff-8fff-ffffffffffff',
@@ -300,7 +335,8 @@ values (
   'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
   'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 1,
   '{"winner":"1","approved":true}'::jsonb,
-  'Synthetic fixture; explicit owner approval.'
+  'Synthetic fixture; explicit owner approval.',
+  '{"warnings":[],"reviewedAt":"2026-11-11T00:00:00Z","reviewedBy":"11111111-1111-4111-8111-111111111111"}'::jsonb
 );
 
 do $$
@@ -335,11 +371,12 @@ insert into public.poll_results (
   1, 8, 12, '2', 'VERIFIED', 'Synthetic continuation vote.', now(), now()
 );
 insert into public.canonical_decisions (
-  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale, continuity_review
 ) values (
   '16161616-1616-4161-8161-161616161616', '14141414-1414-4141-8141-141414141414',
   '12121212-1212-4121-8121-121212121212', '15151515-1515-4151-8151-151515151515',
-  1, '{"selectedOption":"2"}'::jsonb, 'Synthetic owner approval of the latest result.'
+  1, '{"selectedOption":"2"}'::jsonb, 'Synthetic owner approval of the latest result.',
+  '{"warnings":[],"reviewedAt":"2026-11-11T00:00:00Z","reviewedBy":"11111111-1111-4111-8111-111111111111"}'::jsonb
 );
 
 insert into public.episodes (id, season_id, episode_number, title, duration_ms)
@@ -382,12 +419,13 @@ select throws_ok(
   'a verified correction still blocks publication until its result is approved'
 );
 insert into public.canonical_decisions (
-  id, poll_id, episode_id, poll_result_id, revision_number, supersedes_decision_id, canon_snapshot, rationale
+  id, poll_id, episode_id, poll_result_id, revision_number, supersedes_decision_id, canon_snapshot, rationale, continuity_review
 ) values (
   '19191919-1919-4191-8191-191919191919', '14141414-1414-4141-8141-141414141414',
   '12121212-1212-4121-8121-121212121212', '18181818-1818-4181-8181-181818181818',
   2, '16161616-1616-4161-8161-161616161616', '{"selectedOption":"1"}'::jsonb,
-  'Synthetic owner approval of the corrected latest result.'
+  'Synthetic owner approval of the corrected latest result.',
+  '{"warnings":[],"reviewedAt":"2026-11-11T00:00:00Z","reviewedBy":"11111111-1111-4111-8111-111111111111"}'::jsonb
 );
 select lives_ok(
   $$select public.set_episode_status('13131313-1313-4131-8131-131313131313', 'PUBLISHED');$$,
@@ -475,11 +513,12 @@ insert into public.poll_results (
   1, 10, 5, '1', 'VERIFIED', 'Synthetic episode three vote.', now(), now()
 );
 insert into public.canonical_decisions (
-  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale, continuity_review
 ) values (
   '35353535-3535-4535-8535-353535353535', '33333333-3333-4333-8333-333333333333',
   '13131313-1313-4131-8131-131313131313', '34343434-3434-4434-8434-343434343434',
-  1, '{"selectedOption":"1"}'::jsonb, 'Synthetic explicit owner approval before episode four.'
+  1, '{"selectedOption":"1"}'::jsonb, 'Synthetic explicit owner approval before episode four.',
+  '{"warnings":[],"reviewedAt":"2026-11-11T00:00:00Z","reviewedBy":"11111111-1111-4111-8111-111111111111"}'::jsonb
 );
 select lives_ok(
   $$select public.set_episode_status('41414141-4141-4141-8141-414141414141', 'PUBLISHED');$$,
@@ -500,11 +539,12 @@ insert into public.poll_results (
   1, 10, 5, '1', 'VERIFIED', 'Synthetic episode four vote.', now(), now()
 );
 insert into public.canonical_decisions (
-  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale, continuity_review
 ) values (
   '46464646-4646-4646-8646-464646464646', '44444444-4444-4444-8444-444444444444',
   '41414141-4141-4141-8141-414141414141', '45454545-4545-4545-8545-454545454545',
-  1, '{"selectedOption":"1"}'::jsonb, 'Synthetic explicit owner approval before episode five.'
+  1, '{"selectedOption":"1"}'::jsonb, 'Synthetic explicit owner approval before episode five.',
+  '{"warnings":[],"reviewedAt":"2026-11-11T00:00:00Z","reviewedBy":"11111111-1111-4111-8111-111111111111"}'::jsonb
 );
 select lives_ok(
   $$select public.set_episode_status('51515151-5151-4151-8151-515151515151', 'PUBLISHED');$$,
@@ -535,10 +575,11 @@ begin
       format('Synthetic episode %s vote.', v_episode_number), now(), now()
     );
     insert into public.canonical_decisions (
-      poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+      poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale, continuity_review
     ) values (
       v_poll_id, v_episode_id, v_result_id, 1, '{"selectedOption":"1"}'::jsonb,
-      format('Synthetic explicit owner approval for episode %s.', v_episode_number)
+      format('Synthetic explicit owner approval for episode %s.', v_episode_number),
+      '{"warnings":[],"reviewedAt":"2026-11-11T00:00:00Z","reviewedBy":"11111111-1111-4111-8111-111111111111"}'::jsonb
     );
     if v_episode_number < 10 then
       select id into v_next_episode_id from public.episodes
@@ -581,11 +622,12 @@ insert into public.poll_results (
   1, 11, 4, '1', 'VERIFIED', 'Synthetic pre-finale vote.', now(), now()
 );
 insert into public.canonical_decisions (
-  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale
+  id, poll_id, episode_id, poll_result_id, revision_number, canon_snapshot, rationale, continuity_review
 ) values (
   '25252525-2525-4525-8525-252525252525', '22222222-2222-4222-8222-222222222222',
   '21212121-2121-4121-8121-212121212121', '24242424-2424-4424-8424-242424242424',
-  1, '{"selectedOption":"1"}'::jsonb, 'Synthetic owner approval before the season finale.'
+  1, '{"selectedOption":"1"}'::jsonb, 'Synthetic owner approval before the season finale.',
+  '{"warnings":[],"reviewedAt":"2026-11-11T00:00:00Z","reviewedBy":"11111111-1111-4111-8111-111111111111"}'::jsonb
 );
 
 insert into public.episodes (id, season_id, episode_number, title, duration_ms)
@@ -649,14 +691,15 @@ begin
   begin
     insert into public.canonical_decisions (
       poll_id, episode_id, poll_result_id, revision_number, supersedes_decision_id,
-      canon_snapshot, rationale
+      canon_snapshot, rationale, continuity_review
     ) values (
       'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
       'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       'abababab-abab-4aba-8aba-abababababab', 2,
       'ffffffff-ffff-4fff-8fff-ffffffffffff',
       '{"winner":"1","approved":true}'::jsonb,
-      'This invalid decision must be rejected.'
+      'This invalid decision must be rejected.',
+      '{"warnings":[],"reviewedAt":"2026-11-11T00:00:00Z","reviewedBy":"11111111-1111-4111-8111-111111111111"}'::jsonb
     );
     raise exception 'unverified result was unexpectedly canonized';
   exception when check_violation then

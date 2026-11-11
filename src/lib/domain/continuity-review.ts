@@ -18,7 +18,17 @@ const characterStatuses = new Set(['DECEASED', 'MISSING', 'ARCHIVED']);
 const loreStatuses = new Set(['SUPERSEDED', 'ARCHIVED']);
 
 function normalize(value: string): string {
-	return value.trim().toLocaleLowerCase('pt-BR');
+	return value
+		.trim()
+		.normalize('NFD')
+		.replace(/\p{Diacritic}/gu, '')
+		.toLocaleLowerCase('pt-BR');
+}
+
+function containsTerm(haystack: string, term: string): boolean {
+	if (!term) return false;
+	const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`, 'u').test(haystack);
 }
 
 /**
@@ -39,7 +49,7 @@ export function findContinuityWarnings(input: {
 
 	for (const character of input.characters) {
 		const name = normalize(character.name);
-		if (!name || !characterStatuses.has(character.status) || !text.includes(name)) continue;
+		if (!name || !characterStatuses.has(character.status) || !containsTerm(text, name)) continue;
 		const code = `CHARACTER_${character.status}:${name}`;
 		if (seen.has(code)) continue;
 		seen.add(code);
@@ -52,7 +62,7 @@ export function findContinuityWarnings(input: {
 
 	for (const fact of input.loreFacts) {
 		const title = normalize(fact.title);
-		if (!title || !loreStatuses.has(fact.status) || !text.includes(title)) continue;
+		if (!title || !loreStatuses.has(fact.status) || !containsTerm(text, title)) continue;
 		const code = `LORE_${fact.status}:${title}`;
 		if (seen.has(code)) continue;
 		seen.add(code);

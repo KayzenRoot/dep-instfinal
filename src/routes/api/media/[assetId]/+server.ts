@@ -14,7 +14,7 @@ export const GET: RequestHandler = async (event) => {
 	const { db, owner } = ownerDatabase(event);
 	const config = getAppConfig();
 	const variant = event.url.searchParams.get('variant');
-	if (variant && !(variant in variants)) error(400, 'Variante de imagem inválida.');
+	if (variant && !Object.hasOwn(variants, variant)) error(400, 'Variante de imagem inválida.');
 	if (
 		!config.cloudinaryConfigured ||
 		!config.cloudinaryCloudName ||

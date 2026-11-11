@@ -30,7 +30,22 @@ describe('continuity review hints', () => {
 		expect(warnings).toHaveLength(2);
 		expect(warnings.map((warning) => warning.code)).toEqual([
 			'CHARACTER_MISSING:lara',
-			'LORE_SUPERSEDED:a fita não mente',
+			'LORE_SUPERSEDED:a fita nao mente',
+		]);
+	});
+
+	it('matches accents and whole words, not substrings of other words', () => {
+		const warnings = findContinuityWarnings({
+			text: 'O arquivo analisou o corredor. José voltou. A fita nao mente.',
+			characters: [
+				{ name: 'Ana', status: 'DECEASED' },
+				{ name: 'Jose', status: 'MISSING' },
+			],
+			loreFacts: [{ title: 'A fita não mente', status: 'SUPERSEDED' }],
+		});
+		expect(warnings.map((warning) => warning.code)).toEqual([
+			'CHARACTER_MISSING:jose',
+			'LORE_SUPERSEDED:a fita nao mente',
 		]);
 	});
 });

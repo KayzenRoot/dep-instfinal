@@ -11,6 +11,9 @@
 	let compareAssetId = $state('');
 	const previewAsset = $derived(readyAssets.find((asset) => asset.id === previewAssetId));
 	const compareAsset = $derived(readyAssets.find((asset) => asset.id === compareAssetId));
+	const previewAspect = $derived(
+		previewPreset === '4:5' ? '4 / 5' : previewPreset === '3:4' ? '3 / 4' : '9 / 16',
+	);
 	$effect(() => {
 		if (!previewAssetId && readyAssets[0]) previewAssetId = readyAssets[0].id;
 		if (!compareAssetId && readyAssets[1]) compareAssetId = readyAssets[1].id;
@@ -143,6 +146,7 @@
 							<img
 								src={previewSrc(asset.id)}
 								alt={`Prévia ${index === 0 ? 'A' : 'B'} ${asset.id.slice(0, 8)}`}
+								style={`aspect-ratio: ${previewAspect}`}
 							/>
 							<figcaption>
 								{asset.width}×{asset.height} · {previewPreset}

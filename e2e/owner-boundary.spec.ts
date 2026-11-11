@@ -686,6 +686,14 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 	await page.getByLabel('Senha').fill(process.env.E2E_OWNER_PASSWORD!);
 	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
 	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/series');
+	const seriesLinks = page.locator('a[href^="/app/series/"]');
+	const seriesDetail =
+		(await seriesLinks.count()) > 0 ? await seriesLinks.first().getAttribute('href') : null;
+	await page.goto('/app/episodes');
+	const episodeLinks = page.locator('a[href^="/app/episodes/"]');
+	const episodeDetail =
+		(await episodeLinks.count()) > 0 ? await episodeLinks.first().getAttribute('href') : null;
 	const routes = [
 		'/app',
 		'/app/series',
@@ -695,6 +703,8 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 		'/app/continuity',
 		'/app/export',
 		'/app/settings',
+		...(seriesDetail ? [seriesDetail] : []),
+		...(episodeDetail ? [episodeDetail] : []),
 	];
 	for (const width of [360, 768, 1440]) {
 		await page.setViewportSize({ width, height: 900 });
