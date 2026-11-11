@@ -1,5 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite';
-import adapter from '@sveltejs/adapter-node';
+import nodeAdapter from '@sveltejs/adapter-node';
+import vercelAdapter from '@sveltejs/adapter-vercel';
 import tailwindcss from '@tailwindcss/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vitest/config';
@@ -8,7 +9,7 @@ export default defineConfig({
 	plugins: [
 		tailwindcss(),
 		sveltekit({
-			adapter: adapter(),
+			adapter: process.env.VERCEL ? vercelAdapter({ runtime: 'nodejs24.x' }) : nodeAdapter(),
 			preprocess: vitePreprocess(),
 			csp: {
 				mode: 'nonce',
