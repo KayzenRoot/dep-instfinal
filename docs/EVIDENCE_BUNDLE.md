@@ -4,7 +4,10 @@
 - **Correction Delta:** `CD05`
 - **Repository:** `KayzenRoot/dep-instfinal`
 - **Branch / PR:** `feat/dif-studio-mvp-001` / [Draft PR #14](https://github.com/KayzenRoot/dep-instfinal/pull/14)
-- **CD05 code/test commit:** `b89240f061d9976a0a7db28003d63d5daf977dfe`
+- **CD05 reconciliation fix:** `b89240f061d9976a0a7db28003d63d5daf977dfe`
+- **CD05 final code/test HEAD:** `852b970c03f38233b6e02e6af308dbd01bef5b72`
+- **Hosted PR CI (CD05):** [run `43038342557`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43038342557) — PASS
+- **Hosted push CI (CD05):** [run `43038328934`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43038328934) — PASS
 - **CD05 live acceptance date:** 2026-11-11
 - **CD04 audit base SHA:** `34ab6b7c9156de054dfd4969e761d456cc4890c4`
 - **CD04 implementation commit:** `3c560489788d0c1efaf16dd26d81b709daad4406`
@@ -39,7 +42,9 @@ The live missing-object reconciliation exposed a real SDK error-shape mismatch: 
 
 - Local `npm test` 23/23, `npm run typecheck` 0 errors/0 warnings, `npm run lint`, `npm run build`, and `npm run audit:policy` (15 invariants) passed after the fix.
 - The live acceptance fixture (`Aceitação DIF`, episode 1, 15 scenes, two choices) and its media records were created in the dedicated project; they are owner-scoped test data.
-- Backup/restore remains **NOT RUN**: the Free plan shows no scheduled backups, and no external restore target was provisioned. Independent review remains pending. Hosted CI has not yet run on `b89240f`; it must be recorded before any promotion.
+- Backup/restore remains **NOT RUN**: the Free plan shows no scheduled backups, and no external restore target was provisioned. Independent review remains pending.
+- The first CD05 hosted attempts at `388577e` failed before the application tests because the runner could not resolve the Ubuntu package mirrors while installing Playwright system dependencies (`Temporary failure resolving '*.ubuntu.com'`). The workflow was stabilized by pinning `ubuntu-24.04` and installing Chromium without the apt-based dependency step. Both hosted runs then passed at `852b970`: baseline, PgTAP (20 tests), and authenticated E2E (8 passed in 1.9 minutes).
+- Temporary owner-authorized public access was validated through a free Cloudflare quick tunnel: `/health` 200, `/login` 200, anonymous `/app` 303 to `/login`, anonymous media 401, owner media 200/235 bytes with `private, no-store`, and authenticated export 200/11,404-byte ZIP. The quick-tunnel URL is ephemeral, has no Cloudflare Access policy, and requires the local machine and server to stay online. It is not a production release or checkpoint promotion.
 - The acceptance exercised real private media, rejection, failure preservation, reconciliation, cross-owner denial, and export. Step 5 of the prior pending list was represented by the synthetic `ORPHANED` record; a genuine DB-finalization failure mid-upload was not induced. Step 6 did not include foreign or failed media references.
 
 ## CD04 result

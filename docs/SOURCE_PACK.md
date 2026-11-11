@@ -2,7 +2,7 @@
 
 **Work Order:** `DIF-MVP-ALL-001`
 **Revision:** 1.1
-**Status:** approved scope; CD05 live Supabase/Cloudinary acceptance recorded on `b89240f`; external backup/restore and independent review remain pending
+**Status:** approved scope; CD05 live Supabase/Cloudinary acceptance and hosted CI recorded on `852b970`; external backup/restore and independent review remain pending
 **Last reconciled:** 2026-11-11
 
 ## Source hierarchy and context
@@ -124,4 +124,4 @@ The CD02 audit base `a7cfc9edce735bd4d0900ca7de2b9e12c434bab4` was revalidated b
 
 Live acceptance was executed on 2026-11-11 against the dedicated Supabase project `dif` and Cloudinary environment `dt4qdzuus`; credentials stayed in the git-ignored `.env`. Migrations produced 14 tables, 50 policies, 22 functions, and RLS on every table. The owner login, private media upload/delivery, unauthenticated and cross-owner denial, upload rejection, failed-upload preservation, reconciliation, signed-URL expiry, and authenticated ZIP export with private media all passed. Live reconciliation exposed an SDK 404 error-shape mismatch, corrected in commit `b89240f061d9976a0a7db28003d63d5daf977dfe` with unit coverage.
 
-External backup/restore remains **NOT RUN** because the Free plan exposes no scheduled backups and no restore target was provisioned. Independent review remains pending, and hosted CI has not yet run on `b89240f`. The checkpoint remains **PROPOSED — NOT PROMOTED** with proposed verdict **BLOCKED**; PR #14 remains Draft. No merge, deployment, paid service, or promotion occurred.
+External backup/restore remains **NOT RUN** because the Free plan exposes no scheduled backups and no restore target was provisioned. Independent review remains pending. Hosted PR CI `43038342557` and push CI `43038328934` passed at final code/test HEAD `852b970` (baseline, PgTAP 20, E2E 8/8). A temporary owner-authorized Cloudflare quick tunnel was validated for public access; it is ephemeral, has no Cloudflare Access policy, and is not a production deployment. The checkpoint remains **PROPOSED — NOT PROMOTED** with proposed verdict **BLOCKED**; PR #14 remains Draft. No merge, production deployment, paid service, or promotion occurred.

@@ -27,6 +27,25 @@ Set the cloud name, API key and API secret in server-only environment variables.
 - Restore into a dedicated test project first; apply migrations, restore Postgres, then reconcile every manifest entry against Cloudinary. Verify an episode, its scene references and its images before replacing any live data.
 - The supplied Work Order does not provision backup storage or guarantee automatic backups on a free tier.
 
+## Temporary public access via Cloudflare Tunnel (owner-authorized)
+
+The owner may expose the local production server through a free Cloudflare quick tunnel for private use:
+
+```sh
+npm run build
+npm run serve:tunnel
+```
+
+`scripts/serve-tunnel.mjs` starts `cloudflared tunnel --url http://127.0.0.1:3000`, reads the generated `https://*.trycloudflare.com` URL, and starts `node --env-file=.env build` with `APP_ORIGIN`/`ORIGIN` set to that URL plus `PROTOCOL_HEADER=x-forwarded-proto` and `HOST_HEADER=x-forwarded-host`. The script prints the public URL and stops both processes together.
+
+Limits and security:
+
+- The URL is **ephemeral** and changes whenever the tunnel restarts. It requires this machine, the server, and `cloudflared` to stay online.
+- A quick tunnel has **no Cloudflare Access policy**. The app still enforces owner login, owner-scoped RLS, CSRF checks, private media and `no-store`, but the login surface is reachable from the internet. Use a long unique owner password and keep the URL private.
+- In-memory rate limiting is per server process; it is not a distributed edge control.
+- For durable public access, create a named Cloudflare Tunnel with a Cloudflare-managed domain, place Cloudflare Access in front of it, and set exact Supabase redirect URLs. That durable setup was not provisioned.
+- This is not a production release, merge, or checkpoint promotion; `main` remains untouched.
+
 ## Production checklist (future only)
 
 Production hosting is not provisioned by this Work Order. Before a separate deployment authorization, select a Node host, configure TLS and strict trusted-proxy behavior, secure env secrets, set exact Supabase redirect URLs, test owner auth/RLS and Cloudinary authenticated delivery, review backups, and run the release Evidence Bundle. Do not deploy from this branch automatically.

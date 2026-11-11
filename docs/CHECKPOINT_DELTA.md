@@ -3,8 +3,10 @@
 - **Work Order:** `DIF-MVP-ALL-001`
 - **Repository / branch / PR:** `KayzenRoot/dep-instfinal` / `feat/dif-studio-mvp-001` / Draft PR #14
 - **CD05 base HEAD revalidated:** `b78609d9f0e3a32773733df6c3303edf994c7b0c`
-- **CD05 implementation commit:** `b89240f061d9976a0a7db28003d63d5daf977dfe`
-- **Hosted CI for CD05:** NOT RUN YET
+- **CD05 reconciliation fix:** `b89240f061d9976a0a7db28003d63d5daf977dfe`
+- **CD05 final code/test HEAD:** `852b970c03f38233b6e02e6af308dbd01bef5b72`
+- **Hosted PR CI:** [run `43038342557`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43038342557) — PASS
+- **Hosted push CI:** [run `43038328934`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43038328934) — PASS
 - **Status:** **PROPOSED — NOT PROMOTED**
 - **Proposed verdict:** **BLOCKED — Work Order not complete**
 
@@ -15,8 +17,9 @@
 3. Rejections and failure preservation passed live: invalid bytes returned 415, a 10 MiB + 1 byte upload returned 413, and an upload with a deliberately invalid Cloudinary secret preserved an `ORPHANED` record with `CLOUDINARY_UPLOAD_OUTCOME_UNKNOWN` instead of marking it `READY`.
 4. Live reconciliation exposed an error-shape bug: `cloudinary.api.resource` rejects with a nested `{ error: { http_code: 404 } }`, but the route only recognized a top-level `http_code`. The missing object remained `ORPHANED` instead of `FAILED`. Commit `b89240f` handles both shapes and the unit fixture now uses the real nested shape. A rerun produced `FAILED` / `CLOUDINARY_ASSET_NOT_FOUND`; a real object that was `ORPHANED` reconciled to `READY`.
 5. A disposable authenticated user without the owner claim read `[]` from `series` and `media_assets` and received 403 (`42501`) on insert; the probe user was deleted. Authenticated ZIP export returned 29 entries, including the private PNG and empty `missing_frames.json`, with 15 contiguous SRT segments.
-6. Local `npm test` 23/23, `npm run typecheck` (0 errors/warnings), `npm run lint`, `npm run build`, and `npm run audit:policy` (15 invariants) passed after the fix.
-7. Backup/restore remains **NOT RUN**: the Free plan shows no scheduled backups and no external restore target was provisioned. Independent review remains pending. Hosted CI has not yet run on `b89240f`; it is required before promotion.
+6. Local `npm test` 23/23, `npm run typecheck` (0 errors/warnings), `npm run lint`, `npm run build`, and `npm run audit:policy` (15 invariants) passed after the fix. Hosted PR CI `43038342557` and push CI `43038328934` passed at final code/test HEAD `852b970`: baseline, PgTAP (20 tests), and authenticated E2E (8 passed in 1.9 minutes). The earlier attempts at `388577e` failed only because the runner could not resolve the Ubuntu package mirrors during the Playwright `--with-deps` step; the workflow was stabilized by pinning `ubuntu-24.04` and installing Chromium without the apt dependency.
+7. Backup/restore remains **NOT RUN**: the Free plan shows no scheduled backups and no external restore target was provisioned. Independent review remains pending.
+8. A temporary owner-authorized Cloudflare quick tunnel was validated for public access: health/login 200, anonymous app redirect, anonymous media 401, owner media 200 with `private, no-store`, and authenticated ZIP export 200. The URL is ephemeral, has no Cloudflare Access policy, and requires the local machine and server to stay online. It is not a production release.
 
 ## Historical CD04 header
 
@@ -45,6 +48,6 @@
 
 ## Gate
 
-CD05 records live Supabase and Cloudinary acceptance, including private delivery, rejection, failure preservation, reconciliation, cross-owner denial, and ZIP export with media. External backup/restore and independent review remain essential pending gates, and hosted CI has not yet run on `b89240f`. The Work Order and release are not complete. Keep PR #14 open and Draft; keep this checkpoint **PROPOSED — NOT PROMOTED** with verdict **BLOCKED**. No merge, deployment, spend, external provisioning, or checkpoint promotion occurred.
+CD05 records live Supabase and Cloudinary acceptance, including private delivery, rejection, failure preservation, reconciliation, cross-owner denial, and ZIP export with media. Hosted CI passed at `852b970`. External backup/restore and independent review remain essential pending gates. A temporary owner-authorized Cloudflare quick tunnel exposes the local production server for private use; it is not a production deployment and has no Cloudflare Access policy. The Work Order and release are not complete. Keep PR #14 open and Draft; keep this checkpoint **PROPOSED — NOT PROMOTED** with verdict **BLOCKED**. No merge, production deployment, spend, new external project, or checkpoint promotion occurred.
 
 CD01–CD04 history remains in `docs/CONTEXT_LOCK.md`; detailed evidence is in `docs/EVIDENCE_BUNDLE.md`.
