@@ -77,6 +77,20 @@ describe('pacote de IA do DIF Studio', () => {
 		expect((args[1].headers as Record<string, string>).authorization).toBe('Bearer synthetic-oidc');
 	});
 
+	it('usa um Gemini Flash-Lite disponível para chaves de projetos novos', async () => {
+		vi.stubEnv('GEMINI_API_KEY', 'test-only-key');
+		const mockFetch = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }] }),
+				{ status: 200 },
+			),
+		);
+		vi.stubGlobal('fetch', mockFetch);
+		await expect(generateEpisodeJson('test')).resolves.toEqual({ ok: true });
+		const args = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect(args[0]).toContain('/models/gemini-3.5-flash-lite:generateContent');
+	});
+
 	it('valida 15 cenas e duas consequências para 120 segundos', () => {
 		const result = validateGeneratedEpisode({ narrative, scenes }, 120000, 8000, false);
 		expect(result.scenes).toHaveLength(15);
