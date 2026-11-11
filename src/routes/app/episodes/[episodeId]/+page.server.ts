@@ -17,6 +17,7 @@ import { checkRateLimit } from '#lib/server/rate-limit.js';
 import {
 	AiGenerationError,
 	availableGenerationProvider,
+	deploymentOidcToken,
 	buildEpisodeGenerationPrompt,
 	generateEpisodeJson,
 	generatedEpisodeSchema,
@@ -161,14 +162,15 @@ export const load: PageServerLoad = async (event) => {
 		narrativeContext,
 		continuityWarnings,
 		ownerId: owner.id,
-		aiProvider: availableGenerationProvider(),
+		aiProvider: availableGenerationProvider(deploymentOidcToken(event.request)),
 	};
 };
 
 export const actions: Actions = {
 	generateAiPackage: async (event) => {
 		const { db, owner } = ownerDatabase(event);
-		const provider = availableGenerationProvider();
+		const oidcToken = deploymentOidcToken(event.request);
+		const provider = availableGenerationProvider(oidcToken);
 		if (provider === 'manual')
 			return fail(503, {
 				message: 'A geração automática não está configurada nesta hospedagem. Use o prompt manual.',
@@ -203,7 +205,7 @@ export const actions: Actions = {
 			const sceneDurationMs = Number(episode.scene_duration_ms ?? 8000);
 			const durationMs = Number(episode.duration_ms);
 			const prompt = buildEpisodeGenerationPrompt(context, durationMs, sceneDurationMs);
-			const generated = await generateEpisodeJson(prompt);
+			const generated = await generateEpisodeJson(prompt, oidcToken);
 			const validated = validateGeneratedEpisode(
 				generated,
 				durationMs,
