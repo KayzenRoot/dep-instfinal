@@ -2,8 +2,8 @@
 
 **Work Order:** `DIF-MVP-ALL-001`
 **Revision:** 1.1
-**Status:** approved scope; CD02 code validated on `68b4f867274e296a52c763851537ebf326f5eb8e`; live Cloudinary acceptance and independent review remain pending
-**Last reconciled:** 2026-11-10
+**Status:** approved scope; CD05 live Supabase/Cloudinary acceptance recorded on `b89240f`; external backup/restore and independent review remain pending
+**Last reconciled:** 2026-11-11
 
 ## Source hierarchy and context
 
@@ -119,3 +119,9 @@ At the end of CD01, the Checkpoint Delta was **PROPOSED — NOT PROMOTED**. The 
 ## Current checkpoint after CD02
 
 The CD02 audit base `a7cfc9edce735bd4d0900ca7de2b9e12c434bab4` was revalidated before implementation. Hosted PR and push CI passed against application/test SHA `68b4f867274e296a52c763851537ebf326f5eb8e`, including database/RLS, authenticated owner-boundary Data API checks, and the complete continuation/export browser journey. Manual story generation remains supported through full-context prompt export and validated response import. No eligible configured official AI provider was established, so automatic generation remains pending. The Cloudinary mocks are not live account evidence. The current Checkpoint Delta remains **PROPOSED — NOT PROMOTED** with proposed verdict **BLOCKED** pending the real-account Cloudinary acceptance and independent review. The PR remains Draft; no merge, deployment, paid service, external provisioning, or promotion occurred. The Evidence Bundle documents exact pending external acceptance steps.
+
+## Current checkpoint after CD05
+
+Live acceptance was executed on 2026-11-11 against the dedicated Supabase project `dif` and Cloudinary environment `dt4qdzuus`; credentials stayed in the git-ignored `.env`. Migrations produced 14 tables, 50 policies, 22 functions, and RLS on every table. The owner login, private media upload/delivery, unauthenticated and cross-owner denial, upload rejection, failed-upload preservation, reconciliation, signed-URL expiry, and authenticated ZIP export with private media all passed. Live reconciliation exposed an SDK 404 error-shape mismatch, corrected in commit `b89240f061d9976a0a7db28003d63d5daf977dfe` with unit coverage.
+
+External backup/restore remains **NOT RUN** because the Free plan exposes no scheduled backups and no restore target was provisioned. Independent review remains pending, and hosted CI has not yet run on `b89240f`. The checkpoint remains **PROPOSED — NOT PROMOTED** with proposed verdict **BLOCKED**; PR #14 remains Draft. No merge, deployment, paid service, or promotion occurred.

@@ -1,16 +1,46 @@
 # DIF Studio — Evidence Bundle
 
 - **Work Order:** `DIF-MVP-ALL-001`
-- **Correction Delta:** `CD04`
+- **Correction Delta:** `CD05`
 - **Repository:** `KayzenRoot/dep-instfinal`
 - **Branch / PR:** `feat/dif-studio-mvp-001` / [Draft PR #14](https://github.com/KayzenRoot/dep-instfinal/pull/14)
+- **CD05 code/test commit:** `b89240f061d9976a0a7db28003d63d5daf977dfe`
+- **CD05 live acceptance date:** 2026-11-11
 - **CD04 audit base SHA:** `34ab6b7c9156de054dfd4969e761d456cc4890c4`
 - **CD04 implementation commit:** `3c560489788d0c1efaf16dd26d81b709daad4406`
 - **CD04 final code/test HEAD:** `45840f9199783c251c4da8b10bff3fcda14de629`
-- **Hosted PR CI:** [run `42898556365`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898556365) — PASS
-- **Hosted push CI:** [run `42898547547`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898547547) — PASS
-- **Evidence date:** 2026-11-10
+- **Hosted PR CI (CD04):** [run `42898556365`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898556365) — PASS
+- **Hosted push CI (CD04):** [run `42898547547`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898547547) — PASS
 - **Checkpoint Delta:** **PROPOSED — NOT PROMOTED**; see `docs/CHECKPOINT_DELTA.md`.
+
+## CD05 — live external acceptance
+
+Live acceptance was executed against the dedicated Supabase project `dif` (`zottgifcocnjguhmnezx`, us-east-1) and the Cloudinary product environment `dt4qdzuus`. Credentials were read from the authenticated dashboards and written only to the local, git-ignored `.env`; no secret is committed or included in this document.
+
+| Check                      | Result | Evidence                                                                                                                                                                                                                                                                      |
+| -------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supabase migrations        | PASS   | Four migrations applied in order through the Management API. `information_schema` reports 14 public tables, 50 policies, 22 functions, and RLS enabled on 14/14 tables.                                                                                                       |
+| Owner provisioning         | PASS   | Owner `owner@dif.local` created with `app_metadata.dif_studio_owner=true`, UID `75a301f7-c0ee-4bd9-863e-95d42b7037b0`. Password-grant login returned 200; REST read returned 200 `[]`; owner UID written to `.env`. Generated credentials were stored outside the repository. |
+| Cloudinary live upload     | PASS   | The app's authenticated upload route stored a 64×64 PNG: `media_assets.upload_status=READY`, `public_id=dif-studio/1b315c6e-…`, 235 bytes, SHA-256 recorded, Cloudinary `asset_id`/`version` populated.                                                                       |
+| Private delivery           | PASS   | Owner request to `/api/media/<id>` returned 200 with 235 bytes, `content-type: image/png`, `cache-control: private, no-store`, and CSP `default-src 'none'; sandbox`.                                                                                                         |
+| Unauthorized delivery      | PASS   | Same route without a session returned 401. The raw unsigned Cloudinary URL returned 401.                                                                                                                                                                                      |
+| Signed URL expiry          | PASS   | A `private_download_url` with `expires_at=now+2s` returned 200 immediately and 401 after 3.5 seconds.                                                                                                                                                                         |
+| Upload rejection           | PASS   | Invalid bytes returned 415; a 10 MiB + 1 byte upload returned 413. Both were rejected before any Cloudinary call.                                                                                                                                                             |
+| Failed-upload preservation | PASS   | With a deliberately invalid Cloudinary secret, the app redirected to `?upload=failed` and preserved the record as `ORPHANED` with `CLOUDINARY_UPLOAD_OUTCOME_UNKNOWN`; the object was not marked `READY`.                                                                     |
+| Orphan reconciliation      | PASS   | A real authenticated object inserted as `ORPHANED` reconciled to `READY` with metadata. A missing public ID reconciled to `FAILED` / `CLOUDINARY_ASSET_NOT_FOUND`.                                                                                                            |
+| Cross-owner isolation      | PASS   | A disposable authenticated user without the owner claim read `[]` from `series` and `media_assets` and received 403 (`42501`, RLS) on insert; the probe user was deleted.                                                                                                     |
+| ZIP export with media      | PASS   | Authenticated export returned `application/zip`, filename `dif-episode-01.zip`, 29 entries, including `media/scene-01-start.png` (235 bytes) and empty `missing_frames.json`; the SRT contained 15 contiguous 8-second segments.                                              |
+
+### Live acceptance finding
+
+The live missing-object reconciliation exposed a real SDK error-shape mismatch: `cloudinary.api.resource` rejects with `{ error: { http_code: 404 } }`, while the route only inspected a top-level `http_code`. The missing object was therefore left `ORPHANED` with `CLOUDINARY_RECONCILIATION_FAILED` instead of `FAILED` / `CLOUDINARY_ASSET_NOT_FOUND`. Commit `b89240f061d9976a0a7db28003d63d5daf977dfe` handles both shapes; the unit fixture now uses the real nested shape. The live rerun produced `FAILED` / `CLOUDINARY_ASSET_NOT_FOUND`.
+
+### CD05 validation and limits
+
+- Local `npm test` 23/23, `npm run typecheck` 0 errors/0 warnings, `npm run lint`, `npm run build`, and `npm run audit:policy` (15 invariants) passed after the fix.
+- The live acceptance fixture (`Aceitação DIF`, episode 1, 15 scenes, two choices) and its media records were created in the dedicated project; they are owner-scoped test data.
+- Backup/restore remains **NOT RUN**: the Free plan shows no scheduled backups, and no external restore target was provisioned. Independent review remains pending. Hosted CI has not yet run on `b89240f`; it must be recorded before any promotion.
+- The acceptance exercised real private media, rejection, failure preservation, reconciliation, cross-owner denial, and export. Step 5 of the prior pending list was represented by the synthetic `ORPHANED` record; a genuine DB-finalization failure mid-upload was not induced. Step 6 did not include foreign or failed media references.
 
 ## CD04 result
 
