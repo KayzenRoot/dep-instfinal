@@ -131,3 +131,16 @@ External backup/restore remains **NOT RUN** because the Free plan exposes no sch
 CD06 implemented the remaining issue-level acceptance gaps on top of CD05: configurable 4/6/8-second scene durations with safe rebuild, scene reorder, location/character/VHS/transition fields, prompt status and attempt counts, deterministic continuity warnings before canon approval, platform target/aspect presets, private thumbnail/crop variants with side-by-side comparison, and a production-ready ZIP with checklist, AI disclosure, hashtags, covers, credit estimates and assembly manifest. It also adds five PgTAP assertions (25/25 total) and responsive screenshots for every studio page at 360/768/1440.
 
 A real logical backup/restore was executed against the hosted project and a local Supabase target: restored counts matched, owner login returned 200, anonymous REST returned 401, and the restored Cloudinary asset hash matched. Hosted PR `43080981120` and push `43080968791` passed at final code/test HEAD `b23d40c` (PgTAP 28 tests; E2E 9 passed in 2.3 minutes, no retry), unit tests are 28/28, and the independent reviewer agent returned **APPROVED** with only LOW residuals. The checkpoint remains **PROPOSED — NOT PROMOTED** with proposed verdict **APPROVED — ready for owner promotion**; no merge or promotion occurred.
+
+
+## Owner-approved release extension — DIF-REL-001 (2026-11-11)
+
+**Status:** approved scope change, implementation pending evidence; previous V1 auto-generation exclusion is superseded only for text generation. Final checkpoint remains PROPOSED until audited.
+
+- Use a free hosted \*.vercel.app URL; no custom domain. Production Node 24 deployment must use an official SvelteKit Vercel adapter; retain Node adapter for local/Oracle use. Record immutable release SHA and hosted smoke.
+- AI generation of episode narratives, two choice consequences (except finale), and 9:16 start/end image plus motion prompts is now NECESSARY when a supported, owner-authorized no-charge text provider is available. Gemini 2.5 Flash-Lite free tier BYOK is the candidate; Google Flow Plus and ChatGPT Plus are not substitutes for API keys. No billing activation; never send API keys to client.
+- Generated content must be reviewed by the owner and imported as an editable draft, respecting existing Supabase/RLS and continuity/scene duration guarantees. The manual prompt/import fallback remains functional if provider key/allowance is missing.
+- Keep images and video generated manually in Google Flow. No platform posting automation, purchased API access, or domain registration.
+- Do not classify Vercel site as live/full production merely because deployment succeeds; require real owner authentication, Cloudinary media smoke, Supabase project evidence, recovery, and post-deploy verification. No automatic merge/promotion.
+
+See GitHub issue #15 (DIF-REL-001) and this branch's Evidence Bundle for acceptance.
