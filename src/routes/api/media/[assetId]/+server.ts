@@ -4,9 +4,17 @@ import { v2 as cloudinary } from 'cloudinary';
 import { ownerDatabase } from '#lib/server/authorized.js';
 import { getAppConfig } from '#lib/server/config.js';
 
+const variants = {
+	thumb: [{ width: 320, height: 180, crop: 'fill' }],
+	'4x5': [{ width: 432, height: 540, crop: 'fill' }],
+	'3x4': [{ width: 432, height: 576, crop: 'fill' }],
+} as const;
+
 export const GET: RequestHandler = async (event) => {
 	const { db, owner } = ownerDatabase(event);
 	const config = getAppConfig();
+	const variant = event.url.searchParams.get('variant');
+	if (variant && !(variant in variants)) error(400, 'Variante de imagem inválida.');
 	if (
 		!config.cloudinaryConfigured ||
 		!config.cloudinaryCloudName ||
@@ -35,12 +43,22 @@ export const GET: RequestHandler = async (event) => {
 		secure: true,
 	});
 	const expiresAt = Math.floor(Date.now() / 1000) + 300;
-	const url = cloudinary.utils.private_download_url(asset.public_id, asset.format, {
-		resource_type: 'image',
-		type: asset.delivery_type,
-		attachment: false,
-		expires_at: expiresAt,
-	});
+	// Derived images use a signed authenticated delivery URL generated on the
+	// server only. The URL is fetched here and never returned to the browser.
+	const url = variant
+		? cloudinary.url(asset.public_id, {
+				resource_type: 'image',
+				type: asset.delivery_type,
+				sign_url: true,
+				secure: true,
+				transformation: variants[variant as keyof typeof variants],
+			})
+		: cloudinary.utils.private_download_url(asset.public_id, asset.format, {
+				resource_type: 'image',
+				type: asset.delivery_type,
+				attachment: false,
+				expires_at: expiresAt,
+			});
 	let upstream: Response;
 	try {
 		upstream = await fetch(url, { signal: AbortSignal.timeout(15_000), redirect: 'error' });

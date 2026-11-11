@@ -11,6 +11,7 @@ import {
 import { ownerDatabase, readFormText } from '#lib/server/authorized.js';
 import { firstRelation } from '#lib/server/relations.js';
 import { loadNarrativeContext } from '#lib/server/narrative-context.js';
+import { loadContinuityWarnings } from '#lib/server/continuity-review.js';
 import { estimateNarrationDurationSeconds } from '#lib/domain/narrative-context.js';
 
 function publicationBlockMessage(message: string): string {
@@ -138,6 +139,7 @@ export const load: PageServerLoad = async (event) => {
 	} catch {
 		error(503, 'Não foi possível preparar o contexto narrativo e canônico.');
 	}
+	const continuityWarnings = await loadContinuityWarnings(db, owner.id, episodeId);
 	return {
 		episode,
 		scenes: scenesResult.data ?? [],
@@ -148,13 +150,14 @@ export const load: PageServerLoad = async (event) => {
 		results,
 		decisions,
 		narrativeContext,
+		continuityWarnings,
 		ownerId: owner.id,
 	};
 };
 
 export const actions: Actions = {
 	saveEpisode: async (event) => {
-		const { db } = ownerDatabase(event);
+		const { db, owner } = ownerDatabase(event);
 		const form = await event.request.formData().catch(() => null);
 		if (!form) return fail(400, { message: 'Não foi possível ler o formulário.' });
 		const parsed = episodeEditSchema.safeParse({
@@ -175,12 +178,50 @@ export const actions: Actions = {
 			instagramCta: readFormText(form, 'instagramCta'),
 			instagramDescription: readFormText(form, 'instagramDescription'),
 			coverText: readFormText(form, 'coverText'),
+			tiktokCoverText: readFormText(form, 'tiktokCoverText'),
+			instagramCoverText: readFormText(form, 'instagramCoverText'),
+			tiktokHashtags: readFormText(form, 'tiktokHashtags'),
+			instagramHashtags: readFormText(form, 'instagramHashtags'),
+			aiDisclosure: readFormText(form, 'aiDisclosure'),
+			effectsList: readFormText(form, 'effectsList'),
+			assemblyNotes: readFormText(form, 'assemblyNotes'),
+			targetPlatforms: form
+				.getAll('targetPlatforms')
+				.filter((value): value is string => typeof value === 'string'),
+			aspectPreset: readFormText(form, 'aspectPreset') || '9:16',
+			creditModel: readFormText(form, 'creditModel'),
+			creditCostPerClip: readFormText(form, 'creditCostPerClip') || 0,
 			durationSeconds: readFormText(form, 'durationSeconds'),
+			sceneDurationMs: readFormText(form, 'sceneDurationMs') || 8000,
 			speechSpeedWpm: readFormText(form, 'speechSpeedWpm') || 145,
 			isSeasonFinale: form.get('isSeasonFinale') === 'on',
 		});
 		if (!parsed.success)
 			return fail(400, { message: 'Revise título, duração (90–150s) e campos do roteiro.' });
+		const { data: currentEpisode, error: currentError } = await db
+			.from('episodes')
+			.select('duration_ms,scene_duration_ms,status')
+			.eq('id', event.params.episodeId)
+			.eq('owner_id', owner.id)
+			.maybeSingle();
+		if (currentError || !currentEpisode)
+			return fail(404, { message: 'Episódio não encontrado neste arquivo.' });
+		const requestedDurationMs = parsed.data.durationSeconds * 1000;
+		if (
+			Number(currentEpisode.scene_duration_ms ?? 8000) !== parsed.data.sceneDurationMs ||
+			Number(currentEpisode.duration_ms) !== requestedDurationMs
+		) {
+			const { error: timelineError } = await db.rpc('set_episode_scene_duration', {
+				p_episode_id: event.params.episodeId,
+				p_scene_duration_ms: parsed.data.sceneDurationMs,
+				p_duration_ms: requestedDurationMs,
+			});
+			if (timelineError)
+				return fail(409, {
+					message:
+						'A duração só pode ser alterada enquanto as cenas estiverem vazias e o episódio não estiver publicado.',
+				});
+		}
 		const { error: saveError } = await db.rpc('save_episode_content', {
 			p_episode_id: event.params.episodeId,
 			p_title: parsed.data.title,
@@ -190,7 +231,7 @@ export const actions: Actions = {
 			p_reveal: parsed.data.reveal,
 			p_cliffhanger: parsed.data.cliffhanger,
 			p_narration_pt_br: parsed.data.narrationPtBr,
-			p_duration_ms: parsed.data.durationSeconds * 1000,
+			p_duration_ms: requestedDurationMs,
 			p_is_season_finale: parsed.data.isSeasonFinale,
 			p_platform_metadata: {
 				speech_speed_wpm: parsed.data.speechSpeedWpm,
@@ -217,6 +258,17 @@ export const actions: Actions = {
 					.filter(Boolean)
 					.join('\n\n'),
 				cover_text: parsed.data.coverText,
+				tiktok_cover_text: parsed.data.tiktokCoverText,
+				instagram_cover_text: parsed.data.instagramCoverText,
+				tiktok_hashtags: parsed.data.tiktokHashtags,
+				instagram_hashtags: parsed.data.instagramHashtags,
+				ai_disclosure: parsed.data.aiDisclosure,
+				effects_list: parsed.data.effectsList,
+				assembly_notes: parsed.data.assemblyNotes,
+				target_platforms: parsed.data.targetPlatforms,
+				aspect_preset: parsed.data.aspectPreset,
+				credit_model: parsed.data.creditModel,
+				credit_cost_per_clip: parsed.data.creditCostPerClip,
 			},
 		});
 		if (saveError)
@@ -256,7 +308,7 @@ export const actions: Actions = {
 		const response = parsed.data;
 		const { data: targetEpisode, error: targetEpisodeError } = await db
 			.from('episodes')
-			.select('id,episode_number,seasons(planned_episode_count)')
+			.select('id,episode_number,platform_metadata,seasons(planned_episode_count)')
 			.eq('id', event.params.episodeId)
 			.eq('owner_id', owner.id)
 			.maybeSingle();
@@ -269,7 +321,14 @@ export const actions: Actions = {
 			return fail(400, {
 				message: 'Este episódio ainda terá continuação e exige duas opções de votação diferentes.',
 			});
+		const existingMetadata =
+			targetEpisode.platform_metadata &&
+			typeof targetEpisode.platform_metadata === 'object' &&
+			!Array.isArray(targetEpisode.platform_metadata)
+				? (targetEpisode.platform_metadata as Record<string, unknown>)
+				: {};
 		const metadata = {
+			...existingMetadata,
 			speech_speed_wpm: response.speechSpeedWpm,
 			screen_suggestion: response.screenSuggestion,
 			sound_suggestion: response.soundSuggestion,
@@ -332,6 +391,12 @@ export const actions: Actions = {
 					'visualDescription',
 					'cameraNotes',
 					'lightingNotes',
+					'location',
+					'characterNotes',
+					'vhsEffects',
+					'transition',
+					'promptStatus',
+					'generationAttempts',
 					'startFramePromptEn',
 					'endFramePromptEn',
 					'motionPromptEn',
@@ -364,7 +429,46 @@ export const actions: Actions = {
 			return fail(409, {
 				message: 'Não foi possível salvar a cena. Conteúdo publicado não pode ser alterado.',
 			});
+		const { error: productionError } = await db.rpc('save_scene_production', {
+			p_scene_id: parsed.data.sceneId,
+			p_location: parsed.data.location,
+			p_character_notes: parsed.data.characterNotes,
+			p_vhs_effects: parsed.data.vhsEffects,
+			p_transition: parsed.data.transition,
+			p_prompt_status: parsed.data.promptStatus,
+			p_generation_attempts: parsed.data.generationAttempts,
+		});
+		if (productionError)
+			return fail(409, {
+				message: 'Não foi possível salvar a direção de produção da cena.',
+			});
 		return { sceneSaved: true };
+	},
+	moveScene: async (event) => {
+		const { db, owner } = ownerDatabase(event);
+		const form = await event.request.formData().catch(() => null);
+		if (!form) return fail(400, { message: 'Não foi possível ler o formulário.' });
+		const sceneId = readFormText(form, 'sceneId');
+		const direction = readFormText(form, 'direction');
+		if (!/^[0-9a-f-]{36}$/i.test(sceneId) || !['up', 'down'].includes(direction))
+			return fail(400, { message: 'Movimentação de cena inválida.' });
+		const { data: scene, error: sceneError } = await db
+			.from('scenes')
+			.select('id')
+			.eq('id', sceneId)
+			.eq('episode_id', event.params.episodeId)
+			.eq('owner_id', owner.id)
+			.maybeSingle();
+		if (sceneError || !scene) return fail(404, { message: 'Cena não encontrada neste episódio.' });
+		const { error: moveError } = await db.rpc('swap_scene_order', {
+			p_scene_id: sceneId,
+			p_direction: direction,
+		});
+		if (moveError)
+			return fail(409, {
+				message: 'Não foi possível mover a cena. Conteúdo publicado não pode ser alterado.',
+			});
+		return { sceneMoved: true };
 	},
 	saveFrames: async (event) => {
 		const { db, owner } = ownerDatabase(event);
@@ -613,6 +717,12 @@ export const actions: Actions = {
 		if (!form) return fail(400, { message: 'Não foi possível ler o formulário.' });
 		if (form.get('acceptCanon') !== 'on')
 			return fail(400, { message: 'Confirme a aprovação do novo cânone.' });
+		const continuityWarnings = await loadContinuityWarnings(db, owner.id, event.params.episodeId);
+		if (continuityWarnings.length > 0 && form.get('continuityReviewed') !== 'on')
+			return fail(409, {
+				message:
+					'Revise os avisos de continuidade abaixo e confirme a revisão antes de aprovar o cânone.',
+			});
 		const parsed = canonicalDecisionSchema.safeParse({
 			pollId: readFormText(form, 'pollId'),
 			pollResultId: readFormText(form, 'pollResultId'),
@@ -677,6 +787,11 @@ export const actions: Actions = {
 			rationale: parsed.data.rationale,
 			accepted_by: owner.id,
 			supersedes_decision_id: priorDecision?.id ?? null,
+			continuity_review: {
+				warnings: continuityWarnings,
+				reviewedAt: new Date().toISOString(),
+				reviewedBy: owner.id,
+			},
 		});
 		if (insertError)
 			return fail(409, {

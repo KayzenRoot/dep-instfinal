@@ -20,7 +20,7 @@ export const GET: RequestHandler = async (event) => {
 	const { data: episode, error: episodeError } = await db
 		.from('episodes')
 		.select(
-			'id,title,episode_number,status,duration_ms,narration_pt_br,logline,hook,reveal,cliffhanger,platform_metadata,is_season_finale,seasons(title,planned_episode_count,series(title,premise,tone))',
+			'id,title,episode_number,status,duration_ms,scene_duration_ms,narration_pt_br,logline,hook,reveal,cliffhanger,platform_metadata,is_season_finale,seasons(title,planned_episode_count,series(title,premise,tone))',
 		)
 		.eq('id', event.params.episodeId)
 		.eq('owner_id', owner.id)
@@ -85,6 +85,12 @@ export const GET: RequestHandler = async (event) => {
 			'visual_description',
 			'camera_notes',
 			'lighting_notes',
+			'location',
+			'character_notes',
+			'vhs_effects',
+			'transition',
+			'prompt_status',
+			'generation_attempts',
 			'start_frame_prompt_en',
 			'end_frame_prompt_en',
 			'motion_prompt_en',
@@ -99,6 +105,12 @@ export const GET: RequestHandler = async (event) => {
 				scene.visual_description,
 				scene.camera_notes,
 				scene.lighting_notes,
+				scene.location,
+				scene.character_notes,
+				scene.vhs_effects,
+				scene.transition,
+				scene.prompt_status,
+				scene.generation_attempts,
 				scene.start_frame_prompt_en,
 				scene.end_frame_prompt_en,
 				scene.motion_prompt_en,
@@ -144,6 +156,15 @@ export const GET: RequestHandler = async (event) => {
 			],
 			sourceImagesArePreserved: true,
 		},
+		production: {
+			sceneDurationMs: episode.scene_duration_ms ?? 8000,
+			targetPlatforms: metadata.target_platforms ?? [],
+			aspectPreset: metadata.aspect_preset ?? '9:16',
+			creditModel: metadata.credit_model ?? '',
+			creditCostPerClip: Number(metadata.credit_cost_per_clip ?? 0),
+			creditEstimatedTotal: scenes.length * Number(metadata.credit_cost_per_clip ?? 0),
+			creditDisclaimer: 'Estimativa configurável; não consulta o saldo real do Google Flow.',
+		},
 		choices: choices.map((choice) => ({
 			key: choice.option_key,
 			label: choice.label,
@@ -161,12 +182,23 @@ export const GET: RequestHandler = async (event) => {
 			endMs: scene.end_ms,
 			startFrameAssetId: scene.start_frame_asset_id,
 			endFrameAssetId: scene.end_frame_asset_id,
+			location: scene.location,
+			characterNotes: scene.character_notes,
+			vhsEffects: scene.vhs_effects,
+			transition: scene.transition,
+			promptStatus: scene.prompt_status,
+			generationAttempts: scene.generation_attempts,
 		})),
 		warnings: [] as string[],
 	};
 	if (!scenes.length) manifest.warnings.push('NO_SCENES');
 	if (!srt) manifest.warnings.push('NO_NARRATION_FOR_CAPTIONS');
 	if (choices.length !== 2 && !isSeasonFinale) manifest.warnings.push('TWO_CHOICES_MISSING');
+	if (scenes.some((scene) => scene.prompt_status !== 'APPROVED'))
+		manifest.warnings.push('SCENE_PROMPTS_NOT_APPROVED');
+	if (!Array.isArray(metadata.target_platforms) || metadata.target_platforms.length === 0)
+		manifest.warnings.push('TARGET_PLATFORMS_EMPTY');
+	if (!String(metadata.ai_disclosure ?? '').trim()) manifest.warnings.push('AI_DISCLOSURE_EMPTY');
 
 	const output = new PassThrough();
 	const archive = new ZipArchive({ zlib: { level: 6 } });
@@ -207,12 +239,17 @@ export const GET: RequestHandler = async (event) => {
 					title: metadata.tiktok_title ?? '',
 					cta: metadata.tiktok_cta ?? '',
 					description: metadata.tiktok_description ?? '',
+					hashtags: metadata.tiktok_hashtags ?? '',
+					coverText: metadata.tiktok_cover_text ?? metadata.cover_text ?? '',
 				},
 				instagram: {
 					title: metadata.instagram_title ?? '',
 					cta: metadata.instagram_cta ?? '',
 					description: metadata.instagram_description ?? '',
+					hashtags: metadata.instagram_hashtags ?? '',
+					coverText: metadata.instagram_cover_text ?? metadata.cover_text ?? '',
 				},
+				aiDisclosure: metadata.ai_disclosure ?? '',
 			},
 			null,
 			2,
@@ -220,8 +257,71 @@ export const GET: RequestHandler = async (event) => {
 		{ name: 'social/platform-copy.json' },
 	);
 	archive.append(
-		`${JSON.stringify({ coverText: metadata.cover_text ?? '', master: '9:16 / 1080x1920', safeZones: 'Keep title, captions and key subject inside the central safe area. Confirm overlays in the target app.' }, null, 2)}\n`,
+		`${JSON.stringify(
+			{
+				coverText: metadata.cover_text ?? '',
+				tiktok: metadata.tiktok_cover_text ?? metadata.cover_text ?? '',
+				instagram: metadata.instagram_cover_text ?? metadata.cover_text ?? '',
+				master: '9:16 / 1080x1920',
+				safeZones:
+					'Keep title, captions and key subject inside the central safe area. Confirm overlays in the target app.',
+			},
+			null,
+			2,
+		)}\n`,
 		{ name: 'social/cover-metadata.json' },
+	);
+	archive.append(
+		`TikTok hashtags:\n${metadata.tiktok_hashtags ?? ''}\n\nInstagram hashtags:\n${metadata.instagram_hashtags ?? ''}\n`,
+		{ name: 'social/hashtags.txt' },
+	);
+	archive.append(
+		`${metadata.ai_disclosure ?? 'Nenhuma declaração de IA registrada. Revise antes de publicar.'}\n`,
+		{ name: 'social/ai-disclosure.txt' },
+	);
+	const assemblyLines = [
+		'# Assembly manifest',
+		'',
+		`Master: 9:16 / 1080x1920 · preset: ${metadata.aspect_preset ?? '9:16'}`,
+		`Targets: ${(metadata.target_platforms ?? []).join(', ') || 'not selected'}`,
+		`Scene duration: ${episode.scene_duration_ms ?? 8000} ms`,
+		`Estimated Flow credits: ${scenes.length * Number(metadata.credit_cost_per_clip ?? 0)} (${metadata.credit_model ?? 'model not set'}) — estimate only.`,
+		'',
+		'## Scene order',
+		...scenes.map(
+			(scene) =>
+				`${scene.scene_index}. ${scene.start_ms}–${scene.end_ms} ms · ${scene.transition || 'cut'} · ${scene.vhs_effects || 'no VHS note'} · prompt ${scene.prompt_status}`,
+		),
+		'',
+		'## Vote card',
+		choices.length === 2
+			? choices
+					.map((choice) => `${choice.option_key}) ${choice.label} — ${choice.consequence}`)
+					.join('\n')
+			: 'No vote card for this planned finale.',
+		'',
+		'## Effects and sound',
+		metadata.effects_list ?? '',
+		'',
+		'## Author assembly notes',
+		metadata.assembly_notes ?? '',
+		'',
+	];
+	archive.append(`${assemblyLines.join('\n')}\n`, { name: 'production/assembly-manifest.md' });
+	archive.append(
+		[
+			'# Production checklist',
+			'',
+			'- [ ] Every scene has an approved start/end/motion prompt.',
+			'- [ ] All required frames were imported from Flow.',
+			'- [ ] SRT and narration were reviewed in the editor.',
+			'- [ ] Platform captions and covers match the selected targets.',
+			'- [ ] AI disclosure is accurate for the assets used.',
+			'- [ ] Credit estimate was checked manually; it is not a live balance.',
+			'- [ ] Missing frames and warnings in manifest.json were reviewed.',
+			'',
+		].join('\n'),
+		{ name: 'production/checklist.md' },
 	);
 	archive.append(
 		'DIF Studio Flow / CapCut package\n\nUse Google Flow and CapCut manually. No video is rendered and no post is published by this package. Check missing_frames.json before editing. Original imported frames are preserved.\n',
@@ -239,6 +339,11 @@ export const GET: RequestHandler = async (event) => {
 				`Motion prompt (English):\n${scene.motion_prompt_en || '(not written)'}`,
 				`Camera: ${scene.camera_notes || '(not written)'}`,
 				`Lighting: ${scene.lighting_notes || '(not written)'}`,
+				`Location: ${scene.location || '(not written)'}`,
+				`Characters / continuity: ${scene.character_notes || '(not written)'}`,
+				`VHS effects: ${scene.vhs_effects || '(not written)'}`,
+				`Transition: ${scene.transition || '(not written)'}`,
+				`Prompt status: ${scene.prompt_status} · generation attempts: ${scene.generation_attempts}`,
 				`Audio: ${scene.audio_notes || '(not written)'}`,
 			].join('\n\n') + '\n';
 		archive.append(prompt, {

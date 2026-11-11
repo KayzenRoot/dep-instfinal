@@ -152,6 +152,13 @@
 								value="120"
 							/></label
 						>
+						<label
+							>Duração da cena<select name="sceneDurationMs">
+								<option value="4000">4 segundos</option>
+								<option value="6000">6 segundos</option>
+								<option value="8000" selected>8 segundos</option>
+							</select></label
+						>
 						<label class="check-label"
 							><input type="checkbox" name="isSeasonFinale" /> Final de temporada</label
 						>

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const cloudinary = vi.hoisted(() => ({
 	config: vi.fn(),
+	url: vi.fn(() => 'https://cloudinary.test/thumb.png'),
 	utils: { private_download_url: vi.fn(() => 'https://cloudinary.test/private.png') },
 }));
 const authorized = vi.hoisted(() => ({ ownerDatabase: vi.fn() }));
@@ -90,10 +91,13 @@ function setupDatabase(results: Record<string, Result>) {
 	return { filters };
 }
 
-function mediaEvent() {
+function mediaEvent(variant?: string) {
+	const url = new URL(`http://localhost/api/media/${assetId}`);
+	if (variant) url.searchParams.set('variant', variant);
 	return {
 		params: { assetId },
-		request: new Request(`http://localhost/api/media/${assetId}`),
+		request: new Request(url),
+		url,
 	} as never;
 }
 
@@ -129,6 +133,24 @@ describe('private media authorization and export', () => {
 			privateAsset.format,
 			expect.objectContaining({ resource_type: 'image', type: 'authenticated' }),
 		);
+	});
+
+	it('serves a signed derived variant without exposing the Cloudinary URL', async () => {
+		const { filters } = setupDatabase({ media_assets: { data: privateAsset, error: null } });
+		const response = await privateMedia(mediaEvent('thumb'));
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(filters).toContainEqual({ table: 'media_assets', field: 'owner_id', value: ownerId });
+		expect(cloudinary.url).toHaveBeenCalledWith(
+			privateAsset.public_id,
+			expect.objectContaining({
+				type: 'authenticated',
+				sign_url: true,
+				transformation: [{ width: 320, height: 180, crop: 'fill' }],
+			}),
+		);
+		expect(cloudinary.utils.private_download_url).not.toHaveBeenCalled();
 	});
 
 	it('does not sign or fetch an asset absent from the authenticated owner query', async () => {

@@ -6,6 +6,26 @@
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	let { data, form }: PageProps = $props();
 	const readyAssets = $derived(data.assets.filter((asset) => asset.upload_status === 'READY'));
+	let previewPreset = $state<'9:16' | '4:5' | '3:4'>('9:16');
+	let previewAssetId = $state('');
+	let compareAssetId = $state('');
+	const previewAsset = $derived(readyAssets.find((asset) => asset.id === previewAssetId));
+	const compareAsset = $derived(readyAssets.find((asset) => asset.id === compareAssetId));
+	$effect(() => {
+		if (!previewAssetId && readyAssets[0]) previewAssetId = readyAssets[0].id;
+		if (!compareAssetId && readyAssets[1]) compareAssetId = readyAssets[1].id;
+	});
+	const variantFor = (preset: '9:16' | '4:5' | '3:4') =>
+		preset === '4:5' ? '4x5' : preset === '3:4' ? '3x4' : null;
+	const previewSrc = (assetId: string) => {
+		const variant = variantFor(previewPreset);
+		return variant ? `/api/media/${assetId}?variant=${variant}` : `/api/media/${assetId}`;
+	};
+	const ratioWarning = (asset: { width?: number | null; height?: number | null } | undefined) => {
+		if (!asset?.width || !asset?.height) return false;
+		const target = previewPreset === '4:5' ? 4 / 5 : previewPreset === '3:4' ? 3 / 4 : 9 / 16;
+		return Math.abs(asset.width / asset.height - target) > 0.08;
+	};
 </script>
 
 <svelte:head><title>Biblioteca visual · DIF Studio</title></svelte:head>
@@ -82,6 +102,61 @@
 			<p><strong>Feed quadrado alto</strong><span>4:5 · 1080 × 1350</span></p>
 			<p><strong>Feed vertical</strong><span>3:4 · 1080 × 1440</span></p>
 		</div>
+	</Panel>
+	<Panel
+		eyebrow="PRÉVIA E CROP"
+		title="Comparação lado a lado"
+		description="Prévia privada derivada no servidor; o original permanece intacto."
+	>
+		<div class="preview-controls">
+			<label
+				>Enquadramento<select bind:value={previewPreset}>
+					<option value="9:16">9:16 · master</option>
+					<option value="4:5">4:5 · feed 1080×1350</option>
+					<option value="3:4">3:4 · feed 1080×1440</option>
+				</select></label
+			>
+			<label
+				>Quadro A<select bind:value={previewAssetId}>
+					<option value="">Selecione</option>
+					{#each readyAssets as asset (asset.id)}
+						<option value={asset.id}>{asset.asset_kind} · {asset.id.slice(0, 8)}</option>
+					{/each}
+				</select></label
+			>
+			<label
+				>Quadro B<select bind:value={compareAssetId}>
+					<option value="">Selecione</option>
+					{#each readyAssets as asset (asset.id)}
+						<option value={asset.id}>{asset.asset_kind} · {asset.id.slice(0, 8)}</option>
+					{/each}
+				</select></label
+			>
+		</div>
+		{#if !previewAsset && !compareAsset}
+			<p class="preview-empty">Nenhum quadro disponível. Envie imagens para pré-visualizar.</p>
+		{:else}
+			<div class="preview-pair">
+				{#each [previewAsset, compareAsset] as asset, index (index)}
+					{#if asset}
+						<figure>
+							<img
+								src={previewSrc(asset.id)}
+								alt={`Prévia ${index === 0 ? 'A' : 'B'} ${asset.id.slice(0, 8)}`}
+							/>
+							<figcaption>
+								{asset.width}×{asset.height} · {previewPreset}
+								{#if ratioWarning(asset)}
+									<span class="ratio-warning"
+										>Proporção diferente do preset; confira as safe zones.</span
+									>
+								{/if}
+							</figcaption>
+						</figure>
+					{/if}
+				{/each}
+			</div>
+		{/if}
 	</Panel>
 </div>
 <section class="asset-section" aria-labelledby="assets-title">
@@ -309,6 +384,43 @@
 	}
 	.form-success {
 		color: var(--phosphor);
+	}
+	.preview-controls {
+		display: grid;
+		gap: 0.6rem;
+	}
+	.preview-pair {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.6rem;
+		margin-top: 0.7rem;
+	}
+	.preview-pair figure {
+		margin: 0;
+		display: grid;
+		gap: 0.3rem;
+	}
+	.preview-pair img {
+		width: 100%;
+		aspect-ratio: 9 / 16;
+		object-fit: cover;
+		border: 1px solid var(--line);
+		border-radius: var(--radius-sm);
+		background: #000;
+	}
+	.preview-pair figcaption {
+		color: var(--muted);
+		font-size: 0.7rem;
+		display: grid;
+		gap: 0.2rem;
+	}
+	.ratio-warning {
+		color: #ed9aaa;
+		font-family: var(--mono);
+	}
+	.preview-empty {
+		color: var(--muted);
+		font-size: 0.78rem;
 	}
 	@media (max-width: 950px) {
 		.asset-grid {

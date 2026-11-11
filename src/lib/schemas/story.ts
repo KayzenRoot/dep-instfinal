@@ -46,6 +46,13 @@ export const episodeCreateSchema = z.object({
 	episodeNumber: z.coerce.number().int().min(1).max(99),
 	title: requiredText(180),
 	durationSeconds: z.coerce.number().int().min(90).max(150),
+	sceneDurationMs: z.coerce
+		.number()
+		.int()
+		.refine((value) => [4_000, 6_000, 8_000].includes(value), {
+			message: 'A duração da cena precisa ser 4, 6 ou 8 segundos.',
+		})
+		.default(8_000),
 	isSeasonFinale: z.boolean().default(false),
 });
 
@@ -67,7 +74,28 @@ export const episodeEditSchema = z.object({
 	instagramCta: optionalText(500),
 	instagramDescription: optionalText(2_200),
 	coverText: optionalText(300),
+	tiktokCoverText: optionalText(300),
+	instagramCoverText: optionalText(300),
+	tiktokHashtags: optionalText(1_000),
+	instagramHashtags: optionalText(1_000),
+	aiDisclosure: optionalText(1_000),
+	effectsList: optionalText(8_000),
+	assemblyNotes: optionalText(8_000),
+	targetPlatforms: z
+		.array(z.enum(['TIKTOK', 'REELS', 'STORIES', 'FEED']))
+		.max(4)
+		.default([]),
+	aspectPreset: z.enum(['9:16', '4:5', '3:4']).default('9:16'),
+	creditModel: optionalText(160),
+	creditCostPerClip: z.coerce.number().int().min(0).max(10_000).default(0),
 	durationSeconds: z.coerce.number().int().min(90).max(150),
+	sceneDurationMs: z.coerce
+		.number()
+		.int()
+		.refine((value) => [4_000, 6_000, 8_000].includes(value), {
+			message: 'A duração da cena precisa ser 4, 6 ou 8 segundos.',
+		})
+		.default(8_000),
 	speechSpeedWpm: z.coerce.number().int().min(80).max(220).default(145),
 	isSeasonFinale: z.boolean().default(false),
 });
@@ -157,6 +185,12 @@ export const sceneEditSchema = z.object({
 	visualDescription: optionalText(2_000),
 	cameraNotes: optionalText(1_000),
 	lightingNotes: optionalText(1_000),
+	location: optionalText(300),
+	characterNotes: optionalText(1_000),
+	vhsEffects: optionalText(1_000),
+	transition: optionalText(300),
+	promptStatus: z.enum(['TODO', 'READY', 'GENERATED', 'APPROVED']).default('TODO'),
+	generationAttempts: z.coerce.number().int().min(0).max(10).default(0),
 	startFramePromptEn: optionalText(2_000),
 	endFramePromptEn: optionalText(2_000),
 	motionPromptEn: optionalText(2_000),

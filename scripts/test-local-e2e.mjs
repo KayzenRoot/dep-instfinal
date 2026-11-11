@@ -150,6 +150,7 @@ if (dataApiOtherWrite.ok) {
 const childEnvironment = {
 	PATH: process.env.PATH,
 	CI: process.env.CI ?? '',
+	DEBUG: process.env.DEBUG ?? '',
 	HOME: process.env.HOME ?? '',
 	USERPROFILE: process.env.USERPROFILE ?? '',
 	LOCALAPPDATA: process.env.LOCALAPPDATA ?? '',
@@ -171,7 +172,8 @@ const childEnvironment = {
 };
 
 const runner = fileURLToPath(new URL('../node_modules/@playwright/test/cli.js', import.meta.url));
-const result = spawnSync(process.execPath, [runner, 'test'], {
+const extraArgs = process.argv.slice(2);
+const result = spawnSync(process.execPath, [runner, 'test', ...extraArgs], {
 	cwd: process.cwd(),
 	env: childEnvironment,
 	stdio: 'inherit',

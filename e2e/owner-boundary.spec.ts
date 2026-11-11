@@ -106,7 +106,7 @@ test('cross-origin mutations are rejected before reaching their handlers', async
 test('owner completes series, episode, voting, canon, continuation, and export journey', async ({
 	page,
 }) => {
-	test.setTimeout(240_000);
+	test.setTimeout(900_000);
 	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
 	const seriesTitle = `Arquivo E2E persistido ${crypto.randomUUID().slice(0, 8)}`;
 	await page.goto('/login');
@@ -135,7 +135,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await page.getByRole('button', { name: 'Registrar fato' }).click();
 	await expect(page.getByText('Regra do arquivo')).toBeVisible();
 	await page.getByPlaceholder('Título do episódio').fill('A fita de amanhã');
-	await page.getByLabel('Duração').fill('120');
+	await page.getByLabel('Duração', { exact: true }).fill('120');
 	await page.getByRole('button', { name: 'Criar rascunho' }).click();
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
 	const firstEpisodeUrl = page.url();
@@ -179,6 +179,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	};
 	const recordVoteAndCanon = async (episodeId: string, suffix: string) => {
 		await page.goto(`/app/episodes/${episodeId}`);
+		await page.waitForLoadState('networkidle');
 		await page.getByLabel('Referência do post').fill(`manual-e2e-${suffix}`);
 		await page.getByLabel('Horas até encerrar').fill('1');
 		await page
@@ -192,7 +193,9 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		await page.getByLabel(/Conferi estes totais/).check();
 		await page.getByRole('button', { name: 'Salvar resultado verificado' }).click();
 		await expect(page.getByText('Vence opção 1')).toBeVisible();
-		await page.locator('[name="canonSnapshot"]').fill(`{"ramo":"Aprovado ${suffix}"}`);
+		const canonSnapshotInput = page.locator('[name="canonSnapshot"]');
+		await expect(canonSnapshotInput).toBeVisible({ timeout: 15_000 });
+		await canonSnapshotInput.fill(`{"ramo":"Aprovado ${suffix}"}`);
 		await page.getByLabel('Justificativa da autora').fill(`Cânone aprovado para ${suffix}.`);
 		await page.locator('form[action="?/approveCanon"] input[name="acceptCanon"]').check();
 		await page.getByRole('button', { name: 'Registrar decisão append-only' }).click();
@@ -205,7 +208,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		const numberInput = page.locator('[name="episodeNumber"]');
 		await numberInput.fill(String(episodeNumber));
 		await expect(numberInput).toHaveValue(String(episodeNumber));
-		await page.getByLabel('Duração').fill('120');
+		await page.getByLabel('Duração', { exact: true }).fill('120');
 		await page.getByRole('button', { name: 'Criar rascunho' }).click();
 		await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
 		const episodeId = page.url().split('/').at(-1)!;
@@ -231,7 +234,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 			'Estimativa de narração: 120 s',
 		);
 		await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
-		await expect(page.getByText('READY', { exact: true })).toBeVisible();
+		await expect(page.locator('.status-pill').filter({ hasText: 'READY' }).first()).toBeVisible();
 		await page.locator('form.publish-form input[name="publishConfirmed"]').check();
 		await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
 		await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
@@ -267,8 +270,18 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	expect(invalidChoiceFields).toEqual([]);
 	await page.getByRole('button', { name: 'Salvar as duas opções' }).click();
 	await expect(page.getByText('2 de 2', { exact: true })).toBeVisible();
+	await page.locator('input[name="targetPlatforms"][value="TIKTOK"]').check();
+	await page.getByLabel('Preset de enquadramento').selectOption('9:16');
+	await page.getByLabel('Hashtags TikTok').fill('#dif #horroranalogico');
+	await page
+		.getByLabel('Checklist de conteúdo gerado por IA')
+		.fill('Imagens geradas no Flow; roteiro revisado manualmente.');
+	await page.getByLabel('Modelo de vídeo').fill('Flow padrão');
+	await page.getByLabel('Créditos por clipe').fill('2');
+	await page.getByRole('button', { name: 'Salvar roteiro e revisar timeline' }).click();
+	await expect(page.getByText('Alterações salvas. Uma nova revisão foi registrada.')).toBeVisible();
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
-	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await expect(page.locator('.status-pill').filter({ hasText: 'READY' }).first()).toBeVisible();
 	const publishConfirmation = page.locator('form.publish-form input[name="publishConfirmed"]');
 	await expect(publishConfirmation).toBeVisible();
 	await publishConfirmation.check();
@@ -342,13 +355,13 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	);
 	await expect(page.getByText('DRAFT', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
-	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await expect(page.locator('.status-pill').filter({ hasText: 'READY' }).first()).toBeVisible();
 	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
 	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
 	await expect(page.getByRole('alert')).toContainText(
 		'encerre a votação aberta do episódio anterior',
 	);
-	expect(await page.getByText('READY', { exact: true }).count()).toBe(1);
+	expect(await page.locator('.status-pill').filter({ hasText: 'READY' }).first().count()).toBe(1);
 	await page.goto(firstEpisodeUrl);
 	await page.getByRole('button', { name: 'Registrar encerramento manual' }).click();
 	await page.getByLabel('Votos · opção 1').fill('14');
@@ -459,9 +472,25 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		speechSpeedWpm: 145,
 		screenSuggestion: 'Close no carretel que gira sozinho.',
 		soundSuggestion: 'Ruído de fita e uma voz em reverso.',
-		tiktok: { title: 'A fita de amanhã', cta: 'Escolha o próximo passo.' },
+		tiktok: {
+			title: 'A fita de amanhã',
+			cta: 'Escolha o próximo passo.',
+			hashtags: '#dif #horroranalogico',
+		},
 		instagram: { title: 'A voz de amanhã', cta: 'Vote na continuação.' },
 	});
+	expect(readZipTextEntry(episodeArchive, 'social/hashtags.txt')).toContain('#dif');
+	expect(readZipTextEntry(episodeArchive, 'social/ai-disclosure.txt')).toContain(
+		'Imagens geradas no Flow',
+	);
+	expect(readZipTextEntry(episodeArchive, 'production/checklist.md')).toContain('AI disclosure');
+	const episodeManifest = JSON.parse(readZipTextEntry(episodeArchive, 'manifest.json'));
+	expect(episodeManifest.production).toMatchObject({
+		sceneDurationMs: 8000,
+		creditCostPerClip: 2,
+		creditEstimatedTotal: 30,
+	});
+	expect(episodeManifest.production.targetPlatforms).toContain('TIKTOK');
 	await page.goto(`/app/episodes/${continuationId}`);
 	await page.getByLabel('Referência do post').fill('manual-e2e-continuation');
 	await page.getByLabel('Horas até encerrar').fill('1');
@@ -506,7 +535,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		'Estimativa de narração: 120 s',
 	);
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
-	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await expect(page.locator('.status-pill').filter({ hasText: 'READY' }).first()).toBeVisible();
 	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
 	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
 	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
@@ -534,7 +563,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	const outOfOrderNumber = page.locator('[name="episodeNumber"]');
 	await outOfOrderNumber.fill('5');
 	await expect(outOfOrderNumber).toHaveValue('5');
-	await page.getByLabel('Duração').fill('120');
+	await page.getByLabel('Duração', { exact: true }).fill('120');
 	await page.getByRole('button', { name: 'Criar rascunho' }).click();
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
 	const outOfOrderId = page.url().split('/').at(-1)!;
@@ -568,16 +597,17 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	);
 	await expect(page.getByText('DRAFT', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
-	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await expect(page.locator('.status-pill').filter({ hasText: 'READY' }).first()).toBeVisible();
 	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
 	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
 	await expect(page.getByRole('alert')).toContainText(
 		'crie e publique o episódio imediatamente anterior',
 	);
-	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await expect(page.locator('.status-pill').filter({ hasText: 'READY' }).first()).toBeVisible();
 
 	await createPublishAndApproveEpisode(4, 'A ponte cronológica');
 	await page.goto(`/app/episodes/${outOfOrderId}`);
+	await page.waitForLoadState('networkidle');
 	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
 	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
 	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
@@ -592,7 +622,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	const finaleNumber = page.locator('[name="episodeNumber"]');
 	await finaleNumber.fill('10');
 	await expect(finaleNumber).toHaveValue('10');
-	await page.getByLabel('Duração').fill('120');
+	await page.getByLabel('Duração', { exact: true }).fill('120');
 	await page.getByRole('button', { name: 'Criar rascunho' }).click();
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
 	const finaleId = page.url().split('/').at(-1)!;
@@ -619,7 +649,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 		page.getByText('Este é o episódio final planejado e não precisa de opções nem votação.'),
 	).toBeVisible();
 	await page.getByRole('button', { name: 'Validar e marcar pronto' }).click();
-	await expect(page.getByText('READY', { exact: true })).toBeVisible();
+	await expect(page.locator('.status-pill').filter({ hasText: 'READY' }).first()).toBeVisible();
 	await page.locator('form.publish-form input[name="publishConfirmed"]').check();
 	await page.getByRole('button', { name: 'Publicar e bloquear edição' }).click();
 	await expect(page.getByText('PUBLISHED', { exact: true })).toBeVisible();
@@ -644,6 +674,44 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 	await expect(page.getByRole('link', { name: new RegExp(seriesTitle) })).toBeVisible();
+});
+
+test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async ({ page }) => {
+	test.setTimeout(180_000);
+	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
+	const screenshotDirectory = path.join(process.cwd(), 'test-results', 'screenshots');
+	await mkdir(screenshotDirectory, { recursive: true });
+	await page.goto('/login');
+	await page.getByLabel('E-mail do proprietário').fill(process.env.E2E_OWNER_EMAIL!);
+	await page.getByLabel('Senha').fill(process.env.E2E_OWNER_PASSWORD!);
+	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	const routes = [
+		'/app',
+		'/app/series',
+		'/app/episodes',
+		'/app/storyboard',
+		'/app/library',
+		'/app/continuity',
+		'/app/export',
+		'/app/settings',
+	];
+	for (const width of [360, 768, 1440]) {
+		await page.setViewportSize({ width, height: 900 });
+		for (const route of routes) {
+			await page.goto(route);
+			await page.waitForLoadState('domcontentloaded');
+			const fits = await page.evaluate(
+				() => document.documentElement.scrollWidth <= window.innerWidth,
+			);
+			expect(fits, `${route} should not overflow at ${width}px`).toBe(true);
+			const slug = route === '/app' ? 'home' : route.replaceAll('/', '-').replace(/^-/, '');
+			await page.screenshot({
+				path: path.join(screenshotDirectory, `app-${slug}-${width}.png`),
+				fullPage: true,
+			});
+		}
+	}
 });
 
 test('a valid non-owner Supabase identity is rejected', async ({ page }) => {

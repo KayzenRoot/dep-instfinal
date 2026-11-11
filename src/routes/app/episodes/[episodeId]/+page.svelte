@@ -110,10 +110,47 @@
 					/></label
 				>
 			</div>
+			<label
+				>Duração de cada cena<select
+					name="sceneDurationMs"
+					value={String(data.episode.scene_duration_ms ?? 8000)}
+					disabled={isPublished}
+				>
+					<option value="4000">4 segundos</option>
+					<option value="6000">6 segundos</option>
+					<option value="8000">8 segundos</option>
+				</select></label
+			>
 			<label class="check-label"
 				><input type="checkbox" name="isSeasonFinale" checked={isSeasonFinale} disabled /> Final da temporada
 				conforme o plano de episódios</label
 			>
+			<fieldset class="platform-fields" disabled={isPublished}>
+				<legend>Destinos e enquadramento</legend>
+				<div class="platform-checks">
+					{#each [['TIKTOK', 'TikTok'], ['REELS', 'Instagram Reels'], ['STORIES', 'Instagram Stories'], ['FEED', 'Instagram Feed']] as [value, label] (value)}
+						<label class="check-label"
+							><input
+								type="checkbox"
+								name="targetPlatforms"
+								{value}
+								checked={(metadata.target_platforms ?? []).includes(value)}
+							/>
+							{label}</label
+						>
+					{/each}
+				</div>
+				<label
+					>Preset de enquadramento<select
+						name="aspectPreset"
+						value={metadata.aspect_preset ?? '9:16'}
+					>
+						<option value="9:16">9:16 · master vertical</option>
+						<option value="4:5">4:5 · feed 1080×1350</option>
+						<option value="3:4">3:4 · feed 1080×1440</option>
+					</select></label
+				>
+			</fieldset>
 			<label
 				>Logline<input
 					name="logline"
@@ -214,6 +251,83 @@
 					disabled={isPublished}
 				/></label
 			>
+			<fieldset class="platform-fields" disabled={isPublished}>
+				<legend>Capas e hashtags por canal</legend>
+				<label
+					>Capa TikTok<input
+						name="tiktokCoverText"
+						maxlength="300"
+						value={metadata.tiktok_cover_text ?? ''}
+					/></label
+				>
+				<label
+					>Capa Instagram<input
+						name="instagramCoverText"
+						maxlength="300"
+						value={metadata.instagram_cover_text ?? ''}
+					/></label
+				>
+				<label
+					>Hashtags TikTok<textarea name="tiktokHashtags" maxlength="1000" rows="2"
+						>{metadata.tiktok_hashtags ?? ''}</textarea
+					></label
+				>
+				<label
+					>Hashtags Instagram<textarea name="instagramHashtags" maxlength="1000" rows="2"
+						>{metadata.instagram_hashtags ?? ''}</textarea
+					></label
+				>
+			</fieldset>
+			<label
+				>Checklist de conteúdo gerado por IA<textarea
+					name="aiDisclosure"
+					maxlength="1000"
+					rows="3"
+					placeholder="Ex.: imagens geradas no Flow; roteiro revisado manualmente; declarar uso de IA no TikTok/Instagram."
+					disabled={isPublished}>{metadata.ai_disclosure ?? ''}</textarea
+				></label
+			>
+			<label
+				>Efeitos, ruídos e ambiências<textarea
+					name="effectsList"
+					maxlength="8000"
+					rows="3"
+					disabled={isPublished}>{metadata.effects_list ?? ''}</textarea
+				></label
+			>
+			<label
+				>Notas de montagem<textarea
+					name="assemblyNotes"
+					maxlength="8000"
+					rows="3"
+					disabled={isPublished}>{metadata.assembly_notes ?? ''}</textarea
+				></label
+			>
+			<fieldset class="platform-fields" disabled={isPublished}>
+				<legend>Orçamento de créditos · estimativa manual</legend>
+				<label
+					>Modelo de vídeo<input
+						name="creditModel"
+						maxlength="160"
+						placeholder="Ex.: Flow / modelo padrão"
+						value={metadata.credit_model ?? ''}
+					/></label
+				>
+				<label
+					>Créditos por clipe<input
+						name="creditCostPerClip"
+						type="number"
+						min="0"
+						max="10000"
+						value={metadata.credit_cost_per_clip ?? 0}
+					/></label
+				>
+				<p class="muted-note">
+					Estimativa: {data.scenes.length} cenas × {metadata.credit_cost_per_clip ?? 0} créditos =
+					{data.scenes.length * Number(metadata.credit_cost_per_clip ?? 0)} créditos. Este número é configurável
+					e não consulta o saldo real do Google Flow.
+				</p>
+			</fieldset>
 			{#if !isPublished}<button class="primary-button" type="submit"
 					>Salvar roteiro e revisar timeline</button
 				>{:else}<p class="published-note">
@@ -439,8 +553,66 @@
 							disabled={isPublished}>{scene.audio_notes}</textarea
 						></label
 					>
+					<div class="two-fields">
+						<label
+							>Local<textarea name="location" rows="2" maxlength="300" disabled={isPublished}
+								>{scene.location ?? ''}</textarea
+							></label
+						><label
+							>Transição<textarea name="transition" rows="2" maxlength="300" disabled={isPublished}
+								>{scene.transition ?? ''}</textarea
+							></label
+						>
+					</div>
+					<label
+						>Personagens e continuidade<textarea
+							name="characterNotes"
+							rows="2"
+							maxlength="1000"
+							disabled={isPublished}>{scene.character_notes ?? ''}</textarea
+						></label
+					>
+					<label
+						>Efeitos VHS<textarea name="vhsEffects" rows="2" maxlength="1000" disabled={isPublished}
+							>{scene.vhs_effects ?? ''}</textarea
+						></label
+					>
+					<div class="two-fields">
+						<label
+							>Status do prompt<select name="promptStatus" disabled={isPublished}>
+								<option value="TODO" selected={scene.prompt_status === 'TODO'}>TODO</option>
+								<option value="READY" selected={scene.prompt_status === 'READY'}>READY</option>
+								<option value="GENERATED" selected={scene.prompt_status === 'GENERATED'}
+									>GENERATED</option
+								>
+								<option value="APPROVED" selected={scene.prompt_status === 'APPROVED'}
+									>APPROVED</option
+								>
+							</select></label
+						><label
+							>Tentativas de geração<input
+								name="generationAttempts"
+								type="number"
+								min="0"
+								max="10"
+								value={scene.generation_attempts ?? 0}
+								disabled={isPublished}
+							/></label
+						>
+					</div>
 					{#if !isPublished}<button class="secondary-button" type="submit">Salvar cena</button>{/if}
 				</form>
+				{#if !isPublished}
+					<form method="POST" action="?/moveScene" class="move-form">
+						<input type="hidden" name="sceneId" value={scene.id} />
+						<button class="secondary-button" type="submit" name="direction" value="up"
+							>↑ Mover para cima</button
+						>
+						<button class="secondary-button" type="submit" name="direction" value="down"
+							>↓ Mover para baixo</button
+						>
+					</form>
+				{/if}
 				<form method="POST" action="?/saveFrames" class="frames-form">
 					<input type="hidden" name="sceneId" value={scene.id} />
 					<label
@@ -482,6 +654,30 @@
 								: resolve('/app/library')}>Ver quadro inicial</a
 						>{/if}
 				</form>
+				{#if scene.start_frame_asset_id || scene.end_frame_asset_id}
+					<div class="frame-pair" aria-label={`Prévia dos quadros da cena ${scene.scene_index}`}>
+						{#if scene.start_frame_asset_id}
+							<figure>
+								<img
+									src={`/api/media/${scene.start_frame_asset_id}?variant=thumb`}
+									alt={`Quadro inicial da cena ${scene.scene_index}`}
+									loading="lazy"
+								/>
+								<figcaption>Inicial</figcaption>
+							</figure>
+						{/if}
+						{#if scene.end_frame_asset_id}
+							<figure>
+								<img
+									src={`/api/media/${scene.end_frame_asset_id}?variant=thumb`}
+									alt={`Quadro final da cena ${scene.scene_index}`}
+									loading="lazy"
+								/>
+								<figcaption>Final</figcaption>
+							</figure>
+						{/if}
+					</div>
+				{/if}
 			</details>
 		{/each}
 	</div>
@@ -661,6 +857,29 @@
 							value={latestResult.id}
 						/>
 						<h3>Revisar efeito no cânone</h3>
+						{#if data.continuityWarnings.length}
+							<div class="continuity-warnings" role="alert">
+								<strong>Avisos de continuidade</strong>
+								<p>
+									Estes nomes/fatos já estão inativos no cânone e aparecem no episódio. Confirme se
+									há explicação antes de aprovar.
+								</p>
+								<ul>
+									{#each data.continuityWarnings as warning (warning.code)}
+										<li>{warning.label}</li>
+									{/each}
+								</ul>
+								<label class="check-label"
+									><input type="checkbox" name="continuityReviewed" required /> Revisei os avisos de continuidade
+									e mantenho a decisão.</label
+								>
+							</div>
+						{:else}
+							<p class="muted-note">
+								Nenhum aviso automático de continuidade para este episódio. A revisão autoral
+								continua obrigatória.
+							</p>
+						{/if}
 						<label
 							>Snapshot da continuidade · JSON<textarea
 								name="canonSnapshot"
@@ -1059,6 +1278,59 @@
 		color: var(--muted);
 		font-size: 0.78rem;
 		text-decoration: none;
+	}
+	.platform-checks {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem 1rem;
+	}
+	.muted-note {
+		color: var(--muted);
+		font-size: 0.78rem;
+		line-height: 1.5;
+	}
+	.continuity-warnings {
+		border: 1px solid var(--danger);
+		background: rgb(183 63 85 / 8%);
+		border-radius: 0.4rem;
+		padding: 0.7rem 0.85rem;
+		display: grid;
+		gap: 0.45rem;
+	}
+	.continuity-warnings ul {
+		margin: 0;
+		padding-left: 1.1rem;
+		display: grid;
+		gap: 0.3rem;
+	}
+	.move-form {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		padding: 0 1rem 1rem;
+	}
+	.frame-pair {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.6rem;
+		padding: 0 1rem 1rem;
+	}
+	.frame-pair figure {
+		margin: 0;
+		display: grid;
+		gap: 0.3rem;
+	}
+	.frame-pair img {
+		width: 100%;
+		aspect-ratio: 16 / 9;
+		object-fit: cover;
+		border: 1px solid var(--line);
+		border-radius: 0.35rem;
+		background: #000;
+	}
+	.frame-pair figcaption {
+		color: var(--muted);
+		font-size: 0.7rem;
 	}
 	@media (max-width: 1020px) {
 		.editor-grid {

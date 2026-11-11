@@ -124,6 +124,7 @@ export const actions: Actions = {
 			episodeNumber: readFormText(form, 'episodeNumber'),
 			title: readFormText(form, 'title'),
 			durationSeconds: readFormText(form, 'durationSeconds'),
+			sceneDurationMs: readFormText(form, 'sceneDurationMs') || 8000,
 			isSeasonFinale: form.get('isSeasonFinale') === 'on',
 		});
 		if (!parsed.success)
@@ -149,6 +150,7 @@ export const actions: Actions = {
 				episode_number: parsed.data.episodeNumber,
 				title: parsed.data.title,
 				duration_ms: parsed.data.durationSeconds * 1000,
+				scene_duration_ms: parsed.data.sceneDurationMs,
 				is_season_finale: parsed.data.isSeasonFinale,
 			})
 			.select('id')
@@ -157,7 +159,10 @@ export const actions: Actions = {
 			return fail(409, {
 				message: 'Não foi possível criar o episódio. Verifique se o número já foi usado.',
 			});
-		const sceneRows = buildSceneTimeline(parsed.data.durationSeconds * 1000).map((scene) => ({
+		const sceneRows = buildSceneTimeline(
+			parsed.data.durationSeconds * 1000,
+			parsed.data.sceneDurationMs,
+		).map((scene) => ({
 			owner_id: owner.id,
 			episode_id: episode.id,
 			scene_index: scene.index,

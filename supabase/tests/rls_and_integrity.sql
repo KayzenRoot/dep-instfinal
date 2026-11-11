@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(20);
+select plan(25);
 
 do $$
 declare
@@ -147,6 +147,76 @@ begin
 end;
 $$;
 select public.set_episode_status('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'READY');
+
+-- CD06: scene production metadata, reorder, and configurable scene duration.
+insert into public.seasons (id, series_id, season_number, title)
+values ('f6f6f6f6-f6f6-46f6-86f6-f6f6f6f6f6f6', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 2, 'CD06 season');
+insert into public.episodes (id, season_id, episode_number, title, duration_ms, scene_duration_ms)
+values ('e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 'f6f6f6f6-f6f6-46f6-86f6-f6f6f6f6f6f6', 1, 'CD06 timeline', 96000, 6000);
+insert into public.scenes (owner_id, episode_id, scene_index, start_ms, end_ms)
+select '11111111-1111-4111-8111-111111111111',
+       'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+       n, (n - 1) * 6000, least(n * 6000, 96000)
+from generate_series(1, 16) as n;
+
+do $$
+declare
+  v_first uuid;
+  v_second uuid;
+begin
+  select id into v_first from public.scenes
+  where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1;
+  select id into v_second from public.scenes
+  where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 2;
+  perform public.swap_scene_order(v_first, 'down');
+  if (select id from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1) <> v_second then
+    raise exception 'scene reorder did not move the adjacent scene';
+  end if;
+  if (select start_ms from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1) <> 0
+    or (select end_ms from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1) <> 6000 then
+    raise exception 'scene reorder did not recalculate the timeline';
+  end if;
+end;
+$$;
+select pass('scene reorder swaps adjacent positions and recalculates the fixed-duration timeline');
+
+select public.set_episode_scene_duration('e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 4000, 96000);
+select ok(
+  (select count(*) = 24 from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6')
+  and (select max(end_ms) = 96000 from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  'an empty draft timeline rebuilds for 4-second scenes without gaps'
+);
+
+select public.save_scene_production(
+  (select id from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1),
+  'Archive room', 'Lara at the door', 'VHS tracking lines', 'Cut to black', 'READY', 2
+);
+select ok(
+  (select location = 'Archive room'
+      and character_notes = 'Lara at the door'
+      and vhs_effects = 'VHS tracking lines'
+      and transition = 'Cut to black'
+      and prompt_status = 'READY'
+      and generation_attempts = 2
+   from public.scenes
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1),
+  'scene production metadata persists for the owner'
+);
+
+select throws_ok(
+  $$select public.set_episode_scene_duration('e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 6000, 96000);$$,
+  '23514', 'episode_scenes_not_empty',
+  'non-empty scene content blocks a silent timeline rebuild'
+);
+select throws_ok(
+  $$select public.save_scene_production(
+    (select id from public.scenes where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1),
+    '', '', '', '', 'INVALID', 0
+  );$$,
+  '22023', 'invalid_prompt_status',
+  'an invalid prompt status is rejected'
+);
+
 select public.set_episode_status('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'PUBLISHED');
 
 do $$
