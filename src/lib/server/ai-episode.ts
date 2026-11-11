@@ -80,9 +80,17 @@ export class AiGenerationError extends Error {
 	}
 }
 
-export function availableGenerationProvider(): 'gemini-free-key' | 'vercel-gateway' | 'manual' {
+/** Vercel Functions receive freshly minted OIDC tokens via the trusted runtime request header. */
+export function deploymentOidcToken(request: Request): string | undefined {
+	if (process.env.VERCEL !== '1') return undefined;
+	const token = request.headers.get('x-vercel-oidc-token')?.trim();
+	if (!token || token.length > 8192) return undefined;
+	return token;
+}
+
+export function availableGenerationProvider(oidcToken?: string): 'gemini-free-key' | 'vercel-gateway' | 'manual' {
 	if (process.env.GEMINI_API_KEY?.trim()) return 'gemini-free-key';
-	if (process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim()) {
+	if (process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim() || oidcToken) {
 		return 'vercel-gateway';
 	}
 	return 'manual';
@@ -196,7 +204,7 @@ function parseModelJson(text: string): unknown {
 }
 
 /** Never invoke this function before verifying the Supabase owner session and rate limit. */
-export async function generateEpisodeJson(prompt: string): Promise<unknown> {
+export async function generateEpisodeJson(prompt: string, oidcToken?: string): Promise<unknown> {
 	const geminiKey = process.env.GEMINI_API_KEY?.trim();
 	if (geminiKey) {
 		const result = await postJson(
@@ -223,7 +231,7 @@ export async function generateEpisodeJson(prompt: string): Promise<unknown> {
 		return parseModelJson(text);
 	}
 
-	const token = process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim();
+	const token = process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim() || oidcToken;
 	if (!token)
 		throw new AiGenerationError(
 			'NOT_CONFIGURED',
