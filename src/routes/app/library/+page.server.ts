@@ -60,11 +60,12 @@ export const actions: Actions = {
 				type: asset.delivery_type,
 			})) as Record<string, unknown>;
 		} catch (cause) {
-			const notFound =
-				typeof cause === 'object' &&
-				cause !== null &&
-				'http_code' in cause &&
-				cause.http_code === 404;
+			const failure =
+				typeof cause === 'object' && cause !== null
+					? (cause as { http_code?: unknown; error?: { http_code?: unknown } })
+					: null;
+			const httpCode = failure?.http_code ?? failure?.error?.http_code;
+			const notFound = httpCode === 404;
 			const { error: markError } = await db
 				.from('media_assets')
 				.update({

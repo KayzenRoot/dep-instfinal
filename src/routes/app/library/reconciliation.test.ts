@@ -124,7 +124,7 @@ describe('Cloudinary media reconciliation', () => {
 	});
 
 	it('marks missing Cloudinary assets failed and leaves transient API errors reconcilable', async () => {
-		cloudinary.api.resource.mockRejectedValueOnce({ http_code: 404 });
+		cloudinary.api.resource.mockRejectedValueOnce({ error: { http_code: 404 } });
 		const missing = await actions.reconcileAsset(makeEvent());
 		expect(missing).toEqual({ reconciled: false });
 		expect(updates[0]).toMatchObject({
