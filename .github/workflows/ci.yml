@@ -30,7 +30,7 @@ jobs:
           version: 2.113.0
       - run: supabase start
       - run: npm run test:db
-      - run: npx playwright install --with-deps chromium || npx playwright install chromium
+      - run: npx playwright install chromium
       - run: npm run test:e2e:local
       - uses: actions/upload-artifact@v6
         if: always()
