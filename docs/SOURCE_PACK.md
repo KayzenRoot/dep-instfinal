@@ -2,7 +2,7 @@
 
 **Work Order:** `DIF-MVP-ALL-001`
 **Revision:** 1.1
-**Status:** approved scope; CD06 issue-closing production workflow implemented on `218f18f`; hosted CI passed; independent review pending reconciliation
+**Status:** approved scope; CD06 implemented, hosted CI passed at `b23d40c`, independent review APPROVED; checkpoint **PROPOSED — NOT PROMOTED** pending owner promotion
 **Last reconciled:** 2026-11-11
 
 ## Source hierarchy and context
@@ -130,4 +130,4 @@ External backup/restore remains **NOT RUN** because the Free plan exposes no sch
 
 CD06 implemented the remaining issue-level acceptance gaps on top of CD05: configurable 4/6/8-second scene durations with safe rebuild, scene reorder, location/character/VHS/transition fields, prompt status and attempt counts, deterministic continuity warnings before canon approval, platform target/aspect presets, private thumbnail/crop variants with side-by-side comparison, and a production-ready ZIP with checklist, AI disclosure, hashtags, covers, credit estimates and assembly manifest. It also adds five PgTAP assertions (25/25 total) and responsive screenshots for every studio page at 360/768/1440.
 
-A real logical backup/restore was executed against the hosted project and a local Supabase target: restored counts matched, owner login returned 200, anonymous REST returned 401, and the restored Cloudinary asset hash matched. Hosted PR `43072519345` and push `43072509538` passed at `218f18f` (PgTAP 25 tests; E2E 9 passed in 2.0 minutes). The independent agent review remains pending. The checkpoint stays **PROPOSED — NOT PROMOTED** / **BLOCKED** until that review is reconciled; no merge or promotion occurred.
+A real logical backup/restore was executed against the hosted project and a local Supabase target: restored counts matched, owner login returned 200, anonymous REST returned 401, and the restored Cloudinary asset hash matched. Hosted PR `43080981120` and push `43080968791` passed at final code/test HEAD `b23d40c` (PgTAP 28 tests; E2E 9 passed in 2.3 minutes, no retry), unit tests are 28/28, and the independent reviewer agent returned **APPROVED** with only LOW residuals. The checkpoint remains **PROPOSED — NOT PROMOTED** with proposed verdict **APPROVED — ready for owner promotion**; no merge or promotion occurred.

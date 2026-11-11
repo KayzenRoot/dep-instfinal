@@ -6,7 +6,9 @@
 - **Branch / PR:** `feat/dif-studio-mvp-001` / [Draft PR #14](https://github.com/KayzenRoot/dep-instfinal/pull/14)
 - **CD06 base HEAD:** `d5e43f258101af8388d030554c6ca9c0084d7309`
 - **CD06 implementation commit:** `218f18f74e7720105d136c2fa3f0546ba789e9fd`
-- **CD06 hosted CI:** [PR `43072519345`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43072519345) and [push `43072509538`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43072509538) — PASS (PgTAP 25 tests; E2E 9 passed in 2.0 minutes)
+- **CD06 final code/test HEAD:** `b23d40c71272d17707120ee76e624dd422775859`
+- **CD06 hosted CI:** [PR `43080981120`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43080981120) and [push `43080968791`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43080968791) — PASS (PgTAP 28 tests; E2E 9 passed in 2.3 minutes, no retry)
+- **CD06 independent review:** **APPROVED** by a separate reviewer agent; no HIGH/CRITICAL findings remain; three LOW residuals documented below
 - **CD06 evidence date:** 2026-11-11
 - **CD05 reconciliation fix:** `b89240f061d9976a0a7db28003d63d5daf977dfe`
 - **CD05 final code/test HEAD:** `852b970c03f38233b6e02e6af308dbd01bef5b72`
@@ -35,14 +37,20 @@ CD06 closes the acceptance gaps identified in issues #3, #6, #8, #9, #11, and #1
 | Continuity review  | Deterministic warnings for DECEASED/MISSING/ARCHIVED characters and SUPERSEDED/ARCHIVED lore titles; canon approval requires explicit review when warnings exist and stores `continuity_review`.                             | Unit tests cover deceased, active, superseded and deduplication; canon insert stores the reviewed warnings.                                                                                                                                                                                       |
 | Production package | ZIP now includes `production/assembly-manifest.md`, `production/checklist.md`, `social/hashtags.txt`, `social/ai-disclosure.txt`, per-channel covers/hashtags, credit estimate, scene status/attempts, and updated warnings. | Live export: 33 entries; manifest production block present; warnings `SCENE_PROMPTS_NOT_APPROVED`, `TARGET_PLATFORMS_EMPTY`, `AI_DISCLOSURE_EMPTY`.                                                                                                                                               |
 | Backup/restore     | Logical export of all 14 public tables and the owner UUID; restore into a dedicated local Supabase target with the same owner UID and public rows in dependency order.                                                       | Counts matched (series 1, season 1, episode 1, media 4, scenes 15, choices 2); owner login 200; anonymous REST 401; Cloudinary private image 235 bytes with matching SHA-256.                                                                                                                     |
-| Tests              | New unit tests, 5 new PgTAP assertions, responsive screenshots at 360/768/1440 for all studio pages, E2E metadata/checklist assertions.                                                                                      | Unit 27/27; typecheck 0 errors/warnings; lint pass; PgTAP 25/25 local and hosted; hosted E2E 9 passed in 2.0 minutes.                                                                                                                                                                             |
+| Tests              | New unit tests, 8 new PgTAP assertions, responsive screenshots at 360/768/1440 for index and detail pages, E2E metadata/checklist assertions.                                                                                | Unit 28/28; typecheck 0 errors/warnings; lint pass; PgTAP 28/28 local and hosted; hosted E2E 9 passed in 2.3 minutes with no retry.                                                                                                                                                               |
 
 ### CD06 limits
 
-- The local Windows E2E run is materially slower than CI and was flaky while reusing a stale dev server; the authoritative E2E evidence is the hosted workflow, which passed 9/9 in 2.0 minutes at `218f18f`.
+- The local Windows E2E run is materially slower than CI and was flaky while reusing a stale dev server; the authoritative E2E evidence is the hosted workflow, which passed 9/9 in 2.3 minutes at `b23d40c` with no retry.
 - The production credit estimate is deliberately manual and never queries a live Google Flow balance.
 - The continuity review is advisory and deterministic; it does not read images or infer plot logic. The owner still approves or rejects canon.
 - External independent review is recorded separately in `docs/CHECKPOINT_DELTA.md`; no checkpoint promotion or merge occurred.
+
+### CD06 independent review
+
+A separate reviewer agent audited the CD06 diff, migrations, RPCs, media route, continuity gate, export and tests. The first pass returned **CORRECTION REQUIRED** with one HIGH finding (the narrative import still used 8-second scenes and could truncate content-bearing scenes). Commit `08a4567` fixed the HIGH and the MEDIUM findings: revisioned scene production/reorder, strict continuity loading, a database trigger requiring the continuity review, prompt approval validation, preset-aware previews, normalized continuity matching, legacy metadata guards, null validation and bounded scene text. The follow-up audit returned **APPROVED** with no HIGH/CRITICAL findings.
+
+Residual LOW findings accepted for this MVP: (1) a direct scene update can still set `APPROVED` after prompts are cleared, but the export warns; (2) the RPC null checks for some text parameters rely on NOT NULL constraints rather than explicit validation; (3) the continuity trigger has no dedicated PgTAP negative test, though the action and schema path are covered. The owner still needs to give the final acceptance before any checkpoint promotion.
 
 ## CD05 — live external acceptance
 

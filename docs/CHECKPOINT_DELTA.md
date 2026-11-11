@@ -4,9 +4,11 @@
 - **Repository / branch / PR:** `KayzenRoot/dep-instfinal` / `feat/dif-studio-mvp-001` / Draft PR #14
 - **CD06 base HEAD revalidated:** `d5e43f258101af8388d030554c6ca9c0084d7309`
 - **CD06 implementation commit:** `218f18f74e7720105d136c2fa3f0546ba789e9fd`
-- **CD06 hosted CI:** [PR `43072519345`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43072519345) and [push `43072509538`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43072509538) — PASS (PgTAP 25 tests; E2E 9 passed in 2.0 minutes)
+- **CD06 final code/test HEAD:** `b23d40c71272d17707120ee76e624dd422775859`
+- **CD06 hosted CI:** [PR `43080981120`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43080981120) and [push `43080968791`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/43080968791) — PASS (PgTAP 28 tests; E2E 9 passed in 2.3 minutes, no retry)
+- **CD06 independent review:** **APPROVED** by a separate reviewer agent; no HIGH/CRITICAL findings remain
 - **Status:** **PROPOSED — NOT PROMOTED**
-- **Proposed verdict:** **BLOCKED — Work Order not complete**
+- **Proposed verdict:** **APPROVED — ready for owner promotion**
 
 ## CD06 delta
 
@@ -16,7 +18,7 @@
 4. Platform/production: episode metadata now carries target platforms, aspect preset, per-channel covers/hashtags, AI disclosure, effects/assembly notes, credit model and per-clip estimate. The UI exposes them; the ZIP adds `production/assembly-manifest.md`, `production/checklist.md`, `social/hashtags.txt`, and `social/ai-disclosure.txt`, and the manifest includes the production block and honest warnings.
 5. Library: signed server-side derived variants `thumb`, `4x5`, and `3x4` are streamed only through the owner route; the library shows side-by-side comparison and a proportion warning. Live variants returned 123/144/146 bytes with `private, no-store`; invalid variant returned 400.
 6. Backup/restore: all 14 public tables and the owner UUID were exported logically and restored into a dedicated local Supabase target with the same owner UID. Counts matched, owner login returned 200, anonymous REST returned 401, and the restored READY Cloudinary asset returned 235 bytes with a matching SHA-256.
-7. Tests: unit 27/27, typecheck 0 errors/warnings, lint pass, PgTAP 25/25 local (5 new CD06 assertions), responsive screenshots at 360/768/1440 for every studio page, and hosted E2E runs in progress. Local Windows E2E was slow and flaky while reusing a stale dev server; the hosted workflow is the authoritative E2E evidence.
+7. Tests: unit 28/28, typecheck 0 errors/warnings, lint pass, PgTAP 28/28 local and hosted (8 new CD06 assertions), responsive screenshots at 360/768/1440 for index and detail pages, and hosted E2E 9/9 in 2.3 minutes with no retry. Local Windows E2E was slow and flaky while reusing a stale dev server; the hosted workflow is the authoritative E2E evidence. A separate reviewer agent returned **APPROVED** after the HIGH/MEDIUM corrections in `08a4567`; only three LOW residuals remain documented in the Evidence Bundle.
 
 ## Historical CD05 header
 
@@ -67,6 +69,6 @@
 
 ## Gate
 
-CD06 closes the functional gaps for issues #3, #6, #8, #9, #11, and #12 and records a real logical backup/restore for #4/#13: restored counts matched, owner login returned 200, anonymous REST returned 401, and the restored Cloudinary asset hash matched. Hosted PR `43072519345` and push `43072509538` passed at `218f18f` (PgTAP 25 tests; E2E 9 passed in 2.0 minutes); unit tests are 27/27. The independent agent review is the remaining reconciliation item. The temporary Cloudflare quick tunnel remains an owner-authorized private exposure, not a production deployment. Keep PR #14 open and Draft; keep this checkpoint **PROPOSED — NOT PROMOTED** with verdict **BLOCKED** until the independent review is reconciled. No merge, production deployment, paid spend, new external project, or checkpoint promotion occurred.
+CD06 closes the functional gaps for issues #3, #6, #8, #9, #11, and #12 and records a real logical backup/restore for #4/#13: restored counts matched, owner login returned 200, anonymous REST returned 401, and the restored Cloudinary asset hash matched. Hosted PR `43080981120` and push `43080968791` passed at final code/test HEAD `b23d40c` (PgTAP 28 tests; E2E 9 passed in 2.3 minutes, no retry); unit tests are 28/28. The independent reviewer agent returned **APPROVED** with no HIGH/CRITICAL findings; three LOW residuals are documented. The temporary Cloudflare quick tunnel remains an owner-authorized private exposure, not a production deployment. Keep PR #14 open and Draft; keep this checkpoint **PROPOSED — NOT PROMOTED** with proposed verdict **APPROVED — ready for owner promotion**. No merge, production deployment, paid spend, new external project, or checkpoint promotion occurred.
 
 CD01–CD05 history remains in `docs/CONTEXT_LOCK.md`; detailed evidence is in `docs/EVIDENCE_BUNDLE.md`.
