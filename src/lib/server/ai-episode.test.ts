@@ -3,6 +3,7 @@ import {
 	AiGenerationError,
 	availableGenerationProvider,
 	buildEpisodeGenerationPrompt,
+	deploymentOidcToken,
 	generateEpisodeJson,
 	validateGeneratedEpisode,
 } from './ai-episode.js';
@@ -51,6 +52,30 @@ describe('pacote de IA do DIF Studio', () => {
 		expect(availableGenerationProvider()).toBe('manual');
 		await expect(generateEpisodeJson('teste')).rejects.toMatchObject({ code: 'NOT_CONFIGURED' });
 	});
+	it('aceita OIDC somente dentro de Vercel e não expõe o token para o cliente', () => {
+		const request = new Request('https://example.vercel.app/app', {
+			headers: { 'x-vercel-oidc-token': 'synthetic-runtime-token' },
+		});
+		expect(deploymentOidcToken(request)).toBeUndefined();
+		vi.stubEnv('VERCEL', '1');
+		expect(deploymentOidcToken(request)).toBe('synthetic-runtime-token');
+		expect(availableGenerationProvider(deploymentOidcToken(request))).toBe('vercel-gateway');
+	});
+
+	it('usa o OIDC da requisição para o AI Gateway sem chave armazenada', async () => {
+		const mockFetch = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ choices: [{ message: { content: '{"ok":true}' } }] }), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			}),
+		);
+		vi.stubGlobal('fetch', mockFetch);
+		expect(await generateEpisodeJson('fictional episode', 'synthetic-oidc')).toEqual({ ok: true });
+		const args = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect(args[0]).toBe('https://ai-gateway.vercel.sh/v1/chat/completions');
+		expect((args[1].headers as Record<string, string>).authorization).toBe('Bearer synthetic-oidc');
+	});
+
 	it('valida 15 cenas e duas consequências para 120 segundos', () => {
 		const result = validateGeneratedEpisode({ narrative, scenes }, 120000, 8000, false);
 		expect(result.scenes).toHaveLength(15);
