@@ -496,8 +496,7 @@
 						maxlength="60000"
 						required
 						placeholder="Cole o JSON manual ou revise o pacote gerado pela IA."
-						bind:value={reviewedJson}></textarea
-					></label
+						bind:value={reviewedJson}></textarea></label
 				>
 				<label class="check-label"
 					><input type="checkbox" name="confirmImport" required /> Revisei a resposta; ela substituirá
