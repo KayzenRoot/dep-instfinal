@@ -28,6 +28,8 @@ function startServer(origin) {
 		env: {
 			...process.env,
 			PORT: port,
+			// Do not expose the Node SSR port directly to the LAN or internet.
+			HOST: '127.0.0.1',
 			APP_ORIGIN: origin,
 			ORIGIN: origin,
 			PROTOCOL_HEADER: 'x-forwarded-proto',
