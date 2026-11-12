@@ -14,6 +14,9 @@ export const GET: RequestHandler = async (event) => {
 	const { db, owner } = ownerDatabase(event);
 	const config = getAppConfig();
 	const variant = event.url.searchParams.get('variant');
+	const download = event.url.searchParams.get('download');
+	if (download !== null && download !== '1') error(400, 'Modo de download inválido.');
+	if (download && variant) error(400, 'Download original não aceita transformação.');
 	if (variant && !Object.hasOwn(variants, variant)) error(400, 'Variante de imagem inválida.');
 	if (
 		!config.cloudinaryConfigured ||
@@ -43,6 +46,26 @@ export const GET: RequestHandler = async (event) => {
 		secure: true,
 	});
 	const expiresAt = Math.floor(Date.now() / 1000) + 300;
+	if (download === '1') {
+		// Only an authenticated owner can request this redirect. A short-lived
+		// signed URL lets large originals download directly from Cloudinary,
+		// bypassing Vercel's 4.5 MB Function response payload cap.
+		const signedUrl = cloudinary.utils.private_download_url(asset.public_id, asset.format, {
+			resource_type: 'image',
+			type: asset.delivery_type,
+			attachment: true,
+			expires_at: Math.floor(Date.now() / 1000) + 180,
+		});
+		return new Response(null, {
+			status: 302,
+			headers: {
+				location: signedUrl,
+				'cache-control': 'private, no-store',
+				'referrer-policy': 'no-referrer',
+				'x-content-type-options': 'nosniff',
+			},
+		});
+	}
 	// Derived images use a signed authenticated delivery URL generated on the
 	// server only. The URL is fetched here and never returned to the browser.
 	const url = variant
