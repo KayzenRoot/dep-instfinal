@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { geminiEpisodeJsonSchema } from './ai-response-schema.js';
 import { narrativeResponseSchema } from '#lib/schemas/story.js';
 import { estimateNarrationDurationSeconds } from '#lib/domain/narrative-context.js';
 
@@ -224,6 +225,7 @@ export async function generateEpisodeJson(prompt: string, oidcToken?: string): P
 				contents: [{ role: 'user', parts: [{ text: prompt }] }],
 				generationConfig: {
 					responseMimeType: 'application/json',
+					responseJsonSchema: geminiEpisodeJsonSchema,
 					maxOutputTokens: 24000,
 					thinkingConfig: { thinkingLevel: 'minimal' },
 				},
