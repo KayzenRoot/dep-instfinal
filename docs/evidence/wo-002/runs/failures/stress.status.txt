@@ -1,0 +1,5 @@
+baseline_wall_s=6
+loaded_wall_s=43
+recovered_wall_s=5
+slowdown_ratio=7.167
+recovery_ratio=0.833

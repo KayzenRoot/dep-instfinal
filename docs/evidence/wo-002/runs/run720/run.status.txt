@@ -1,0 +1,2 @@
+wall_seconds=46
+rc=0

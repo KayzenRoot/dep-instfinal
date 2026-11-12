@@ -1,0 +1,65 @@
+# DIF-V2-WO-002 inventory
+Thu Nov 12 15:18:12 UTC 2026
+
+## uname
+Linux nexlabs-server 7.0.0-1015-oracle #16-Ubuntu SMP PREEMPT Mon Oct 19 19:44:58 UTC 2026 aarch64 GNU/Linux
+
+## cpu
+Architecture:                            aarch64
+CPU(s):                                  2
+Vendor ID:                               ARM
+Model name:                              Neoverse-N1
+Thread(s) per core:                      1
+Core(s) per socket:                      2
+Socket(s):                               1
+BogoMIPS:                                50.00
+
+## memory
+               total        used        free      shared  buff/cache   available
+Mem:           11924        2077         780         775       10064        9846
+Swap:              0           0           0
+
+## disk
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1       193G   16G  177G   9% /
+
+## load
+0.04 0.09 0.08 1/361 425146
+
+## limits
+real-time non-blocking time  (microseconds, -R) unlimited
+core file size              (blocks, -c) 0
+data seg size               (kbytes, -d) unlimited
+scheduling priority                 (-e) 0
+file size                   (blocks, -f) unlimited
+pending signals                     (-i) 43362
+max locked memory           (kbytes, -l) 8192
+max memory size             (kbytes, -m) unlimited
+open files                          (-n) 1024
+pipe size                (512 bytes, -p) 8
+POSIX message queues         (bytes, -q) 819200
+real-time priority                  (-r) 0
+stack size                  (kbytes, -s) 8192
+cpu time                   (seconds, -t) unlimited
+max user processes                  (-u) 43362
+virtual memory              (kbytes, -v) unlimited
+file locks                          (-x) unlimited
+
+## services
+nginx: active
+docker: active
+containerd: active
+code-server@ubuntu: active
+
+## containers (names/status only)
+9router Up 5 days (healthy)
+
+## ffmpeg
+ffmpeg version 7.0.2-static https://johnvansickle.com/ffmpeg/  Copyright (c) 2000-2024 the FFmpeg developers
+built with gcc 8 (Debian 8.3.0-6)
+configuration: --enable-gpl --enable-version3 --enable-static --disable-debug --disable-ffplay --disable-indev=sndio --disable-outdev=sndio --cc=gcc --enable-fontconfig --enable-frei0r --enable-gnutls --enable-gmp --enable-libgme --enable-gray --enable-libaom --enable-libfribidi --enable-libass --enable-libfreetype --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenjpeg --enable-librubberband --enable-libsoxr --enable-libspeex --enable-libsrt --enable-libvorbis --enable-libopus --enable-libtheora --enable-libvidstab --enable-libvo-amrwbenc --enable-libvpx --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxml2 --enable-libdav1d --enable-libxvid --enable-libzimg
+libavutil      59.  8.100 / 59.  8.100
+
+## ffprobe
+ffprobe version 7.0.2-static https://johnvansickle.com/ffmpeg/  Copyright (c) 2007-2024 the FFmpeg developers
+built with gcc 8 (Debian 8.3.0-6)

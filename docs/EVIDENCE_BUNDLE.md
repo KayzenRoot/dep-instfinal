@@ -1,5 +1,33 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-002 — Oracle ARM64 benchmark (2026-11-12)
+
+- **Work Order:** `DIF-V2-WO-002` · issue #19 · epic #17
+- **Base:** `main` `01405cbb641e7814cbd964157d0814ba4e23d7c7` (after WO-001/PR #46 squash merge)
+- **Benchmark evidence commit:** `95cbc53b9da9d0b4349e450e9cbd32b714fe2c42` (branch head before this docs-only SHA record)
+- **Branch:** `bench/dif-v2-wo-002`
+- **Status:** benchmark **GO CONDITIONAL**; evidence **APPROVED** by independent audit (2026-11-12), non-blocking corrections applied; checkpoint V2 **PROPOSED — NOT PROMOTED**; WO-003+ remains **BLOCKED** until ADR-V2-002/storage and owner authorization.
+
+| Check                      | Result | Evidence                                                                                                                                                                            |
+| -------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Environment inventory      | PASS   | Oracle ARM64, Neoverse-N1, 2 vCPU, 11,924 MB RAM, no swap, 177 GB free; FFmpeg/ffprobe 7.0.2-static aarch64 (GPLv3, libx264/AAC); `logs/inventory.txt`                              |
+| 3 × 1080×1920 renders      | PASS   | 69.65–70.53 s (mean 70.02 s), RTF 0.58, 1.72× realtime, max RSS 364,572 KB, 188–191% process CPU (2 vCPU), 103,939,130 B output; `logs/summary.csv`, `runs/run1..3/`                |
+| 720×1280 comparison        | PASS   | 46.55 s, RTF 0.39, 214,264 KB, 31,557,798 B; `runs/run720/`                                                                                                                         |
+| ffprobe/decoder validation | PASS   | 120.000000 s, exact 9:16, H.264 30 fps + AAC 48 kHz stereo, `decode_rc=0`, zero decoder stderr; four `validation.txt` files                                                         |
+| Determinism                | PASS   | All three 1080p outputs share SHA-256 `1f0b31a4…ee6f73a`; 720p `f4c624dc…5de28c`                                                                                                    |
+| Disk/I/O                   | PASS   | `dd` write 112 MB/s before, 111 MB/s after; 177 GB free before/after; benchmark used 747 MB, removed; aggregate 180.0 MiB read / 592.5 MiB written; O_DIRECT unsupported on this FS |
+| Failure handling           | PASS   | timeout rc 124 / 0 orphans; corrupt input rc 183 (“moov atom not found”); simulated low disk (`ulimit -f`) rc 153, 2 MiB partial, no real disk fill; recovery 10.000 s PASS         |
+| CPU saturation             | PASS   | 2× `yes`: 6 s baseline → 43 s loaded (7.17×), 5 s recovered (0.83×); load 0.43 after ~3 min 19 s; concurrency must remain 1                                                         |
+| Service health             | PASS   | `nginx`, `docker`, `containerd`, `code-server@ubuntu` active; `9router` running/healthy; local latency max 7 ms (20128) / 5 ms (36401) under load; no residual ffmpeg/yes           |
+| Scope/safety               | PASS   | Synthetic inputs only; no production data, secret, sudo, daemon, new port, paid service, GPU, schema, worker, production deploy or spend (automatic PR preview only); `cleanup.txt` |
+| Evidence package           | PASS   | `docs/V2_BENCHMARK_WO002.md`, `scripts/v2-bench/benchmark.sh`, `docs/evidence/wo-002/` (tar SHA-256 `8c2a524b…c50543`, `SHA256SUMS` verifies)                                       |
+| CI                         | PASS   | PR #47 `quality` 4m43s (`check:baseline`, `test:db`, `test:e2e:local`); 45 tests + 1 skip, 9 E2E; SonarCloud/Socket/Vercel PASS                                                     |
+| Independent audit          | PASS   | **APPROVED** 2026-11-12; no HIGH/CRITICAL; M1–M3/LOW corrections applied; WO-003+ still blocked                                                                                     |
+
+**Verdict:** benchmark **GO CONDITIONAL** for a single-concurrency FFmpeg worker on the existing Oracle ARM64 VPS. Quantitative basis: 120 s 9:16 in ~70 s (RTF 0.58), 365 MB peak RSS, 177 GB free, ~94% of 2 vCPU and US$ 0 incremental compute (estimate; no billing API checked). The VPS does not support concurrency >1 or guaranteed interactive latency during a render. No checkpoint promotion, merge, production deploy, worker, schema change or spend occurred; the automatic PR preview is not production.
+
+**Audit findings (non-blocking, 2026-11-12):** M1 — the main render exercised only `nice`, not `ionice`, 10-minute timeout, 2 GB quota or memory limit; those are WO-003+ requirements and are documented as such. M2 — the harness `cleanup()` no longer deletes its own size log; it prints the size before removal. M3 — `ps -o pcpu` is a cumulative average, so the CSV column is now `final_pcpu_avg_pct`, not a peak. LOW corrections: `vmstat` provenance and the ~3 min 19 s rest period are explicit; the timeout rerun is documented; the tar scope and missing FFmpeg binary hash are stated; the `.gitignore` exception is restricted to `docs/evidence/wo-002/**/*.log`; `V2_EXECUTION_PLAN.md` status is updated; the deploy wording distinguishes the automatic PR preview from production; probes/`dd` commands are documented; CI evidence is included. M1 remains a WO-003+ implementation/test obligation.
+
 ## V2 WO-001 — V1 gate closure + V2 planning/ADR (2026-11-12)
 
 - **Work Order:** `DIF-V2-WO-001` · issue #18 · epic #17

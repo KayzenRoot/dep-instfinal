@@ -1,0 +1,10 @@
+label=run2
+expected=1080x1920
+duration=120.000000
+video_streams=1
+audio_streams=1
+width=1080
+height=1920
+decode_rc=0
+decode_log_bytes=0
+pass=1

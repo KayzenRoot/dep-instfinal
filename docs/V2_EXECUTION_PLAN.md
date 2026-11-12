@@ -2,42 +2,42 @@
 
 - **Work Order:** `DIF-V2-WO-001` · issue #18
 - **Epic:** #17 · issues #18–#45
-- **Base:** `main` `13467ab009e0eaaee1be6ba2e35678228cfbdf32` (2026-11-12)
-- **Status:** **PLANNED / PROPOSED** — nenhuma WO além da 001 está aprovada para execução.
+- **Base atual:** `main` `01405cbb641e7814cbd964157d0814ba4e23d7c7` (após WO-001); plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
+- **Status:** **PROPOSED** — WO-001 **APPROVED/merged**; WO-002 evidência **APPROVED** (GO CONDITIONAL); WO-003+ **BLOCKED**.
 - **Fonte viva:** os corpos atuais das issues #18–#45 prevalecem sobre este plano.
 
 ## Inventário — 28 WOs e 20 melhorias
 
-| WO     | Issue | Módulo                                                  | Risco    | Dependências explícitas / propostas                               | Estado                  |
-| ------ | ----- | ------------------------------------------------------- | -------- | ----------------------------------------------------------------- | ----------------------- |
-| WO-001 | #18   | Gate V1 + Source Pack V2 + ADR PROPOSED + Context Lock  | ELEVATED | PR #16 encerrado (mergeado em `13467ab`)                          | Documentação em revisão |
-| WO-002 | #19   | Benchmark FFmpeg/ARM64 e viabilidade US$ 0              | ELEVATED | WO-001 APPROVED + ADR aceita                                      | PLANNED                 |
-| WO-003 | #20   | Ingestão segura de clipes e storage privado             | ELEVATED | WO-001; WO-002 GO; contrato de storage                            | PLANNED                 |
-| WO-004 | #21   | Timeline canônica, alinhamento e versões                | ELEVATED | WO-001; WO-003 (proposta)                                         | PLANNED                 |
-| WO-005 | #22   | Worker, fila, lease, retry, recuperação                 | ELEVATED | WO-001; WO-003; WO-004 (proposta)                                 | PLANNED                 |
-| WO-006 | #23   | Composição FFmpeg, cortes, transições, VHS 9:16         | ELEVATED | WO-002; WO-004; WO-005                                            | PLANNED                 |
-| WO-007 | #24   | Narração pt-BR, voz importada e TTS local opcional      | ELEVATED | WO-005; WO-006; adendo emoção                                     | PLANNED                 |
-| WO-008 | #25   | Legendas reais, SRT/ASS e burn-in                       | STANDARD | WO-006; WO-007                                                    | PLANNED                 |
-| WO-009 | #26   | SFX/música licenciados, mix/ducking, soundscape estéreo | STANDARD | WO-006; WO-007; adendo soundscape                                 | PLANNED                 |
-| WO-010 | #27   | Diretor de edição e curva de tensão                     | ELEVATED | WO-004; WO-025 (proposta); adendo tensão                          | PLANNED                 |
-| WO-011 | #28   | Editor/preview e safe zones                             | ELEVATED | WO-006–009; adendo safe zones                                     | PLANNED                 |
-| WO-012 | #29   | Export MP4 H.264/AAC + Quality Inspector                | ELEVATED | WO-005–009; WO-011; adendo QA                                     | PLANNED                 |
-| WO-013 | #30   | Hardening: quotas, backup, retenção, recuperação        | ELEVATED | WO-003; WO-005; WO-012; WO-015–021 (complemento); etapa final     | PLANNED                 |
-| WO-014 | #31   | Release V2: regressão, auditoria, deploy                | ELEVATED | WO-001–013 e WO-015–021; terminal                                 | PLANNED                 |
-| WO-015 | #32   | Hook Lab: 3 aberturas A/B/C                             | STANDARD | WO-004; WO-010; WO-011; WO-012                                    | PLANNED                 |
-| WO-016 | #33   | Color Match e presets de terror                         | STANDARD | WO-002; WO-003; WO-006; WO-011; WO-012                            | PLANNED                 |
-| WO-017 | #34   | Continuidade visual + Character Identity Kit            | ELEVATED | WO-003; WO-004; WO-011; WO-016 (quando disponível)                | PLANNED                 |
-| WO-018 | #35   | Capas, posters e cards                                  | STANDARD | WO-003; WO-004; WO-011; WO-012; WO-016                            | PLANNED                 |
-| WO-019 | #36   | Finais A/B cinematográficos e CTA canônica              | STANDARD | WO-004; WO-010; WO-012 (proposta); V1 canon/choices               | PLANNED                 |
-| WO-020 | #37   | Laboratório de retenção, métricas manuais               | STANDARD | WO-012; WO-015; WO-018; WO-019; WO-001; métricas V1 manuais       | PLANNED                 |
-| WO-021 | #38   | Bíblia audiovisual, presets e herança                   | STANDARD | WO-004; WO-009; WO-011; WO-016; WO-018                            | PLANNED                 |
-| WO-022 | #39   | Smart Cutdowns 30/45/60 s                               | STANDARD | WO-004; WO-008; WO-012; WO-015; WO-019                            | PLANNED                 |
-| WO-023 | #40   | Clip Rescue reversível                                  | ELEVATED | WO-003; WO-006; WO-012; WO-016; retenção mínima WO-001/003        | PLANNED                 |
-| WO-024 | #41   | Storyboard Inspector pré-Flow                           | STANDARD | WO-001; WO-025; V1 storyboard                                     | PLANNED                 |
-| WO-025 | #42   | Narrative Intelligence pré-produção                     | STANDARD | WO-001; V1 episódios/revisões/bíblia                              | PLANNED                 |
-| WO-026 | #43   | Interactive Universe, grafo de escolhas/cânone          | ELEVATED | WO-001; WO-025; WO-019                                            | PLANNED                 |
-| WO-027 | #44   | Publishing Kit manual multiplataforma                   | STANDARD | WO-012; WO-018; WO-019; WO-022; WO-021                            | PLANNED                 |
-| WO-028 | #45   | Season Factory 10–15 episódios                          | ELEVATED | WO-024; WO-025; WO-026; WO-012/015/018/019/021/022/027 (proposta) | PLANNED                 |
+| WO     | Issue | Módulo                                                  | Risco    | Dependências explícitas / propostas                               | Estado               |
+| ------ | ----- | ------------------------------------------------------- | -------- | ----------------------------------------------------------------- | -------------------- |
+| WO-001 | #18   | Gate V1 + Source Pack V2 + ADR PROPOSED + Context Lock  | ELEVATED | PR #16 encerrado (mergeado em `13467ab`)                          | APPROVED (merged)    |
+| WO-002 | #19   | Benchmark FFmpeg/ARM64 e viabilidade US$ 0              | ELEVATED | WO-001 APPROVED + ADR aceita                                      | APPROVED (GO COND.)  |
+| WO-003 | #20   | Ingestão segura de clipes e storage privado             | ELEVATED | WO-001; WO-002 GO; contrato de storage                            | BLOCKED (ADR-V2-002) |
+| WO-004 | #21   | Timeline canônica, alinhamento e versões                | ELEVATED | WO-001; WO-003 (proposta)                                         | PLANNED              |
+| WO-005 | #22   | Worker, fila, lease, retry, recuperação                 | ELEVATED | WO-001; WO-003; WO-004 (proposta)                                 | PLANNED              |
+| WO-006 | #23   | Composição FFmpeg, cortes, transições, VHS 9:16         | ELEVATED | WO-002; WO-004; WO-005                                            | PLANNED              |
+| WO-007 | #24   | Narração pt-BR, voz importada e TTS local opcional      | ELEVATED | WO-005; WO-006; adendo emoção                                     | PLANNED              |
+| WO-008 | #25   | Legendas reais, SRT/ASS e burn-in                       | STANDARD | WO-006; WO-007                                                    | PLANNED              |
+| WO-009 | #26   | SFX/música licenciados, mix/ducking, soundscape estéreo | STANDARD | WO-006; WO-007; adendo soundscape                                 | PLANNED              |
+| WO-010 | #27   | Diretor de edição e curva de tensão                     | ELEVATED | WO-004; WO-025 (proposta); adendo tensão                          | PLANNED              |
+| WO-011 | #28   | Editor/preview e safe zones                             | ELEVATED | WO-006–009; adendo safe zones                                     | PLANNED              |
+| WO-012 | #29   | Export MP4 H.264/AAC + Quality Inspector                | ELEVATED | WO-005–009; WO-011; adendo QA                                     | PLANNED              |
+| WO-013 | #30   | Hardening: quotas, backup, retenção, recuperação        | ELEVATED | WO-003; WO-005; WO-012; WO-015–021 (complemento); etapa final     | PLANNED              |
+| WO-014 | #31   | Release V2: regressão, auditoria, deploy                | ELEVATED | WO-001–013 e WO-015–021; terminal                                 | PLANNED              |
+| WO-015 | #32   | Hook Lab: 3 aberturas A/B/C                             | STANDARD | WO-004; WO-010; WO-011; WO-012                                    | PLANNED              |
+| WO-016 | #33   | Color Match e presets de terror                         | STANDARD | WO-002; WO-003; WO-006; WO-011; WO-012                            | PLANNED              |
+| WO-017 | #34   | Continuidade visual + Character Identity Kit            | ELEVATED | WO-003; WO-004; WO-011; WO-016 (quando disponível)                | PLANNED              |
+| WO-018 | #35   | Capas, posters e cards                                  | STANDARD | WO-003; WO-004; WO-011; WO-012; WO-016                            | PLANNED              |
+| WO-019 | #36   | Finais A/B cinematográficos e CTA canônica              | STANDARD | WO-004; WO-010; WO-012 (proposta); V1 canon/choices               | PLANNED              |
+| WO-020 | #37   | Laboratório de retenção, métricas manuais               | STANDARD | WO-012; WO-015; WO-018; WO-019; WO-001; métricas V1 manuais       | PLANNED              |
+| WO-021 | #38   | Bíblia audiovisual, presets e herança                   | STANDARD | WO-004; WO-009; WO-011; WO-016; WO-018                            | PLANNED              |
+| WO-022 | #39   | Smart Cutdowns 30/45/60 s                               | STANDARD | WO-004; WO-008; WO-012; WO-015; WO-019                            | PLANNED              |
+| WO-023 | #40   | Clip Rescue reversível                                  | ELEVATED | WO-003; WO-006; WO-012; WO-016; retenção mínima WO-001/003        | PLANNED              |
+| WO-024 | #41   | Storyboard Inspector pré-Flow                           | STANDARD | WO-001; WO-025; V1 storyboard                                     | PLANNED              |
+| WO-025 | #42   | Narrative Intelligence pré-produção                     | STANDARD | WO-001; V1 episódios/revisões/bíblia                              | PLANNED              |
+| WO-026 | #43   | Interactive Universe, grafo de escolhas/cânone          | ELEVATED | WO-001; WO-025; WO-019                                            | PLANNED              |
+| WO-027 | #44   | Publishing Kit manual multiplataforma                   | STANDARD | WO-012; WO-018; WO-019; WO-022; WO-021                            | PLANNED              |
+| WO-028 | #45   | Season Factory 10–15 episódios                          | ELEVATED | WO-024; WO-025; WO-026; WO-012/015/018/019/021/022/027 (proposta) | PLANNED              |
 
 ### Melhorias aprovadas — ownership 1:1
 
@@ -157,6 +157,6 @@ Não iniciar a próxima WO enquanto a atual estiver em `CORRECTION REQUIRED` ou 
 ## Gate atual
 
 - V1: PR #16 mergeado em `13467ab`; auditoria independente **APPROVED**; smoke pós-merge 200/200/303.
-- WO-001: documentação produzida; aguarda auditoria independente e aceite do ADR.
-- WO-002+: **BLOQUEADAS** até WO-001 `APPROVED`, ADR-V2-001 aceita pelo owner e ambiente de benchmark autorizado.
+- WO-001: **APPROVED**; PR #46 squash-merged em `01405cb`; ADR-V2-001 **ACCEPTED** pelo owner.
+- WO-002: benchmark **GO CONDITIONAL**; evidência **APPROVED**; guardas de worker ficam para WO-003+. WO-003+ **BLOQUEADAS** até ADR-V2-002/storage e autorização do owner.
 - Nenhuma migração, tabela, upload de vídeo, worker, deploy ou gasto foi criado por este plano.

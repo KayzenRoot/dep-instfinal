@@ -1,0 +1,17 @@
+2026-11-12T15:18:12Z generating 15 synthetic 8 s 1080x1920 clips
+2026-11-12T15:18:41Z generating synthetic narration/music/sfx
+2026-11-12T15:18:42Z generated inputs in 30 s; manifest /home/ubuntu/v2-bench/logs/inputs.sha256
+2026-11-12T15:19:19Z render run1 1080x1920 starting
+2026-11-12T15:20:29Z render run1 finished rc=0 wall=70 s
+2026-11-12T15:20:51Z render run2 1080x1920 starting
+2026-11-12T15:22:01Z render run2 finished rc=0 wall=70 s
+2026-11-12T15:22:01Z render run3 1080x1920 starting
+2026-11-12T15:23:12Z render run3 finished rc=0 wall=71 s
+2026-11-12T15:23:12Z render run720 720x1280 starting
+2026-11-12T15:23:58Z render run720 finished rc=0 wall=46 s
+2026-11-12T15:25:08Z failure test: timeout/kill
+2026-11-12T15:26:59Z failure test: timeout/kill
+2026-11-12T15:27:09Z failure test: corrupt/truncated input
+2026-11-12T15:27:09Z failure test: simulated low disk (ulimit -f, no real disk fill)
+2026-11-12T15:27:12Z recovery: short valid render after failures
+2026-11-12T15:27:17Z failure test: CPU saturation and recovery
