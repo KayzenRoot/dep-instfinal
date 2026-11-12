@@ -2,7 +2,7 @@
 
 **Work Order:** `DIF-MVP-ALL-001`
 **Revision:** 1.2
-**Status:** V1 DIF-REL-001 / CD07 release code APPROVED on tested SHA 8ebf44ac; branch production READY; final main deployment pending. Checkpoint APPROVED for release after objective audit.
+**Status:** V1 COMPLETE — production code APPROVED and squash-merged to main at 441888e7ca1a80f038d97a7392a9da406eb88239; Vercel main deployment READY and public HTTPS smoke PASS. Checkpoint COMPLETED; V2 planning may begin.
 **Last reconciled:** 2026-11-12
 
 ## Source hierarchy and context
@@ -152,3 +152,13 @@ See GitHub issue #15 (DIF-REL-001) and this branch's Evidence Bundle for accepta
 - **Vercel ZIP safety:** Functions response budgets prevent combining up to 30 large frames into one download. Preserve full ZIP for READY owner frames with raw cumulative bytes up to **3,000,000**; reject larger full packages with HTTP 413 before streaming. Introduce `?media=lite` ZIP containing every narrative, prompt, caption and a per-frame private download listing. Each original file is obtained via owner-checked /api/media/[assetId]?download=1 as a 180-second signed Cloudinary redirect. Never publish unsigned URLs or expose files to non-owner users.
 - **Exit gates:** focused and broad unit tests, lint, format, typecheck, build, policy/dependency audits, hosted PgTAP/RLS and authenticated E2E all PASS on exact HEAD, then independent audit/DoD and checkpoint promotion. Only afterward allow squash merge, deploy resulting main SHA, verify Vercel READY and exact production alias. The original owner-based production smoke is evidence for CD06 flows; later changed AI/ZIP features also require live and automated tests.
 - **Known operational limits:** Cloudinary API secret previously shared in chat requires rotation in the provider and Vercel; avoid key copies in artifacts. Google Gemini free quota is finite; never auto-enable paid billing. Supabase owner e-mail recovery must be controlled by owner. AI content is for human review; videos and posts are assembled/published manually using Google Flow and CapCut.
+
+
+## V1 final release closure — 2026-11-12 (APPROVED)
+
+The owner authorized the final release. GitHub PR #14 was squash-merged without bypass to `main` at `441888e7ca1a80f038d97a7392a9da406eb88239`; issue #15 DIF-REL-001 is CLOSED and all 13 foundational issues are CLOSED. No code was changed in this documentation-only checkpoint closure.
+
+- **GitHub:** exact PR head `0a93b3f68638ddc56f1337578c3ecb4a9928c5f3` passed PR CI 43218862212 and push CI 43218854310. That head contained only documentation reconciliation beyond the separately audited runtime code SHA `8ebf44acf827f0a14ac85bd380785574d378a6e8`. Tests: 45 unit passed (live-only test intentionally skipped in CI), PgTAP/RLS PASS and authenticated Playwright 9/9 PASS; typecheck/lint/build/format and high-severity audits PASS.
+- **Production:** automatic Vercel deployment `dpl_FEpLGWcuPCGRU9tN8A1BdWwbB32G` READY on the exact squash SHA, `https://dif-studio.vercel.app` assigned. Independent public-route smoke in `dpl_8eG3Yg75Ffc5KFDxDdeyDtiRD4eh` READY: health/login 200 and anonymous /app 303. The owner-supplied real-account CD06 production acceptance covers authenticated workflows, private image delivery and ZIP. The extended Gemini API 120-second/15-scene structured response was validated with the real Gemini provider using synthetic context, and ZIP lite/3 MB limits were tested.
+- **Closure:** release risk LOW/STANDARD with 7 known LOW/MODERATE transient dependencies, no known HIGH/CRITICAL. Videos remain manually assembled and posted; free provider quotas must be monitored; generated content remains owner-reviewed. Rotate the Cloudinary API secret previously shared in chat and arrange owner email recovery. These are operational follow-ups, not claimed automated actions.
+- **Checkpoint:** marked COMPLETED for the V1 application code and tested main production release. This documentation-only closure follows the same review/CI/PR workflow and does not modify runtime behavior. Future V2 features require separately approved scope and work orders.
