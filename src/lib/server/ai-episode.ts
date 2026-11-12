@@ -179,7 +179,7 @@ async function postJson(
 	if (!response.ok)
 		throw new AiGenerationError(
 			'UNAVAILABLE',
-			'O serviço de geração está temporariamente indisponível.',
+			`O serviço de geração está temporariamente indisponível (HTTP ${response.status}).`,
 		);
 	const raw = await response.text();
 	if (raw.length > 500_000)
