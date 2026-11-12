@@ -1,5 +1,28 @@
 # DIF Studio — Evidence Bundle
 
+## DIF-REL-001 / CD07 — release evidence (2026-11-12; HEAD revalidation pending)
+
+**Work orders:** DIF-MVP-ALL-001 and DIF-REL-001 (#15). **Branch / PR:** feat/dif-studio-mvp-001 / #14. The content below supersedes older historical `BLOCKED` statements only for the described gates. Historical CD01–CD06 evidence is preserved later in this file.
+
+### Independently observed proof
+
+- Base tested before V1 release extension: `116ef12157df6fa8ccbddba83bfa830c5a53b7ef` (GitHub actions runs `43100856029` and `43100849986`, baseline, PgTAP/RLS, authenticated Playwright 9/9 PASS). Production `https://dif-studio.vercel.app` at this SHA was `READY`, exact alias confirmed.
+- Independent owner smoke (reported in the owner-supplied production acceptance screenshots) exercised real owner SSR login, season/characters/lore, episodes 1 and 2, 120 s/15 scenes, 1/2 verified votes and approval of canon, scene edits/reorder, Cloudinary private image/signatures, ZIP media/download and unauthorized/CSRF protections. This was on CD06-era production; author report includes SHA requirement `b23d40c` or newer, met by prior Vercel deployment. The report explicitly notes a 235-byte test frame and large ZIP risk.
+- **Live Gemini V1 generation PASS:** Vercel deployment `dpl_AQwvQM1XkN1Q6Jh8J1QoJLpV21SW` `READY`, code `c814e05b7618d43b5599400ae84ec084542a3393`. Opt-in test `src/lib/server/ai-episode.live.test.ts` requested a single real Gemini 3.5 Flash-Lite episode with synthetic context, using the sensitive Production API key; HTTP 200, finish STOP, 20,833 characters and ~5,437 output tokens. JSON structurally parsed; Zod confirmed exactly **120 seconds**, **15 scenes**, **two distinct choices**, individual English start/end/motion prompts and TikTok/Instagram metadata; one live test PASS. No real owner database record or secret was logged or changed.
+- **Prevented invalid AI releases:** earlier live experiments returned 503 transient, unsupported structured-schema 400, and short narration; validation rejected all and did not insert them. A revised compatible `responseJsonSchema`, explicit ~290-word narration target and strict Zod verification produced the PASS above. Live test is disabled in ordinary CI to avoid automatic API expense.
+- **Large-media mitigation implemented:** `src/lib/domain/export-size.ts` counts raw READY attachment byte sizes (including repeated positions) with 3,000,000-byte budget, rejecting oversize full ZIPs before output. `?media=lite` retains all scripts/Flow prompts/SRT and supplies relative owner-authorized signed-original download paths, avoiding the Vercel response size cap. `/api/media/[assetId]?download=1` only signs a 180-second Cloudinary original for the authenticated owner, with no-store and no-referrer. Tests include heavy frame fallback, invalid mode, signed direct redirect and no nonowner access. Full small ZIP behavior is preserved.
+- **Dependencies:** previous 7 transitive advisories (4 LOW, 3 MODERATE), no known HIGH/CRITICAL in high-threshold audit; revalidate on release SHA.
+- **No forced upgrades, paid services, secret publication or auto-merge.** Cloudinary credential previously shared in chat must be rotated and verified in Vercel. Owner recovery address remains an operations follow-up; do not claim recovery delivery was tested.
+
+### Final release gates
+- [ ] Latest branch SHA: Prettier, lint, typecheck, Vitest including new ZIP tests, build, policy/dependency audit PASS.
+- [ ] Exact same SHA: hosted PgTAP/RLS + owner-synthetic E2E PASS without regressions.
+- [ ] Independent audit of diffs, security/privacy and data correctness.
+- [ ] Only after APPROVED: checkpoint promotion, squash merge PR #14, full production deployment at resulting `main` SHA, post-deploy smoke, close #15, reconcile canonical docs.
+
+---
+
+
 - **Work Order:** `DIF-MVP-ALL-001`
 - **Correction Delta:** `CD06`
 - **Repository:** `KayzenRoot/dep-instfinal`
