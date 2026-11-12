@@ -59,16 +59,21 @@
 </div>
 <Panel eyebrow="DOWNLOAD" title="Criar pacote ZIP"
 	><p class="quiet">
-		O pacote é montado durante o download. Cada imagem exige uma sessão autenticada e é obtida por
-		uma URL assinada de curta duração que não aparece no arquivo.
+		Baixe o pacote completo quando os frames somarem até 3 MB. Para imagens grandes, use o ZIP leve
+		com todos os roteiros, prompts, legendas e links privados para baixar cada quadro original
+		diretamente do Cloudinary, sem o limite de resposta da Vercel.
 	</p>
 	<a
 		class="download-button"
 		href={resolve('/api/export/[episodeId]', { episodeId: data.episode.id })}
-		>Baixar pacote de produção <span aria-hidden="true">↓</span></a
+		>ZIP com imagens (até 3 MB) <span aria-hidden="true">↓</span></a
+	>
+	<a
+		class="download-button download-button-secondary"
+		href={`${resolve('/api/export/[episodeId]', { episodeId: data.episode.id })}?media=lite`}
+		>ZIP leve: roteiro, prompts e links de frames <span aria-hidden="true">↓</span></a
 	></Panel
 >
-
 <style>
 	.export-grid {
 		display: grid;
@@ -127,6 +132,12 @@
 		font-size: 0.8rem;
 		font-weight: 650;
 		text-decoration: none;
+	}
+	.download-button-secondary {
+		margin-top: 0.6rem;
+		background: transparent;
+		color: var(--paper);
+		border-color: var(--line);
 	}
 	.back-link {
 		color: var(--muted);
