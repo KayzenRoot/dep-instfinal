@@ -62,7 +62,6 @@ Limits and security:
 
 Production hosting is not provisioned by this Work Order. Before a separate deployment authorization, select a Node host, configure TLS and strict trusted-proxy behavior, secure env secrets, set exact Supabase redirect URLs, test owner auth/RLS and Cloudinary authenticated delivery, review backups, and run the release Evidence Bundle. Do not deploy from this branch automatically.
 
-
 ## Current Vercel V1 operations (DIF-REL-001, 2026-11-12)
 
 - **Production:** https://dif-studio.vercel.app, official free `vercel.app` URL, no custom domain. Use Node 24, SvelteKit Vercel adapter for serverless SSR. The Vercel production deployment is reconciled to the merged `main` SHA after passing release gates.

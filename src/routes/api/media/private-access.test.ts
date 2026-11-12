@@ -313,5 +313,4 @@ describe('private media authorization and export', () => {
 		expect(cloudinary.utils.private_download_url).not.toHaveBeenCalled();
 		expect(fetch).not.toHaveBeenCalled();
 	});
-
 });

@@ -15,13 +15,13 @@
 - **No forced upgrades, paid services, secret publication or auto-merge.** Cloudinary credential previously shared in chat must be rotated and verified in Vercel. Owner recovery address remains an operations follow-up; do not claim recovery delivery was tested.
 
 ### Final release gates
+
 - [ ] Latest branch SHA: Prettier, lint, typecheck, Vitest including new ZIP tests, build, policy/dependency audit PASS.
 - [ ] Exact same SHA: hosted PgTAP/RLS + owner-synthetic E2E PASS without regressions.
 - [ ] Independent audit of diffs, security/privacy and data correctness.
 - [ ] Only after APPROVED: checkpoint promotion, squash merge PR #14, full production deployment at resulting `main` SHA, post-deploy smoke, close #15, reconcile canonical docs.
 
 ---
-
 
 - **Work Order:** `DIF-MVP-ALL-001`
 - **Correction Delta:** `CD06`

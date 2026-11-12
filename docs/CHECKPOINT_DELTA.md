@@ -12,7 +12,6 @@
 
 ---
 
-
 - **Work Order:** `DIF-MVP-ALL-001`
 - **Repository / branch / PR:** `KayzenRoot/dep-instfinal` / `feat/dif-studio-mvp-001` / Draft PR #14
 - **CD06 base HEAD revalidated:** `d5e43f258101af8388d030554c6ca9c0084d7309`

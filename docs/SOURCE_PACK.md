@@ -144,7 +144,6 @@ A real logical backup/restore was executed against the hosted project and a loca
 
 See GitHub issue #15 (DIF-REL-001) and this branch's Evidence Bundle for acceptance.
 
-
 ## Release decision ADR-DIF-V1-007 — 2026-11-12 (APPROVED SCOPE, PENDING RELEASE VERDICT)
 
 - **Scope:** owner authorized full V1 production readiness and later V2 planning, conditional on objective verification of all NECESSARY V1 requirements. PR #14 remains the sole incremental integration path; no speculative new features.
