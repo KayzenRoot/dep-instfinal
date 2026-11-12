@@ -25,6 +25,12 @@
 			glyph: 'library',
 		},
 		{
+			path: '/app/video',
+			href: resolve('/app/video'),
+			label: 'Clipes',
+			glyph: 'film',
+		},
+		{
 			path: '/app/continuity',
 			href: resolve('/app/continuity'),
 			label: 'Votações e cânone',

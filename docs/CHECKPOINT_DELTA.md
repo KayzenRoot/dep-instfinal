@@ -1,5 +1,17 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-003 — Private Flow clip ingest + Cloudflare R2 (2026-11-12) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; implementation and local tests **PASS**; **live R2 acceptance BLOCKED** until a bucket-scoped token and CORS/lifecycle are configured. WO-004+ remains **BLOCKED**.
+- **Base:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9`; branch `feat/dif-v2-wo-003`.
+- **Delivered:** additive `video_upload_sessions`/`video_assets` migration with owner-only RLS; Cloudflare R2 S3 adapter + in-memory test adapter; ffprobe/fixture probe; multipart upload, completion, quarantine, SHA-256, signed download, list/resume routes; `/app/video` UI with episode/scene selection, multi-file reorder and protected preview.
+- **Tests:** PgTAP **33/33**; unit probe/storage/schemas; policy audit **18 invariants/16 tables**; lint/typecheck/build PASS; E2E **10/10**, including the 15-clip batch with reload.
+- **R2:** bucket `dif-studio-video-private` created and private; token/CORS/lifecycle pending manual provisioning. No credential committed.
+- **Risks/limits:** live R2 upload/read not proven; real ffprobe runs only in the future worker (WO-005); completion hash of large files should run in the worker; poster generation and orphan GC are pending.
+- **Gate:** WO-003 must be `APPROVED` before WO-004+; no checkpoint promotion, production deploy, paid service or spend occurred.
+
+---
+
 ## DIF-V2-WO-002 — Oracle ARM64 benchmark (2026-11-12) — PROPOSED
 
 - **Status:** **PROPOSED — NOT PROMOTED**; benchmark **GO CONDITIONAL**; evidence **APPROVED** by independent audit (2026-11-12); WO-003+ remains **BLOCKED** until ADR-V2-002/storage and owner authorization.

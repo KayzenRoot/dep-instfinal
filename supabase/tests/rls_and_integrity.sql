@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(28);
+select plan(33);
 
 do $$
 declare
@@ -10,7 +10,7 @@ declare
   v_tables text[] := array[
     'series', 'seasons', 'characters', 'lore_facts', 'episodes', 'episode_revisions',
     'media_assets', 'scenes', 'choices', 'polls', 'poll_results', 'canonical_decisions',
-    'image_references', 'generation_jobs'
+    'image_references', 'generation_jobs', 'video_upload_sessions', 'video_assets'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -748,6 +748,73 @@ begin
   end if;
 end;
 $$;
+
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+
+insert into public.video_upload_sessions (
+  id, episode_id, scene_id, idempotency_key, quarantine_key, part_size_bytes, total_bytes
+) values (
+  'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0',
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  (select id from public.scenes where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+  'idem-video-owner-001',
+  'quarantine/11111111-1111-4111-8111-111111111111/e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0/source',
+  8388608,
+  1048576
+);
+
+select ok(
+  exists (
+    select 1 from public.video_upload_sessions
+    where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0'
+  ),
+  'owner can create a private video upload session'
+);
+
+insert into public.video_assets (
+  id, owner_id, episode_id, scene_id, asset_version, bucket, object_key, status
+) values (
+  'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0',
+  '11111111-1111-4111-8111-111111111111',
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  (select id from public.scenes where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+  1,
+  'dif-studio-video-private',
+  'owners/11111111-1111-4111-8111-111111111111/episodes/cccccccc-cccc-4ccc-8ccc-cccccccccccc/scenes/f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0/v1/f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0.mp4',
+  'QUARANTINED'
+);
+
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+
+select is(
+  (select count(*) from public.video_upload_sessions),
+  0::bigint,
+  'second owner cannot read the first owner video upload session'
+);
+
+select throws_ok(
+  $$insert into public.video_assets (
+      owner_id, episode_id, scene_id, asset_version, bucket, object_key, status
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      (select id from public.scenes where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+      2,
+      'dif-studio-video-private',
+      'owners/11111111-1111-4111-8111-111111111111/episodes/cccccccc-cccc-4ccc-8ccc-cccccccccccc/scenes/spoofed/v2/spoofed.mp4',
+      'QUARANTINED'
+    );$$,
+  '42501',
+  'new row violates row-level security policy for table "video_assets"',
+  'second owner cannot create a video asset for the first owner'
+);
+
+select ok(
+  not has_table_privilege('anon', 'public.video_assets', 'SELECT'),
+  'anonymous role has no video asset table privilege'
+);
+
+select pass('video upload and asset RLS isolate owners and hide anonymous access');
 
 select pass('single-owner RLS, append-only history, revisions, voting, and immutable publication invariants hold');
 select * from finish();

@@ -1,0 +1,23 @@
+DIF-V2-WO-003 — Cloudflare R2 provisioning state
+Date: 2026-11-12
+
+Bucket: dif-studio-video-private
+Public access: not enabled
+Account: authenticated Cloudflare account (account ID not reproduced here)
+Token: NOT CREATED — dashboard token widget (Base UI combobox) could not be reliably
+selected by automation; wrangler OAuth does not expose token-creation scope.
+CORS: NOT CONFIGURED — pending token/provisioning.
+Lifecycle: NOT CONFIGURED — pending token/provisioning.
+
+No credential, access key, secret key or signed URL is stored in this file.
+The private env file is C:\Users\csn19\.zcode\dif-secrets\r2.env (git-ignored, outside repo).
+
+Required live-acceptance steps:
+1. Create an Account API token in Cloudflare R2 with Object Read & Write, scoped to
+   dif-studio-video-private.
+2. Save R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET and R2_ENDPOINT
+   in the private env file.
+3. Run: npm run check:r2
+4. Configure CORS for http://127.0.0.1:4173 and https://dif-studio.vercel.app with
+   PUT/GET/HEAD and ExposeHeaders: ETag.
+5. Re-run live upload acceptance with 15 clips and verify SHA-256, signed read and expiry.

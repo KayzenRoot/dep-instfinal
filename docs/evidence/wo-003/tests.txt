@@ -1,0 +1,49 @@
+DIF-V2-WO-003 — local verification evidence
+Date: 2026-11-12
+Base: b0f78064a2a5902acc98c20efc92648ec540b7e9
+Branch: feat/dif-v2-wo-003
+
+1) PgTAP / RLS
+Command: supabase test db
+Result: All tests successful. Files=1, Tests=33, 5 wallclock secs. Result: PASS.
+Coverage: 16 owner-scoped tables, including video_upload_sessions and video_assets.
+
+2) Unit tests
+Command: npm test
+Result: Test Files 13 passed | 1 skipped (14); Tests 61 passed | 1 skipped (62).
+New coverage: video-probe 7, video-storage 4, video schemas 5.
+
+3) Lint
+Command: npm run lint
+Result: exit 0, no errors/warnings.
+
+4) Typecheck
+Command: npm run typecheck
+Result: svelte-check found 0 errors and 0 warnings.
+
+5) Build
+Command: npm run build
+Result: built successfully with adapter-node; copy/compress assets done.
+
+6) Policy audit
+Command: npm run audit:policy
+Result: PASS 18 policy invariants across 16 tables, including:
+- video metadata tables force owner-only RLS
+- video upload is owner-scoped, idempotent, bounded and quarantined
+- video storage is private, multipart and short-lived signed
+
+7) E2E (fresh server, CI=1)
+Command: CI=1 node scripts/test-local-e2e.mjs
+Result: 10 passed (7.6m).
+Including: e2e/video-upload.spec.ts — owner uploads 15 synthetic scene clips to 15 scenes,
+associates them, verifies READY assets, anonymous /api/video returns 401, reload preserves 15 assets.
+
+8) Dependency audit
+Command: npm run audit:deps
+Result: 7 vulnerabilities (4 low, 3 moderate), no high/critical; known transitive advisories.
+
+Notes:
+- E2E uses VIDEO_STORAGE_DRIVER=memory and VIDEO_PROBE_DRIVER=fixture; this proves the UI/API/DB
+  contract without R2 credentials. It does not prove live R2 upload/read.
+- The synthetic MP4 fixture is e2e/fixtures/synthetic-scene.mp4 (4 KiB, ftyp header only).
+- No production deploy, paid service or secret in Git/logs.

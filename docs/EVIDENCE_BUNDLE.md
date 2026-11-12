@@ -1,5 +1,27 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-003 — Private Flow clip ingest + Cloudflare R2 (2026-11-12)
+
+- **Work Order:** `DIF-V2-WO-003` · issue #20 · epic #17
+- **Base:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9` (WO-002 merge)
+- **Branch:** `feat/dif-v2-wo-003`
+- **Status:** implementation and local tests **PASS**; **live R2 acceptance BLOCKED** until the bucket-scoped R2 token is created manually and CORS/lifecycle are configured. Checkpoint V2 remains **PROPOSED — NOT PROMOTED**.
+
+| Check                   | Result                | Evidence                                                                                                                                                                                  |
+| ----------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scope                   | PASS (code/docs only) | Additive migration, R2/in-memory storage adapter, ffprobe/fixture probe, upload/complete/list/download routes, `/app/video`, schemas, unit/PgTAP/E2E tests; no production deploy or spend |
+| Database/RLS            | PASS                  | `20261112170000_v2_wo003_video_storage.sql`; `video_upload_sessions`/`video_assets`; `supabase test db` **33/33**                                                                         |
+| Unit tests              | PASS                  | probe 7, storage 4, schemas 5; full suite **61 passed + 1 skipped**                                                                                                                       |
+| Policy audit            | PASS                  | `npm run audit:policy`: 18 invariants across 16 tables                                                                                                                                    |
+| Lint/typecheck/build    | PASS                  | `npm run lint`; `npm run typecheck` 0/0; `npm run build`                                                                                                                                  |
+| E2E 15 clips + reload   | PASS                  | `e2e/video-upload.spec.ts` uploads 15 synthetic fixtures to 15 scenes and reloads; full suite **10/10 passed** with a fresh server                                                        |
+| R2 bucket               | PASS (manual)         | `dif-studio-video-private` created; public access not enabled                                                                                                                             |
+| R2 token/CORS/lifecycle | BLOCKED               | Dashboard token widget cannot be reliably automated; wrangler OAuth lacks token-creation scope; no secret committed                                                                       |
+| Live R2 upload/read     | BLOCKED               | Requires token + CORS; `VIDEO_STORAGE_DRIVER=r2` returns 503 until configured                                                                                                             |
+| Safety                  | PASS                  | No production deploy, paid service, credential in Git/logs, or checkpoint promotion                                                                                                       |
+
+**Verdict:** WO-003 implementation is locally testable and the storage contract is in place, but the issue is **not complete**: live R2 acceptance, real ffprobe worker validation and orphan GC remain. WO-004+ stays blocked until WO-003 is APPROVED.
+
 ## V2 WO-002 — Oracle ARM64 benchmark (2026-11-12)
 
 - **Work Order:** `DIF-V2-WO-002` · issue #19 · epic #17

@@ -6,6 +6,10 @@ const narrativeMigration = await readFile(
 	'supabase/migrations/20261110135310_narrative_manual_import.sql',
 	'utf8',
 );
+const videoMigration = await readFile(
+	'supabase/migrations/20261112170000_v2_wo003_video_storage.sql',
+	'utf8',
+);
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -19,12 +23,21 @@ const promptRoute = await readFile(
 	'utf8',
 );
 const narrativeExport = await readFile('src/routes/api/export/[episodeId]/+server.ts', 'utf8');
-
-const tables = [...migration.matchAll(/^create table public\.(\w+)\s*\(/gm)].map(
-	(match) => match[1],
+const videoUpload = await readFile('src/routes/api/video/uploads/+server.ts', 'utf8');
+const videoComplete = await readFile(
+	'src/routes/api/video/uploads/[sessionId]/complete/+server.ts',
+	'utf8',
 );
+const videoAssets = await readFile('src/lib/server/video-assets.ts', 'utf8');
+const videoStorage = await readFile('src/lib/server/video-storage.ts', 'utf8');
+const videoDownload = await readFile('src/routes/api/video/[assetId]/+server.ts', 'utf8');
+
+const tables = [
+	...migration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...videoMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+].map((match) => match[1]);
 const checks = [
-	['14 owner-scoped public tables', tables.length === 14],
+	['16 owner-scoped public tables', tables.length === 16],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -109,6 +122,34 @@ const checks = [
 		narrativeExport.includes("name: 'narrative/context.json'") &&
 			narrativeExport.includes("name: 'narrative/continuation-prompt.md'") &&
 			narrativeExport.includes('loadNarrativeContext'),
+	],
+	[
+		'video metadata tables force owner-only RLS',
+		videoMigration.includes('enable row level security') &&
+			videoMigration.includes('force row level security') &&
+			videoMigration.includes('owner_id = (select auth.uid())') &&
+			videoMigration.includes("dif_studio_owner") &&
+			videoMigration.includes('video_upload_sessions') &&
+			videoMigration.includes('video_assets'),
+	],
+	[
+		'video upload is owner-scoped, idempotent, bounded and quarantined',
+		videoUpload.includes('ownerDatabase(event)') &&
+			videoUpload.includes('videoUploadInitSchema') &&
+			videoComplete.includes('getVideoProbe') &&
+			videoComplete.includes('completeUploadSession') &&
+			videoAssets.includes('idempotency_key') &&
+			videoAssets.includes("status: ready ? 'READY' : 'QUARANTINED'") &&
+			videoAssets.includes('hasMp4Magic') &&
+			videoAssets.includes('validateProbe'),
+	],
+	[
+		'video storage is private, multipart and short-lived signed',
+		videoStorage.includes('CreateMultipartUploadCommand') &&
+			videoStorage.includes('signDownload') &&
+			videoStorage.includes('expiresInSeconds') &&
+			videoDownload.includes('getVideoAssetForDownload') &&
+			videoDownload.includes("'cache-control': 'private, no-store'"),
 	],
 ];
 
