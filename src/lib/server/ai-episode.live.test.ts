@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
 	buildEpisodeGenerationPrompt,
 	generateEpisodeJson,
@@ -35,6 +35,20 @@ describe.skipIf(process.env.RUN_LIVE_AI_TEST !== '1')('real Gemini episode accep
 			priorEpisodes: [],
 			latestPreviousCanon: null,
 		};
+		// Safe diagnostics only: no prompt text, API key, headers or response body.
+		const originalFetch = globalThis.fetch.bind(globalThis);
+		vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+			const response = await originalFetch(input, init);
+			const safe = (await response.clone().json().catch(() => ({}))) as {
+				candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
+				usageMetadata?: { candidatesTokenCount?: number };
+			};
+			const candidate = safe.candidates?.[0];
+			console.info(
+				`Gemini diagnostic HTTP=${response.status}, finishReason=${candidate?.finishReason ?? 'unknown'}, outputChars=${candidate?.content?.parts?.reduce((n, p) => n + (p.text?.length ?? 0), 0) ?? 0}, outputTokens=${safe.usageMetadata?.candidatesTokenCount ?? 0}`,
+			);
+			return response;
+		});
 		const prompt = buildEpisodeGenerationPrompt(context, 120000, 8000);
 		const result = validateGeneratedEpisode(await generateEpisodeJson(prompt), 120000, 8000, false);
 		expect(result.scenes).toHaveLength(15);
