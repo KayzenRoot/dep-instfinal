@@ -4,6 +4,7 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { v2 as cloudinary } from 'cloudinary';
 import { buildSrt, csvCell, formatSrtTime } from '#lib/domain/timeline.js';
+import { exceedsZipMediaBudget } from '#lib/domain/export-size.js';
 import { renderNarrativePrompt } from '#lib/domain/narrative-context.js';
 import { ownerDatabase } from '#lib/server/authorized.js';
 import { getAppConfig } from '#lib/server/config.js';
@@ -15,6 +16,9 @@ function safeTime(value: number): string {
 }
 
 export const GET: RequestHandler = async (event) => {
+	const mediaMode = event.url.searchParams.get('media') ?? 'full';
+	if (mediaMode !== 'full' && mediaMode !== 'lite') error(400, 'Modo de exportação inválido.');
+	const includeMedia = mediaMode === 'full';
 	const { db, owner } = ownerDatabase(event);
 	const config = getAppConfig();
 	const { data: episode, error: episodeError } = await db
@@ -69,12 +73,25 @@ export const GET: RequestHandler = async (event) => {
 	const { data: assets, error: assetError } = assetIds.length
 		? await db
 				.from('media_assets')
-				.select('id,public_id,resource_type,delivery_type,format,upload_status')
+				.select('id,public_id,resource_type,delivery_type,format,upload_status,byte_size')
 				.eq('owner_id', owner.id)
 				.in('id', assetIds)
 		: { data: [], error: null };
 	if (assetError) error(503, 'Não foi possível validar os quadros vinculados.');
 	const assetsById = new Map((assets ?? []).map((asset) => [asset.id, asset]));
+	if (includeMedia) {
+		const rawMediaSizes = sceneMedia.flatMap((entry) => {
+			const asset = assetsById.get(entry.assetId);
+			return asset?.upload_status === 'READY' &&
+				asset.resource_type === 'image' &&
+				['authenticated', 'private'].includes(asset.delivery_type)
+				? [Number(asset.byte_size ?? 0)]
+				: [];
+		});
+		if (exceedsZipMediaBudget(rawMediaSizes)) {
+			error(413, 'As imagens excedem o limite do ZIP na Vercel. Use o pacote ZIP leve e baixe os quadros individualmente na biblioteca.');
+		}
+	}
 	const metadata = episode.platform_metadata ?? {};
 	const targetPlatforms = Array.isArray(metadata.target_platforms) ? metadata.target_platforms : [];
 	const aiDisclosure = String(metadata.ai_disclosure ?? '').trim();
@@ -136,6 +153,8 @@ export const GET: RequestHandler = async (event) => {
 	const manifest = {
 		format: 'dif-studio-flow-package/v1',
 		createdAt: new Date().toISOString(),
+		mediaMode,
+		mediaInstructions: 'In the lightweight ZIP, download each frame from the authenticated DIF Studio media route.',
 		series: series?.title ?? '',
 		season: season?.title ?? '',
 		episode: {
@@ -193,6 +212,7 @@ export const GET: RequestHandler = async (event) => {
 		})),
 		warnings: [] as string[],
 	};
+	if (mediaMode === 'lite') manifest.warnings.push('MEDIA_EXCLUDED_FROM_LIGHTWEIGHT_ZIP');
 	if (!scenes.length) manifest.warnings.push('NO_SCENES');
 	if (!srt) manifest.warnings.push('NO_NARRATION_FOR_CAPTIONS');
 	if (choices.length !== 2 && !isSeasonFinale) manifest.warnings.push('TWO_CHOICES_MISSING');
@@ -369,6 +389,7 @@ export const GET: RequestHandler = async (event) => {
 	void (async () => {
 		const missing: Array<{ scene: number; position: string; assetId: string; reason: string }> = [];
 		if (
+			includeMedia &&
 			sceneMedia.length &&
 			config.cloudinaryConfigured &&
 			config.cloudinaryCloudName &&
@@ -428,8 +449,24 @@ export const GET: RequestHandler = async (event) => {
 					scene: entry.sceneIndex,
 					position: entry.position,
 					assetId: entry.assetId,
-					reason: 'CLOUDINARY_NOT_CONFIGURED',
+					reason: includeMedia ? 'CLOUDINARY_NOT_CONFIGURED' : 'MEDIA_EXCLUDED_FROM_LIGHTWEIGHT_ZIP',
 				});
+		}
+		if (!includeMedia) {
+			const instructions = [
+				'# Download original private frames',
+				'',
+				'Sign in as the DIF Studio owner, then open each link while signed in.',
+				'The application checks ownership and redirects to a short-lived signed Cloudinary URL.',
+				'The original image bytes bypass the Vercel Functions 4.5 MB response limit.',
+				'',
+				...sceneMedia.map((entry) => {
+					const frame = String(entry.sceneIndex).padStart(2, '0');
+					return `Scene ${frame} ${entry.position}: /api/media/${entry.assetId}?download=1`;
+				}),
+				'',
+			].join('\n');
+			archive.append(instructions, { name: 'media/download-originals.md' });
 		}
 		archive.append(`${JSON.stringify(missing, null, 2)}\n`, { name: 'missing_frames.json' });
 		await archive.finalize();
