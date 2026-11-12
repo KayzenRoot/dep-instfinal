@@ -2,13 +2,13 @@
 
 ## DIF-REL-001 / CD07 approved checkpoint delta (2026-11-12)
 
-- **Status:** APPROVED FOR MERGE after independent audit and full CI on code SHA 8ebf44acf827f0a14ac85bd380785574d378a6e8; final main deployment verification pending.
+- **Status:** COMPLETED — PR #14 squash-merged into main SHA 441888e7ca1a80f038d97a7392a9da406eb88239; Vercel Production READY on that exact SHA and public-route smoke PASS.
 - **Objective:** close V1 with approved Gemini narrative generation and robust Flow/CapCut ZIP workflow within Vercel Hobby response limits.
 - **Source of truth:** Work Order DIF-MVP-ALL-001, issue #15 DIF-REL-001, Source Pack ADR-DIF-V1-007, latest Evidence Bundle. CD06 historical checkpoints remain below.
 - **Delivered:** SvelteKit Vercel production URL, owner-only Supabase Auth/RLS, Cloudinary private media, Gemini 3.5 Flash-Lite validated server-side JSON 120 s + 15 scenes + 2 options + social/Flow prompts; full ZIP with conservative 3 MB media ceiling; lite ZIP with individual owner-checked Cloudinary 180-second original downloads.
 - **Live AI acceptance:** `dpl_AQwvQM1XkN1Q6Jh8J1QoJLpV21SW` READY, real Gemini 3.5 Flash-Lite HTTP200 and schema/Zod validated; synthetic storyline, no production data persisted. Real CD06 owner journey validated previously; later extension remains subject to HEAD-wide CI and audit.
 - **Risk register:** Cloudinary secret shared in chat (rotation required); Supabase owner recovery email requires safe ownership; short-lived signed links and free quota; Vercel ZIP cap and live model transient errors. No known HIGH/CRITICAL from previous audit; verify latest HEAD.
-- **Audit and approval:** full GitHub CI PASS on code SHA 8ebf44ac (PR 43217394260 and push 43217385062): 45/45 unit, PgTAP/RLS, 9/9 E2E, lint/typecheck/build and audits. Gemini live test PASS and production branch deployment READY. Independent review found no HIGH/CRITICAL defects. This checkpoint is promoted to APPROVED for release; squash merge and exact main production verification remain the final operational steps before V1 completion. V2 is not started.
+- **Audit and approval:** full GitHub CI PASS on code SHA 8ebf44ac (PR 43217394260 and push 43217385062): 45/45 unit, PgTAP/RLS, 9/9 E2E, lint/typecheck/build and audits. Gemini live test PASS and production branch deployment READY. Independent review found no HIGH/CRITICAL defects. This checkpoint is now COMPLETED: squash merge and exact main production verification passed. V2 has not yet been implemented.
 
 ---
 
@@ -84,3 +84,14 @@
 CD06 closes the functional gaps for issues #3, #6, #8, #9, #11, and #12 and records a real logical backup/restore for #4/#13: restored counts matched, owner login returned 200, anonymous REST returned 401, and the restored Cloudinary asset hash matched. Hosted PR `43080981120` and push `43080968791` passed at final code/test HEAD `b23d40c` (PgTAP 28 tests; E2E 9 passed in 2.3 minutes, no retry); unit tests are 28/28. The independent reviewer agent returned **APPROVED** with no HIGH/CRITICAL findings; three LOW residuals are documented. The temporary Cloudflare quick tunnel remains an owner-authorized private exposure, not a production deployment. Keep PR #14 open and Draft; keep this checkpoint **PROPOSED — NOT PROMOTED** with proposed verdict **APPROVED — ready for owner promotion**. No merge, production deployment, paid spend, new external project, or checkpoint promotion occurred.
 
 CD01–CD05 history remains in `docs/CONTEXT_LOCK.md`; detailed evidence is in `docs/EVIDENCE_BUNDLE.md`.
+
+## V1 completion record — 2026-11-12
+
+- **Version:** V1.0, status `FUNCIONAL + TESTADA + DOCUMENTADA + DEPLOYADA + VALIDADA` within the accepted private single-owner scope and documented manual video production.
+- **MVP PR:** #14 `MERGED` via squash. Base branch `main`, merge commit SHA `441888e7ca1a80f038d97a7392a9da406eb88239`.
+- **Issue:** #15 `CLOSED` with state reason completed; issues #1–#13 `CLOSED`.
+- **Production:** `https://dif-studio.vercel.app`; deployment `dpl_FEpLGWcuPCGRU9tN8A1BdWwbB32G` `READY` exactly on the merge SHA. Public smoke `dpl_8eG3Yg75Ffc5KFDxDdeyDtiRD4eh` `READY`, health/login HTTP 200 and owner-only app redirect 303 when anonymous.
+- **Final tested PR SHA:** `0a93b3f68638ddc56f1337578c3ecb4a9928c5f3`; PR run `43218862212` PASS, push run `43218854310` PASS. Includes baseline, typecheck/lint/build, 45 unit tests, PgTAP/RLS and 9 authenticated E2E tests.
+- **Real provider acceptance:** Vercel `dpl_AQwvQM1XkN1Q6Jh8J1QoJLpV21SW` READY, Gemini 3.5 Flash-Lite returned valid 120s/15-scene JSON accepted by Zod, two distinct narrative choices and TikTok/Instagram prompts. Earlier production owner smoke verified Supabase Auth, canon, Cloudinary privacy and media ZIP. Human owner remains responsible for editorial quality and platform upload.
+- **Residual operations:** rotate previously shared Cloudinary secret, confirm usable owner recovery address, track free-tier quotas, monitor LOW/MODERATE dependencies. These are documented risks, not reasons to misrepresent completed operations.
+- **Source hierarchy:** checkpoint status promoted to COMPLETED after objective audit; historical CD01–CD06 evidence below remains archived. Next work is V2 planning only, no automatic feature expansion.
