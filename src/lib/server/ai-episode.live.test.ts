@@ -48,10 +48,11 @@ describe.skipIf(process.env.RUN_LIVE_AI_TEST !== '1')('real Gemini episode accep
 					content?: { parts?: Array<{ text?: string }> };
 				}>;
 				usageMetadata?: { candidatesTokenCount?: number };
+				error?: { code?: number; status?: string; message?: string };
 			};
 			const candidate = safe.candidates?.[0];
 			console.info(
-				`Gemini diagnostic HTTP=${response.status}, finishReason=${candidate?.finishReason ?? 'unknown'}, outputChars=${candidate?.content?.parts?.reduce((n, p) => n + (p.text?.length ?? 0), 0) ?? 0}, outputTokens=${safe.usageMetadata?.candidatesTokenCount ?? 0}`,
+				`Gemini diagnostic HTTP=${response.status}, finishReason=${candidate?.finishReason ?? 'unknown'}, outputChars=${candidate?.content?.parts?.reduce((n, p) => n + (p.text?.length ?? 0), 0) ?? 0}, outputTokens=${safe.usageMetadata?.candidatesTokenCount ?? 0}, errorStatus=${safe.error?.status ?? 'none'}, errorDetail=${safe.error?.message?.slice(0, 175).replace(/[A-Za-z0-9_-]{28,}/g, '[redacted]') ?? 'none'}`,
 			);
 			return response;
 		});
