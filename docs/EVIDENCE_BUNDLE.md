@@ -1,5 +1,25 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-001 — V1 gate closure + V2 planning/ADR (2026-11-12)
+
+- **Work Order:** `DIF-V2-WO-001` · issue #18 · epic #17
+- **Base:** `main` `13467ab009e0eaaee1be6ba2e35678228cfbdf32` (after PR #16 squash merge)
+- **Branch:** `docs/dif-v2-wo-001`
+- **Status:** documentation complete; **V2 implementation BLOCKED** pending ADR acceptance and WO-002 environment authorization.
+
+| Check               | Result           | Evidence                                                                                                                                                                                                             |
+| ------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V1 gate PR #16      | PASS             | Draft/mergeable CLEAN, CI `43220790406` PASS, Vercel preview success; independent reviewer **APPROVED** with net diff only in the three V1 docs. Squash-merged without bypass at `13467ab`.                          |
+| Post-merge V1 smoke | PASS             | `/health` 200, `/login` 200, anonymous `/app` 303. Exact Vercel deployment SHA not independently verifiable without a Vercel credential; the production alias responds as documented.                                |
+| WO-001 scope        | PASS (docs only) | `docs/ADR_V2_PROPOSED.md`, `docs/V2_EXECUTION_PLAN.md`, Source Pack V2 addendum, V2 Context Lock, this Evidence Bundle section, Checkpoint Delta. No code, schema, migration, worker, storage, deployment or secret. |
+| ADR V2              | PASS (PROPOSED)  | Architecture options A–E, proposed worker/storage/queue contract, costs/risks/rollback, explicit owner-acceptance gate. No implementation authorized.                                                                |
+| Inventory/graph     | PASS             | 28 WOs #18–#45, 20 improvements with 1:1 ownership, 6 addenda, explicit vs proposed edges, cycle check, key constraints (WO-024→WO-025; WO-013 final; WO-014 terminal; WO-026 needs WO-019+WO-025).                  |
+| Context Lock        | PASS             | Base SHA, critical-source SHA-256 fingerprints, issue states, tool capacity (`ffmpeg`/`ffprobe` absent, Oracle VPS unverified), budget, stale triggers.                                                              |
+| V2 implementation   | BLOCKED          | Epic #17 is PLANNED/PROPOSED; all 28 WOs are OPEN/UNAPPROVED; ADR-V2-001 is not accepted; WO-002 benchmark environment is not authorized.                                                                            |
+| Tests               | PASS (docs)      | Prettier/format and docs diff; runtime tests are not applicable because no runtime file changed. Hosted CI on the WO-001 PR remains the gate.                                                                        |
+
+**Verdict:** WO-001 documentation is complete and ready for independent audit. **WO-002+ must not start** until WO-001 is APPROVED, the owner explicitly accepts ADR-V2-001, and the benchmark environment is authorized. No checkpoint promotion, merge, deploy, spend, migration or external provisioning occurred.
+
 ## FINAL V1 RELEASE — operational closure (2026-11-12)
 
 **Verdict: APPROVED / COMPLETED** for V1 private single-owner release. User authorization and independent audit were recorded before the guarded squash merge.

@@ -1,8 +1,8 @@
 # DIF Studio Source Pack
 
 **Work Order:** `DIF-MVP-ALL-001`
-**Revision:** 1.2
-**Status:** V1 COMPLETE — production code APPROVED and squash-merged to main at 441888e7ca1a80f038d97a7392a9da406eb88239; Vercel main deployment READY and public HTTPS smoke PASS. Checkpoint COMPLETED; V2 planning may begin.
+**Revision:** 1.3
+**Status:** V1 COMPLETE on `main` `13467ab`; V2 WO-001 planning docs **PROPOSED**; ADR-V2-001 awaits explicit owner acceptance; no V2 implementation authorized.
 **Last reconciled:** 2026-11-12
 
 ## Source hierarchy and context
@@ -161,3 +161,58 @@ The owner authorized the final release. GitHub PR #14 was squash-merged without 
 - **Production:** automatic Vercel deployment `dpl_FEpLGWcuPCGRU9tN8A1BdWwbB32G` READY on the exact squash SHA, `https://dif-studio.vercel.app` assigned. Independent public-route smoke in `dpl_8eG3Yg75Ffc5KFDxDdeyDtiRD4eh` READY: health/login 200 and anonymous /app 303. The owner-supplied real-account CD06 production acceptance covers authenticated workflows, private image delivery and ZIP. The extended Gemini API 120-second/15-scene structured response was validated with the real Gemini provider using synthetic context, and ZIP lite/3 MB limits were tested.
 - **Closure:** release risk LOW/STANDARD with 7 known LOW/MODERATE transient dependencies, no known HIGH/CRITICAL. Videos remain manually assembled and posted; free provider quotas must be monitored; generated content remains owner-reviewed. Rotate the Cloudinary API secret previously shared in chat and arrange owner email recovery. These are operational follow-ups, not claimed automated actions.
 - **Checkpoint:** marked COMPLETED for the V1 application code and tested main production release. This documentation-only closure follows the same review/CI/PR workflow and does not modify runtime behavior. Future V2 features require separately approved scope and work orders.
+
+## V2 addendum — DIF Studio V2 (PROPOSED, 2026-11-12)
+
+**Status:** planning only. V1 remains the canonical production product; no V2 runtime, schema, worker, storage, deploy or spend is authorized by this addendum. ADR-V2-001 is **PROPOSED** and requires explicit owner acceptance before WO-002.
+
+### Scope and backlog
+
+V2 adds a private post-production pipeline on top of V1: import manually exported Flow clips, build a canonical timeline, narrate, subtitle, mix licensed audio, apply color/VHS, direct tension, preview/correct, render vertical MP4 and package manual publication. It preserves the V1 owner-only studio, Supabase Auth/PostgreSQL/RLS, Cloudinary images, Gemini opt-in and manual Flow/posting.
+
+- **28 WOs** (#18–#45), **20 owner-approved improvements**, **6 addenda** inside existing WOs (emotion in WO-007, soundscape in WO-009, tension in WO-010, safe zones in WO-011, Quality Inspector in WO-012, Character Identity Kit in WO-017). No extra WOs.
+- Full inventory, requirement→WO→proof matrix, dependency graph and execution order: [V2 execution plan](V2_EXECUTION_PLAN.md).
+- Architecture options, costs, risks and required owner acceptance: [ADR-V2-001 PROPOSED](ADR_V2_PROPOSED.md).
+
+### Requirements (PROPOSED)
+
+- Owner-only upload, queue, preview, download and deletion of private video/audio assets; RLS and server-side owner checks on every new table and route.
+- No render inside Vercel HTTP functions. A separate FFmpeg/ffprobe CPU worker is required, with lease, heartbeat, timeout, cancel, retry and idempotency.
+- Private video storage outside PostgreSQL and outside the V1 Cloudinary image policy; provider and quota are not selected until WO-002 benchmark and a storage contract.
+- Master 9:16 1080×1920 H.264/AAC `yuv420p`; 720p fallback only if the benchmark proves it and the owner accepts. No GPU required.
+- Narration imported or local TTS only if proven; SRT/ASS by real alignment; licensed music/SFX; ducking/limiter; **simulated stereo spatial** soundscape, never Dolby Atmos.
+- Deterministic edit director; Gemini only opt-in, JSON-validated and non-executing. AI never runs shell/SQL/FFmpeg, never canonizes choices and never invents retention metrics.
+- Manual publishing kit only (MP4, cover, SRT, description, hashtags, attributions, AI disclosure). No posting automation, Flow/TikTok/Instagram scraping or unofficial access.
+- V1 preserved behind a V2 feature flag; additive migrations; published episodes, verified votes, lore and history remain immutable. Rollback to V1 is always possible.
+
+### Data model (PROPOSED — no migration yet)
+
+Proposed owner-scoped entities: `video_assets`, `edit_timelines`, `edit_versions`, `render_jobs`, `render_outputs`, `audio_assets`, `subtitle_tracks`, `sfx_assets`, `series_style_bibles`, `hook_variants`, `cover_assets`, `retention_observations`, `publishing_kits`, `season_production`. All require `owner_id`, RLS `USING`/`WITH CHECK`, foreign keys, indexes, timestamps, append-only revisions where history matters, and no binary blobs. This is a proposal, not an approved schema.
+
+### Security and operations (PROPOSED)
+
+- Worker credentials stay server-side; browser receives only publishable keys and short-lived signed URLs. No service-role key or worker secret in client, logs, artifacts or issues.
+- Upload validation covers real container/codec/PTS/VFR, size/duration/dimensions, path traversal, SSRF and malicious media. FFmpeg arguments use an allowlist with no shell interpolation; child processes have timeout and kill.
+- Quotas per owner (storage, jobs, concurrent renders), retention policy, orphan reconciliation, backup/restore with per-hash media manifest, and no destructive cleanup without verified backup.
+- V2 release is gated by a real benchmark, worker hardening, Vercel production smoke, independent audit and owner authorization. No paid service, GPU, domain or billing activation is implied.
+
+### Definition of Done V2 (PROPOSED)
+
+- WO-001…WO-028 all **APPROVED**, including the six addenda; no HIGH/CRITICAL defect open.
+- End-to-end owner flow: script/analysis → storyboard/identity/Flow manual → upload clips → timeline → voice/subtitles/SFX/color/tension → hooks and A/B endings → QA/rescue/render → master MP4 + 30/45/60 cutdowns → covers + Publishing Kit → manual aggregate analysis → Season Factory + Interactive Universe, with rollback and privacy.
+- Exact main SHA with green CI; Vercel production READY on that SHA; approved worker operational; smoke of `/health`, `/login`, owner, private API, upload, render and download; real isolated backup/restore; benchmark/quota/license evidence; independent audit; checkpoint promoted only after owner authorization.
+- Missing any proof => `PARTIAL` or `BLOCKED`, never “V2 complete”.
+
+### Decisions ledger V2 (all PROPOSED)
+
+| ID         | Decision                                                                                                                             | Status                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| ADR-V2-001 | Vercel UI/orchestration + separate CPU FFmpeg worker + private video storage; no serverless render; US$0 target subject to benchmark | PROPOSED — owner acceptance required |
+| ADR-V2-002 | Video storage provider/contract outside Postgres and outside the image Cloudinary policy                                             | PROPOSED — after WO-002              |
+| ADR-V2-003 | Job queue with lease/heartbeat/retry/cancel/idempotency; one concurrent worker initially                                             | PROPOSED                             |
+| ADR-V2-004 | One director (WO-010), one editor (WO-011), one exporter/QA (WO-012); creative WOs extend these modules                              | PROPOSED                             |
+| ADR-V2-005 | V2 feature flag; additive migrations; V1 immutable and rollback-capable                                                              | PROPOSED                             |
+
+### Gate
+
+WO-001 documentation and ADR are complete only after independent audit. **WO-002+ remains BLOCKED** until: (1) WO-001 is APPROVED; (2) the owner explicitly accepts ADR-V2-001; (3) benchmark access/environment is authorized; (4) the live issue graph has no unresolved cycle or dependency. No V2 code, migration, worker, storage, deploy or spend was created by this addendum.

@@ -103,3 +103,22 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - Local validation passed: unit 27/27, typecheck 0 errors/warnings, lint, build, and PgTAP 25/25 on the minimal local stack. The Windows E2E suite was slow and flaky while reusing a stale dev server; the hosted E2E is the authoritative run.
 - Backup/restore was executed live: all 14 public tables and the owner UUID were exported, restored into a dedicated local Supabase target with the same owner UID, and verified by matching counts, owner login 200, anonymous REST 401, and a 235-byte Cloudinary image with matching SHA-256. Auth passwords were re-provisioned, not copied from the backup.
 - Hosted PR `43080981120` and push `43080968791` passed at final code/test HEAD `b23d40c` (PgTAP 28 tests; E2E 9 passed in 2.3 minutes, no retry). The independent reviewer agent first returned CORRECTION REQUIRED (HIGH: narrative import hardcoded 8 s and could truncate content); commit `08a4567` fixed the HIGH and MEDIUM findings and the follow-up audit returned **APPROVED** with no HIGH/CRITICAL findings. Three LOW residuals are documented in the Evidence Bundle. The checkpoint remains **PROPOSED — NOT PROMOTED** with proposed verdict **APPROVED — ready for owner promotion**. No merge, production deployment, paid service, credential commit, or promotion occurred.
+
+## V2 Context Lock — WO-001 (#18)
+
+- **Base revalidated:** `main` `13467ab009e0eaaee1be6ba2e35678228cfbdf32` after squash merge of PR #16 (`docs(v1): finalize verified production checkpoint`), 2026-11-12. Branch for this WO: `docs/dif-v2-wo-001`.
+- **V1 gate:** PR #16 was Draft/mergeable CLEAN with CI `43220790406` PASS and Vercel preview success; independent reviewer verdict **APPROVED**, net diff only `docs/SOURCE_PACK.md`, `docs/CHECKPOINT_DELTA.md`, `docs/EVIDENCE_BUNDLE.md`. Merged without bypass at `13467ab`. Post-merge smoke: `/health` 200, `/login` 200, anonymous `/app` 303. The exact Vercel deployment SHA is not independently verifiable without a Vercel credential; the production alias responds as documented.
+- **Critical source fingerprints at base (SHA-256):**
+  - `docs/CHECKPOINT_DELTA.md` `b39fe86fe1d2003e56657bfca90dd5bd50c3494d3d998ffd6f30960bbcb9f1cd`
+  - `docs/SOURCE_PACK.md` `5e768bf02341516df27d23aef949e5753cc3fc30ea40d69b91ae7dc4cf013672`
+  - `docs/CONTEXT_LOCK.md` `29a65b759588b775b57ea1dbe948c88afcc6fecf595c63e7c889f21b52a09e45`
+  - `docs/EVIDENCE_BUNDLE.md` `682f2067e034ece2b226d3288c61c767292b8416206e08cb2121174e8ba9ca88`
+  - `docs/OPERATIONS.md` `7b94a48ffb0adf88a1e5c3f27cccf3396ab90bf276fcd934351071dc5d291317`
+  - `README.md` `8f63c4278b81d60a36590f46d01d727713854679d8af736ebe328d9d6e1ea687`
+  - `package.json` `e8e1131c70194895a41ffbbfd2f91c8e470935f9fcee11d221f1a011fdce2bf5`
+  - `.github/workflows/ci.yml` `5a164edb4338d313492ed87a1188543c844855d6e1d3d609328215854803d389`
+- **Issue inventory:** epic #17 is OPEN and `PLANNED / PROPOSED`; all 28 WOs #18–#45 are OPEN with no approval labels and PLANNED/UNAPPROVED status. No ADR V2 is accepted. No V2 branch, migration, table, worker, storage or deployment exists.
+- **Tools/capacity:** Node `26.4.0`, npm `11.17.0`, Supabase CLI `2.113.0`; `ffmpeg`/`ffprobe` are absent from the local PATH; Oracle ARM64 VPS access, CPU/RAM/disk, FFmpeg build and firewall/Portainer constraints are unverified. WO-002 cannot run until the environment is authorized and measured.
+- **Dependency graph:** documented in `docs/V2_EXECUTION_PLAN.md`; key edges: WO-024 depends on WO-025; WO-013 is final hardening, not a prerequisite of WO-023; WO-014 is terminal; WO-026 requires WO-019 and WO-025. The proposed graph has no cycle; live issue bodies prevail if they change.
+- **Budget:** incremental spend target **US$ 0**; no paid API, GPU, domain, storage or billing activation. Vercel Hobby, Supabase Free and the existing Oracle VPS are candidates, not guarantees.
+- **Gate:** WO-001 documentation is PROPOSED; WO-002+ is **BLOCKED** until WO-001 is APPROVED, ADR-V2-001 is explicitly accepted by the owner, and benchmark access is authorized. Stale triggers: any change to main, PR #16 closure evidence, issue dependencies/scope, ADR, V1 contracts, provider quotas or tool capacity requires rebase/revalidation before execution.
