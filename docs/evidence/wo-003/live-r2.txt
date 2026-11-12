@@ -1,0 +1,27 @@
+DIF-V2-WO-003 — live Cloudflare R2 acceptance
+Date: 2026-11-12
+
+Bucket: dif-studio-video-private (private; public access not enabled)
+CORS: PUT/GET/HEAD allowed for http://127.0.0.1:4173 and https://dif-studio.vercel.app;
+ExposeHeaders ETag, Content-Length; MaxAgeSeconds 3600. Verified via Cloudflare API GET.
+Token: bucket-scoped Object Read & Write token `dif-studio-video-worker-2`; credentials stored only
+in C:\Users\csn19\.zcode\dif-secrets\r2.env (outside repo, git-ignored).
+Token rotation: the first token (`dif-studio-video-worker`) was exposed in local tool output during
+provisioning; it was revoked in the Cloudflare dashboard and replaced by `-2`. No secret is in Git,
+issues, logs or this evidence file.
+
+Commands/results:
+- npm run check:r2 → PASS head bucket; PASS put 45 bytes; PASS get round-trip; PASS delete.
+- E2E_R2=1 R2_ENV_FILE=... CI=1 node scripts/test-local-e2e.mjs e2e/video-upload.spec.ts
+  → 1 passed (2.8m): 15 synthetic clips uploaded to R2 with confirmed parts, 15 scenes, READY assets, reload,
+  anonymous /api/video returns 401.
+- CSP fix: vite.config.ts connect-src now allows https://*.r2.cloudflarestorage.com.
+
+Cleanup:
+- Synthetic objects from all live runs deleted from R2 (42 objects, 0.16 MiB).
+- Incomplete multipart uploads aborted.
+- Local Supabase synthetic test rows remain in the disposable local DB only.
+
+Remaining:
+- Lifecycle rules (quarantine expiry / abort incomplete multipart) not yet configured.
+- Real ffprobe validation remains in the worker (WO-005); live E2E used FixtureVideoProbe.

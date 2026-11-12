@@ -3,19 +3,19 @@
 - **Work Order:** `DIF-V2-WO-003` · issue #20
 - **Epic:** #17
 - **Base:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9` (WO-002 merge, 2026-11-12)
-- **Status:** **ACCEPTED pelo owner em 2026-11-12** — escolha explícita de **Cloudflare R2 privado**. Bucket `dif-studio-video-private` criado no dashboard; token R2 escopado e CORS/lifecycle pendentes de conclusão manual. Nenhum gasto pago foi autorizado.
+- **Status:** **ACCEPTED pelo owner em 2026-11-12** — escolha explícita de **Cloudflare R2 privado**. Bucket `dif-studio-video-private` criado; token escopado e CORS configurados; upload/leitura live validados. Lifecycle automático permanece pendente. Nenhum gasto pago foi autorizado.
 - **Substitui a decisão em aberto:** o item 3 da ADR-V2-001 (“provedor após WO-002”) fica resolvido por esta ADR.
 
 ## Estado do provisionamento (2026-11-12)
 
 - [x] Conta Cloudflare autenticada; R2 habilitado.
 - [x] Bucket privado `dif-studio-video-private` criado; acesso público não habilitado.
-- [ ] Token R2 escopado ao bucket (Object Read & Write) criado e salvo somente no arquivo privado.
-- [ ] CORS restrito a `APP_ORIGIN` com `PUT/GET/HEAD` e `ExposeHeaders: ETag`.
+- [x] Token R2 escopado ao bucket (Object Read & Write) criado e salvo somente no arquivo privado.
+- [x] CORS restrito a `APP_ORIGIN` com `PUT/GET/HEAD` e `ExposeHeaders: ETag`.
 - [ ] Lifecycle de quarentena/multipart incompleto configurado.
-- [ ] Upload/leitura live validados com 15 clipes sintéticos.
+- [x] Upload/leitura live validados com 15 clipes sintéticos.
 
-O widget de criação de token do dashboard usa um combobox customizado que não aceita seleção confiável por automação; o OAuth do wrangler não tem escopo para criar tokens. A criação do token é uma etapa manual única; as credenciais não devem ser coladas no chat, em issues, logs ou Git.
+O primeiro token R2 foi exposto em saída local durante o provisionamento; foi revogado no dashboard e substituído por `dif-studio-video-worker-2`. As credenciais do substituto estão apenas no arquivo privado; nenhum segredo foi colocado no chat, issues, logs ou Git.
 
 ## Contexto
 

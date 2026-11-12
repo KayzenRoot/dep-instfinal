@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(33);
+select plan(37);
 
 do $$
 declare
@@ -812,6 +812,45 @@ select throws_ok(
 select ok(
   not has_table_privilege('anon', 'public.video_assets', 'SELECT'),
   'anonymous role has no video asset table privilege'
+);
+
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+update public.video_upload_sessions set status = 'COMPLETED'
+where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0';
+select is(
+  (select status from public.video_upload_sessions
+   where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0'),
+  'COMPLETED',
+  'owner can update the video upload session'
+);
+
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+do $$
+begin
+  update public.video_assets set safe_error_code = 'SPOOFED'
+  where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
+  if found then raise exception 'second owner updated the first owner video asset'; end if;
+end;
+$$;
+select pass('second owner cannot update the first owner video asset');
+
+do $$
+begin
+  delete from public.video_assets
+  where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
+  if found then raise exception 'second owner deleted the first owner video asset'; end if;
+end;
+$$;
+select pass('second owner cannot delete the first owner video asset');
+
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+delete from public.video_assets
+where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
+select is(
+  (select count(*) from public.video_assets
+   where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0'),
+  0::bigint,
+  'owner can delete the video asset tombstone'
 );
 
 select pass('video upload and asset RLS isolate owners and hide anonymous access');

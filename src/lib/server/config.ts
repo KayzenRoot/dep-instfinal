@@ -116,7 +116,9 @@ export function getAppConfig(): AppConfig {
 		r2SecretAccessKey,
 		r2Bucket,
 		r2Endpoint,
-		r2Configured: Boolean(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2Bucket),
+		r2Configured: Boolean(
+			r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2Bucket && r2Endpoint,
+		),
 		videoStorageDriver: storageDriver,
 		videoProbeDriver,
 		maxVideoBytes: maxVideoMb * 1024 * 1024,

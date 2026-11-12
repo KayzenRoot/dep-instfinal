@@ -17,6 +17,7 @@ export interface ProbeResult {
 	width: number;
 	height: number;
 	rotation: number;
+	frameRate: number;
 }
 
 export interface VideoProbe {
@@ -47,6 +48,9 @@ export function validateProbe(result: ProbeResult, expectedDurationMs: number): 
 	}
 	if (result.codec.toLowerCase() !== 'h264') {
 		return { ok: false, code: 'VIDEO_CODEC_UNSUPPORTED', message: 'Codec precisa ser H.264.' };
+	}
+	if (!Number.isFinite(result.frameRate) || result.frameRate < 23.976 || result.frameRate > 60) {
+		return { ok: false, code: 'VIDEO_FRAME_RATE_INVALID', message: 'Taxa de quadros inválida.' };
 	}
 	if (
 		!Number.isFinite(result.durationMs) ||
@@ -95,6 +99,8 @@ export class FfprobeVideoProbe implements VideoProbe {
 			streams?: Array<{
 				codec_type?: string;
 				codec_name?: string;
+				avg_frame_rate?: string;
+				r_frame_rate?: string;
 				width?: number;
 				height?: number;
 				duration?: string;
@@ -109,6 +115,9 @@ export class FfprobeVideoProbe implements VideoProbe {
 		const rotationValue =
 			video.side_data_list?.find((entry) => typeof entry.rotation === 'number')?.rotation ??
 			Number(video.tags?.rotate ?? 0);
+		const frameRateValue = video.avg_frame_rate ?? video.r_frame_rate ?? '0/1';
+		const [frameNumerator, frameDenominator] = frameRateValue.split('/').map(Number);
+		const frameRate = frameDenominator ? frameNumerator / frameDenominator : 0;
 		return {
 			container: parsed.format?.format_name ?? 'unknown',
 			codec: video.codec_name,
@@ -116,6 +125,7 @@ export class FfprobeVideoProbe implements VideoProbe {
 			width: video.width,
 			height: video.height,
 			rotation: Number.isFinite(rotationValue) ? rotationValue : 0,
+			frameRate,
 		};
 	}
 }
@@ -129,6 +139,7 @@ export class FixtureVideoProbe implements VideoProbe {
 			width: 1080,
 			height: 1920,
 			rotation: 0,
+			frameRate: 30,
 		},
 	) {}
 
@@ -143,7 +154,8 @@ let cachedProbe: VideoProbe | null | undefined;
 export function getVideoProbe(config: AppConfig = getAppConfig()): VideoProbe | null {
 	if (cachedProbe !== undefined) return cachedProbe;
 	if (config.videoProbeDriver === 'ffprobe') cachedProbe = new FfprobeVideoProbe();
-	else if (config.videoProbeDriver === 'fixture') cachedProbe = new FixtureVideoProbe();
+	else if (config.videoProbeDriver === 'fixture')
+		cachedProbe = import.meta.env.DEV ? new FixtureVideoProbe() : null;
 	else cachedProbe = null;
 	return cachedProbe;
 }

@@ -8,6 +8,7 @@ const valid: ProbeResult = {
 	width: 1080,
 	height: 1920,
 	rotation: 0,
+	frameRate: 30,
 };
 
 describe('video probe validation', () => {
@@ -32,6 +33,13 @@ describe('video probe validation', () => {
 		expect(validateProbe({ ...valid, width: 1920, height: 1080 }, 8000)).toMatchObject({
 			ok: false,
 			code: 'VIDEO_ASPECT_INVALID',
+		});
+	});
+
+	it('rejects an invalid frame rate', () => {
+		expect(validateProbe({ ...valid, frameRate: 0 }, 8000)).toMatchObject({
+			ok: false,
+			code: 'VIDEO_FRAME_RATE_INVALID',
 		});
 	});
 

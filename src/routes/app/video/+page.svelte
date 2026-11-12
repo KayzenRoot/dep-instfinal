@@ -37,6 +37,11 @@
 		const input = event.currentTarget as HTMLInputElement;
 		const files = Array.from(input.files ?? []);
 		if (!files.length) return;
+		if (files.length > 15) {
+			uploadError = 'Selecione no máximo 15 clipes por episódio.';
+			input.value = '';
+			return;
+		}
 		selectedFiles = files.map((file, index) => ({
 			key: crypto.randomUUID(),
 			file,
@@ -73,6 +78,7 @@
 				contentType: item.file.type || 'video/mp4',
 				idempotencyKey,
 			}),
+			signal: AbortSignal.timeout(30_000),
 		});
 		const init = (await initResponse.json().catch(() => ({}))) as {
 			sessionId?: string;
@@ -98,17 +104,26 @@
 			const response = await fetch(part.url, {
 				method: 'PUT',
 				body: item.file.slice(start, end),
+				signal: AbortSignal.timeout(30_000),
 			});
 			if (!response.ok) throw new Error(`Falha ao enviar a parte ${part.partNumber}.`);
 			const etag = response.headers.get('etag');
 			if (!etag) throw new Error('O storage não retornou o ETag da parte.');
 			completed.push({ partNumber: part.partNumber, etag });
+			const recorded = await fetch(`/api/video/uploads/${sessionId}/parts/${part.partNumber}`, {
+				method: 'PUT',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ etag }),
+				signal: AbortSignal.timeout(15_000),
+			});
+			if (!recorded.ok) throw new Error('Não foi possível registrar a parte confirmada.');
 			item.progress = Math.round((completed.length / parts.length) * 90);
 		}
 		const completeResponse = await fetch(`/api/video/uploads/${sessionId}/complete`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ parts: completed }),
+			signal: AbortSignal.timeout(30_000),
 		});
 		const complete = (await completeResponse.json().catch(() => ({}))) as {
 			asset?: { id?: string };

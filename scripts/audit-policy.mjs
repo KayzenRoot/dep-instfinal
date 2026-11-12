@@ -128,7 +128,7 @@ const checks = [
 		videoMigration.includes('enable row level security') &&
 			videoMigration.includes('force row level security') &&
 			videoMigration.includes('owner_id = (select auth.uid())') &&
-			videoMigration.includes("dif_studio_owner") &&
+			videoMigration.includes('dif_studio_owner') &&
 			videoMigration.includes('video_upload_sessions') &&
 			videoMigration.includes('video_assets'),
 	],

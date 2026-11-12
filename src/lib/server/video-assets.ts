@@ -10,6 +10,7 @@ import { hasMp4Magic, validateProbe, type VideoProbe } from './video-probe.js';
 
 export const VIDEO_OWNER_QUOTA_BYTES = 10 * 1024 * 1024 * 1024;
 export const VIDEO_EPISODE_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
+export const VIDEO_MAX_CLIPS_PER_EPISODE = 15;
 const RETENTION_DAYS = 30;
 
 export class VideoAssetError extends Error {
@@ -36,6 +37,7 @@ interface SessionRow {
 	total_bytes: number;
 	status: string;
 	expires_at: string;
+	uploaded_parts: Array<{ partNumber: number; etag: string }> | null;
 }
 
 interface AssetRow {
@@ -69,13 +71,18 @@ function contentTypeIsVideo(value: string): boolean {
 
 async function signAllParts(
 	storage: VideoStorage,
-	session: Pick<SessionRow, 'quarantine_key' | 'r2_upload_id' | 'total_bytes' | 'part_size_bytes'>,
+	session: Pick<
+		SessionRow,
+		'quarantine_key' | 'r2_upload_id' | 'total_bytes' | 'part_size_bytes' | 'uploaded_parts'
+	>,
 ): Promise<SignedPart[]> {
 	if (!session.r2_upload_id)
 		throw new VideoAssetError(409, 'UPLOAD_NOT_STARTED', 'Upload ainda não iniciado.');
+	const confirmed = new Set((session.uploaded_parts ?? []).map((part) => part.partNumber));
 	const count = Math.ceil(session.total_bytes / session.part_size_bytes);
 	const parts: SignedPart[] = [];
 	for (let partNumber = 1; partNumber <= count; partNumber += 1) {
+		if (confirmed.has(partNumber)) continue;
 		parts.push(
 			await storage.signPart({
 				key: session.quarantine_key,
@@ -95,14 +102,23 @@ async function loadSession(
 	const { data, error } = await db
 		.from('video_upload_sessions')
 		.select(
-			'id,owner_id,episode_id,scene_id,asset_id,idempotency_key,r2_upload_id,quarantine_key,part_size_bytes,total_bytes,status,expires_at',
+			'id,owner_id,episode_id,scene_id,asset_id,idempotency_key,r2_upload_id,quarantine_key,part_size_bytes,total_bytes,status,expires_at,uploaded_parts',
 		)
 		.eq('id', sessionId)
 		.eq('owner_id', ownerId)
 		.maybeSingle();
 	if (error || !data)
 		throw new VideoAssetError(404, 'UPLOAD_NOT_FOUND', 'Sessão de upload não encontrada.');
-	return data as SessionRow;
+	const session = data as SessionRow;
+	if (new Date(session.expires_at).getTime() < Date.now()) {
+		await db
+			.from('video_upload_sessions')
+			.update({ status: 'EXPIRED', safe_error_code: 'UPLOAD_SESSION_EXPIRED' })
+			.eq('id', session.id)
+			.eq('owner_id', ownerId);
+		throw new VideoAssetError(410, 'UPLOAD_EXPIRED', 'A sessão de upload expirou.');
+	}
+	return session;
 }
 
 async function nextAssetVersion(
@@ -183,7 +199,7 @@ export async function createUploadSession(input: {
 	const { data: existing, error: existingError } = await db
 		.from('video_upload_sessions')
 		.select(
-			'id,owner_id,episode_id,scene_id,asset_id,idempotency_key,r2_upload_id,quarantine_key,part_size_bytes,total_bytes,status,expires_at',
+			'id,owner_id,episode_id,scene_id,asset_id,idempotency_key,r2_upload_id,quarantine_key,part_size_bytes,total_bytes,status,expires_at,uploaded_parts',
 		)
 		.eq('owner_id', owner.id)
 		.eq('idempotency_key', input.idempotencyKey)
@@ -205,6 +221,16 @@ export async function createUploadSession(input: {
 				409,
 				'UPLOAD_NOT_RESUMABLE',
 				'Esta chave de idempotência já foi encerrada.',
+			);
+		if (
+			session.episode_id !== input.episodeId ||
+			session.scene_id !== input.sceneId ||
+			session.total_bytes !== input.byteSize
+		)
+			throw new VideoAssetError(
+				409,
+				'UPLOAD_IDEMPOTENCY_MISMATCH',
+				'A chave de idempotência já foi usada com outro episódio, cena ou tamanho.',
 			);
 		return {
 			sessionId: session.id,
@@ -261,10 +287,29 @@ export async function createUploadSession(input: {
 			'VIDEO_QUOTA_LOOKUP_FAILED',
 			'Não foi possível verificar a cota do episódio.',
 		);
-	if (
-		sumBytes((episodeAssets ?? []) as Array<{ byte_size: number | null }>) + input.byteSize >
-		VIDEO_EPISODE_QUOTA_BYTES
-	)
+	const { data: episodeSessions, error: episodeSessionsError } = await db
+		.from('video_upload_sessions')
+		.select('total_bytes')
+		.eq('owner_id', owner.id)
+		.eq('episode_id', input.episodeId)
+		.in('status', ['CREATED', 'UPLOADING']);
+	if (episodeSessionsError)
+		throw new VideoAssetError(
+			503,
+			'VIDEO_QUOTA_LOOKUP_FAILED',
+			'Não foi possível verificar a cota do episódio.',
+		);
+	const episodeUsed =
+		sumBytes((episodeAssets ?? []) as Array<{ byte_size: number | null }>) +
+		sumBytes((episodeSessions ?? []) as Array<{ total_bytes: number | null }>);
+	const episodeClips = (episodeAssets?.length ?? 0) + (episodeSessions?.length ?? 0);
+	if (episodeClips >= VIDEO_MAX_CLIPS_PER_EPISODE)
+		throw new VideoAssetError(
+			409,
+			'VIDEO_EPISODE_CLIP_LIMIT',
+			'O episódio já tem o máximo de 15 clipes.',
+		);
+	if (episodeUsed + input.byteSize > VIDEO_EPISODE_QUOTA_BYTES)
 		throw new VideoAssetError(
 			413,
 			'VIDEO_EPISODE_QUOTA_EXCEEDED',
@@ -342,9 +387,48 @@ export async function createUploadSession(input: {
 			r2_upload_id: uploadId,
 			total_bytes: input.byteSize,
 			part_size_bytes: config.videoPartBytes,
+			uploaded_parts: [],
 		}),
 		resumed: false,
 	};
+}
+
+export async function recordUploadPart(input: {
+	db: SupabaseClient;
+	owner: User;
+	sessionId: string;
+	partNumber: number;
+	etag: string;
+}): Promise<Array<{ partNumber: number; etag: string }>> {
+	const session = await loadSession(input.db, input.owner.id, input.sessionId);
+	if (session.status !== 'CREATED' && session.status !== 'UPLOADING')
+		throw new VideoAssetError(409, 'UPLOAD_NOT_UPLOADING', 'A sessão não está em upload.');
+	const expectedParts = Math.ceil(session.total_bytes / session.part_size_bytes);
+	if (
+		!Number.isInteger(input.partNumber) ||
+		input.partNumber < 1 ||
+		input.partNumber > expectedParts ||
+		!input.etag ||
+		input.etag.length > 200
+	)
+		throw new VideoAssetError(400, 'UPLOAD_PART_INVALID', 'Parte do upload inválida.');
+	const current = Array.isArray(session.uploaded_parts) ? session.uploaded_parts : [];
+	const next = [
+		...current.filter((part) => part.partNumber !== input.partNumber),
+		{ partNumber: input.partNumber, etag: input.etag },
+	].sort((left, right) => left.partNumber - right.partNumber);
+	const { error } = await input.db
+		.from('video_upload_sessions')
+		.update({ uploaded_parts: next })
+		.eq('id', session.id)
+		.eq('owner_id', input.owner.id);
+	if (error)
+		throw new VideoAssetError(
+			503,
+			'UPLOAD_PART_SAVE_FAILED',
+			'Não foi possível registrar a parte.',
+		);
+	return next;
 }
 
 export async function getUploadSession(input: {
@@ -395,7 +479,11 @@ export async function completeUploadSession(input: {
 		throw new VideoAssetError(409, 'UPLOAD_NOT_STARTED', 'Upload ainda não iniciado.');
 
 	const expectedParts = Math.ceil(session.total_bytes / session.part_size_bytes);
-	const parts = [...input.parts].sort((a, b) => a.partNumber - b.partNumber);
+	const mergedParts = new Map<number, { partNumber: number; etag: string }>();
+	for (const part of Array.isArray(session.uploaded_parts) ? session.uploaded_parts : [])
+		mergedParts.set(part.partNumber, part);
+	for (const part of input.parts) mergedParts.set(part.partNumber, part);
+	const parts = [...mergedParts.values()].sort((a, b) => a.partNumber - b.partNumber);
 	if (
 		parts.length !== expectedParts ||
 		parts.some((part, index) => part.partNumber !== index + 1 || !part.etag)
@@ -439,8 +527,24 @@ export async function completeUploadSession(input: {
 		);
 	}
 
-	const sha256 = await storage.hashObject(session.quarantine_key);
-	const prefix = await storage.readPrefix(session.quarantine_key, 12);
+	let sha256: string;
+	let prefix: Buffer;
+	try {
+		sha256 = await storage.hashObject(session.quarantine_key);
+		prefix = await storage.readPrefix(session.quarantine_key, 12);
+	} catch {
+		await storage.deleteObject(session.quarantine_key).catch(() => undefined);
+		await db
+			.from('video_upload_sessions')
+			.update({ status: 'ABORTED', safe_error_code: 'VIDEO_HASH_FAILED' })
+			.eq('id', session.id)
+			.eq('owner_id', owner.id);
+		throw new VideoAssetError(
+			502,
+			'VIDEO_HASH_FAILED',
+			'Não foi possível calcular o hash do clipe.',
+		);
+	}
 	if (!hasMp4Magic(prefix)) {
 		await storage.deleteObject(session.quarantine_key).catch(() => undefined);
 		await db
@@ -499,6 +603,12 @@ export async function completeUploadSession(input: {
 				destinationKey: finalKey,
 			});
 		} catch {
+			await storage.deleteObject(session.quarantine_key).catch(() => undefined);
+			await db
+				.from('video_upload_sessions')
+				.update({ status: 'ABORTED', safe_error_code: 'VIDEO_STORAGE_COPY_FAILED' })
+				.eq('id', session.id)
+				.eq('owner_id', owner.id);
 			throw new VideoAssetError(
 				502,
 				'VIDEO_STORAGE_COPY_FAILED',
@@ -569,6 +679,7 @@ export async function listUploadSessions(input: {
 		.eq('owner_id', input.owner.id)
 		.eq('episode_id', input.episodeId)
 		.in('status', ['CREATED', 'UPLOADING'])
+		.gt('expires_at', new Date().toISOString())
 		.order('created_at', { ascending: false });
 	if (error)
 		throw new VideoAssetError(503, 'UPLOAD_LIST_FAILED', 'Não foi possível listar uploads.');

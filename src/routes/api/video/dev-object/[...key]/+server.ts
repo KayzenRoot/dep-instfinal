@@ -7,7 +7,8 @@ import { InMemoryVideoStorage, getVideoStorage } from '#lib/server/video-storage
 export const GET: RequestHandler = async (event) => {
 	const { owner } = ownerDatabase(event);
 	const config = getAppConfig();
-	if (config.videoStorageDriver !== 'memory') error(404, 'Objeto não encontrado.');
+	if (!import.meta.env.DEV || config.videoStorageDriver !== 'memory')
+		error(404, 'Objeto não encontrado.');
 	const storage = getVideoStorage(config);
 	if (!(storage instanceof InMemoryVideoStorage)) error(404, 'Objeto não encontrado.');
 	const key = decodeURIComponent(event.params.key ?? '');

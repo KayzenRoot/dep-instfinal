@@ -38,7 +38,7 @@ test('owner uploads a scene clip to private storage and it survives reload', asy
 		.setInputFiles(Array.from({ length: 15 }, () => fixture));
 	await expect(page.getByText('synthetic-scene.mp4')).toHaveCount(15);
 	await page.getByRole('button', { name: 'Enviar clipes' }).click();
-	await expect(page.locator('.asset-card')).toHaveCount(15, { timeout: 120_000 });
+	await expect(page.locator('.asset-card')).toHaveCount(15, { timeout: 300_000 });
 	await expect(page.getByText('Cena 15 · v1')).toBeVisible();
 
 	const video = page.locator('video').first();

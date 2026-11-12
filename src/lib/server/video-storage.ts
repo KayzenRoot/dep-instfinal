@@ -244,9 +244,16 @@ export class R2VideoStorage implements VideoStorage {
 	}
 
 	async signDownload(key: string, expiresInSeconds = 60): Promise<string> {
-		return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.bucket, Key: key }), {
-			expiresIn: expiresInSeconds,
-		});
+		return getSignedUrl(
+			this.client,
+			new GetObjectCommand({
+				Bucket: this.bucket,
+				Key: key,
+				ResponseCacheControl: 'private, no-store',
+				ResponseContentDisposition: 'inline',
+			}),
+			{ expiresIn: expiresInSeconds },
+		);
 	}
 
 	async deleteObject(key: string): Promise<void> {
@@ -381,6 +388,7 @@ let r2Storage: R2VideoStorage | undefined;
 
 export function getVideoStorage(config: AppConfig = getAppConfig()): VideoStorage | null {
 	if (config.videoStorageDriver === 'memory') {
+		if (!import.meta.env.DEV) return null;
 		memoryStorage ??= new InMemoryVideoStorage();
 		return memoryStorage;
 	}
