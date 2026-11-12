@@ -11,14 +11,12 @@ const social = {
 	type: 'object',
 	properties: textProperties(['title', 'cta', 'description']),
 	required: ['title', 'cta', 'description'],
-	additionalProperties: false,
 } as const;
 
 const choice = {
 	type: 'object',
 	properties: textProperties(['label', 'consequence']),
 	required: ['label', 'consequence'],
-	additionalProperties: false,
 } as const;
 
 const sceneTextFields = [
@@ -56,11 +54,11 @@ export const geminiEpisodeJsonSchema = {
 			type: 'object',
 			properties: {
 				...textProperties(narrativeTextFields),
-				durationSeconds: { ...integer, minimum: 90, maximum: 150 },
-				speechSpeedWpm: { ...integer, minimum: 80, maximum: 220 },
+				durationSeconds: { ...integer },
+				speechSpeedWpm: { ...integer },
 				tiktok: social,
 				instagram: social,
-				choices: { type: 'array', items: choice, maxItems: 2 },
+				choices: { type: 'array', items: choice },
 			},
 			required: [
 				...narrativeTextFields,
@@ -70,23 +68,18 @@ export const geminiEpisodeJsonSchema = {
 				'instagram',
 				'choices',
 			],
-			additionalProperties: false,
 		},
 		scenes: {
 			type: 'array',
-			minItems: 1,
-			maxItems: 38,
 			items: {
 				type: 'object',
 				properties: {
-					sceneIndex: { ...integer, minimum: 1, maximum: 38 },
+					sceneIndex: { ...integer },
 					...textProperties(sceneTextFields),
 				},
 				required: ['sceneIndex', ...sceneTextFields],
-				additionalProperties: false,
 			},
 		},
 	},
 	required: ['narrative', 'scenes'],
-	additionalProperties: false,
 } as const;
