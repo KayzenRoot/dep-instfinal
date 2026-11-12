@@ -1,10 +1,10 @@
-# ADR-V2-001 — Arquitetura de pós-produção da V2 (PROPOSED)
+# ADR-V2-001 — Arquitetura de pós-produção da V2 (ACCEPTED)
 
 - **Work Order:** `DIF-V2-WO-001` · issue #18
 - **Epic:** #17
 - **Base:** `main` `13467ab009e0eaaee1be6ba2e35678228cfbdf32` (2026-11-12)
-- **Status:** **PROPOSED — NÃO ACEITO, NÃO IMPLEMENTADO**
-- **Aceite necessário:** o owner deve aceitar explicitamente esta ADR antes de qualquer WO-002 ou código de vídeo.
+- **Status:** **ACCEPTED pelo owner em 2026-11-12**; implementação continua sujeita à WO-002 e aos gates de cada WO.
+- **Aceite:** o owner declarou “aceito e autorizo tudo pode continuar” na sessão de execução. Isso autoriza a direção arquitetural e o benchmark da WO-002, não gasto pago, GPU, provisionamento de novo serviço ou deploy de produção da V2.
 
 ## Contexto
 
@@ -69,13 +69,13 @@ A V2 não pode degradar a V1, não pode renderizar 120 s dentro de função HTTP
 
 ## Gate de aceite
 
-Esta ADR só sai de **PROPOSED** quando o owner declarar aceite explícito de:
+**ACEITO pelo owner em 2026-11-12** (“aceito e autorizo tudo pode continuar”):
 
-- [ ] arquitetura UI/orquestração + worker separado + storage privado;
-- [ ] meta US$ 0 condicionada ao benchmark e proibição de gasto não autorizado;
-- [ ] FFmpeg CPU-first, sem GPU obrigatória, com fallback 720p somente se aprovado;
-- [ ] Gemini estritamente opt-in, sem custo obrigatório e sem executar comandos;
-- [ ] V1 preservada e V2 atrás de feature flag;
-- [ ] WO-002 autorizada a medir a VPS Oracle ARM64 (sem alterar firewall/Portainer de produção sem autorização separada).
+- [x] arquitetura UI/orquestração + worker separado + storage privado;
+- [x] meta US$ 0 condicionada ao benchmark e proibição de gasto não autorizado;
+- [x] FFmpeg CPU-first, sem GPU obrigatória, com fallback 720p somente se aprovado;
+- [x] Gemini estritamente opt-in, sem custo obrigatório e sem executar comandos;
+- [x] V1 preservada e V2 atrás de feature flag;
+- [x] WO-002 autorizada a medir a VPS Oracle ARM64 (sem alterar firewall/Portainer de produção sem autorização separada).
 
-Até esse aceite, **nenhuma WO-002+ pode começar** e nenhuma migração/tabela de vídeo pode ser criada.
+A WO-002 pode começar. WO-003+ continua bloqueada até o benchmark WO-002 retornar GO e cada WO anterior estar `APPROVED`. Nenhuma migração/tabela de vídeo é criada por esta ADR.

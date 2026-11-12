@@ -2,7 +2,7 @@
 
 **Work Order:** `DIF-MVP-ALL-001`
 **Revision:** 1.3
-**Status:** V1 COMPLETE on `main` `13467ab`; V2 WO-001 planning docs **APPROVED** by independent re-audit at `ae1f44d`; ADR-V2-001 awaits explicit owner acceptance; no V2 implementation authorized.
+**Status:** V1 COMPLETE on `main` `13467ab`; V2 WO-001 planning docs **APPROVED** at `ae1f44d`; **ADR-V2-001 ACCEPTED** by the owner on 2026-11-12; WO-002 benchmark authorized; WO-003+ still blocked until the benchmark GO and per-WO approval.
 **Last reconciled:** 2026-11-12
 
 ## Source hierarchy and context
@@ -164,7 +164,7 @@ The owner authorized the final release. GitHub PR #14 was squash-merged normally
 
 ## V2 addendum — DIF Studio V2 (PROPOSED, 2026-11-12)
 
-**Status:** planning only. V1 remains the canonical production product; no V2 runtime, schema, worker, storage, deploy or spend is authorized by this addendum. ADR-V2-001 is **PROPOSED** and requires explicit owner acceptance before WO-002.
+**Status:** V1 remains the canonical production product; V2 runtime/schema/worker/storage/deploy is not implemented. **ADR-V2-001 is ACCEPTED** (owner, 2026-11-12); WO-002 benchmark is authorized, WO-003+ remains blocked until the benchmark returns GO and the preceding WO is approved.
 
 ### Scope and backlog
 
@@ -172,7 +172,7 @@ V2 adds a private post-production pipeline on top of V1: import manually exporte
 
 - **28 WOs** (#18–#45), **20 owner-approved improvements**, **6 addenda** inside existing WOs (emotion in WO-007, soundscape in WO-009, tension in WO-010, safe zones in WO-011, Quality Inspector in WO-012, Character Identity Kit in WO-017). No extra WOs.
 - Full inventory, requirement→WO→proof matrix, dependency graph and execution order: [V2 execution plan](V2_EXECUTION_PLAN.md).
-- Architecture options, costs, risks and required owner acceptance: [ADR-V2-001 PROPOSED](ADR_V2_PROPOSED.md).
+- Architecture options, costs, risks and owner acceptance: [ADR-V2-001 ACCEPTED](ADR_V2_PROPOSED.md).
 
 ### Requirements (PROPOSED)
 
@@ -227,14 +227,14 @@ Proposed owner-scoped entities: `video_assets`, `edit_timelines`, `edit_versions
 
 ### Decisions ledger V2 (all PROPOSED)
 
-| ID         | Decision                                                                                                                             | Status                               |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
-| ADR-V2-001 | Vercel UI/orchestration + separate CPU FFmpeg worker + private video storage; no serverless render; US$0 target subject to benchmark | PROPOSED — owner acceptance required |
-| ADR-V2-002 | Video storage provider/contract outside Postgres and outside the image Cloudinary policy                                             | PROPOSED — after WO-002              |
-| ADR-V2-003 | Job queue with lease/heartbeat/retry/cancel/idempotency; one concurrent worker initially                                             | PROPOSED                             |
-| ADR-V2-004 | One director (WO-010), one editor (WO-011), one exporter/QA (WO-012); creative WOs extend these modules                              | PROPOSED                             |
-| ADR-V2-005 | V2 feature flag; additive migrations; V1 immutable and rollback-capable                                                              | PROPOSED                             |
+| ID         | Decision                                                                                                                             | Status                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| ADR-V2-001 | Vercel UI/orchestration + separate CPU FFmpeg worker + private video storage; no serverless render; US$0 target subject to benchmark | **ACCEPTED — owner, 2026-11-12** |
+| ADR-V2-002 | Video storage provider/contract outside Postgres and outside the image Cloudinary policy                                             | PROPOSED — after WO-002          |
+| ADR-V2-003 | Job queue with lease/heartbeat/retry/cancel/idempotency; one concurrent worker initially                                             | PROPOSED                         |
+| ADR-V2-004 | One director (WO-010), one editor (WO-011), one exporter/QA (WO-012); creative WOs extend these modules                              | PROPOSED                         |
+| ADR-V2-005 | V2 feature flag; additive migrations; V1 immutable and rollback-capable                                                              | PROPOSED                         |
 
 ### Gate
 
-WO-001 documentation and ADR are complete only after independent audit. **WO-002+ remains BLOCKED** until: (1) WO-001 is APPROVED; (2) the owner explicitly accepts ADR-V2-001; (3) benchmark access/environment is authorized; (4) the live issue graph has no unresolved cycle or dependency. No V2 code, migration, worker, storage, deploy or spend was created by this addendum.
+WO-001 documentation is **APPROVED** and ADR-V2-001 is **ACCEPTED**. **WO-002 is authorized** to benchmark the Oracle ARM64 environment; **WO-003+ remains BLOCKED** until WO-002 returns GO, the benchmark proves zero incremental cost/capacity, and the preceding WO is `APPROVED`. No V2 code, migration, worker, storage, production deploy or spend was created by this addendum.
