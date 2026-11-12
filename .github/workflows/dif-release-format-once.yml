@@ -1,0 +1,43 @@
+# Release-only formatting workflow; delete immediately after its bot commit.
+name: DIF release format once
+on:
+  push:
+    branches: [feat/dif-studio-mvp-001]
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Format exactly the final release changes
+        run: |
+          npx prettier --write \
+            src/lib/domain/export-size.ts \
+            src/lib/domain/export-size.test.ts \
+            src/lib/server/ai-episode.ts \
+            src/lib/server/ai-episode.live.test.ts \
+            'src/routes/api/export/[episodeId]/+server.ts' \
+            'src/routes/api/media/[assetId]/+server.ts' \
+            'src/routes/app/export/[episodeId]/+page.svelte'
+      - name: Commit scoped formatter delta only
+        run: |
+          git add src/lib/domain/export-size.ts src/lib/domain/export-size.test.ts \
+            src/lib/server/ai-episode.ts src/lib/server/ai-episode.live.test.ts \
+            'src/routes/api/export/[episodeId]/+server.ts' \
+            'src/routes/api/media/[assetId]/+server.ts' \
+            'src/routes/app/export/[episodeId]/+page.svelte'
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'style: format V1 production ZIP and Gemini acceptance'
+          git push origin HEAD:feat/dif-studio-mvp-001
