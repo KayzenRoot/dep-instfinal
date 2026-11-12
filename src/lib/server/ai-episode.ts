@@ -117,6 +117,7 @@ export function buildEpisodeGenerationPrompt(
 	}
 	const count = Math.ceil(durationMs / sceneDurationMs);
 	const duration = durationMs / 1000;
+	const narrationWordTarget = Math.round((duration * 145) / 60);
 	return [
 		'Você é roteirista de uma série ORIGINAL de terror analógico para TikTok e Instagram, com suspense psicológico e escolhas interativas.',
 		'Não copie histórias existentes. Escreva em português brasileiro uma história persuasiva, misteriosa, com gancho nos primeiros 8 segundos, escalada, revelação e cliffhanger.',
@@ -131,9 +132,15 @@ export function buildEpisodeGenerationPrompt(
 			' de ' +
 			sceneDurationMs / 1000 +
 			' segundos (última cena pode ser menor).',
-		'A narrativa precisa ter a quantidade de palavras apropriada a 145 palavras por minuto, com duração declarada exata de ' +
+		'narrationPtBr é a locução INTEGRAL, não uma sinopse: escreva cerca de ' +
+			narrationWordTarget +
+			' palavras (faixa ' +
+			Math.round(narrationWordTarget * 0.95) +
+			'–' +
+			Math.round(narrationWordTarget * 1.05) +
+			' palavras) em português brasileiro, correspondendo a 145 palavras/minuto e duração exata de ' +
 			duration +
-			' segundos.',
+			' segundos. Conte e ajuste as palavras antes de responder. speechSpeedWpm deve ser 145. O campo narrative pode ser a sinopse; narrationPtBr deve ser MUITO mais longo.',
 		'Se o episódio for o último da temporada, choices deve ser []; caso contrário, choices deve conter DUAS escolhas diferentes e consequências genuinamente distintas.',
 		'Gere a narração completa em narrationPtBr e divida a locução coerentemente nas cenas, em narrationPtBr de cada cena.',
 		'Para CADA cena crie três prompts em INGLÊS: startFramePromptEn (primeiro frame), endFramePromptEn (último frame), motionPromptEn (movimento entre frames para Google Flow).',
