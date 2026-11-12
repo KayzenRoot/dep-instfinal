@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { ownerDatabase } from '#lib/server/authorized.js';
 import { getAppConfig } from '#lib/server/config.js';
+import { createSupabaseAdminClient } from '#lib/server/supabase.js';
 import { getUploadSession } from '#lib/server/video-assets.js';
 import { videoBackend, videoErrorResponse } from '#lib/server/video-http.js';
 
@@ -13,6 +14,7 @@ export const GET: RequestHandler = async (event) => {
 	try {
 		const result = await getUploadSession({
 			db,
+			adminDb: createSupabaseAdminClient(),
 			owner,
 			storage: backend.storage,
 			sessionId: event.params.sessionId,

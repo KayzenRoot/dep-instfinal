@@ -14,6 +14,10 @@ const videoBoundaryMigration = await readFile(
 	'supabase/migrations/20261112200000_v2_wo003_asset_boundary.sql',
 	'utf8',
 );
+const videoSessionBoundaryMigration = await readFile(
+	'supabase/migrations/20261112210000_v2_wo003_session_boundary.sql',
+	'utf8',
+);
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -146,6 +150,17 @@ const checks = [
 			videoAssets.includes("status: ready ? 'READY' : 'QUARANTINED'") &&
 			videoAssets.includes('hasMp4Magic') &&
 			videoAssets.includes('validateProbe'),
+	],
+	[
+		'video session keys and lifecycle writes are server-owned',
+		videoSessionBoundaryMigration.includes(
+			'revoke insert, update, delete on table public.video_upload_sessions',
+		) &&
+			videoSessionBoundaryMigration.includes('video_upload_sessions_server_key_check') &&
+			videoSessionBoundaryMigration.includes('guard_video_upload_session_update') &&
+			videoUpload.includes('createSupabaseAdminClient') &&
+			videoAssets.includes('requireSessionWriter') &&
+			videoAssets.includes('quarantineObjectKey(ownerId, session.id)'),
 	],
 	[
 		'video READY and tombstone writes are server-mediated',

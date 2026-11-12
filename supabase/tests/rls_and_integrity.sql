@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(39);
+select plan(42);
 
 do $$
 declare
@@ -39,6 +39,13 @@ begin
       if has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
         or has_table_privilege('authenticated', format('public.%I', v_table), 'DELETE') then
         raise exception 'append-only table grants mutation privilege: public.%', v_table;
+      end if;
+    elsif v_table = 'video_upload_sessions' then
+      if v_policy_count <> 1 then raise exception 'video_upload_sessions policies must be server-write-only'; end if;
+      if has_table_privilege('authenticated', 'public.video_upload_sessions', 'INSERT')
+        or has_table_privilege('authenticated', 'public.video_upload_sessions', 'UPDATE')
+        or has_table_privilege('authenticated', 'public.video_upload_sessions', 'DELETE') then
+        raise exception 'authenticated can mutate video_upload_sessions outside the server';
       end if;
     elsif v_table = 'video_assets' then
       if v_policy_count <> 2 then raise exception 'video_assets policies must be quarantine-only'; end if;
@@ -757,6 +764,24 @@ $$;
 
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
 
+select throws_ok(
+  $$insert into public.video_upload_sessions (
+      id, episode_id, scene_id, idempotency_key, quarantine_key, part_size_bytes, total_bytes
+    ) values (
+      'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      (select id from public.scenes where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+      'idem-video-owner-001',
+      'quarantine/11111111-1111-4111-8111-111111111111/e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0/source',
+      8388608,
+      1048576
+    );$$,
+  '42501',
+  'permission denied for table video_upload_sessions',
+  'owner cannot create a video upload session through the Data API'
+);
+
+set local role service_role;
 insert into public.video_upload_sessions (
   id, episode_id, scene_id, idempotency_key, quarantine_key, part_size_bytes, total_bytes
 ) values (
@@ -768,13 +793,14 @@ insert into public.video_upload_sessions (
   8388608,
   1048576
 );
+set local role authenticated;
 
 select ok(
   exists (
     select 1 from public.video_upload_sessions
     where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0'
   ),
-  'owner can create a private video upload session'
+  'owner can read the server-created video upload session'
 );
 
 insert into public.video_assets (
@@ -839,13 +865,32 @@ select ok(
 );
 
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select throws_ok(
+  $$update public.video_upload_sessions set status = 'COMPLETED'
+    where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0';$$,
+  '42501',
+  'permission denied for table video_upload_sessions',
+  'owner cannot update the video upload session through the Data API'
+);
+
+set local role service_role;
+select throws_ok(
+  $$update public.video_upload_sessions
+    set quarantine_key = 'owners/11111111-1111-4111-8111-111111111111/episodes/cccccccc-cccc-4ccc-8ccc-cccccccccccc/final.mp4'
+    where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0';$$,
+  '42501',
+  'video_upload_sessions identity fields are immutable',
+  'server role cannot rewrite the session quarantine key'
+);
 update public.video_upload_sessions set status = 'COMPLETED'
 where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0';
+set local role authenticated;
+
 select is(
   (select status from public.video_upload_sessions
    where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0'),
   'COMPLETED',
-  'owner can update the video upload session'
+  'server can update the video upload session status'
 );
 
 select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);

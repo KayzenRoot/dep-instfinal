@@ -307,11 +307,26 @@ describe('video asset service', () => {
 		expect(db.rows('video_upload_sessions')[0].status).toBe('ABORTED');
 	});
 
+	it('rejects a session whose quarantine key was tampered with', async () => {
+		const db = fakeDb(
+			sessionRow({ quarantine_key: `owners/${owner.id}/episodes/${episodeId}/final.mp4` }),
+		);
+		await expect(
+			getUploadSession({
+				db: db.asClient(),
+				owner,
+				storage: new InMemoryVideoStorage(),
+				sessionId,
+			}),
+		).rejects.toMatchObject({ code: 'UPLOAD_SESSION_INVALID', status: 409 });
+	});
+
 	it('records a part and rejects a part outside the expected range', async () => {
 		const db = fakeDb();
 		await expect(
 			recordUploadPart({
 				db: db.asClient(),
+				adminDb: db.asClient(),
 				owner,
 				sessionId,
 				partNumber: 1,
@@ -321,6 +336,7 @@ describe('video asset service', () => {
 		await expect(
 			recordUploadPart({
 				db: db.asClient(),
+				adminDb: db.asClient(),
 				owner,
 				sessionId,
 				partNumber: 2,

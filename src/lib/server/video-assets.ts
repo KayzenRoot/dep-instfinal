@@ -96,10 +96,21 @@ async function signAllParts(
 	return parts;
 }
 
+function requireSessionWriter(adminDb: SupabaseClient | null | undefined): SupabaseClient {
+	if (!adminDb)
+		throw new VideoAssetError(
+			503,
+			'VIDEO_SESSION_WRITE_UNAVAILABLE',
+			'O storage de sessão não está configurado no servidor.',
+		);
+	return adminDb;
+}
+
 async function loadSession(
 	db: SupabaseClient,
 	ownerId: string,
 	sessionId: string,
+	adminDb?: SupabaseClient | null,
 ): Promise<SessionRow> {
 	const { data, error } = await db
 		.from('video_upload_sessions')
@@ -112,8 +123,14 @@ async function loadSession(
 	if (error || !data)
 		throw new VideoAssetError(404, 'UPLOAD_NOT_FOUND', 'Sessão de upload não encontrada.');
 	const session = data as SessionRow;
+	if (session.quarantine_key !== quarantineObjectKey(ownerId, session.id))
+		throw new VideoAssetError(
+			409,
+			'UPLOAD_SESSION_INVALID',
+			'A sessão de upload tem uma chave inválida.',
+		);
 	if (new Date(session.expires_at).getTime() < Date.now() && session.status !== 'COMPLETED') {
-		await db
+		await (adminDb ?? db)
 			.from('video_upload_sessions')
 			.update({ status: 'EXPIRED', safe_error_code: 'UPLOAD_SESSION_EXPIRED' })
 			.eq('id', session.id)
@@ -149,6 +166,7 @@ async function nextAssetVersion(
 
 export async function createUploadSession(input: {
 	db: SupabaseClient;
+	adminDb?: SupabaseClient | null;
 	owner: User;
 	config: AppConfig;
 	storage: VideoStorage;
@@ -170,6 +188,7 @@ export async function createUploadSession(input: {
 	resumed: boolean;
 }> {
 	const { db, owner, config, storage } = input;
+	const sessionDb = requireSessionWriter(input.adminDb);
 	if (
 		!Number.isInteger(input.byteSize) ||
 		input.byteSize < 1 ||
@@ -228,7 +247,7 @@ export async function createUploadSession(input: {
 				'Esta chave de idempotência já foi encerrada.',
 			);
 		if (new Date(session.expires_at).getTime() < Date.now()) {
-			await db
+			await sessionDb
 				.from('video_upload_sessions')
 				.update({ status: 'EXPIRED', safe_error_code: 'UPLOAD_SESSION_EXPIRED' })
 				.eq('id', session.id)
@@ -245,6 +264,12 @@ export async function createUploadSession(input: {
 				409,
 				'UPLOAD_IDEMPOTENCY_MISMATCH',
 				'A chave de idempotência já foi usada com outro episódio, cena, tamanho ou arquivo.',
+			);
+		if (session.quarantine_key !== quarantineObjectKey(owner.id, session.id))
+			throw new VideoAssetError(
+				409,
+				'UPLOAD_SESSION_INVALID',
+				'A sessão de upload tem uma chave inválida.',
 			);
 		return {
 			sessionId: session.id,
@@ -335,7 +360,7 @@ export async function createUploadSession(input: {
 	const sessionId = randomUUID();
 	const assetId = randomUUID();
 	const key = quarantineObjectKey(owner.id, sessionId);
-	const { error: insertError } = await db.from('video_upload_sessions').insert({
+	const { error: insertError } = await sessionDb.from('video_upload_sessions').insert({
 		id: sessionId,
 		owner_id: owner.id,
 		episode_id: input.episodeId,
@@ -367,7 +392,7 @@ export async function createUploadSession(input: {
 		const multipart = await storage.createMultipart({ key, contentType: 'video/mp4' });
 		uploadId = multipart.uploadId;
 	} catch {
-		await db
+		await sessionDb
 			.from('video_upload_sessions')
 			.update({ status: 'ABORTED', safe_error_code: 'R2_CREATE_FAILED' })
 			.eq('id', sessionId)
@@ -378,7 +403,7 @@ export async function createUploadSession(input: {
 			'O storage privado está indisponível.',
 		);
 	}
-	const { error: updateError } = await db
+	const { error: updateError } = await sessionDb
 		.from('video_upload_sessions')
 		.update({ r2_upload_id: uploadId, status: 'UPLOADING', safe_error_code: null })
 		.eq('id', sessionId)
@@ -412,12 +437,13 @@ export async function createUploadSession(input: {
 
 export async function recordUploadPart(input: {
 	db: SupabaseClient;
+	adminDb?: SupabaseClient | null;
 	owner: User;
 	sessionId: string;
 	partNumber: number;
 	etag: string;
 }): Promise<Array<{ partNumber: number; etag: string }>> {
-	const session = await loadSession(input.db, input.owner.id, input.sessionId);
+	const session = await loadSession(input.db, input.owner.id, input.sessionId, input.adminDb);
 	if (session.status !== 'CREATED' && session.status !== 'UPLOADING')
 		throw new VideoAssetError(409, 'UPLOAD_NOT_UPLOADING', 'A sessão não está em upload.');
 	const expectedParts = Math.ceil(session.total_bytes / session.part_size_bytes);
@@ -434,7 +460,8 @@ export async function recordUploadPart(input: {
 		...current.filter((part) => part.partNumber !== input.partNumber),
 		{ partNumber: input.partNumber, etag: input.etag },
 	].sort((left, right) => left.partNumber - right.partNumber);
-	const { error } = await input.db
+	const sessionDb = requireSessionWriter(input.adminDb);
+	const { error } = await sessionDb
 		.from('video_upload_sessions')
 		.update({ uploaded_parts: next })
 		.eq('id', session.id)
@@ -450,11 +477,12 @@ export async function recordUploadPart(input: {
 
 export async function getUploadSession(input: {
 	db: SupabaseClient;
+	adminDb?: SupabaseClient | null;
 	owner: User;
 	storage: VideoStorage;
 	sessionId: string;
 }): Promise<{ session: SessionRow; parts: SignedPart[] }> {
-	const session = await loadSession(input.db, input.owner.id, input.sessionId);
+	const session = await loadSession(input.db, input.owner.id, input.sessionId, input.adminDb);
 	if (session.status === 'COMPLETED')
 		throw new VideoAssetError(409, 'UPLOAD_ALREADY_COMPLETED', 'Este upload já foi concluído.');
 	if (session.status === 'ABORTED' || session.status === 'EXPIRED')
@@ -476,8 +504,9 @@ export async function completeUploadSession(input: {
 	validation: 'ready' | 'pending_worker';
 }> {
 	const { db, owner, storage } = input;
-	const assetDb = input.adminDb ?? db;
-	const session = await loadSession(db, owner.id, input.sessionId);
+	const sessionDb = requireSessionWriter(input.adminDb);
+	const session = await loadSession(db, owner.id, input.sessionId, sessionDb);
+	const quarantineKey = quarantineObjectKey(owner.id, session.id);
 	if (session.status === 'COMPLETED') {
 		const { data: asset } = await db
 			.from('video_assets')
@@ -503,7 +532,7 @@ export async function completeUploadSession(input: {
 		.in('status', ['READY', 'QUARANTINED'])
 		.maybeSingle();
 	if (existingAsset) {
-		const { error: recoverError } = await db
+		const { error: recoverError } = await sessionDb
 			.from('video_upload_sessions')
 			.update({ status: 'COMPLETED', safe_error_code: null })
 			.eq('id', session.id)
@@ -548,7 +577,7 @@ export async function completeUploadSession(input: {
 	let stored: StoredObject;
 	try {
 		stored = await storage.completeMultipart({
-			key: session.quarantine_key,
+			key: quarantineKey,
 			uploadId: session.r2_upload_id,
 			parts,
 		});
@@ -556,7 +585,7 @@ export async function completeUploadSession(input: {
 		// A retry after a successful CompleteMultipartUpload (or a transient HEAD
 		// failure immediately afterwards) can still recover by inspecting the object.
 		try {
-			stored = await storage.statObject(session.quarantine_key);
+			stored = await storage.statObject(quarantineKey);
 		} catch {
 			throw new VideoAssetError(
 				502,
@@ -566,8 +595,8 @@ export async function completeUploadSession(input: {
 		}
 	}
 	if (stored.size !== session.total_bytes) {
-		await storage.deleteObject(session.quarantine_key).catch(() => undefined);
-		await db
+		await storage.deleteObject(quarantineKey).catch(() => undefined);
+		await sessionDb
 			.from('video_upload_sessions')
 			.update({ status: 'ABORTED', safe_error_code: 'VIDEO_SIZE_MISMATCH' })
 			.eq('id', session.id)
@@ -582,11 +611,11 @@ export async function completeUploadSession(input: {
 	let sha256: string;
 	let prefix: Buffer;
 	try {
-		sha256 = await storage.hashObject(session.quarantine_key);
-		prefix = await storage.readPrefix(session.quarantine_key, 12);
+		sha256 = await storage.hashObject(quarantineKey);
+		prefix = await storage.readPrefix(quarantineKey, 12);
 	} catch {
-		await storage.deleteObject(session.quarantine_key).catch(() => undefined);
-		await db
+		await storage.deleteObject(quarantineKey).catch(() => undefined);
+		await sessionDb
 			.from('video_upload_sessions')
 			.update({ status: 'ABORTED', safe_error_code: 'VIDEO_HASH_FAILED' })
 			.eq('id', session.id)
@@ -598,8 +627,8 @@ export async function completeUploadSession(input: {
 		);
 	}
 	if (!hasMp4Magic(prefix)) {
-		await storage.deleteObject(session.quarantine_key).catch(() => undefined);
-		await db
+		await storage.deleteObject(quarantineKey).catch(() => undefined);
+		await sessionDb
 			.from('video_upload_sessions')
 			.update({ status: 'ABORTED', safe_error_code: 'VIDEO_CONTAINER_INVALID' })
 			.eq('id', session.id)
@@ -607,8 +636,8 @@ export async function completeUploadSession(input: {
 		throw new VideoAssetError(415, 'VIDEO_CONTAINER_INVALID', 'O arquivo não é um MP4/MOV válido.');
 	}
 	if (session.file_sha256 && session.file_sha256 !== sha256) {
-		await storage.deleteObject(session.quarantine_key).catch(() => undefined);
-		await db
+		await storage.deleteObject(quarantineKey).catch(() => undefined);
+		await sessionDb
 			.from('video_upload_sessions')
 			.update({ status: 'ABORTED', safe_error_code: 'VIDEO_HASH_MISMATCH' })
 			.eq('id', session.id)
@@ -634,12 +663,12 @@ export async function completeUploadSession(input: {
 		const directory = await mkdtemp(join(tmpdir(), 'dif-video-'));
 		const localPath = join(directory, 'source.mp4');
 		try {
-			await storage.downloadToFile(session.quarantine_key, localPath);
+			await storage.downloadToFile(quarantineKey, localPath);
 			probeResult = await input.probe.probeFile(localPath);
 		} catch {
 			await rm(directory, { recursive: true, force: true }).catch(() => undefined);
-			await storage.deleteObject(session.quarantine_key).catch(() => undefined);
-			await db
+			await storage.deleteObject(quarantineKey).catch(() => undefined);
+			await sessionDb
 				.from('video_upload_sessions')
 				.update({ status: 'ABORTED', safe_error_code: 'VIDEO_PROBE_FAILED' })
 				.eq('id', session.id)
@@ -649,8 +678,8 @@ export async function completeUploadSession(input: {
 		await rm(directory, { recursive: true, force: true }).catch(() => undefined);
 		const validation = validateProbe(probeResult, episode.scene_duration_ms as number);
 		if (!validation.ok) {
-			await storage.deleteObject(session.quarantine_key).catch(() => undefined);
-			await db
+			await storage.deleteObject(quarantineKey).catch(() => undefined);
+			await sessionDb
 				.from('video_upload_sessions')
 				.update({ status: 'ABORTED', safe_error_code: validation.code })
 				.eq('id', session.id)
@@ -670,12 +699,12 @@ export async function completeUploadSession(input: {
 	if (ready) {
 		try {
 			await storage.copyToFinal({
-				sourceKey: session.quarantine_key,
+				sourceKey: quarantineKey,
 				destinationKey: finalKey,
 			});
 		} catch {
-			await storage.deleteObject(session.quarantine_key).catch(() => undefined);
-			await db
+			await storage.deleteObject(quarantineKey).catch(() => undefined);
+			await sessionDb
 				.from('video_upload_sessions')
 				.update({ status: 'ABORTED', safe_error_code: 'VIDEO_STORAGE_COPY_FAILED' })
 				.eq('id', session.id)
@@ -686,7 +715,7 @@ export async function completeUploadSession(input: {
 				'Não foi possível publicar o clipe validado.',
 			);
 		}
-		await storage.deleteObject(session.quarantine_key).catch(() => undefined);
+		await storage.deleteObject(quarantineKey).catch(() => undefined);
 	}
 
 	const assetInsert = {
@@ -697,7 +726,7 @@ export async function completeUploadSession(input: {
 		asset_version: version,
 		storage_provider: 'r2',
 		bucket: storage.bucket,
-		object_key: ready ? finalKey : session.quarantine_key,
+		object_key: ready ? finalKey : quarantineKey,
 		poster_key: null,
 		sha256,
 		byte_size: stored.size,
@@ -713,47 +742,40 @@ export async function completeUploadSession(input: {
 			? new Date(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
 			: null,
 	};
-	const { data: asset, error: assetError } = await assetDb
+	const { data: asset, error: assetError } = await sessionDb
 		.from('video_assets')
 		.insert(assetInsert)
 		.select('*')
 		.single();
 	if (assetError || !asset) {
-		// Two concurrent completion retries can both observe the same completed R2
-		// object. The unique asset id makes one insert win; reuse that row instead of
-		// deleting the object the winner already published.
-		if (assetError?.code === '23505') {
-			const { data: concurrentAsset } = await db
-				.from('video_assets')
-				.select('*')
-				.eq('id', session.asset_id)
-				.eq('owner_id', owner.id)
-				.maybeSingle();
-			if (concurrentAsset) {
-				await db
-					.from('video_upload_sessions')
-					.update({ status: 'COMPLETED', safe_error_code: null })
-					.eq('id', session.id)
-					.eq('owner_id', owner.id);
-				return {
-					asset: concurrentAsset as AssetRow,
-					validation: concurrentAsset.status === 'READY' ? 'ready' : 'pending_worker',
-				};
-			}
+		// A retry or concurrent completion may have committed the asset even though
+		// this request saw an error. Never delete finalKey here: it may be the row
+		// another request just published. Leave an orphan for GC if the lookup
+		// itself fails.
+		const { data: concurrentAsset, error: lookupError } = await db
+			.from('video_assets')
+			.select('*')
+			.eq('id', session.asset_id)
+			.eq('owner_id', owner.id)
+			.maybeSingle();
+		if (!lookupError && concurrentAsset) {
+			await sessionDb
+				.from('video_upload_sessions')
+				.update({ status: 'COMPLETED', safe_error_code: null })
+				.eq('id', session.id)
+				.eq('owner_id', owner.id);
+			return {
+				asset: concurrentAsset as AssetRow,
+				validation: concurrentAsset.status === 'READY' ? 'ready' : 'pending_worker',
+			};
 		}
-		if (ready) await storage.deleteObject(finalKey).catch(() => undefined);
-		await db
-			.from('video_upload_sessions')
-			.update({ status: 'ABORTED', safe_error_code: 'VIDEO_ASSET_CREATE_FAILED' })
-			.eq('id', session.id)
-			.eq('owner_id', owner.id);
 		throw new VideoAssetError(
 			503,
-			'VIDEO_ASSET_CREATE_FAILED',
-			'Não foi possível registrar o clipe.',
+			lookupError ? 'VIDEO_ASSET_LOOKUP_FAILED' : 'VIDEO_ASSET_CREATE_FAILED',
+			'Não foi possível registrar o clipe; tente novamente.',
 		);
 	}
-	const { error: finalizeError } = await db
+	const { error: finalizeError } = await sessionDb
 		.from('video_upload_sessions')
 		.update({ status: 'COMPLETED', safe_error_code: null })
 		.eq('id', session.id)
