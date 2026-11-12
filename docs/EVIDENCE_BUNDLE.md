@@ -1,6 +1,20 @@
 # DIF Studio — Evidence Bundle
 
-## DIF-REL-001 / CD07 — release evidence (2026-11-12; HEAD revalidation pending)
+## Independent V1 release audit and checkpoint promotion — 2026-11-12
+
+**Decision: APPROVED FOR SQUASH MERGE AND MAIN DEPLOY** at tested code SHA `8ebf44acf827f0a14ac85bd380785574d378a6e8`. No HIGH/CRITICAL defects known. This approval covers this tested code and review of the release delta; the subsequent documentation-only checkpoint commits do not alter runtime code and remain subject to their own CI checks.
+
+- GitHub Actions PR 43217394260 and push 43217385062 (both SUCCESS, code SHA `8ebf44acf827f0a14ac85bd380785574d378a6e8`): Prettier, lint, Svelte typecheck (0 errors), 45 unit tests PASS (1 live-only skipped), build, 15 owner/security invariants, high-severity dependency audit, Supabase PgTAP/RLS PASS, authenticated Playwright 9/9 PASS.
+- Vercel production `dpl_262PubRkM9ci81aJe58FTqqTRP9u` READY at code SHA `8ebf44acf827f0a14ac85bd380785574d378a6e8`, alias `https://dif-studio.vercel.app`. Public external smoke from Vercel build `dpl_Gb1gbdrdroSs7pZPR7MQFHtmW7sJ` READY: `/health` and `/login` HTTP200, anonymous `/app` redirects HTTP303.
+- Live Gemini: `dpl_AQwvQM1XkN1Q6Jh8J1QoJLpV21SW` READY. One full 120-second episode generated with actual Gemini 3.5 Flash-Lite (HTTP 200) and 15 Flow scenes, two distinct vote consequences and pt-BR narration confirmed by Zod. No real owner data was written. The unit suite also tests provider errors and OIDC.
+- Original CD06 real owner smoke in production tested login, story CRUD, canon/vote, 15-scene flow, signed Cloudinary private upload/delivery, anonymous rejection and ZIP; screenshots reported success. New large-frame fallback is covered by latest unit tests and public application smoke; new UI path still warrants ordinary owner operational observation.
+- ZIP mitigation: cumulative verified image bytes capped at 3 MB for embedded full ZIP; `media=lite` includes scripts/prompts/SRT and owner-only short-lived originals by signed Cloudinary redirect. All new tests PASS, unauthorized boundary preserved.
+- Residual risks accepted as operational follow-ups: rotate Cloudinary API secret previously shared in private chat; owner email recovery via Supabase administrator if `owner@dif.local` cannot receive mail; high output limits/cost and rate quota for Gemini; seven low/moderate transitive dependency advisories with no high/critical; user should manually review generated narration for quality and timing.
+- No external paid services were enabled or secret literals committed. Latest production already serves the tested branch build. Git main deployment is required after squash merge to align repository truth and Vercel production with the final merge SHA.
+
+**Checkpoint promoted for code readiness: APPROVED (release candidate).** Final operational version completion requires main deployment `READY` at merge SHA and immediate public route smoke. The current release Work Order cannot advance to V2 until that evidence is verified.
+
+## DIF-REL-001 / CD07 — release evidence (2026-11-12; verified and approved for release)
 
 **Work orders:** DIF-MVP-ALL-001 and DIF-REL-001 (#15). **Branch / PR:** feat/dif-studio-mvp-001 / #14. The content below supersedes older historical `BLOCKED` statements only for the described gates. Historical CD01–CD06 evidence is preserved later in this file.
 
@@ -16,10 +30,10 @@
 
 ### Final release gates
 
-- [ ] Latest branch SHA: Prettier, lint, typecheck, Vitest including new ZIP tests, build, policy/dependency audit PASS.
-- [ ] Exact same SHA: hosted PgTAP/RLS + owner-synthetic E2E PASS without regressions.
-- [ ] Independent audit of diffs, security/privacy and data correctness.
-- [ ] Only after APPROVED: checkpoint promotion, squash merge PR #14, full production deployment at resulting `main` SHA, post-deploy smoke, close #15, reconcile canonical docs.
+- [x] Latest code SHA: Prettier, lint, typecheck, 45 unit tests plus live-only skip, build, policy/dependency audit PASS on 8ebf44ac.
+- [x] Exact same code SHA: hosted PgTAP/RLS + owner-synthetic E2E 9/9 PASS.
+- [x] Independent audit of diff, security/privacy and data correctness: APPROVED for release, no HIGH/CRITICAL.
+- [x] Checkpoint promoted to APPROVED for code release; [ ] pending squash merge PR #14, main deployment, post-deploy smoke and issue #15 closure.
 
 ---
 
