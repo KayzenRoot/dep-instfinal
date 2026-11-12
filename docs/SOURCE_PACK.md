@@ -1,9 +1,9 @@
 # DIF Studio Source Pack
 
 **Work Order:** `DIF-MVP-ALL-001`
-**Revision:** 1.1
-**Status:** approved scope; CD06 implemented, hosted CI passed at `b23d40c`, independent review APPROVED; checkpoint **PROPOSED — NOT PROMOTED** pending owner promotion
-**Last reconciled:** 2026-11-11
+**Revision:** 1.2
+**Status:** V1 release candidate DIF-REL-001 / CD07; live AI and large-media exports implemented; latest-head CI and final audit pending. Checkpoint **PROPOSED — NOT PROMOTED**.
+**Last reconciled:** 2026-11-12
 
 ## Source hierarchy and context
 
@@ -143,3 +143,13 @@ A real logical backup/restore was executed against the hosted project and a loca
 - Do not classify Vercel site as live/full production merely because deployment succeeds; require real owner authentication, Cloudinary media smoke, Supabase project evidence, recovery, and post-deploy verification. No automatic merge/promotion.
 
 See GitHub issue #15 (DIF-REL-001) and this branch's Evidence Bundle for acceptance.
+
+
+## Release decision ADR-DIF-V1-007 — 2026-11-12 (APPROVED SCOPE, PENDING RELEASE VERDICT)
+
+- **Scope:** owner authorized full V1 production readiness and later V2 planning, conditional on objective verification of all NECESSARY V1 requirements. PR #14 remains the sole incremental integration path; no speculative new features.
+- **Hosting:** single-owner private SvelteKit SSR on free Vercel Hobby at https://dif-studio.vercel.app (no owned domain), Node 24 adapter-vercel; existing Supabase PostgreSQL and Auth retain text/canonical truth, Cloudinary retains binary images, no service-role key in the browser.
+- **Narrative AI:** official Gemini API with owner-supplied `GEMINI_API_KEY` stored only in Vercel Production; **Gemini 3.5 Flash-Lite**, structured `responseJsonSchema`, server-side Zod validation, approved-canon context, exactly 90–150 s, 4/6/8 s scene segmentation, two branch options except finale, per-scene English start/end/motion prompts. Generated content requires owner approval before persistence. Manual JSON export/import remains. Live provider acceptance generates 120 s, 15 scenes and two decisions without touching production tables.
+- **Vercel ZIP safety:** Functions response budgets prevent combining up to 30 large frames into one download. Preserve full ZIP for READY owner frames with raw cumulative bytes up to **3,000,000**; reject larger full packages with HTTP 413 before streaming. Introduce `?media=lite` ZIP containing every narrative, prompt, caption and a per-frame private download listing. Each original file is obtained via owner-checked /api/media/[assetId]?download=1 as a 180-second signed Cloudinary redirect. Never publish unsigned URLs or expose files to non-owner users.
+- **Exit gates:** focused and broad unit tests, lint, format, typecheck, build, policy/dependency audits, hosted PgTAP/RLS and authenticated E2E all PASS on exact HEAD, then independent audit/DoD and checkpoint promotion. Only afterward allow squash merge, deploy resulting main SHA, verify Vercel READY and exact production alias. The original owner-based production smoke is evidence for CD06 flows; later changed AI/ZIP features also require live and automated tests.
+- **Known operational limits:** Cloudinary API secret previously shared in chat requires rotation in the provider and Vercel; avoid key copies in artifacts. Google Gemini free quota is finite; never auto-enable paid billing. Supabase owner e-mail recovery must be controlled by owner. AI content is for human review; videos and posts are assembled/published manually using Google Flow and CapCut.
