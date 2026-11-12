@@ -92,9 +92,10 @@ function setupDatabase(results: Record<string, Result>) {
 	return { filters };
 }
 
-function mediaEvent(variant?: string) {
+function mediaEvent(variant?: string, download = false) {
 	const url = new URL(`http://localhost/api/media/${assetId}`);
 	if (variant) url.searchParams.set('variant', variant);
+	if (download) url.searchParams.set('download', '1');
 	return {
 		params: { assetId },
 		request: new Request(url),
@@ -102,11 +103,13 @@ function mediaEvent(variant?: string) {
 	} as never;
 }
 
-function exportEvent() {
+function exportEvent(mode?: 'lite') {
+	const url = new URL(`http://localhost/api/export/${episodeId}`);
+	if (mode) url.searchParams.set('media', mode);
 	return {
 		params: { episodeId },
-		request: new Request(`http://localhost/api/export/${episodeId}`),
-		url: new URL(`http://localhost/api/export/${episodeId}`),
+		request: new Request(url),
+		url,
 	} as never;
 }
 
@@ -153,6 +156,21 @@ describe('private media authorization and export', () => {
 			}),
 		);
 		expect(cloudinary.utils.private_download_url).not.toHaveBeenCalled();
+	});
+
+	it('redirects the authenticated owner to a 3-minute signed original download', async () => {
+		setupDatabase({ media_assets: { data: privateAsset, error: null } });
+		const response = await privateMedia(mediaEvent(undefined, true));
+		expect(response.status).toBe(302);
+		expect(response.headers.get('location')).toBe('https://cloudinary.test/private.png');
+		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+		expect(cloudinary.utils.private_download_url).toHaveBeenCalledWith(
+			privateAsset.public_id,
+			privateAsset.format,
+			expect.objectContaining({ type: 'authenticated', attachment: true }),
+		);
+		expect(fetch).not.toHaveBeenCalled();
 	});
 
 	it('does not sign or fetch an asset absent from the authenticated owner query', async () => {
@@ -253,4 +271,47 @@ describe('private media authorization and export', () => {
 		expect(cloudinary.utils.private_download_url).not.toHaveBeenCalled();
 		expect(fetch).not.toHaveBeenCalled();
 	});
+	it('exports a lightweight ZIP with frame links even when images exceed Vercel size limits', async () => {
+		const episode = {
+			id: episodeId,
+			title: 'Heavy-frame export',
+			episode_number: 1,
+			status: 'DRAFT',
+			duration_ms: 120000,
+			narration_pt_br: '',
+			platform_metadata: {},
+			is_season_finale: false,
+			seasons: null,
+		};
+		const scene = {
+			scene_index: 1,
+			start_ms: 0,
+			end_ms: 8000,
+			narration_pt_br: '',
+			visual_description: '',
+			camera_notes: '',
+			lighting_notes: '',
+			start_frame_prompt_en: '',
+			end_frame_prompt_en: '',
+			motion_prompt_en: '',
+			audio_notes: '',
+			start_frame_asset_id: assetId,
+			end_frame_asset_id: null,
+		};
+		setupDatabase({
+			episodes: { data: episode, error: null },
+			scenes: { data: [scene], error: null },
+			choices: { data: [], error: null },
+			media_assets: { data: [{ ...privateAsset, byte_size: 9_000_000 }], error: null },
+		});
+		await expect(exportEpisode(exportEvent())).rejects.toMatchObject({ status: 413 });
+		const response = await exportEpisode(exportEvent('lite'));
+		const archive = Buffer.from(await response.arrayBuffer()).toString('latin1');
+		expect(response.status).toBe(200);
+		expect(archive).toContain('media/download-originals.md');
+		expect(archive).toContain('missing_frames.json');
+		expect(cloudinary.utils.private_download_url).not.toHaveBeenCalled();
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
 });
