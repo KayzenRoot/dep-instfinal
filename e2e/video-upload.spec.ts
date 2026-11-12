@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 test('owner uploads a scene clip to private storage and it survives reload', async ({
@@ -33,6 +35,7 @@ test('owner uploads a scene clip to private storage and it survives reload', asy
 	await page.goto(`/app/video?episodeId=${episodeId}`);
 	await expect(page.getByRole('heading', { name: 'Clipes do Flow' })).toBeVisible();
 	const fixture = path.join(process.cwd(), 'e2e/fixtures/synthetic-scene.mp4');
+	const fixtureHash = createHash('sha256').update(readFileSync(fixture)).digest('hex');
 	await page
 		.getByLabel('Arquivos de vídeo')
 		.setInputFiles(Array.from({ length: 15 }, () => fixture));
@@ -40,6 +43,11 @@ test('owner uploads a scene clip to private storage and it survives reload', asy
 	await page.getByRole('button', { name: 'Enviar clipes' }).click();
 	await expect(page.locator('.asset-card')).toHaveCount(15, { timeout: 300_000 });
 	await expect(page.getByText('Cena 15 · v1')).toBeVisible();
+	const assetsResponse = await page.request.get(`/api/video/assets?episodeId=${episodeId}`);
+	expect(assetsResponse.status()).toBe(200);
+	const { assets } = (await assetsResponse.json()) as { assets: Array<{ sha256: string }> };
+	expect(assets).toHaveLength(15);
+	expect(new Set(assets.map((asset) => asset.sha256))).toEqual(new Set([fixtureHash]));
 
 	const video = page.locator('video').first();
 	await expect(video).toBeVisible();

@@ -10,8 +10,8 @@ Coverage: 16 owner-scoped tables, including video_upload_sessions and video_asse
 
 2) Unit tests
 Command: npm test
-Result: Test Files 13 passed | 1 skipped (14); Tests 62 passed | 1 skipped (63).
-New coverage: video-probe 8, video-storage 4, video schemas 5.
+Result: Test Files 13 passed | 1 skipped (14); Tests 63 passed | 1 skipped (64).
+New coverage: video-probe 8, video-storage 4, video schemas 6.
 
 3) Lint
 Command: npm run lint
@@ -50,7 +50,7 @@ Notes:
 
 9) Live Cloudflare R2 E2E
 Command: E2E_R2=1 R2_ENV_FILE=C:/Users/csn19/.zcode/dif-secrets/r2.env CI=1 node scripts/test-local-e2e.mjs e2e/video-upload.spec.ts
-Result: 1 passed (2.8m). 15 synthetic clips uploaded directly to R2 with confirmed parts, associated to 15 scenes,
+Result: 1 passed (2.2m). 15 synthetic clips uploaded directly to R2 with confirmed parts and SHA-256 assertions, associated to 15 scenes,
 READY assets, reload preserved, anonymous /api/video returned 401.
 Fix applied: CSP connect-src in vite.config.ts now allows https://*.r2.cloudflarestorage.com.
 Cleanup: 42 objects deleted across live runs; incomplete multipart uploads aborted.

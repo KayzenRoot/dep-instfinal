@@ -15,6 +15,10 @@ export const videoUploadInitSchema = z.object({
 	fileName: safeFileName,
 	byteSize: z.coerce.number().int().min(1).max(209_715_200),
 	contentType: z.string().trim().max(100).default('video/mp4'),
+	fileSha256: z
+		.string()
+		.trim()
+		.regex(/^[0-9a-f]{64}$/, 'Hash SHA-256 inválido.'),
 	idempotencyKey: z
 		.string()
 		.trim()
@@ -31,7 +35,7 @@ export const videoUploadCompleteSchema = z.object({
 				etag: z.string().trim().min(1).max(200),
 			}),
 		)
-		.min(1)
+		.min(0)
 		.max(100),
 });
 

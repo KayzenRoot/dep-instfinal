@@ -11,7 +11,7 @@ Permitir upload em lote de clipes gerados manualmente no Flow, associados a epis
 
 ## 2. Decisão de storage
 
-ADR-V2-002 **ACCEPTED** pelo owner em 2026-11-12: **Cloudflare R2 privado**. Bucket `dif-studio-video-private` criado no dashboard; acesso público desabilitado. Token R2 escopado ao bucket, CORS e lifecycle ficam pendentes de conclusão manual/provisionamento.
+ADR-V2-002 **ACCEPTED** pelo owner em 2026-11-12: **Cloudflare R2 privado**. Bucket `dif-studio-video-private` criado no dashboard; acesso público desabilitado. Token R2 escopado e CORS configurados; lifecycle pendente.
 
 ## 3. Entregue no código
 
@@ -28,7 +28,7 @@ Migration `supabase/migrations/20261112170000_v2_wo003_video_storage.sql`:
 
 - `src/lib/server/video-storage.ts`: interface `VideoStorage`; `R2VideoStorage` (S3-compatible, multipart, presign, copy, hash streaming, download temporário, signed GET); `InMemoryVideoStorage` para testes.
 - `src/lib/server/video-probe.ts`: interface `VideoProbe`; `FfprobeVideoProbe` (execFile, timeout, sem shell); `FixtureVideoProbe`; validação de magic bytes MP4, H.264, 9:16, duração 4/6/8 s com tolerância ±500 ms, dimensões e rotação.
-- `src/lib/server/video-assets.ts`: criação idempotente de sessão, quotas (200 MiB/clipe, 2 GiB/episódio, 10 GiB/owner), partes, conclusão, SHA-256, quarentena, probe opcional, cópia para chave final, transições e listagem.
+- `src/lib/server/video-assets.ts`: criação idempotente de sessão, quotas (200 MiB/clipe, 2 GiB/episódio, 10 GB/owner, bloqueio em 95%), partes, conclusão, SHA-256, quarentena, probe opcional, cópia para chave final, transições e listagem.
 - Nenhuma chave R2 vem do cliente; chaves são montadas a partir de UUIDs autorizados. Nenhuma URL permanente é devolvida ao browser.
 
 ### 3.3 Rotas e UI
@@ -65,18 +65,18 @@ Migration `supabase/migrations/20261112170000_v2_wo003_video_storage.sql`:
 
 ## 5. Matriz de aceitação (issue #20)
 
-| Critério                                                                                                  | Status         | Evidência/limite                                                                                   |
-| --------------------------------------------------------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------- |
-| Owner importa lote de 15 clipes e associa a 15 cenas, preservando original e SHA-256                      | **PASS**       | E2E 15/15 live no R2 com SHA-256, cenas e reload                                                   |
-| Suporta upload parcial e retry sem duplicação; ordem salva/reaberta                                       | **PARTIAL**    | Sessões persistidas, retomada e partes idempotentes; falta teste de falha parcial real             |
-| Conteúdo inválido, excessivo e URL externa rejeitados                                                     | **PASS local** | schema, magic bytes, probe, limites, chaves server-side; unit tests                                |
-| Anon/non-owner 401/403/404; headers private/no-store                                                      | **PASS local** | E2E anônimo 401; RLS PgTAP; rota de download private/no-store                                      |
-| Sem gasto/storage público; RLS e recuperação                                                              | **PASS**       | bucket privado; token/CORS ativos; sem gasto                                                       |
-| PgTAP RLS owner vs non-owner                                                                              | **PASS**       | 33/33                                                                                              |
-| Playwright upload e recarga                                                                               | **PASS**       | 15 clipes, 15 cenas, reload; E2E 10/10                                                             |
-| Fixtures MP4 válido, truncado, duração longa, VFR, zero-byte, codec, tamanho, path traversal, concorrente | **PARTIAL**    | unit cobre magic/tamanho/schema/probe; faltam fixtures VFR/concorrência e probe ffprobe real no CI |
-| Unit/integration/error rollback, storage orphan reconciliation                                            | **PARTIAL**    | storage/quarantine/rollback cobertos; GC/reconciliação de órfãos é WO-005                          |
-| Deliverables docs/Evidence/PR Draft                                                                       | **PENDING**    | este documento + Evidence Bundle + PR Draft                                                        |
+| Critério                                                                                                  | Status         | Evidência/limite                                                                                            |
+| --------------------------------------------------------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------- |
+| Owner importa lote de 15 clipes e associa a 15 cenas, preservando original e SHA-256                      | **PASS**       | E2E 15/15 live no R2 com SHA-256 calculado/persistido e verificado via `/api/video/assets`, cenas e reload  |
+| Suporta upload parcial e retry sem duplicação; ordem salva/reaberta                                       | **PARTIAL**    | Sessões persistidas, retomada e partes idempotentes; falta teste de falha parcial real                      |
+| Conteúdo inválido, excessivo e URL externa rejeitados                                                     | **PASS local** | schema, magic bytes, probe, limites, chaves server-side; unit tests                                         |
+| Anon/non-owner 401/403/404; headers private/no-store                                                      | **PASS local** | E2E anônimo 401/303; RLS PgTAP; rota de download private/no-store                                           |
+| Sem gasto/storage público; RLS e recuperação                                                              | **PASS**       | bucket privado; token/CORS ativos; sem gasto; lifecycle/GC pendente                                         |
+| PgTAP RLS owner vs non-owner                                                                              | **PASS**       | 37/37                                                                                                       |
+| Playwright upload e recarga                                                                               | **PASS**       | 15 clipes, 15 cenas, reload; E2E 10/10                                                                      |
+| Fixtures MP4 válido, truncado, duração longa, VFR, zero-byte, codec, tamanho, path traversal, concorrente | **PARTIAL**    | unit cobre magic/tamanho/schema/probe; faltam fixtures VFR/concorrência e probe ffprobe real no CI          |
+| Unit/integration/error rollback, storage orphan reconciliation                                            | **PARTIAL**    | storage adapter/quarentena cobertos; rollback do service e GC/reconciliação de órfãos pendentes (M9/WO-005) |
+| Deliverables docs/Evidence/PR Draft                                                                       | **PASS**       | este documento + Evidence Bundle + PR Draft #48                                                             |
 
 ## 6. Riscos e limites
 
@@ -86,7 +86,7 @@ Migration `supabase/migrations/20261112170000_v2_wo003_video_storage.sql`:
 - **Miniaturas:** a UI usa `<video>` protegido; poster JPEG é opcional e será gerado no worker. Não há thumbnail pública.
 - **CORS:** configurado para `http://127.0.0.1:4173` e `https://dif-studio.vercel.app`, métodos `PUT/GET/HEAD`, `ExposeHeaders: ETag`; validado no E2E live.
 - **GC/retention:** lifecycle e tombstone estão definidos na ADR; rotina automática fica para WO-005.
-- **Quotas:** 10 GiB free; ~300 MiB/episódio; bloquear em 95% sem upgrade pago.
+- **Quotas:** 10 GB free; ~300 MiB/episódio; bloqueio em 95% no servidor; alerta em 80% pendente.
 
 ## 7. Próximos passos
 
@@ -96,22 +96,24 @@ Migration `supabase/migrations/20261112170000_v2_wo003_video_storage.sql`:
 
 ## 8. Auditoria independente e correções
 
-A primeira auditoria independente (commit `fb6a3c8`) retornou **BLOCKED**, com 1 HIGH e 13 MEDIUM. Correções aplicadas neste PR:
+A primeira auditoria independente (commit `fb6a3c8`) retornou **BLOCKED**; a reauditoria do head `3a6a22f` retornou **CORRECTION REQUIRED** (H1/H2 de resume). As correções abaixo foram aplicadas neste PR:
 
 - **H1 CSP:** `connect-src`, `media-src` e `img-src` agora permitem `https://*.r2.cloudflarestorage.com`; o E2E live valida upload direto e prévia.
-- **M1 CI:** `scripts/audit-policy.mjs` formatado; `prettier --check` passa.
-- **M2 idempotência:** a sessão existente só é retomada se owner/episódio/cena/tamanho coincidirem; caso contrário, 409.
-- **M3 retry parcial:** nova coluna `uploaded_parts` e rota `PUT /api/video/uploads/{sessionId}/parts/{partNumber}`; o resume assina/reenvia apenas partes faltantes e o complete mescla as partes confirmadas.
-- **M4 conclusão:** falhas de hash/prefix/copy agora encerram a sessão como `ABORTED` com código seguro, em vez de deixá-la presa.
-- **M5 quotas/limite:** 15 clipes/episódio aplicados no servidor e na UI; a cota do episódio soma assets + sessões ativas; owner 10 GiB.
+- **H1 resume:** o complete aceita `parts: []` e mescla as partes já confirmadas da sessão; uma sessão com todas as partes registradas pode ser concluída.
+- **H2 arquivo exato:** a sessão guarda `file_sha256` (hash calculado no browser); o resume compara o hash, e o servidor compara o SHA-256 do objeto R2 antes de READY. Arquivo diferente de mesmo tamanho é rejeitado.
+- **M1 CI:** `scripts/audit-policy.mjs` formatado; `prettier --check` passa; CI `quality` PASS.
+- **M2 idempotência:** a sessão existente só é retomada se owner/episódio/cena/tamanho/hash coincidirem; caso contrário, 409.
+- **M3 retry parcial:** `uploaded_parts` + rota `PUT /api/video/uploads/{sessionId}/parts/{partNumber}`; o resume assina/reenvia apenas partes faltantes e o complete mescla as confirmadas.
+- **M4 conclusão:** falhas de hash/prefix/copy agora encerram a sessão como `ABORTED` com código seguro; recuperação idempotente de `CompleteMultipartUpload` ainda pendente.
+- **M5 quotas/limite:** 15 clipes/episódio aplicados no servidor e na UI; a cota do episódio soma assets + sessões ativas; owner 10 GB com bloqueio em 95%.
 - **M6 cache:** URLs assinadas R2 incluem `ResponseCacheControl: private, no-store` e `Content-Disposition: inline`.
 - **M7 drivers:** `memory` e `fixture` só funcionam em `import.meta.env.DEV`; produção retorna 503/sem probe.
-- **M8 RLS:** PgTAP agora **37/37**, com update/delete owner vs non-owner e tombstone.
-- **M12 frame rate:** probe rejeita taxa de quadros fora de 23,976–60 fps.
-- **M13 expiração:** sessões expiradas retornam 410 e não aparecem na lista.
+- **M8 RLS:** PgTAP agora **37/37**, com update/delete owner vs non-owner (hard delete; tombstone pendente).
+- **M12 frame rate:** probe rejeita taxa de quadros fora de 23,976–60 fps; VFR continua pendente.
+- **M13 expiração:** `loadSession` e o caminho de idempotência retornam 410; listas/cotas filtram sessões expiradas.
 - **L1/L2:** dev-object exige DEV; `r2Configured` exige endpoint.
 
-**Pendências conhecidas:** M9 (testes unitários do service `video-assets.ts`), M11 (owner via Data API pode tentar forjar `READY`/tombstone; risco single-owner documentado), M12 VFR/concorrência completos, lifecycle do bucket, poster/GC e ffprobe real no worker. A reauditoria do novo head está pendente; o WO-003 não está aprovado e o WO-004+ permanece bloqueado.
+**Pendências conhecidas:** M4 (recuperação idempotente pós-`CompleteMultipartUpload`), M9 (testes unitários do service `video-assets.ts`), M11 (owner via Data API pode tentar forjar `READY`/hard delete; risco single-owner documentado), M12 VFR/concorrência, lifecycle do bucket, poster/GC e ffprobe real no worker. A reauditoria do novo head está pendente; o WO-003 não está aprovado e o WO-004+ permanece bloqueado.
 
 **Nota de E2E:** a suíte completa local passou **10/10** no run limpo ([`e2e-full-10of10.txt`](evidence/wo-003/e2e-full-10of10.txt)). Um rerun posterior falhou no journey pré-existente por 500 em `/app` e timeout de 900 s ([`e2e-full-rerun.txt`](evidence/wo-003/e2e-full-rerun.txt)); o teste de vídeo live passou 15/15. O CI hospedado é a autoridade.
 

@@ -8,7 +8,8 @@ import type { SignedPart, StoredObject, VideoStorage } from './video-storage.js'
 import { finalVideoObjectKey, quarantineObjectKey } from './video-storage.js';
 import { hasMp4Magic, validateProbe, type VideoProbe } from './video-probe.js';
 
-export const VIDEO_OWNER_QUOTA_BYTES = 10 * 1024 * 1024 * 1024;
+export const VIDEO_OWNER_QUOTA_BYTES = 10_000_000_000;
+export const VIDEO_OWNER_QUOTA_BLOCK_BYTES = 9_500_000_000;
 export const VIDEO_EPISODE_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
 export const VIDEO_MAX_CLIPS_PER_EPISODE = 15;
 const RETENTION_DAYS = 30;
@@ -38,6 +39,7 @@ interface SessionRow {
 	status: string;
 	expires_at: string;
 	uploaded_parts: Array<{ partNumber: number; etag: string }> | null;
+	file_sha256: string | null;
 }
 
 interface AssetRow {
@@ -102,7 +104,7 @@ async function loadSession(
 	const { data, error } = await db
 		.from('video_upload_sessions')
 		.select(
-			'id,owner_id,episode_id,scene_id,asset_id,idempotency_key,r2_upload_id,quarantine_key,part_size_bytes,total_bytes,status,expires_at,uploaded_parts',
+			'id,owner_id,episode_id,scene_id,asset_id,idempotency_key,r2_upload_id,quarantine_key,part_size_bytes,total_bytes,status,expires_at,uploaded_parts,file_sha256',
 		)
 		.eq('id', sessionId)
 		.eq('owner_id', ownerId)
@@ -110,7 +112,7 @@ async function loadSession(
 	if (error || !data)
 		throw new VideoAssetError(404, 'UPLOAD_NOT_FOUND', 'Sessão de upload não encontrada.');
 	const session = data as SessionRow;
-	if (new Date(session.expires_at).getTime() < Date.now()) {
+	if (new Date(session.expires_at).getTime() < Date.now() && session.status !== 'COMPLETED') {
 		await db
 			.from('video_upload_sessions')
 			.update({ status: 'EXPIRED', safe_error_code: 'UPLOAD_SESSION_EXPIRED' })
@@ -156,6 +158,7 @@ export async function createUploadSession(input: {
 	byteSize: number;
 	contentType: string;
 	idempotencyKey: string;
+	fileSha256: string;
 }): Promise<{
 	sessionId: string;
 	assetId: string;
@@ -175,6 +178,8 @@ export async function createUploadSession(input: {
 		throw new VideoAssetError(413, 'VIDEO_TOO_LARGE', 'O clipe excede o limite configurado.');
 	if (!contentTypeIsVideo(input.contentType))
 		throw new VideoAssetError(415, 'VIDEO_CONTENT_TYPE_INVALID', 'O tipo do clipe é inválido.');
+	if (!/^[0-9a-f]{64}$/.test(input.fileSha256))
+		throw new VideoAssetError(400, 'VIDEO_FILE_HASH_INVALID', 'Hash SHA-256 do arquivo inválido.');
 	if (!input.fileName || /[\\/]/.test(input.fileName) || input.fileName.includes('..'))
 		throw new VideoAssetError(400, 'VIDEO_FILE_NAME_INVALID', 'Nome de arquivo inválido.');
 
@@ -199,7 +204,7 @@ export async function createUploadSession(input: {
 	const { data: existing, error: existingError } = await db
 		.from('video_upload_sessions')
 		.select(
-			'id,owner_id,episode_id,scene_id,asset_id,idempotency_key,r2_upload_id,quarantine_key,part_size_bytes,total_bytes,status,expires_at,uploaded_parts',
+			'id,owner_id,episode_id,scene_id,asset_id,idempotency_key,r2_upload_id,quarantine_key,part_size_bytes,total_bytes,status,expires_at,uploaded_parts,file_sha256',
 		)
 		.eq('owner_id', owner.id)
 		.eq('idempotency_key', input.idempotencyKey)
@@ -222,15 +227,24 @@ export async function createUploadSession(input: {
 				'UPLOAD_NOT_RESUMABLE',
 				'Esta chave de idempotência já foi encerrada.',
 			);
+		if (new Date(session.expires_at).getTime() < Date.now()) {
+			await db
+				.from('video_upload_sessions')
+				.update({ status: 'EXPIRED', safe_error_code: 'UPLOAD_SESSION_EXPIRED' })
+				.eq('id', session.id)
+				.eq('owner_id', owner.id);
+			throw new VideoAssetError(410, 'UPLOAD_EXPIRED', 'A sessão de upload expirou.');
+		}
 		if (
 			session.episode_id !== input.episodeId ||
 			session.scene_id !== input.sceneId ||
-			session.total_bytes !== input.byteSize
+			session.total_bytes !== input.byteSize ||
+			session.file_sha256 !== input.fileSha256
 		)
 			throw new VideoAssetError(
 				409,
 				'UPLOAD_IDEMPOTENCY_MISMATCH',
-				'A chave de idempotência já foi usada com outro episódio, cena ou tamanho.',
+				'A chave de idempotência já foi usada com outro episódio, cena, tamanho ou arquivo.',
 			);
 		return {
 			sessionId: session.id,
@@ -259,7 +273,8 @@ export async function createUploadSession(input: {
 		.from('video_upload_sessions')
 		.select('total_bytes')
 		.eq('owner_id', owner.id)
-		.in('status', ['CREATED', 'UPLOADING']);
+		.in('status', ['CREATED', 'UPLOADING'])
+		.gt('expires_at', new Date().toISOString());
 	if (sessionsError)
 		throw new VideoAssetError(
 			503,
@@ -269,7 +284,7 @@ export async function createUploadSession(input: {
 	const used =
 		sumBytes((assets ?? []) as Array<{ byte_size: number | null }>) +
 		sumBytes((activeSessions ?? []) as Array<{ total_bytes: number | null }>);
-	if (used + input.byteSize > VIDEO_OWNER_QUOTA_BYTES)
+	if (used + input.byteSize > VIDEO_OWNER_QUOTA_BLOCK_BYTES)
 		throw new VideoAssetError(
 			413,
 			'VIDEO_OWNER_QUOTA_EXCEEDED',
@@ -292,7 +307,8 @@ export async function createUploadSession(input: {
 		.select('total_bytes')
 		.eq('owner_id', owner.id)
 		.eq('episode_id', input.episodeId)
-		.in('status', ['CREATED', 'UPLOADING']);
+		.in('status', ['CREATED', 'UPLOADING'])
+		.gt('expires_at', new Date().toISOString());
 	if (episodeSessionsError)
 		throw new VideoAssetError(
 			503,
@@ -327,6 +343,7 @@ export async function createUploadSession(input: {
 		asset_id: assetId,
 		idempotency_key: input.idempotencyKey,
 		quarantine_key: key,
+		file_sha256: input.fileSha256,
 		part_size_bytes: config.videoPartBytes,
 		total_bytes: input.byteSize,
 		status: 'CREATED',
@@ -553,6 +570,19 @@ export async function completeUploadSession(input: {
 			.eq('id', session.id)
 			.eq('owner_id', owner.id);
 		throw new VideoAssetError(415, 'VIDEO_CONTAINER_INVALID', 'O arquivo não é um MP4/MOV válido.');
+	}
+	if (session.file_sha256 && session.file_sha256 !== sha256) {
+		await storage.deleteObject(session.quarantine_key).catch(() => undefined);
+		await db
+			.from('video_upload_sessions')
+			.update({ status: 'ABORTED', safe_error_code: 'VIDEO_HASH_MISMATCH' })
+			.eq('id', session.id)
+			.eq('owner_id', owner.id);
+		throw new VideoAssetError(
+			422,
+			'VIDEO_HASH_MISMATCH',
+			'O arquivo recebido não corresponde ao arquivo original da sessão.',
+		);
 	}
 
 	const version = await nextAssetVersion(db, owner.id, session.episode_id, session.scene_id);

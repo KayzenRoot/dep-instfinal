@@ -7,6 +7,7 @@ const validInit = {
 	fileName: 'flow-scene-01.mp4',
 	byteSize: 12_345_678,
 	contentType: 'video/mp4',
+	fileSha256: 'a'.repeat(64),
 	idempotencyKey: 'upload:scene-01:001',
 };
 
@@ -31,6 +32,12 @@ describe('video upload schemas', () => {
 		).toBe(false);
 	});
 
+	it('rejects an invalid file hash', () => {
+		expect(
+			videoUploadInitSchema.safeParse({ ...validInit, fileSha256: 'not-a-hash' }).success,
+		).toBe(false);
+	});
+
 	it('rejects an oversized clip', () => {
 		expect(videoUploadInitSchema.safeParse({ ...validInit, byteSize: 209_715_201 }).success).toBe(
 			false,
@@ -38,6 +45,7 @@ describe('video upload schemas', () => {
 	});
 
 	it('requires ordered part numbers and non-empty ETags', () => {
+		expect(videoUploadCompleteSchema.safeParse({ parts: [] }).success).toBe(true);
 		expect(
 			videoUploadCompleteSchema.safeParse({ parts: [{ partNumber: 1, etag: 'etag-1' }] }).success,
 		).toBe(true);

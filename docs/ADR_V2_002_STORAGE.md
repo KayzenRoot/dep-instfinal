@@ -157,4 +157,4 @@ Implementações: `R2VideoStorage` (produção) e `InMemoryVideoStorage`/fake (t
 - [ ] Quota/GC/retention e restore documentados e testados.
 - [ ] Nenhum gasto pago, bucket público, segredo no Git ou deploy de produção.
 
-**Bloqueio atual:** login Cloudflare ausente no ambiente; bucket/token ainda não criados. O código e os testes locais podem avançar com fake storage/probe; a aceitação live do WO-003 fica `BLOCKED` até o provisionamento autorizado.
+**Estado atual:** bucket, token e CORS configurados; upload/leitura live validados. Lifecycle automático e validação ffprobe real no worker permanecem pendentes; a evidência do WO-003 aguarda reauditoria.

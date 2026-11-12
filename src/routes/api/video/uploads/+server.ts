@@ -53,6 +53,7 @@ export const POST: RequestHandler = async (event) => {
 			fileName: parsed.data.fileName,
 			byteSize: parsed.data.byteSize,
 			contentType: parsed.data.contentType,
+			fileSha256: parsed.data.fileSha256,
 			idempotencyKey: parsed.data.idempotencyKey,
 		});
 		return json(result, { status: result.resumed ? 200 : 201 });

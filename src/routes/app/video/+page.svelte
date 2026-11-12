@@ -64,9 +64,17 @@
 		selectedFiles = selectedFiles.filter((_, current) => current !== index);
 	}
 
+	async function sha256Hex(file: File): Promise<string> {
+		const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+		return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(
+			'',
+		);
+	}
+
 	async function uploadOne(item: SelectedFile): Promise<void> {
 		if (!selectedEpisode) throw new Error('Selecione um episódio.');
 		const idempotencyKey = crypto.randomUUID();
+		const fileSha256 = await sha256Hex(item.file);
 		const initResponse = await fetch('/api/video/uploads', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
@@ -76,6 +84,7 @@
 				fileName: item.file.name,
 				byteSize: item.file.size,
 				contentType: item.file.type || 'video/mp4',
+				fileSha256,
 				idempotencyKey,
 			}),
 			signal: AbortSignal.timeout(30_000),
@@ -173,7 +182,7 @@
 		try {
 			const response = await fetch(`/api/video/uploads/${sessionId}`);
 			const body = (await response.json().catch(() => ({}))) as {
-				session?: { total_bytes?: number; part_size_bytes?: number };
+				session?: { total_bytes?: number; part_size_bytes?: number; file_sha256?: string };
 				parts?: Array<{ partNumber: number; url: string }>;
 				message?: string;
 			};
@@ -186,6 +195,9 @@
 				throw new Error(body.message ?? 'Sessão não encontrada.');
 			if (file.size !== body.session.total_bytes)
 				throw new Error('O arquivo selecionado não tem o tamanho da sessão original.');
+			const fileSha256 = await sha256Hex(file);
+			if (body.session.file_sha256 && fileSha256 !== body.session.file_sha256)
+				throw new Error('O arquivo selecionado não é o original desta sessão.');
 			const item: SelectedFile = {
 				key: crypto.randomUUID(),
 				file,
