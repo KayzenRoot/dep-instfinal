@@ -107,17 +107,17 @@ Revalidate before any external action if `main` changes; the feature branch is r
 ## V2 Context Lock — WO-001 (#18)
 
 - **Base revalidated:** `main` `13467ab009e0eaaee1be6ba2e35678228cfbdf32` after squash merge of PR #16 (`docs(v1): finalize verified production checkpoint`), 2026-11-12. Branch for this WO: `docs/dif-v2-wo-001`.
-- **V1 gate:** PR #16 was Draft/mergeable CLEAN with CI `43220790406` PASS and Vercel preview success; independent reviewer verdict **APPROVED**, net diff only `docs/SOURCE_PACK.md`, `docs/CHECKPOINT_DELTA.md`, `docs/EVIDENCE_BUNDLE.md`. Merged without bypass at `13467ab`. Post-merge smoke: `/health` 200, `/login` 200, anonymous `/app` 303. The exact Vercel deployment SHA is not independently verifiable without a Vercel credential; the production alias responds as documented.
-- **Critical source fingerprints at base (SHA-256):**
-  - `docs/CHECKPOINT_DELTA.md` `b39fe86fe1d2003e56657bfca90dd5bd50c3494d3d998ffd6f30960bbcb9f1cd`
-  - `docs/SOURCE_PACK.md` `5e768bf02341516df27d23aef949e5753cc3fc30ea40d69b91ae7dc4cf013672`
+- **V1 gate:** PR #16 was Draft/mergeable CLEAN with CI `43220790406` PASS and Vercel preview success; an independent agent audit recorded outside GitHub (GitHub shows only a Copilot `COMMENTED` review) returned **APPROVED**, with net diff only `docs/SOURCE_PACK.md`, `docs/CHECKPOINT_DELTA.md`, `docs/EVIDENCE_BUNDLE.md`. Squash-merged normally at `13467ab` (no force-push; `main` has no branch protection configured). Post-merge smoke: `/health` 200, `/login` 200, anonymous `/app` 303. The exact Vercel deployment SHA is not independently verifiable without a Vercel credential; the production alias responds as documented.
+- **Critical source fingerprints at base (SHA-256, canonical LF blob via `git show 13467ab:<path> | sha256sum`):**
+  - `docs/CHECKPOINT_DELTA.md` `806d3c4c248aad501c9ee2ed5f0b46168cea4ce9e210d1369b8c7c7285b97fa3`
+  - `docs/SOURCE_PACK.md` `87f6487c1915369ad80699d7f18750295762fc95a398aeb5a0d9053b8dabd316`
   - `docs/CONTEXT_LOCK.md` `29a65b759588b775b57ea1dbe948c88afcc6fecf595c63e7c889f21b52a09e45`
-  - `docs/EVIDENCE_BUNDLE.md` `682f2067e034ece2b226d3288c61c767292b8416206e08cb2121174e8ba9ca88`
-  - `docs/OPERATIONS.md` `7b94a48ffb0adf88a1e5c3f27cccf3396ab90bf276fcd934351071dc5d291317`
+  - `docs/EVIDENCE_BUNDLE.md` `885b82cee9d566cbbc0c2969a32667d75838b5a7137bfefed9396cbe830663ad`
+  - `docs/OPERATIONS.md` `ac5819a3dc6450f2243387347b144487fc09554701718f658f54d8361aa12f91`
   - `README.md` `8f63c4278b81d60a36590f46d01d727713854679d8af736ebe328d9d6e1ea687`
-  - `package.json` `e8e1131c70194895a41ffbbfd2f91c8e470935f9fcee11d221f1a011fdce2bf5`
+  - `package.json` `c0852118f82eefcaeb409281f758be22ed51aaa0785da74edb4469a4a7e9f394`
   - `.github/workflows/ci.yml` `5a164edb4338d313492ed87a1188543c844855d6e1d3d609328215854803d389`
-- **Issue inventory:** epic #17 is OPEN and `PLANNED / PROPOSED`; all 28 WOs #18–#45 are OPEN with no approval labels and PLANNED/UNAPPROVED status. No ADR V2 is accepted. No V2 branch, migration, table, worker, storage or deployment exists.
+- **Issue inventory:** epic #17 is OPEN and `PLANNED / PROPOSED`; all 28 WOs #18–#45 are OPEN with no approval labels and PLANNED/UNAPPROVED status. No ADR V2 is accepted. No V2 runtime branch, migration, table, worker, storage or deployment exists; the only V2 branch is the documentation branch `docs/dif-v2-wo-001`.
 - **Tools/capacity:** Node `26.4.0`, npm `11.17.0`, Supabase CLI `2.113.0`; `ffmpeg`/`ffprobe` are absent from the local PATH; Oracle ARM64 VPS access, CPU/RAM/disk, FFmpeg build and firewall/Portainer constraints are unverified. WO-002 cannot run until the environment is authorized and measured.
 - **Dependency graph:** documented in `docs/V2_EXECUTION_PLAN.md`; key edges: WO-024 depends on WO-025; WO-013 is final hardening, not a prerequisite of WO-023; WO-014 is terminal; WO-026 requires WO-019 and WO-025. The proposed graph has no cycle; live issue bodies prevail if they change.
 - **Budget:** incremental spend target **US$ 0**; no paid API, GPU, domain, storage or billing activation. Vercel Hobby, Supabase Free and the existing Oracle VPS are candidates, not guarantees.

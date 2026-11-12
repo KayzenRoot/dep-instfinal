@@ -155,7 +155,7 @@ See GitHub issue #15 (DIF-REL-001) and this branch's Evidence Bundle for accepta
 
 ## V1 final release closure — 2026-11-12 (APPROVED)
 
-The owner authorized the final release. GitHub PR #14 was squash-merged without bypass to `main` at `441888e7ca1a80f038d97a7392a9da406eb88239`; issue #15 DIF-REL-001 is CLOSED and all 13 foundational issues are CLOSED. No code was changed in this documentation-only checkpoint closure.
+The owner authorized the final release. GitHub PR #14 was squash-merged normally to `main` at `441888e7ca1a80f038d97a7392a9da406eb88239` (no force-push; `main` has no branch protection configured); issue #15 DIF-REL-001 is CLOSED and all 13 foundational issues are CLOSED. No code was changed in this documentation-only checkpoint closure.
 
 - **GitHub:** exact PR head `0a93b3f68638ddc56f1337578c3ecb4a9928c5f3` passed PR CI 43218862212 and push CI 43218854310. That head contained only documentation reconciliation beyond the separately audited runtime code SHA `8ebf44acf827f0a14ac85bd380785574d378a6e8`. Tests: 45 unit passed (live-only test intentionally skipped in CI), PgTAP/RLS PASS and authenticated Playwright 9/9 PASS; typecheck/lint/build/format and high-severity audits PASS.
 - **Production:** automatic Vercel deployment `dpl_FEpLGWcuPCGRU9tN8A1BdWwbB32G` READY on the exact squash SHA, `https://dif-studio.vercel.app` assigned. Independent public-route smoke in `dpl_8eG3Yg75Ffc5KFDxDdeyDtiRD4eh` READY: health/login 200 and anonymous /app 303. The owner-supplied real-account CD06 production acceptance covers authenticated workflows, private image delivery and ZIP. The extended Gemini API 120-second/15-scene structured response was validated with the real Gemini provider using synthetic context, and ZIP lite/3 MB limits were tested.
@@ -195,6 +195,28 @@ Proposed owner-scoped entities: `video_assets`, `edit_timelines`, `edit_versions
 - Upload validation covers real container/codec/PTS/VFR, size/duration/dimensions, path traversal, SSRF and malicious media. FFmpeg arguments use an allowlist with no shell interpolation; child processes have timeout and kill.
 - Quotas per owner (storage, jobs, concurrent renders), retention policy, orphan reconciliation, backup/restore with per-hash media manifest, and no destructive cleanup without verified backup.
 - V2 release is gated by a real benchmark, worker hardening, Vercel production smoke, independent audit and owner authorization. No paid service, GPU, domain or billing activation is implied.
+
+### UI/UX (PROPOSED)
+
+- Editor de timeline com upload, preview, correção, comparação antes/depois, estados vazio/loading/erro/sucesso e ações indisponíveis explicitamente rotuladas.
+- Layout responsivo em 360/768/1440, operação por teclado, foco visível, contraste, `prefers-reduced-motion`, safe zones TikTok/Reels e nenhuma promessa de geração/postagem automática.
+- A UI V1 permanece intacta; os recursos V2 ficam atrás de feature flag e podem ser desligados sem perder dados.
+
+### Integration contracts (PROPOSED)
+
+- V1 preservada: Supabase Auth/PostgreSQL/RLS, Cloudinary de imagens, Gemini opt-in e Flow/CapCut manual continuam com os contratos atuais.
+- V2 UI → Supabase (metadados, timeline, fila, estado de job) → worker isolado → storage privado; o browser nunca recebe `service_role`, segredo do worker ou URL permanente de mídia.
+- Contratos versionados: edit plan, manifesto de artefatos com hash, idempotency key, códigos de erro seguros, links assinados curtos, autorização em toda leitura/download e nenhuma execução de shell/SQL/FFmpeg pela IA.
+- Migrações aditivas e feature flag; nenhuma alteração destrutiva em tabelas V1, episódios publicados, votos verificados, lore ou histórico.
+
+### Deployment and rollout (PROPOSED)
+
+- **UI/orquestração:** Vercel Hobby com `adapter-vercel`, URL atual, deploy somente do SHA exato de `main` após CI/auditoria; preview de PR não é produção.
+- **Worker:** ambiente separado (candidato Oracle ARM64) provisionado apenas após WO-002 e autorização; uma concorrência inicial, segredos server-side, storage privado montado/objeto, sem alterar firewall/Portainer de produção sem autorização específica.
+- **Ordem:** migrações aditivas Supabase → feature flag desligada → worker/queue → smoke → habilitação gradual; nunca render de 120 s em função HTTP.
+- **Rollout:** preview → smoke do owner (auth, upload privado, render, download, expiração de URL) → produção; V1 permanece operável e o flag V2 pode ser desligado.
+- **Rollback:** desligar flag, cancelar/parar jobs, reverter para o SHA anterior de `main`/Vercel, manter artefatos e metadados; nenhuma exclusão destrutiva sem backup verificado.
+- **Smoke mínimo:** `/health`, `/login`, owner, API privada, upload, render, download e fronteira anônima; registrar SHA, CI e resultado.
 
 ### Definition of Done V2 (PROPOSED)
 

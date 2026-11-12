@@ -19,18 +19,18 @@
 | WO-007 | #24   | Narração pt-BR, voz importada e TTS local opcional      | ELEVATED | WO-005; WO-006; adendo emoção                                     | PLANNED                 |
 | WO-008 | #25   | Legendas reais, SRT/ASS e burn-in                       | STANDARD | WO-006; WO-007                                                    | PLANNED                 |
 | WO-009 | #26   | SFX/música licenciados, mix/ducking, soundscape estéreo | STANDARD | WO-006; WO-007; adendo soundscape                                 | PLANNED                 |
-| WO-010 | #27   | Diretor de edição e curva de tensão                     | ELEVATED | WO-004; WO-025; adendo tensão                                     | PLANNED                 |
+| WO-010 | #27   | Diretor de edição e curva de tensão                     | ELEVATED | WO-004; WO-025 (proposta); adendo tensão                          | PLANNED                 |
 | WO-011 | #28   | Editor/preview e safe zones                             | ELEVATED | WO-006–009; adendo safe zones                                     | PLANNED                 |
 | WO-012 | #29   | Export MP4 H.264/AAC + Quality Inspector                | ELEVATED | WO-005–009; WO-011; adendo QA                                     | PLANNED                 |
-| WO-013 | #30   | Hardening: quotas, backup, retenção, recuperação        | ELEVATED | WO-003; WO-005; WO-012; etapa final                               | PLANNED                 |
+| WO-013 | #30   | Hardening: quotas, backup, retenção, recuperação        | ELEVATED | WO-003; WO-005; WO-012; WO-015–021 (complemento); etapa final     | PLANNED                 |
 | WO-014 | #31   | Release V2: regressão, auditoria, deploy                | ELEVATED | WO-001–013 e WO-015–021; terminal                                 | PLANNED                 |
 | WO-015 | #32   | Hook Lab: 3 aberturas A/B/C                             | STANDARD | WO-004; WO-010; WO-011; WO-012                                    | PLANNED                 |
 | WO-016 | #33   | Color Match e presets de terror                         | STANDARD | WO-002; WO-003; WO-006; WO-011; WO-012                            | PLANNED                 |
 | WO-017 | #34   | Continuidade visual + Character Identity Kit            | ELEVATED | WO-003; WO-004; WO-011; WO-016 (quando disponível)                | PLANNED                 |
-| WO-018 | #35   | Capas, posters e cards                                  | STANDARD | WO-003; WO-011; WO-012 (proposta); WO-021 (proposta)              | PLANNED                 |
+| WO-018 | #35   | Capas, posters e cards                                  | STANDARD | WO-003; WO-004; WO-011; WO-012; WO-016                            | PLANNED                 |
 | WO-019 | #36   | Finais A/B cinematográficos e CTA canônica              | STANDARD | WO-004; WO-010; WO-012 (proposta); V1 canon/choices               | PLANNED                 |
-| WO-020 | #37   | Laboratório de retenção, métricas manuais               | STANDARD | WO-012; WO-027 (proposta); métricas V1 manuais                    | PLANNED                 |
-| WO-021 | #38   | Bíblia audiovisual, presets e herança                   | STANDARD | WO-001; WO-003; WO-010; WO-016 (proposta)                         | PLANNED                 |
+| WO-020 | #37   | Laboratório de retenção, métricas manuais               | STANDARD | WO-012; WO-015; WO-018; WO-019; WO-001; métricas V1 manuais       | PLANNED                 |
+| WO-021 | #38   | Bíblia audiovisual, presets e herança                   | STANDARD | WO-004; WO-009; WO-011; WO-016; WO-018                            | PLANNED                 |
 | WO-022 | #39   | Smart Cutdowns 30/45/60 s                               | STANDARD | WO-004; WO-008; WO-012; WO-015; WO-019                            | PLANNED                 |
 | WO-023 | #40   | Clip Rescue reversível                                  | ELEVATED | WO-003; WO-006; WO-012; WO-016; retenção mínima WO-001/003        | PLANNED                 |
 | WO-024 | #41   | Storyboard Inspector pré-Flow                           | STANDARD | WO-001; WO-025; V1 storyboard                                     | PLANNED                 |
@@ -72,14 +72,15 @@ São **28 WOs**, não 34: os seis adendos ficam dentro das WOs indicadas.
 WO-001 ─┬─> WO-002 ─> WO-003 ─> WO-004 ─> WO-005 ─> WO-006 ─┬─> WO-007 ─> WO-008 ─┐
         │                                                   ├─> WO-009 ───────────┤
         │                                                   └────────────────────┴─> WO-011 ─> WO-012
-        ├─> WO-025 ─> WO-010 ────────────────────────────────────────────────────────────────> WO-015
+        ├─> WO-025 ─> WO-010 (proposta) ──────────────────────────────────────────────────────> WO-015
         │              └─> WO-024 ─> WO-028
         ├─> WO-016 ─> WO-017
-        └─> WO-021 ─> WO-018 ─> WO-027
+        └─> WO-016 ─> WO-018 ─> WO-021 ─> WO-027
 WO-012 + WO-015 + WO-019 ─> WO-022
 WO-012 + WO-016 + WO-006 + WO-003 ─> WO-023
+WO-015 + WO-018 + WO-019 ─> WO-020
 WO-025 + WO-019 ─> WO-026
-WO-003 + WO-005 + WO-012 ─> WO-013 (hardening final)
+WO-003 + WO-005 + WO-012 + WO-015–021 ─> WO-013 (hardening final)
 Todas 001–013 + 015–021 ─> WO-014 (release terminal)
 ```
 
@@ -91,6 +92,7 @@ Regras verificadas:
 - **WO-014 é terminal** e exige todas as WOs 001–013 e 015–021 aprovadas.
 - **WO-026** exige WO-019 (CTA) e WO-025 (Narrative Intelligence).
 - Dependências marcadas como “proposta” no inventário devem ser confirmadas no corpo da issue antes da execução; se a issue viva divergir, o grafo é corrigido e registrado.
+- **Reconciliação pós-auditoria (issues vivas):** WO-018 depende de WO-016 e não de WO-021; WO-021 depende de WO-018; WO-020 depende de WO-015/018/019 e não de WO-027; WO-013 incorpora o complemento 015–021 após a execução/auditoria dessas WOs. A ordem abaixo já respeita essas arestas.
 
 ### Ordem de execução proposta
 
