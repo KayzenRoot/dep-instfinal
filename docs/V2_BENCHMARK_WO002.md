@@ -95,7 +95,7 @@ Harness: [`scripts/v2-bench/benchmark.sh`](../scripts/v2-bench/benchmark.sh). El
 
 O teste de “disco baixo” foi uma **simulação segura** com limite de tamanho de arquivo, não o preenchimento do disco real. Preencher 177 GB seria destrutivo e está fora do escopo; o comportamento de erro e a limpeza do parcial foram observados.
 
-> **Nota de rerun:** a primeira execução do teste de timeout (15:25:08) abortou o harness por `pipefail` no `pgrep` (não por falha do FFmpeg). Após corrigir o `pgrep`, o teste foi repetido às 15:26:59; os artefatos retidos são da segunda execução. A primeira tentativa não deixou processo órfão.
+> **Nota de rerun:** a primeira execução do teste de timeout (15:25:08) abortou o harness por `pipefail` no `pgrep` (não por falha do FFmpeg). Após corrigir o `pgrep`, o teste foi repetido às 15:26:59; os artefatos retidos são da segunda execução. A primeira tentativa não teve log retido e não deixou processo órfão; a segunda é a evidência preservada.
 
 ## 7. Serviços e não degradação
 
@@ -121,8 +121,9 @@ Antes, durante e depois: `nginx`, `docker`, `containerd` e `code-server@ubuntu` 
 - **Pico de CPU:** `ps -o pcpu` é média cumulativa desde o início do processo, não pico instantâneo. O pico system-wide do `vmstat` foi 100%; o pico do processo não foi medido.
 - **Billing:** não consultado. O US$ 0 é uma estimativa de compute sobre a VPS existente; storage/egress e quotas não foram verificados.
 - **Hash do FFmpeg:** o SHA-256 do binário não foi registrado antes da remoção. Versão, URL, arquitetura, build e configuração estão no inventário; o hash/supply-chain check fica para o WO de packaging.
-- **Probes e `dd`:** as medições de latência (`curl`) e throughput (`dd`) foram comandos manuais, reproduzidos no relatório; não estão no harness. Comandos: `curl -s -o /dev/null -w '%{http_code} %{time_total}' http://127.0.0.1:<porta>/` e `dd if=/dev/zero of=<arquivo> bs=1M count=512 conv=fdatasync`.
+- **Probes e `dd`:** as medições de latência (`curl`) e throughput (`dd`) foram comandos manuais, reproduzidos no relatório; não estão no harness. Comandos: `curl -s -o /dev/null -w '%{http_code} %{time_total}' http://127.0.0.1:<porta>/`; escrita `dd if=/dev/zero of=<arquivo> bs=1M count=512 conv=fdatasync`; leitura direta `dd if=<arquivo> of=/dev/null bs=1M iflag=direct` (falhou com “Invalid input” neste FS) e leitura por page cache `dd if=<arquivo> of=/dev/null bs=1M`.
 - **Conteúdo do tar:** o tar contém `logs/` e `runs/`; `cleanup.txt` e `script.sha256` ficam no repositório e são cobertos pelo `SHA256SUMS`. Não há vídeos, WAVs ou binários no tar.
+- **Cleanup:** o `cleanup()` calcula e imprime o tamanho antes de `rm -rf`; o `bench.log` é parte do diretório descartável e está preservado no tar de evidência; o transcript `cleanup.txt` é a evidência retida da remoção manual.
 
 ## 10. Riscos e mitigação
 

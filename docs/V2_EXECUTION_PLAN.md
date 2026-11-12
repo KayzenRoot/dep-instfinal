@@ -2,8 +2,8 @@
 
 - **Work Order:** `DIF-V2-WO-001` · issue #18
 - **Epic:** #17 · issues #18–#45
-- **Base:** `main` `13467ab009e0eaaee1be6ba2e35678228cfbdf32` (2026-11-12)
-- **Status:** **PLANNED / PROPOSED** — nenhuma WO além da 001 está aprovada para execução.
+- **Base atual:** `main` `01405cbb641e7814cbd964157d0814ba4e23d7c7` (após WO-001); plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
+- **Status:** **PROPOSED** — WO-001 **APPROVED/merged**; WO-002 evidência **APPROVED** (GO CONDITIONAL); WO-003+ **BLOCKED**.
 - **Fonte viva:** os corpos atuais das issues #18–#45 prevalecem sobre este plano.
 
 ## Inventário — 28 WOs e 20 melhorias
@@ -157,6 +157,6 @@ Não iniciar a próxima WO enquanto a atual estiver em `CORRECTION REQUIRED` ou 
 ## Gate atual
 
 - V1: PR #16 mergeado em `13467ab`; auditoria independente **APPROVED**; smoke pós-merge 200/200/303.
-- WO-001: documentação produzida; aguarda auditoria independente e aceite do ADR.
+- WO-001: **APPROVED**; PR #46 squash-merged em `01405cb`; ADR-V2-001 **ACCEPTED** pelo owner.
 - WO-002: benchmark **GO CONDITIONAL**; evidência **APPROVED**; guardas de worker ficam para WO-003+. WO-003+ **BLOQUEADAS** até ADR-V2-002/storage e autorização do owner.
 - Nenhuma migração, tabela, upload de vídeo, worker, deploy ou gasto foi criado por este plano.
