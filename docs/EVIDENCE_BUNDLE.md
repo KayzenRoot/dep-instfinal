@@ -4,6 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-002` · issue #19 · epic #17
 - **Base:** `main` `01405cbb641e7814cbd964157d0814ba4e23d7c7` (after WO-001/PR #46 squash merge)
+- **Benchmark evidence commit:** `95cbc53b9da9d0b4349e450e9cbd32b714fe2c42` (branch head before this docs-only SHA record)
 - **Branch:** `bench/dif-v2-wo-002`
 - **Status:** benchmark **GO CONDITIONAL**; evidence **pending independent audit**; checkpoint V2 **PROPOSED — NOT PROMOTED**; WO-003+ remains **BLOCKED** until WO-002 is APPROVED.
 
