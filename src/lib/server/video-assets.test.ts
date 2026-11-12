@@ -13,7 +13,8 @@ import { InMemoryVideoStorage } from './video-storage.js';
 import type { ProbeResult } from './video-probe.js';
 
 type Row = Record<string, unknown>;
-type FakeResult = { data: unknown; error: null };
+type FakeError = { code?: string; message: string };
+type FakeResult = { data: unknown; error: FakeError | null };
 
 class FakeQuery implements PromiseLike<FakeResult> {
 	private filters: Array<(row: Row) => boolean> = [];
@@ -80,6 +81,8 @@ class FakeQuery implements PromiseLike<FakeResult> {
 	}
 
 	async single(): Promise<FakeResult> {
+		const error = this.mode === 'insert' ? this.db.takeInsertError(this.table) : null;
+		if (error) return { data: null, error };
 		const rows = await this.executeRows();
 		return { data: rows[0] ?? null, error: null };
 	}
@@ -116,12 +119,17 @@ class FakeQuery implements PromiseLike<FakeResult> {
 	}
 
 	private async execute(): Promise<FakeResult> {
+		const error = this.mode === 'update' ? this.db.takeUpdateError(this.table) : null;
+		if (error) return { data: null, error };
 		await this.executeRows();
 		return { data: null, error: null };
 	}
 }
 
 class FakeDb {
+	private readonly insertFailures = new Map<string, FakeError[]>();
+	private readonly updateFailures = new Map<string, FakeError[]>();
+
 	constructor(private readonly tables: Record<string, Row[]>) {}
 
 	from(table: string): FakeQuery {
@@ -131,6 +139,22 @@ class FakeDb {
 
 	rows(table: string): Row[] {
 		return this.tables[table] ?? (this.tables[table] = []);
+	}
+
+	failNextInsert(table: string, error: FakeError = { message: 'insert failed' }): void {
+		this.insertFailures.set(table, [...(this.insertFailures.get(table) ?? []), error]);
+	}
+
+	failNextUpdate(table: string, error: FakeError = { message: 'update failed' }): void {
+		this.updateFailures.set(table, [...(this.updateFailures.get(table) ?? []), error]);
+	}
+
+	takeInsertError(table: string): FakeError | null {
+		return this.insertFailures.get(table)?.shift() ?? null;
+	}
+
+	takeUpdateError(table: string): FakeError | null {
+		return this.updateFailures.get(table)?.shift() ?? null;
 	}
 
 	asClient(): SupabaseClient {
@@ -253,6 +277,94 @@ describe('video asset service', () => {
 		});
 		expect(result.asset.status).toBe('READY');
 		expect(result.validation).toBe('ready');
+	});
+
+	it('keeps quarantine and retries after an asset insert failure', async () => {
+		const { storage, uploadId, etag } = await storageWithUpload();
+		const db = fakeDb(
+			sessionRow({ r2_upload_id: uploadId, uploaded_parts: [{ partNumber: 1, etag }] }),
+		);
+		db.failNextInsert('video_assets');
+		await expect(
+			completeUploadSession({
+				db: db.asClient(),
+				adminDb: db.asClient(),
+				owner,
+				config,
+				storage,
+				probe: { probeFile: async () => validProbe },
+				sessionId,
+				parts: [],
+			}),
+		).rejects.toMatchObject({ code: 'VIDEO_ASSET_CREATE_FAILED', status: 503 });
+		expect(db.rows('video_upload_sessions')[0].status).toBe('UPLOADING');
+		expect(storage.getObjectForTest(key)).toBeDefined();
+
+		const retry = await completeUploadSession({
+			db: db.asClient(),
+			adminDb: db.asClient(),
+			owner,
+			config,
+			storage,
+			probe: { probeFile: async () => validProbe },
+			sessionId,
+			parts: [],
+		});
+		expect(retry.asset.status).toBe('READY');
+		expect(db.rows('video_upload_sessions')[0].status).toBe('COMPLETED');
+		expect(storage.getObjectForTest(key)).toBeUndefined();
+	});
+
+	it('recovers a READY asset after a session finalize failure', async () => {
+		const { storage, uploadId, etag } = await storageWithUpload();
+		const db = fakeDb(
+			sessionRow({ r2_upload_id: uploadId, uploaded_parts: [{ partNumber: 1, etag }] }),
+		);
+		db.failNextUpdate('video_upload_sessions');
+		await expect(
+			completeUploadSession({
+				db: db.asClient(),
+				adminDb: db.asClient(),
+				owner,
+				config,
+				storage,
+				probe: { probeFile: async () => validProbe },
+				sessionId,
+				parts: [],
+			}),
+		).rejects.toMatchObject({ code: 'VIDEO_SESSION_FINALIZE_FAILED', status: 503 });
+		expect(db.rows('video_assets')[0].status).toBe('READY');
+		expect(storage.getObjectForTest(key)).toBeDefined();
+
+		const retry = await completeUploadSession({
+			db: db.asClient(),
+			adminDb: db.asClient(),
+			owner,
+			config,
+			storage,
+			probe: null,
+			sessionId,
+			parts: [],
+		});
+		expect(retry.validation).toBe('ready');
+		expect(db.rows('video_upload_sessions')[0].status).toBe('COMPLETED');
+		expect(storage.getObjectForTest(key)).toBeUndefined();
+	});
+
+	it('fails safe when the server session writer is unavailable', async () => {
+		const db = fakeDb();
+		await expect(
+			completeUploadSession({
+				db: db.asClient(),
+				adminDb: null,
+				owner,
+				config,
+				storage: new InMemoryVideoStorage(),
+				probe: null,
+				sessionId,
+				parts: [],
+			}),
+		).rejects.toMatchObject({ code: 'VIDEO_SESSION_WRITE_UNAVAILABLE', status: 503 });
 	});
 
 	it('recovers a completed session when the asset already exists', async () => {

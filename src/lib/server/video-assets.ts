@@ -543,6 +543,11 @@ export async function completeUploadSession(input: {
 				'VIDEO_SESSION_FINALIZE_FAILED',
 				'Não foi possível concluir a sessão; tente novamente.',
 			);
+		if (
+			(existingAsset as AssetRow).status === 'READY' &&
+			(existingAsset as AssetRow).object_key !== quarantineKey
+		)
+			await storage.deleteObject(quarantineKey).catch(() => undefined);
 		return {
 			asset: existingAsset as AssetRow,
 			validation: existingAsset.status === 'READY' ? 'ready' : 'pending_worker',
@@ -715,7 +720,6 @@ export async function completeUploadSession(input: {
 				'Não foi possível publicar o clipe validado.',
 			);
 		}
-		await storage.deleteObject(quarantineKey).catch(() => undefined);
 	}
 
 	const assetInsert = {
@@ -759,11 +763,18 @@ export async function completeUploadSession(input: {
 			.eq('owner_id', owner.id)
 			.maybeSingle();
 		if (!lookupError && concurrentAsset) {
-			await sessionDb
+			const { error: recoverError } = await sessionDb
 				.from('video_upload_sessions')
 				.update({ status: 'COMPLETED', safe_error_code: null })
 				.eq('id', session.id)
 				.eq('owner_id', owner.id);
+			if (recoverError)
+				throw new VideoAssetError(
+					503,
+					'VIDEO_SESSION_FINALIZE_FAILED',
+					'Não foi possível concluir a sessão; tente novamente.',
+				);
+			if (ready) await storage.deleteObject(quarantineKey).catch(() => undefined);
 			return {
 				asset: concurrentAsset as AssetRow,
 				validation: concurrentAsset.status === 'READY' ? 'ready' : 'pending_worker',
@@ -786,6 +797,7 @@ export async function completeUploadSession(input: {
 			'VIDEO_SESSION_FINALIZE_FAILED',
 			'O clipe foi registrado, mas a sessão não foi encerrada; tente novamente.',
 		);
+	if (ready) await storage.deleteObject(quarantineKey).catch(() => undefined);
 	return { asset: asset as AssetRow, validation: ready ? 'ready' : 'pending_worker' };
 }
 
