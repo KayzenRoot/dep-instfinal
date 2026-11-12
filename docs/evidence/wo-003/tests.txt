@@ -6,16 +6,18 @@ Head under test: working tree after M4/M9/M11/M12 corrections (pre-commit)
 
 1) PgTAP / RLS
 Command: supabase test db
-Result: All tests successful. Files=1, Tests=39, 3 wallclock secs. Result: PASS.
+Result: All tests successful. Files=1, Tests=42, 3 wallclock secs. Result: PASS.
 Coverage: 16 owner-scoped tables, including video_upload_sessions and video_assets.
-Boundary: authenticated cannot UPDATE/DELETE video_assets; READY insert is rejected by
+Boundary: authenticated cannot INSERT/UPDATE/DELETE video_upload_sessions; session key is
+bound to owner/session and immutable; service role creates/updates sessions.
+authenticated cannot UPDATE/DELETE video_assets; READY insert is rejected by
 guard_video_asset_insert; hard delete raises 42501; service-role grant present.
 
 2) Unit tests
 Command: npm test
-Result: Test Files 14 passed | 1 skipped (15); Tests 77 passed | 1 skipped (78).
-New coverage: video-probe 15 (incl. VFR/ffprobe JSON), video-assets 7 (parts/resume,
-hash mismatch, M4 recovery, expiry, non-READY download), video-storage 4, schemas 6.
+Result: Test Files 14 passed | 1 skipped (15); Tests 78 passed | 1 skipped (79).
+New coverage: video-probe 15 (incl. VFR/ffprobe JSON), video-assets 8 (parts/resume,
+tampered key, hash mismatch, M4 recovery, expiry, non-READY download), video-storage 4, schemas 6.
 
 3) Lint
 Command: npm run lint
@@ -31,17 +33,18 @@ Result: built successfully with adapter-node; copy/compress assets done.
 
 6) Policy audit
 Command: npm run audit:policy
-Result: PASS 19 policy invariants across 16 tables, including:
+Result: PASS 20 policy invariants across 16 tables, including:
 - video metadata tables force owner-only RLS
 - video upload is owner-scoped, idempotent, bounded and quarantined
+- video session keys and lifecycle writes are server-owned
 - video READY and tombstone writes are server-mediated
 - video storage is private, multipart and short-lived signed
 
 7) E2E (fresh server, CI=1)
 Command: CI=1 node scripts/test-local-e2e.mjs
-Result: hosted CI **10 passed (2.2m)** on head `afbc404`, run 43313559461:
-- PgTAP 39/39 PASS in the same job;
-- e2e/video-upload.spec.ts PASS (14.1s), including the READY assertion and 15-clip reload;
+Result: hosted CI **10 passed (2.5m)** on head `c5fcb10`, run 43326435534:
+- PgTAP 42/42 PASS in the same job;
+- e2e/video-upload.spec.ts PASS (17.6s), including the READY assertion and 15-clip reload;
 - anonymous /api/video returned 401;
 - Playwright evidence artifact uploaded.
 Historical local clean run: 10 passed (7.6m). Local Docker/WSL later became unavailable
@@ -76,5 +79,8 @@ No credentials were printed.
 - M9: video-assets.test.ts covers parts/resume, hash rejection, M4, expiry and non-READY download.
 - M11: asset boundary migration revokes UPDATE/DELETE from authenticated, permits only
   QUARANTINED inserts, and promotes READY through the server-only service-role client.
+- Re-audit H1: session boundary migration revokes INSERT/UPDATE/DELETE from authenticated,
+  binds quarantine_key to owner/session, makes identity fields immutable, and rejects a
+  tampered key in the service before any R2 read/delete.
 - M12: ffprobe parser detects VFR via avg_frame_rate vs r_frame_rate and implausible nb_frames;
   validateProbe rejects VFR and implausible frame density.
