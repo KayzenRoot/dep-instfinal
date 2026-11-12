@@ -2,7 +2,7 @@
 
 **Work Order:** `DIF-MVP-ALL-001`
 **Revision:** 1.2
-**Status:** V1 release candidate DIF-REL-001 / CD07; live AI and large-media exports implemented; latest-head CI and final audit pending. Checkpoint **PROPOSED — NOT PROMOTED**.
+**Status:** V1 DIF-REL-001 / CD07 release code APPROVED on tested SHA 8ebf44ac; branch production READY; final main deployment pending. Checkpoint APPROVED for release after objective audit.
 **Last reconciled:** 2026-11-12
 
 ## Source hierarchy and context
