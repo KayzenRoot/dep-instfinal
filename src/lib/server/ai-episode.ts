@@ -156,7 +156,7 @@ async function postJson(
 			method: 'POST',
 			headers: { 'content-type': 'application/json', ...headers },
 			body: JSON.stringify(body),
-			signal: AbortSignal.timeout(55_000),
+			signal: AbortSignal.timeout(105_000),
 			redirect: 'error',
 		});
 	} catch {
@@ -200,7 +200,11 @@ function parseModelJson(text: string): unknown {
 	if (text.length > 120_000)
 		throw new AiGenerationError('INVALID_OUTPUT', 'O roteiro gerado excede o tamanho permitido.');
 	try {
-		return JSON.parse(text);
+		const trimmed = text.trim();
+		const unwrapped = trimmed.startsWith('```')
+			? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+			: trimmed;
+		return JSON.parse(unwrapped);
 	} catch {
 		throw new AiGenerationError(
 			'INVALID_OUTPUT',
@@ -220,13 +224,18 @@ export async function generateEpisodeJson(prompt: string, oidcToken?: string): P
 				contents: [{ role: 'user', parts: [{ text: prompt }] }],
 				generationConfig: {
 					responseMimeType: 'application/json',
-					temperature: 0.8,
-					maxOutputTokens: 12000,
+					maxOutputTokens: 24000,
+					thinkingConfig: { thinkingLevel: 'minimal' },
 				},
 			},
 		);
 		const candidates = result.candidates;
 		const first = Array.isArray(candidates) ? candidates[0] : null;
+		const finishReason = first && typeof first === 'object'
+			? (first as { finishReason?: string }).finishReason
+			: undefined;
+		if (finishReason === 'MAX_TOKENS')
+			throw new AiGenerationError('INVALID_OUTPUT', 'O Gemini interrompeu o roteiro por limite de tokens. Tente novamente.');
 		const parts =
 			first && typeof first === 'object'
 				? (first as { content?: { parts?: Array<{ text?: string }> } }).content?.parts
@@ -251,7 +260,7 @@ export async function generateEpisodeJson(prompt: string, oidcToken?: string): P
 			model: 'google/gemini-3.5-flash-lite',
 			messages: [{ role: 'user', content: prompt }],
 			temperature: 0.8,
-			max_tokens: 12000,
+			max_tokens: 24000,
 			response_format: { type: 'json_object' },
 			stream: false,
 		},
