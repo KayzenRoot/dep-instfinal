@@ -1,5 +1,26 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-001 — V1 gate closure + V2 planning/ADR (2026-11-12)
+
+- **Work Order:** `DIF-V2-WO-001` · issue #18 · epic #17
+- **Base:** `main` `13467ab009e0eaaee1be6ba2e35678228cfbdf32` (after PR #16 squash merge)
+- **Branch:** `docs/dif-v2-wo-001`
+- **Status:** documentation **APPROVED** by independent re-audit at `ae1f44d`; **ADR-V2-001 ACCEPTED** by the owner (2026-11-12); **WO-002 benchmark authorized**; WO-003+ remains BLOCKED until benchmark GO.
+
+| Check                | Result            | Evidence                                                                                                                                                                                                                                                                                                       |
+| -------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V1 gate PR #16       | PASS              | Draft/mergeable CLEAN, CI `43220790406` PASS, Vercel preview success; independent agent audit recorded outside GitHub (GitHub shows only Copilot `COMMENTED`) returned **APPROVED**, net diff only in the three V1 docs. Squash-merged normally at `13467ab` (no force-push; `main` has no branch protection). |
+| Post-merge V1 smoke  | PASS              | `/health` 200, `/login` 200, anonymous `/app` 303. Exact Vercel deployment SHA not independently verifiable without a Vercel credential; the production alias responds as documented.                                                                                                                          |
+| WO-001 scope         | PASS (docs only)  | `docs/ADR_V2_PROPOSED.md`, `docs/V2_EXECUTION_PLAN.md`, Source Pack V2 addendum, V2 Context Lock, this Evidence Bundle section, Checkpoint Delta. No code, schema, migration, worker, storage or secret; no production deployment (the PR's Vercel preview is automatic and is not production).                |
+| ADR V2               | ACCEPTED          | Architecture options A–E, worker/storage/queue contract, costs/risks/rollback; owner accepted ADR-V2-001 on 2026-11-12. No runtime implementation yet.                                                                                                                                                         |
+| Inventory/graph      | PASS              | 28 WOs #18–#45, 20 improvements with 1:1 ownership, 6 addenda, explicit vs proposed edges, cycle check, key constraints (WO-024→WO-025; WO-013 final; WO-014 terminal; WO-026 needs WO-019+WO-025).                                                                                                            |
+| Context Lock         | PASS              | Base SHA, critical-source SHA-256 fingerprints, issue states, tool capacity (`ffmpeg`/`ffprobe` absent, Oracle VPS unverified), budget, stale triggers.                                                                                                                                                        |
+| V2 implementation    | WO-002 AUTHORIZED | Epic #17 remains PLANNED/PROPOSED; all 28 WOs are OPEN/UNAPPROVED; ADR-V2-001 is **ACCEPTED**; WO-002 benchmark is authorized. WO-003+ remains blocked until benchmark GO.                                                                                                                                     |
+| Tests                | PASS (docs)       | Prettier/format and docs-only diff; hosted CI `43240827515` PASS no head de correção `ae1f44d`. Runtime tests are not applicable because no runtime file changed.                                                                                                                                              |
+| Independent re-audit | PASS              | First audit: CORRECTION REQUIRED (3 MEDIUM/3 LOW, no HIGH/CRITICAL). Corrections applied; re-audit returned **APPROVED**, confirming only six `docs/` files changed.                                                                                                                                           |
+
+**Verdict:** WO-001 documentation is **APPROVED** and ADR-V2-001 is **ACCEPTED**. **WO-002 benchmark is authorized**; WO-003+ must not start until WO-002 returns GO and the preceding WO is APPROVED. No checkpoint promotion, merge, production deploy, spend, migration or external provisioning occurred; the PR's Vercel preview is not production.
+
 ## FINAL V1 RELEASE — operational closure (2026-11-12)
 
 **Verdict: APPROVED / COMPLETED** for V1 private single-owner release. User authorization and independent audit were recorded before the guarded squash merge.

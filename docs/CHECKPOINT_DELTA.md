@@ -1,5 +1,17 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-001 — V1 gate closure + V2 planning/ADR (2026-11-12) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; WO-001 documentation **APPROVED** by independent re-audit; **ADR-V2-001 ACCEPTED** by the owner (2026-11-12); **WO-002 benchmark authorized**; WO-003+ remains BLOCKED until benchmark GO and per-WO approval.
+- **Base:** `main` `13467ab009e0eaaee1be6ba2e35678228cfbdf32`; branch `docs/dif-v2-wo-001`.
+- **V1 gate:** PR #16 (docs-only) was Draft/mergeable CLEAN with CI `43220790406` PASS and Vercel preview success; an independent agent audit recorded outside GitHub (GitHub shows only Copilot `COMMENTED`) returned **APPROVED**, net diff only in the three V1 docs. Squash-merged normally at `13467ab` (no force-push; `main` has no branch protection). Post-merge smoke: `/health` 200, `/login` 200, anonymous `/app` 303. Exact Vercel deployment SHA remains unverifiable without a Vercel credential; the production alias responds as documented.
+- **WO-001 deliverables:** [ADR-V2-001 PROPOSED](ADR_V2_PROPOSED.md), [V2 execution plan/graph](V2_EXECUTION_PLAN.md), Source Pack V2 addendum, V2 Context Lock, Evidence Bundle section and this delta. Only documentation changed; no runtime, schema, migration, worker, storage, secret, deploy or spend.
+- **Scope/graph:** 28 WOs (#18–#45), 20 improvements with 1:1 ownership, 6 addenda. Explicit/proposed dependency graph is acyclic; WO-024 depends on WO-025, WO-013 is final hardening (not a prerequisite of WO-023), WO-014 is terminal, WO-026 requires WO-019 and WO-025.
+- **Gate:** WO-002+ remains **BLOCKED** until WO-001 is APPROVED, the owner explicitly accepts ADR-V2-001, and the benchmark environment (FFmpeg/ARM64) is authorized. `ffmpeg`/`ffprobe` are absent locally and Oracle VPS capacity/access is unverified.
+- **No promotion:** V1 remains completed at `13467ab`; no V2 checkpoint promotion, merge, deploy or paid service occurred.
+
+---
+
 ## DIF-REL-001 / CD07 approved checkpoint delta (2026-11-12)
 
 - **Status:** COMPLETED — PR #14 squash-merged into main SHA 441888e7ca1a80f038d97a7392a9da406eb88239; Vercel Production READY on that exact SHA and public-route smoke PASS.
