@@ -85,7 +85,6 @@ CD06 closes the functional gaps for issues #3, #6, #8, #9, #11, and #12 and reco
 
 CD01–CD05 history remains in `docs/CONTEXT_LOCK.md`; detailed evidence is in `docs/EVIDENCE_BUNDLE.md`.
 
-
 ## V1 completion record — 2026-11-12
 
 - **Version:** V1.0, status `FUNCIONAL + TESTADA + DOCUMENTADA + DEPLOYADA + VALIDADA` within the accepted private single-owner scope and documented manual video production.

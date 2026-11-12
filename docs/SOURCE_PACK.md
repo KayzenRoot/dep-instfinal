@@ -153,7 +153,6 @@ See GitHub issue #15 (DIF-REL-001) and this branch's Evidence Bundle for accepta
 - **Exit gates:** focused and broad unit tests, lint, format, typecheck, build, policy/dependency audits, hosted PgTAP/RLS and authenticated E2E all PASS on exact HEAD, then independent audit/DoD and checkpoint promotion. Only afterward allow squash merge, deploy resulting main SHA, verify Vercel READY and exact production alias. The original owner-based production smoke is evidence for CD06 flows; later changed AI/ZIP features also require live and automated tests.
 - **Known operational limits:** Cloudinary API secret previously shared in chat requires rotation in the provider and Vercel; avoid key copies in artifacts. Google Gemini free quota is finite; never auto-enable paid billing. Supabase owner e-mail recovery must be controlled by owner. AI content is for human review; videos and posts are assembled/published manually using Google Flow and CapCut.
 
-
 ## V1 final release closure — 2026-11-12 (APPROVED)
 
 The owner authorized the final release. GitHub PR #14 was squash-merged without bypass to `main` at `441888e7ca1a80f038d97a7392a9da406eb88239`; issue #15 DIF-REL-001 is CLOSED and all 13 foundational issues are CLOSED. No code was changed in this documentation-only checkpoint closure.

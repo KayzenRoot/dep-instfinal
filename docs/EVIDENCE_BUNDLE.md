@@ -15,7 +15,6 @@
 
 ---
 
-
 ## Independent V1 release audit and checkpoint promotion — 2026-11-12
 
 **Decision: APPROVED FOR SQUASH MERGE AND MAIN DEPLOY** at tested code SHA `8ebf44acf827f0a14ac85bd380785574d378a6e8`. No HIGH/CRITICAL defects known. This approval covers this tested code and review of the release delta; the subsequent documentation-only checkpoint commits do not alter runtime code and remain subject to their own CI checks.
