@@ -10,6 +10,10 @@ const videoMigration = await readFile(
 	'supabase/migrations/20261112170000_v2_wo003_video_storage.sql',
 	'utf8',
 );
+const videoBoundaryMigration = await readFile(
+	'supabase/migrations/20261112200000_v2_wo003_asset_boundary.sql',
+	'utf8',
+);
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -142,6 +146,16 @@ const checks = [
 			videoAssets.includes("status: ready ? 'READY' : 'QUARANTINED'") &&
 			videoAssets.includes('hasMp4Magic') &&
 			videoAssets.includes('validateProbe'),
+	],
+	[
+		'video READY and tombstone writes are server-mediated',
+		videoBoundaryMigration.includes('revoke update, delete on table public.video_assets') &&
+			videoBoundaryMigration.includes('guard_video_asset_insert') &&
+			videoBoundaryMigration.includes("current_user = 'authenticated'") &&
+			videoComplete.includes('createSupabaseAdminClient') &&
+			videoAssets.includes('adminDb') &&
+			videoAssets.includes('if (ready && !input.adminDb)') &&
+			!videoUpload.includes('SUPABASE_SERVICE_ROLE_KEY'),
 	],
 	[
 		'video storage is private, multipart and short-lived signed',

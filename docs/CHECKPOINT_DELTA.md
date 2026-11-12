@@ -2,11 +2,11 @@
 
 ## DIF-V2-WO-003 — Private Flow clip ingest + Cloudflare R2 (2026-11-12) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; first independent audit **BLOCKED** at `fb6a3c8`; corrections applied; **re-audit pending**. Implementation, local tests and **live R2 acceptance PASS**; lifecycle automation, service unit coverage and real ffprobe worker validation remain pending. WO-004+ remains **BLOCKED**.
+- **Status:** **PROPOSED — NOT PROMOTED**; first independent audit **BLOCKED** at `fb6a3c8`; re-audit at `3a6a22f` returned **CORRECTION REQUIRED**; M4/M9/M11/M12 corrections applied; **re-audit pending**. Implementation, local tests and **live R2 acceptance PASS**; lifecycle automation (token lacks permission) and real ffprobe worker validation remain pending. WO-004+ remains **BLOCKED**.
 - **Base:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9`; branch `feat/dif-v2-wo-003`.
-- **Delivered:** additive `video_upload_sessions`/`video_assets` migration with owner-only RLS; Cloudflare R2 S3 adapter + in-memory test adapter; ffprobe/fixture probe; multipart upload, completion, quarantine, SHA-256, signed download, list/resume routes; `/app/video` UI with episode/scene selection, multi-file reorder and protected preview.
-- **Tests:** PgTAP **37/37** (update/delete owner vs non-owner); unit **63 + 1 skip** (probe 8); policy audit **18 invariants/16 tables**; lint/typecheck/build PASS; E2E **10/10**, including the 15-clip batch with reload; live R2 E2E **15/15 PASS**.
-- **R2:** bucket `dif-studio-video-private` private; token `-2` and CORS configured; live upload/read PASS. First token exposed in local output was revoked. Lifecycle pending; no credential committed.
+- **Delivered:** additive `video_upload_sessions`/`video_assets` migrations plus a server-mediated asset boundary; Cloudflare R2 S3 adapter + in-memory test adapter; ffprobe/fixture probe with VFR detection; multipart upload, idempotent completion/recovery, quarantine, SHA-256, signed download, list/resume routes; `/app/video` UI with episode/scene selection, multi-file reorder and protected preview.
+- **Tests:** PgTAP **39/39** (READY/hard-delete boundary included); unit **77 + 1 skip** (probe 15, service 7); policy audit **19 invariants/16 tables**; lint/typecheck/build PASS; E2E **10/10**, including the 15-clip batch with reload; live R2 E2E **15/15 PASS**.
+- **R2:** bucket `dif-studio-video-private` private; token `-2` and CORS configured; live upload/read PASS. First token exposed in local output was revoked. Lifecycle pending: the bucket-scoped token gets `AccessDenied` on lifecycle APIs; no credential committed.
 - **Risks/limits:** real ffprobe runs only in the future worker (WO-005); completion hash of large files should run in the worker; lifecycle automation, poster generation and orphan GC are pending.
 - **Gate:** WO-003 must be `APPROVED` before WO-004+; no checkpoint promotion, production deploy, paid service or spend occurred.
 

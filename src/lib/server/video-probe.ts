@@ -18,6 +18,9 @@ export interface ProbeResult {
 	height: number;
 	rotation: number;
 	frameRate: number;
+	/** Average and nominal rates differ materially, or ffprobe reports a VFR stream. */
+	variableFrameRate?: boolean;
+	frameCount?: number | null;
 }
 
 export interface VideoProbe {
@@ -49,8 +52,30 @@ export function validateProbe(result: ProbeResult, expectedDurationMs: number): 
 	if (result.codec.toLowerCase() !== 'h264') {
 		return { ok: false, code: 'VIDEO_CODEC_UNSUPPORTED', message: 'Codec precisa ser H.264.' };
 	}
+	if (result.variableFrameRate) {
+		return {
+			ok: false,
+			code: 'VIDEO_FRAME_RATE_VARIABLE',
+			message: 'O clipe precisa ter taxa de quadros constante.',
+		};
+	}
 	if (!Number.isFinite(result.frameRate) || result.frameRate < 23.976 || result.frameRate > 60) {
 		return { ok: false, code: 'VIDEO_FRAME_RATE_INVALID', message: 'Taxa de quadros inválida.' };
+	}
+	if (
+		typeof result.frameCount === 'number' &&
+		result.frameCount > 0 &&
+		Number.isFinite(result.durationMs) &&
+		result.durationMs > 0
+	) {
+		const effective = result.frameCount / (result.durationMs / 1000);
+		if (effective < 23.976 || effective > 60) {
+			return {
+				ok: false,
+				code: 'VIDEO_FRAME_RATE_INVALID',
+				message: 'Densidade de quadros inválida.',
+			};
+		}
 	}
 	if (
 		!Number.isFinite(result.durationMs) ||
@@ -94,40 +119,57 @@ export class FfprobeVideoProbe implements VideoProbe {
 			['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', path],
 			{ timeout: 15_000, maxBuffer: 2 * 1024 * 1024, windowsHide: true },
 		);
-		const parsed = JSON.parse(stdout) as {
-			format?: { format_name?: string; duration?: string };
-			streams?: Array<{
-				codec_type?: string;
-				codec_name?: string;
-				avg_frame_rate?: string;
-				r_frame_rate?: string;
-				width?: number;
-				height?: number;
-				duration?: string;
-				tags?: { rotate?: string };
-				side_data_list?: Array<{ rotation?: number }>;
-			}>;
-		};
-		const video = parsed.streams?.find((stream) => stream.codec_type === 'video');
-		if (!video || !video.codec_name || !video.width || !video.height)
-			throw new Error('ffprobe did not return a video stream.');
-		const durationSeconds = Number(parsed.format?.duration ?? video.duration);
-		const rotationValue =
-			video.side_data_list?.find((entry) => typeof entry.rotation === 'number')?.rotation ??
-			Number(video.tags?.rotate ?? 0);
-		const frameRateValue = video.avg_frame_rate ?? video.r_frame_rate ?? '0/1';
-		const [frameNumerator, frameDenominator] = frameRateValue.split('/').map(Number);
-		const frameRate = frameDenominator ? frameNumerator / frameDenominator : 0;
-		return {
-			container: parsed.format?.format_name ?? 'unknown',
-			codec: video.codec_name,
-			durationMs: Math.round(durationSeconds * 1000),
-			width: video.width,
-			height: video.height,
-			rotation: Number.isFinite(rotationValue) ? rotationValue : 0,
-			frameRate,
-		};
+		return parseFfprobeOutput(stdout);
 	}
+}
+
+export function parseFfprobeOutput(stdout: string): ProbeResult {
+	const parsed = JSON.parse(stdout) as {
+		format?: { format_name?: string; duration?: string };
+		streams?: Array<{
+			codec_type?: string;
+			codec_name?: string;
+			avg_frame_rate?: string;
+			r_frame_rate?: string;
+			nb_frames?: string;
+			width?: number;
+			height?: number;
+			duration?: string;
+			tags?: { rotate?: string };
+			side_data_list?: Array<{ rotation?: number }>;
+		}>;
+	};
+	const video = parsed.streams?.find((stream) => stream.codec_type === 'video');
+	if (!video || !video.codec_name || !video.width || !video.height)
+		throw new Error('ffprobe did not return a video stream.');
+	const durationSeconds = Number(parsed.format?.duration ?? video.duration);
+	const rotationValue =
+		video.side_data_list?.find((entry) => typeof entry.rotation === 'number')?.rotation ??
+		Number(video.tags?.rotate ?? 0);
+	const parseRate = (value: string | undefined): number => {
+		if (!value) return 0;
+		const [numerator, denominator] = value.split('/').map(Number);
+		return denominator ? numerator / denominator : 0;
+	};
+	const averageRate = parseRate(video.avg_frame_rate);
+	const nominalRate = parseRate(video.r_frame_rate);
+	const frameRate = averageRate || nominalRate;
+	const frameCount = Number.parseInt(video.nb_frames ?? '', 10);
+	const ratesDiffer =
+		averageRate > 0 &&
+		nominalRate > 0 &&
+		Math.abs(averageRate - nominalRate) / Math.max(averageRate, nominalRate) > 0.05;
+	return {
+		container: parsed.format?.format_name ?? 'unknown',
+		codec: video.codec_name,
+		durationMs: Math.round(durationSeconds * 1000),
+		width: video.width,
+		height: video.height,
+		rotation: Number.isFinite(rotationValue) ? rotationValue : 0,
+		frameRate,
+		variableFrameRate: ratesDiffer,
+		frameCount: Number.isFinite(frameCount) && frameCount > 0 ? frameCount : null,
+	};
 }
 
 export class FixtureVideoProbe implements VideoProbe {

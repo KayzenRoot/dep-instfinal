@@ -45,8 +45,11 @@ test('owner uploads a scene clip to private storage and it survives reload', asy
 	await expect(page.getByText('Cena 15 · v1')).toBeVisible();
 	const assetsResponse = await page.request.get(`/api/video/assets?episodeId=${episodeId}`);
 	expect(assetsResponse.status()).toBe(200);
-	const { assets } = (await assetsResponse.json()) as { assets: Array<{ sha256: string }> };
+	const { assets } = (await assetsResponse.json()) as {
+		assets: Array<{ sha256: string; status: string }>;
+	};
 	expect(assets).toHaveLength(15);
+	expect(assets.every((asset) => asset.status === 'READY')).toBe(true);
 	expect(new Set(assets.map((asset) => asset.sha256))).toEqual(new Set([fixtureHash]));
 
 	const video = page.locator('video').first();

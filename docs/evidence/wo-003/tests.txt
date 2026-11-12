@@ -2,16 +2,20 @@ DIF-V2-WO-003 — local verification evidence
 Date: 2026-11-12
 Base: b0f78064a2a5902acc98c20efc92648ec540b7e9
 Branch: feat/dif-v2-wo-003
+Head under test: working tree after M4/M9/M11/M12 corrections (pre-commit)
 
 1) PgTAP / RLS
 Command: supabase test db
-Result: All tests successful. Files=1, Tests=37, 5 wallclock secs. Result: PASS.
+Result: All tests successful. Files=1, Tests=39, 3 wallclock secs. Result: PASS.
 Coverage: 16 owner-scoped tables, including video_upload_sessions and video_assets.
+Boundary: authenticated cannot UPDATE/DELETE video_assets; READY insert is rejected by
+guard_video_asset_insert; hard delete raises 42501; service-role grant present.
 
 2) Unit tests
 Command: npm test
-Result: Test Files 13 passed | 1 skipped (14); Tests 63 passed | 1 skipped (64).
-New coverage: video-probe 8, video-storage 4, video schemas 6.
+Result: Test Files 14 passed | 1 skipped (15); Tests 77 passed | 1 skipped (78).
+New coverage: video-probe 15 (incl. VFR/ffprobe JSON), video-assets 7 (parts/resume,
+hash mismatch, M4 recovery, expiry, non-READY download), video-storage 4, schemas 6.
 
 3) Lint
 Command: npm run lint
@@ -27,16 +31,22 @@ Result: built successfully with adapter-node; copy/compress assets done.
 
 6) Policy audit
 Command: npm run audit:policy
-Result: PASS 18 policy invariants across 16 tables, including:
+Result: PASS 19 policy invariants across 16 tables, including:
 - video metadata tables force owner-only RLS
 - video upload is owner-scoped, idempotent, bounded and quarantined
+- video READY and tombstone writes are server-mediated
 - video storage is private, multipart and short-lived signed
 
 7) E2E (fresh server, CI=1)
 Command: CI=1 node scripts/test-local-e2e.mjs
-Result: 10 passed (7.6m).
+Result: historical clean run 10 passed (7.6m); current head requires a final rerun after
+the READY assertion and service-role finalization changes.
 Including: e2e/video-upload.spec.ts — owner uploads 15 synthetic scene clips to 15 scenes,
 associates them, verifies READY assets, anonymous /api/video returns 401, reload preserves 15 assets.
+Current head: `CI=1 node scripts/test-local-e2e.mjs e2e/video-upload.spec.ts` passed 1/1
+(42.2s) with the service-role finalization path; READY status assertion added afterwards.
+The local Docker/WSL stack became unavailable (docker engine 500, wsl --status timeout), so
+the final local E2E rerun is delegated to hosted CI.
 
 8) Dependency audit
 Command: npm run audit:deps
@@ -54,3 +64,18 @@ Result: 1 passed (2.2m). 15 synthetic clips uploaded directly to R2 with confirm
 READY assets, reload preserved, anonymous /api/video returned 401.
 Fix applied: CSP connect-src in vite.config.ts now allows https://*.r2.cloudflarestorage.com.
 Cleanup: 42 objects deleted across live runs; incomplete multipart uploads aborted.
+
+10) R2 lifecycle
+Command: GetBucketLifecycleConfiguration / PutBucketLifecycleConfiguration via S3 API
+Result: AccessDenied with the current bucket-scoped token. Lifecycle remains pending and must
+be configured in the Cloudflare dashboard or with a token that includes lifecycle permission.
+No credentials were printed.
+
+11) M4/M9/M11/M12 corrections in this head
+- M4: complete falls back to statObject after CompleteMultipartUpload failure and recovers an
+  already-created asset before retrying, so retries are idempotent.
+- M9: video-assets.test.ts covers parts/resume, hash rejection, M4, expiry and non-READY download.
+- M11: asset boundary migration revokes UPDATE/DELETE from authenticated, permits only
+  QUARANTINED inserts, and promotes READY through the server-only service-role client.
+- M12: ffprobe parser detects VFR via avg_frame_rate vs r_frame_rate and implausible nb_frames;
+  validateProbe rejects VFR and implausible frame density.

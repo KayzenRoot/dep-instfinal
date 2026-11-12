@@ -464,6 +464,7 @@ export async function getUploadSession(input: {
 
 export async function completeUploadSession(input: {
 	db: SupabaseClient;
+	adminDb?: SupabaseClient | null;
 	owner: User;
 	config: AppConfig;
 	storage: VideoStorage;
@@ -475,6 +476,7 @@ export async function completeUploadSession(input: {
 	validation: 'ready' | 'pending_worker';
 }> {
 	const { db, owner, storage } = input;
+	const assetDb = input.adminDb ?? db;
 	const session = await loadSession(db, owner.id, input.sessionId);
 	if (session.status === 'COMPLETED') {
 		const { data: asset } = await db
@@ -489,6 +491,33 @@ export async function completeUploadSession(input: {
 				validation: asset.status === 'READY' ? 'ready' : 'pending_worker',
 			};
 		throw new VideoAssetError(409, 'UPLOAD_ALREADY_COMPLETED', 'Este upload já foi concluído.');
+	}
+	// CompleteMultipartUpload can succeed while the following database write fails.
+	// Recover the already-created asset and finish the session instead of requiring a
+	// second multipart completion, which R2 reports as NoSuchUpload.
+	const { data: existingAsset } = await db
+		.from('video_assets')
+		.select('*')
+		.eq('id', session.asset_id)
+		.eq('owner_id', owner.id)
+		.in('status', ['READY', 'QUARANTINED'])
+		.maybeSingle();
+	if (existingAsset) {
+		const { error: recoverError } = await db
+			.from('video_upload_sessions')
+			.update({ status: 'COMPLETED', safe_error_code: null })
+			.eq('id', session.id)
+			.eq('owner_id', owner.id);
+		if (recoverError)
+			throw new VideoAssetError(
+				503,
+				'VIDEO_SESSION_FINALIZE_FAILED',
+				'Não foi possível concluir a sessão; tente novamente.',
+			);
+		return {
+			asset: existingAsset as AssetRow,
+			validation: existingAsset.status === 'READY' ? 'ready' : 'pending_worker',
+		};
 	}
 	if (session.status !== 'CREATED' && session.status !== 'UPLOADING')
 		throw new VideoAssetError(409, 'UPLOAD_NOT_COMPLETABLE', 'Esta sessão não pode ser concluída.');
@@ -524,11 +553,17 @@ export async function completeUploadSession(input: {
 			parts,
 		});
 	} catch {
-		throw new VideoAssetError(
-			502,
-			'VIDEO_STORAGE_COMPLETE_FAILED',
-			'O storage não concluiu o upload.',
-		);
+		// A retry after a successful CompleteMultipartUpload (or a transient HEAD
+		// failure immediately afterwards) can still recover by inspecting the object.
+		try {
+			stored = await storage.statObject(session.quarantine_key);
+		} catch {
+			throw new VideoAssetError(
+				502,
+				'VIDEO_STORAGE_COMPLETE_FAILED',
+				'O storage não concluiu o upload.',
+			);
+		}
 	}
 	if (stored.size !== session.total_bytes) {
 		await storage.deleteObject(session.quarantine_key).catch(() => undefined);
@@ -626,6 +661,12 @@ export async function completeUploadSession(input: {
 	}
 
 	const ready = Boolean(input.probe && probeResult);
+	if (ready && !input.adminDb)
+		throw new VideoAssetError(
+			503,
+			'VIDEO_FINALIZE_UNAVAILABLE',
+			'A validação server-side não está configurada; o clipe permanece em quarentena.',
+		);
 	if (ready) {
 		try {
 			await storage.copyToFinal({
@@ -672,12 +713,34 @@ export async function completeUploadSession(input: {
 			? new Date(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
 			: null,
 	};
-	const { data: asset, error: assetError } = await db
+	const { data: asset, error: assetError } = await assetDb
 		.from('video_assets')
 		.insert(assetInsert)
 		.select('*')
 		.single();
 	if (assetError || !asset) {
+		// Two concurrent completion retries can both observe the same completed R2
+		// object. The unique asset id makes one insert win; reuse that row instead of
+		// deleting the object the winner already published.
+		if (assetError?.code === '23505') {
+			const { data: concurrentAsset } = await db
+				.from('video_assets')
+				.select('*')
+				.eq('id', session.asset_id)
+				.eq('owner_id', owner.id)
+				.maybeSingle();
+			if (concurrentAsset) {
+				await db
+					.from('video_upload_sessions')
+					.update({ status: 'COMPLETED', safe_error_code: null })
+					.eq('id', session.id)
+					.eq('owner_id', owner.id);
+				return {
+					asset: concurrentAsset as AssetRow,
+					validation: concurrentAsset.status === 'READY' ? 'ready' : 'pending_worker',
+				};
+			}
+		}
 		if (ready) await storage.deleteObject(finalKey).catch(() => undefined);
 		await db
 			.from('video_upload_sessions')
@@ -690,11 +753,17 @@ export async function completeUploadSession(input: {
 			'Não foi possível registrar o clipe.',
 		);
 	}
-	await db
+	const { error: finalizeError } = await db
 		.from('video_upload_sessions')
 		.update({ status: 'COMPLETED', safe_error_code: null })
 		.eq('id', session.id)
 		.eq('owner_id', owner.id);
+	if (finalizeError)
+		throw new VideoAssetError(
+			503,
+			'VIDEO_SESSION_FINALIZE_FAILED',
+			'O clipe foi registrado, mas a sessão não foi encerrada; tente novamente.',
+		);
 	return { asset: asset as AssetRow, validation: ready ? 'ready' : 'pending_worker' };
 }
 

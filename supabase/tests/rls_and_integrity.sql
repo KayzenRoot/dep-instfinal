@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(37);
+select plan(39);
 
 do $$
 declare
@@ -39,6 +39,12 @@ begin
       if has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
         or has_table_privilege('authenticated', format('public.%I', v_table), 'DELETE') then
         raise exception 'append-only table grants mutation privilege: public.%', v_table;
+      end if;
+    elsif v_table = 'video_assets' then
+      if v_policy_count <> 2 then raise exception 'video_assets policies must be quarantine-only'; end if;
+      if has_table_privilege('authenticated', 'public.video_assets', 'UPDATE')
+        or has_table_privilege('authenticated', 'public.video_assets', 'DELETE') then
+        raise exception 'authenticated can mutate video_assets outside the server';
       end if;
     elsif v_policy_count <> 4 then
       raise exception 'owner CRUD policies missing for public.%', v_table;
@@ -784,6 +790,24 @@ insert into public.video_assets (
   'QUARANTINED'
 );
 
+select throws_ok(
+  $$insert into public.video_assets (
+      id, owner_id, episode_id, scene_id, asset_version, bucket, object_key, status
+    ) values (
+      'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1',
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      (select id from public.scenes where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+      2,
+      'dif-studio-video-private',
+      'owners/11111111-1111-4111-8111-111111111111/episodes/cccccccc-cccc-4ccc-8ccc-cccccccccccc/scenes/spoofed/v2/spoofed.mp4',
+      'READY'
+    );$$,
+  '42501',
+  'video_assets must be created in quarantine',
+  'owner cannot forge a READY video asset through the Data API'
+);
+
 select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
 
 select is(
@@ -827,30 +851,46 @@ select is(
 select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
 do $$
 begin
-  update public.video_assets set safe_error_code = 'SPOOFED'
-  where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
-  if found then raise exception 'second owner updated the first owner video asset'; end if;
+  begin
+    update public.video_assets set safe_error_code = 'SPOOFED'
+    where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
+    if found then raise exception 'second owner updated the first owner video asset'; end if;
+  exception when insufficient_privilege then
+    null;
+  end;
 end;
 $$;
 select pass('second owner cannot update the first owner video asset');
 
 do $$
 begin
-  delete from public.video_assets
-  where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
-  if found then raise exception 'second owner deleted the first owner video asset'; end if;
+  begin
+    delete from public.video_assets
+    where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
+    if found then raise exception 'second owner deleted the first owner video asset'; end if;
+  exception when insufficient_privilege then
+    null;
+  end;
 end;
 $$;
 select pass('second owner cannot delete the first owner video asset');
 
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select throws_ok(
+  $$delete from public.video_assets
+    where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';$$,
+  '42501',
+  'permission denied for table video_assets',
+  'owner cannot hard-delete the video asset tombstone'
+);
+reset role;
 delete from public.video_assets
 where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
 select is(
   (select count(*) from public.video_assets
    where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0'),
   0::bigint,
-  'owner can delete the video asset tombstone'
+  'test cleanup removes the synthetic video asset'
 );
 
 select pass('video upload and asset RLS isolate owners and hide anonymous access');

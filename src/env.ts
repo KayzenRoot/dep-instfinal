@@ -9,6 +9,7 @@ export const variables = defineEnvVars({
 	SUPABASE_URL: { schema: optionalString },
 	SUPABASE_PUBLISHABLE_KEY: { schema: optionalString },
 	SUPABASE_ANON_KEY: { schema: optionalString },
+	SUPABASE_SERVICE_ROLE_KEY: { schema: optionalString },
 	SUPABASE_OWNER_USER_ID: { schema: optionalString },
 	APP_ORIGIN: { schema: optionalString },
 	CLOUDINARY_CLOUD_NAME: { schema: optionalString },

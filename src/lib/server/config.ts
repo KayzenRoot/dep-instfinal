@@ -17,6 +17,7 @@ import {
 	SUPABASE_ANON_KEY,
 	SUPABASE_OWNER_USER_ID,
 	SUPABASE_PUBLISHABLE_KEY,
+	SUPABASE_SERVICE_ROLE_KEY,
 	SUPABASE_URL,
 	VIDEO_PART_SIZE_MB,
 	VIDEO_PROBE_DRIVER,
@@ -33,6 +34,7 @@ function optionalValue(...values: Array<string | undefined>): string | undefined
 export interface AppConfig {
 	supabaseUrl?: string;
 	supabasePublishableKey?: string;
+	supabaseServiceRoleKey?: string;
 	ownerUserId?: string;
 	appOrigin?: string;
 	cloudinaryCloudName?: string;
@@ -40,6 +42,7 @@ export interface AppConfig {
 	cloudinaryApiSecret?: string;
 	maxUploadBytes: number;
 	supabaseConfigured: boolean;
+	supabaseAdminConfigured: boolean;
 	ownerConfigured: boolean;
 	cloudinaryConfigured: boolean;
 	r2AccountId?: string;
@@ -63,6 +66,7 @@ export function getAppConfig(): AppConfig {
 		SUPABASE_ANON_KEY,
 	);
 	const ownerUserId = optionalUuid.safeParse(SUPABASE_OWNER_USER_ID?.trim());
+	const serviceRoleKey = optionalValue(SUPABASE_SERVICE_ROLE_KEY);
 	const configuredOrigin = optionalUrl.safeParse(APP_ORIGIN?.trim());
 	const cloudName = optionalValue(CLOUDINARY_CLOUD_NAME);
 	const cloudinaryApiKey = optionalValue(CLOUDINARY_API_KEY);
@@ -102,6 +106,7 @@ export function getAppConfig(): AppConfig {
 	return {
 		supabaseUrl: validSupabaseUrl,
 		supabasePublishableKey: publishableKey,
+		supabaseServiceRoleKey: serviceRoleKey,
 		ownerUserId: validOwnerUserId,
 		appOrigin: validAppOrigin ? new URL(validAppOrigin).origin : undefined,
 		cloudinaryCloudName: cloudName,
@@ -109,6 +114,7 @@ export function getAppConfig(): AppConfig {
 		cloudinaryApiSecret,
 		maxUploadBytes: maxUploadMb * 1024 * 1024,
 		supabaseConfigured: Boolean(validSupabaseUrl && publishableKey),
+		supabaseAdminConfigured: Boolean(validSupabaseUrl && serviceRoleKey),
 		ownerConfigured: Boolean(validOwnerUserId),
 		cloudinaryConfigured: Boolean(cloudName && cloudinaryApiKey && cloudinaryApiSecret),
 		r2AccountId,
