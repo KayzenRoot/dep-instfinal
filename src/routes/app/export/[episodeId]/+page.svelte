@@ -68,11 +68,12 @@
 		href={resolve('/api/export/[episodeId]', { episodeId: data.episode.id })}
 		>ZIP com imagens (até 3 MB) <span aria-hidden="true">↓</span></a
 	>
-	<a
-		class="download-button download-button-secondary"
-		href={`${resolve('/api/export/[episodeId]', { episodeId: data.episode.id })}?media=lite`}
-		>ZIP leve: roteiro, prompts e links de frames <span aria-hidden="true">↓</span></a
-	></Panel
+	<form method="GET" action={resolve('/api/export/[episodeId]', { episodeId: data.episode.id })}>
+		<input type="hidden" name="media" value="lite" />
+		<button class="download-button download-button-secondary" type="submit"
+			>ZIP leve: roteiro, prompts e links de frames <span aria-hidden="true">↓</span></button
+		>
+	</form></Panel
 >
 
 <style>
@@ -133,6 +134,11 @@
 		font-size: 0.8rem;
 		font-weight: 650;
 		text-decoration: none;
+	}
+	button.download-button {
+		cursor: pointer;
+		font-family: inherit;
+		width: 100%;
 	}
 	.download-button-secondary {
 		margin-top: 0.6rem;
