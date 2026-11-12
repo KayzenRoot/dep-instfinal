@@ -39,8 +39,14 @@ describe.skipIf(process.env.RUN_LIVE_AI_TEST !== '1')('real Gemini episode accep
 		const originalFetch = globalThis.fetch.bind(globalThis);
 		vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
 			const response = await originalFetch(input, init);
-			const safe = (await response.clone().json().catch(() => ({}))) as {
-				candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
+			const safe = (await response
+				.clone()
+				.json()
+				.catch(() => ({}))) as {
+				candidates?: Array<{
+					finishReason?: string;
+					content?: { parts?: Array<{ text?: string }> };
+				}>;
 				usageMetadata?: { candidatesTokenCount?: number };
 			};
 			const candidate = safe.candidates?.[0];
