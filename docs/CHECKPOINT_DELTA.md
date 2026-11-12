@@ -1,14 +1,14 @@
 # Checkpoint Delta — CD06
 
-## DIF-REL-001 / CD07 proposed checkpoint delta (2026-11-12)
+## DIF-REL-001 / CD07 approved checkpoint delta (2026-11-12)
 
-- **Status:** PROPOSED — NOT PROMOTED pending full CI and independent audit of the final branch SHA.
+- **Status:** APPROVED FOR MERGE after independent audit and full CI on code SHA 8ebf44acf827f0a14ac85bd380785574d378a6e8; final main deployment verification pending.
 - **Objective:** close V1 with approved Gemini narrative generation and robust Flow/CapCut ZIP workflow within Vercel Hobby response limits.
 - **Source of truth:** Work Order DIF-MVP-ALL-001, issue #15 DIF-REL-001, Source Pack ADR-DIF-V1-007, latest Evidence Bundle. CD06 historical checkpoints remain below.
 - **Delivered:** SvelteKit Vercel production URL, owner-only Supabase Auth/RLS, Cloudinary private media, Gemini 3.5 Flash-Lite validated server-side JSON 120 s + 15 scenes + 2 options + social/Flow prompts; full ZIP with conservative 3 MB media ceiling; lite ZIP with individual owner-checked Cloudinary 180-second original downloads.
 - **Live AI acceptance:** `dpl_AQwvQM1XkN1Q6Jh8J1QoJLpV21SW` READY, real Gemini 3.5 Flash-Lite HTTP200 and schema/Zod validated; synthetic storyline, no production data persisted. Real CD06 owner journey validated previously; later extension remains subject to HEAD-wide CI and audit.
 - **Risk register:** Cloudinary secret shared in chat (rotation required); Supabase owner recovery email requires safe ownership; short-lived signed links and free quota; Vercel ZIP cap and live model transient errors. No known HIGH/CRITICAL from previous audit; verify latest HEAD.
-- **Stop:** do not mark completed, merge or advance V2 until all Definition of Done gates pass. After independent APPROVED and deployment verification, update this section and canonical checkpoint accordingly.
+- **Audit and approval:** full GitHub CI PASS on code SHA 8ebf44ac (PR 43217394260 and push 43217385062): 45/45 unit, PgTAP/RLS, 9/9 E2E, lint/typecheck/build and audits. Gemini live test PASS and production branch deployment READY. Independent review found no HIGH/CRITICAL defects. This checkpoint is promoted to APPROVED for release; squash merge and exact main production verification remain the final operational steps before V1 completion. V2 is not started.
 
 ---
 
