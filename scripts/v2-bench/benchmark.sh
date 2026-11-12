@@ -292,10 +292,11 @@ validate() {
 
 summary() {
   local csv="$LOGS/summary.csv"
-  echo "label,width,height,wall_s,elapsed_s,rtf,max_rss_kb,avg_cpu_pct,peak_hwm_kb,peak_cpu_pct,output_bytes,duration_s,validation,rc" >"$csv"
+  # ps -o pcpu is a cumulative average since process start, not an instantaneous peak.
+  echo "label,width,height,wall_s,elapsed_s,rtf,max_rss_kb,avg_cpu_pct,peak_hwm_kb,final_pcpu_avg_pct,output_bytes,duration_s,validation,rc" >"$csv"
   for dir in "$RUNS"/*; do
     [ -d "$dir" ] || continue
-    local label file elapsed rtf rss cpu peak_hwm peak_cpu size duration val rc width height
+    local label file elapsed rtf rss cpu peak_hwm final_pcpu size duration val rc width height
     label=$(basename "$dir")
     file="$dir/output.mp4"
     [ -f "$dir/ffprobe.json" ] || continue
@@ -306,7 +307,7 @@ summary() {
     cpu=$(field 'Percent of CPU this job got' "$dir/time.txt")
     cpu=${cpu%\%}
     peak_hwm=$(awk 'BEGIN{m=0} {if($3+0>m)m=$3+0} END{print m}' "$dir/ps.log" 2>/dev/null || echo 0)
-    peak_cpu=$(awk 'BEGIN{m=0} {if($4+0>m)m=$4+0} END{print m}' "$dir/ps.log" 2>/dev/null || echo 0)
+    final_pcpu=$(awk 'BEGIN{m=0} {if($4+0>m)m=$4+0} END{print m}' "$dir/ps.log" 2>/dev/null || echo 0)
     if [ -f "$file" ]; then
       size=$(stat -c %s "$file")
     else
@@ -317,7 +318,7 @@ summary() {
     rc=$(awk -F= '/^rc=/{print $2}' "$dir/run.status.txt" 2>/dev/null || echo 1)
     width=$(awk -F= '/^width=/{print $2}' "$dir/validation.txt" 2>/dev/null || echo 0)
     height=$(awk -F= '/^height=/{print $2}' "$dir/validation.txt" 2>/dev/null || echo 0)
-    echo "$label,$width,$height,$(awk -F= '/^wall_seconds=/{print $2}' "$dir/run.status.txt"),$elapsed,$rtf,$rss,$cpu,$peak_hwm,$peak_cpu,$size,$duration,$val,$rc" >>"$csv"
+    echo "$label,$width,$height,$(awk -F= '/^wall_seconds=/{print $2}' "$dir/run.status.txt"),$elapsed,$rtf,$rss,$cpu,$peak_hwm,$final_pcpu,$size,$duration,$val,$rc" >>"$csv"
   done
   column -s, -t "$csv" 2>/dev/null || cat "$csv"
 }
@@ -466,10 +467,11 @@ cleanup() {
       exit 2
       ;;
   esac
-  log "cleanup: removing $BENCH_ROOT (own disposable benchmark directory)"
-  du -sh "$BENCH_ROOT" >"$LOGS/cleanup.size.txt" 2>/dev/null || true
+  local size
+  size=$(du -sh "$BENCH_ROOT" 2>/dev/null | awk '{print $1}' || true)
+  log "cleanup: removing $BENCH_ROOT (size ${size:-unknown})"
   rm -rf "$BENCH_ROOT"
-  echo "removed $BENCH_ROOT"
+  echo "removed $BENCH_ROOT (size ${size:-unknown})"
 }
 
 main() {

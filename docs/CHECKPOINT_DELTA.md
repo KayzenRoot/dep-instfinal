@@ -2,14 +2,14 @@
 
 ## DIF-V2-WO-002 — Oracle ARM64 benchmark (2026-11-12) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; benchmark **GO CONDITIONAL**; evidence **pending independent audit**; WO-003+ remains **BLOCKED** until WO-002 is APPROVED.
+- **Status:** **PROPOSED — NOT PROMOTED**; benchmark **GO CONDITIONAL**; evidence **APPROVED** by independent audit (2026-11-12); WO-003+ remains **BLOCKED** until ADR-V2-002/storage and owner authorization.
 - **Base:** `main` `01405cbb641e7814cbd964157d0814ba4e23d7c7` (after WO-001/PR #46 squash merge); branch `bench/dif-v2-wo-002`.
 - **Benchmark:** 3 × 1080×1920 in 69.65–70.53 s (mean 70.02 s, RTF 0.58, 1.72× realtime), max RSS 364,572 KB, 188–191% process CPU, output 103,939,130 B; 720×1280 in 46.55 s / 31,557,798 B. `ffprobe`: 120.000000 s, exact 9:16, H.264 30 fps + AAC 48 kHz stereo, clean full decode. All three 1080p outputs share SHA-256 `1f0b31a4…ee6f73a`.
 - **Environment:** Oracle ARM64 Neoverse-N1, 2 vCPU, 11,924 MB RAM, no swap, 177 GB free; FFmpeg/ffprobe 7.0.2-static aarch64 (GPLv3, libx264/AAC); **US$ 0** incremental compute (estimate; no billing check).
 - **Failure tests:** timeout rc 124 / 0 orphans; corrupt input rc 183; simulated low disk (`ulimit -f`) rc 153 with 2 MiB partial and no real disk fill; recovery 10.000 s PASS; 2× CPU saturation produced 7.17× slowdown, 0.83× after recovery.
-- **Decision/limits:** **GO CONDITIONAL** with concurrency **1**, `nice`/`ionice`, 10 min timeout, 2 GB temp reserve and 720p fallback. One render consumes ~94% of 2 vCPU; concurrency >1 is not safe. Video storage/egress remains pending ADR-V2-002.
+- **Decision/limits:** **GO CONDITIONAL** with concurrency **1**, `nice`/`ionice`, 10 min timeout, 2 GB temp reserve and 720p fallback. One render consumes ~94% of 2 vCPU; concurrency >1 is not safe. The benchmark measured raw capacity; worker guards (timeout 10 min, process-group kill, 2 GB quota, memory limit, `ionice`) were not exercised and must be implemented/tested in WO-003+. Video storage/egress remains pending ADR-V2-002.
 - **Health/cleanup:** `nginx`, `docker`, `containerd`, `code-server@ubuntu` active; `9router` healthy; local latency max 7 ms under load; 747 MB removed; no secrets, production data, sudo, daemon, new port or spend.
-- **Gate:** WO-003+ remains **BLOCKED** until WO-002 independent audit returns **APPROVED** and the preceding WO is approved. No checkpoint promotion, merge, deploy, worker, schema or production change occurred.
+- **Gate:** WO-003+ remains **BLOCKED** until ADR-V2-002/storage is approved and the owner authorizes the next increment. No checkpoint promotion, merge, production deploy, worker, schema or production change occurred; the automatic PR preview is not production.
 
 ---
 

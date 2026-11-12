@@ -22,7 +22,7 @@ supabase/.temp/
 # Logs, backups, and local exports
 *.log
 # Reviewed benchmark evidence logs are intentional artifacts
-!docs/evidence/**/*.log
+!docs/evidence/wo-002/**/*.log
 *.bak
 *.backup
 .DS_Store

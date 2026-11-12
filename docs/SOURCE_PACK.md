@@ -237,4 +237,4 @@ Proposed owner-scoped entities: `video_assets`, `edit_timelines`, `edit_versions
 
 ### Gate
 
-WO-001 documentation is **APPROVED** and ADR-V2-001 is **ACCEPTED**. **WO-002** benchmark returned **GO CONDITIONAL** for the existing Oracle ARM64 VPS with concurrency 1, zero incremental compute and the documented limits; its evidence is **pending independent audit**. **WO-003+ remains BLOCKED** until WO-002 is `APPROVED` and the preceding WO is `APPROVED`. No V2 code, migration, worker, storage, production deploy or spend was created by this addendum.
+WO-001 documentation is **APPROVED** and ADR-V2-001 is **ACCEPTED**. **WO-002** benchmark returned **GO CONDITIONAL** for the existing Oracle ARM64 VPS with concurrency 1, zero incremental compute and the documented limits; its evidence is **APPROVED** by independent audit (2026-11-12). **WO-003+ remains BLOCKED** until ADR-V2-002/storage is approved and the owner authorizes the next increment. No V2 code, migration, worker, storage, production deploy or spend was created by this addendum.
