@@ -25,6 +25,7 @@ jobs:
             src/lib/domain/export-size.ts \
             src/lib/domain/export-size.test.ts \
             src/lib/server/ai-episode.ts \
+            src/lib/server/ai-response-schema.ts \
             src/lib/server/ai-episode.live.test.ts \
             'src/routes/api/export/[episodeId]/+server.ts' \
             'src/routes/api/media/[assetId]/+server.ts' \
@@ -32,7 +33,7 @@ jobs:
       - name: Commit scoped formatter delta only
         run: |
           git add src/lib/domain/export-size.ts src/lib/domain/export-size.test.ts \
-            src/lib/server/ai-episode.ts src/lib/server/ai-episode.live.test.ts \
+            src/lib/server/ai-episode.ts src/lib/server/ai-response-schema.ts src/lib/server/ai-episode.live.test.ts \
             'src/routes/api/export/[episodeId]/+server.ts' \
             'src/routes/api/media/[assetId]/+server.ts' \
             'src/routes/app/export/[episodeId]/+page.svelte'
