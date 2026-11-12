@@ -39,14 +39,13 @@ Result: PASS 19 policy invariants across 16 tables, including:
 
 7) E2E (fresh server, CI=1)
 Command: CI=1 node scripts/test-local-e2e.mjs
-Result: historical clean run 10 passed (7.6m); current head requires a final rerun after
-the READY assertion and service-role finalization changes.
-Including: e2e/video-upload.spec.ts — owner uploads 15 synthetic scene clips to 15 scenes,
-associates them, verifies READY assets, anonymous /api/video returns 401, reload preserves 15 assets.
-Current head: `CI=1 node scripts/test-local-e2e.mjs e2e/video-upload.spec.ts` passed 1/1
-(42.2s) with the service-role finalization path; READY status assertion added afterwards.
-The local Docker/WSL stack became unavailable (docker engine 500, wsl --status timeout), so
-the final local E2E rerun is delegated to hosted CI.
+Result: hosted CI **10 passed (2.2m)** on head `afbc404`, run 43313559461:
+- PgTAP 39/39 PASS in the same job;
+- e2e/video-upload.spec.ts PASS (14.1s), including the READY assertion and 15-clip reload;
+- anonymous /api/video returned 401;
+- Playwright evidence artifact uploaded.
+Historical local clean run: 10 passed (7.6m). Local Docker/WSL later became unavailable
+(docker engine 500, wsl --status timeout); hosted CI is authoritative.
 
 8) Dependency audit
 Command: npm run audit:deps

@@ -60,8 +60,8 @@ Migration `supabase/migrations/20261112170000_v2_wo003_video_storage.sql`:
 | Typecheck                | **PASS 0 erros/0 warnings**          | `npm run typecheck`                                                   |
 | Build                    | **PASS**                             | `npm run build` (adapter-node local)                                  |
 | Policy audit             | **PASS 19 invariantes / 16 tabelas** | `npm run audit:policy`                                                |
-| E2E upload 15 clipes     | **PASS**                             | `e2e/video-upload.spec.ts`: 15 fixtures, 15 cenas, reload; E2E 10/10  |
-| E2E suíte completa       | **PASS 10/10**                       | `CI=1 node scripts/test-local-e2e.mjs` (servidor limpo)               |
+| E2E upload 15 clipes     | **PASS**                             | `e2e/video-upload.spec.ts`: 15 fixtures, 15 cenas, READY, reload      |
+| E2E suíte completa       | **PASS 10/10**                       | hosted CI run `43313559461` no head `afbc404`; 10 passed (2.2m)       |
 | R2 live (upload/leitura) | **PASS**                             | 15 clipes enviados ao R2, READY, reload, 401 anônimo; `check:r2` PASS |
 | CORS/lifecycle R2        | **CORS PASS / lifecycle PENDING**    | CORS PUT/GET/HEAD + ETag configurado; lifecycle pendente              |
 
