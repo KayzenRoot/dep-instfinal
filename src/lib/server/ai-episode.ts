@@ -231,11 +231,15 @@ export async function generateEpisodeJson(prompt: string, oidcToken?: string): P
 		);
 		const candidates = result.candidates;
 		const first = Array.isArray(candidates) ? candidates[0] : null;
-		const finishReason = first && typeof first === 'object'
-			? (first as { finishReason?: string }).finishReason
-			: undefined;
+		const finishReason =
+			first && typeof first === 'object'
+				? (first as { finishReason?: string }).finishReason
+				: undefined;
 		if (finishReason === 'MAX_TOKENS')
-			throw new AiGenerationError('INVALID_OUTPUT', 'O Gemini interrompeu o roteiro por limite de tokens. Tente novamente.');
+			throw new AiGenerationError(
+				'INVALID_OUTPUT',
+				'O Gemini interrompeu o roteiro por limite de tokens. Tente novamente.',
+			);
 		const parts =
 			first && typeof first === 'object'
 				? (first as { content?: { parts?: Array<{ text?: string }> } }).content?.parts

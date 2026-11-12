@@ -6,7 +6,10 @@
 export const MAX_EMBEDDED_ZIP_MEDIA_BYTES = 3_000_000;
 
 /** The same frame can appear in multiple scene positions, so count each attachment. */
-export function exceedsZipMediaBudget(sizes: readonly number[], limit = MAX_EMBEDDED_ZIP_MEDIA_BYTES): boolean {
+export function exceedsZipMediaBudget(
+	sizes: readonly number[],
+	limit = MAX_EMBEDDED_ZIP_MEDIA_BYTES,
+): boolean {
 	let total = 0;
 	for (const size of sizes) {
 		if (!Number.isSafeInteger(size) || size <= 0) return true;

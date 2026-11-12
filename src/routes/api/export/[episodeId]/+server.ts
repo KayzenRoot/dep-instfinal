@@ -89,7 +89,10 @@ export const GET: RequestHandler = async (event) => {
 				: [];
 		});
 		if (exceedsZipMediaBudget(rawMediaSizes)) {
-			error(413, 'As imagens excedem o limite do ZIP na Vercel. Use o pacote ZIP leve e baixe os quadros individualmente na biblioteca.');
+			error(
+				413,
+				'As imagens excedem o limite do ZIP na Vercel. Use o pacote ZIP leve e baixe os quadros individualmente na biblioteca.',
+			);
 		}
 	}
 	const metadata = episode.platform_metadata ?? {};
@@ -154,7 +157,8 @@ export const GET: RequestHandler = async (event) => {
 		format: 'dif-studio-flow-package/v1',
 		createdAt: new Date().toISOString(),
 		mediaMode,
-		mediaInstructions: 'In the lightweight ZIP, download each frame from the authenticated DIF Studio media route.',
+		mediaInstructions:
+			'In the lightweight ZIP, download each frame from the authenticated DIF Studio media route.',
 		series: series?.title ?? '',
 		season: season?.title ?? '',
 		episode: {
@@ -449,7 +453,9 @@ export const GET: RequestHandler = async (event) => {
 					scene: entry.sceneIndex,
 					position: entry.position,
 					assetId: entry.assetId,
-					reason: includeMedia ? 'CLOUDINARY_NOT_CONFIGURED' : 'MEDIA_EXCLUDED_FROM_LIGHTWEIGHT_ZIP',
+					reason: includeMedia
+						? 'CLOUDINARY_NOT_CONFIGURED'
+						: 'MEDIA_EXCLUDED_FROM_LIGHTWEIGHT_ZIP',
 				});
 		}
 		if (!includeMedia) {
