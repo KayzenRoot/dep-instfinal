@@ -15,6 +15,10 @@ playwright-report/
 test-results/
 blob-report/
 
+# Supabase CLI local state
+supabase/.branches/
+supabase/.temp/
+
 # Logs, backups, and local exports
 *.log
 *.bak

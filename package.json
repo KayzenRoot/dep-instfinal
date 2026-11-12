@@ -1,0 +1,71 @@
+{
+	"name": "dif-studio",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	},
+	"engines": {
+		"node": ">=24.0.0",
+		"npm": ">=11.0.0"
+	},
+	"overrides": {
+		"minimatch": "11.0.1"
+	},
+	"scripts": {
+		"dev": "vite dev --host 127.0.0.1",
+		"build": "vite build",
+		"start": "node build",
+		"serve:tunnel": "node scripts/serve-tunnel.mjs",
+		"preview": "vite preview --host 127.0.0.1",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"typecheck": "npm run check",
+		"lint": "eslint . --max-warnings=0",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"test": "vitest run",
+		"test:unit": "vitest run",
+		"test:db": "supabase test db",
+		"test:e2e": "playwright test",
+		"test:e2e:local": "node scripts/test-local-e2e.mjs",
+		"audit:policy": "node scripts/audit-policy.mjs",
+		"audit:deps": "npm audit --audit-level=high",
+		"check:baseline": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run audit:policy && npm run audit:deps",
+		"ci:all": "npm run check:baseline && npm run test:db && npm run test:e2e:local"
+	},
+	"dependencies": {
+		"@fontsource/cormorant-garamond": "5.3.0",
+		"@fontsource/dm-sans": "5.3.0",
+		"@fontsource/ibm-plex-mono": "5.3.0",
+		"@supabase/ssr": "0.12.7",
+		"@supabase/supabase-js": "2.119.0",
+		"archiver": "8.0.0",
+		"cloudinary": "2.11.0",
+		"sharp": "0.35.5",
+		"zod": "4.6.7"
+	},
+	"devDependencies": {
+		"@eslint/js": "10.0.1",
+		"@playwright/test": "1.65.0",
+		"@sveltejs/adapter-node": "6.0.1",
+		"@sveltejs/adapter-vercel": "7.0.2",
+		"@sveltejs/kit": "3.1.1",
+		"@sveltejs/vite-plugin-svelte": "7.3.1",
+		"@tailwindcss/vite": "4.3.5",
+		"@types/archiver": "8.0.0",
+		"@types/node": "26.6.6",
+		"eslint": "10.14.0",
+		"eslint-plugin-svelte": "3.24.1",
+		"globals": "17.14.0",
+		"prettier": "3.9.10",
+		"prettier-plugin-svelte": "4.1.1",
+		"svelte": "5.57.3",
+		"svelte-check": "4.7.8",
+		"typescript": "6.0.3",
+		"typescript-eslint": "8.72.2",
+		"vite": "8.3.7",
+		"vitest": "5.1.0"
+	}
+}

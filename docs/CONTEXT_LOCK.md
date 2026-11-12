@@ -1,0 +1,105 @@
+# Context Lock — DIF-MVP-ALL-001
+
+**Created:** 2026-11-09  
+**Repository:** `KayzenRoot/dep-instfinal`  
+**Remote:** `https://github.com/KayzenRoot/dep-instfinal.git`  
+**Default branch:** `main`  
+**Execution branch:** `feat/dif-studio-mvp-001`
+
+## Verified Git state
+
+- Owner-authorized bootstrap commit on `main`: `b4fd54513af749d68bb7bce4c06110cd9981be39`.
+- `BASE_SHA`: `b4fd54513af749d68bb7bce4c06110cd9981be39`.
+- `HEAD_SHA` at start of implementation: `b4fd54513af749d68bb7bce4c06110cd9981be39`.
+- `HEAD_SHA` revalidated at start of CD01: `d7887cfdee219f5b9e081c89e79d4ae61ee0c8f5`; the local branch was clean and exactly matched `origin/feat/dif-studio-mvp-001` before edits.
+- The feature branch was created locally from exactly this SHA.
+- Initial implementation candidate: `4d220f1e2e045298a93c7186380eb5dddf603f0f`.
+- The prior source and workflow passed hosted validation at `c84ab7833f5417c77ea49727e97bc0c52edda94f`; this is historical evidence only and does not validate CD01.
+- CD01 correction source commits were pushed to the same feature branch. Hosted CI validated code SHA `89bc16c05912a7b50b47ac3cf2cc3e9b2eef5359`; PR run `42823819918` passed baseline, Supabase startup, PgTAP/RLS, authenticated Data API checks, complete owner E2E (8/8), and artifact upload. The current Draft PR #14 still targets `main`.
+- Intermediate hosted runs exposed E2E field-state and locator failures; the assertions/waits were corrected, and the full journey passed on `89bc16c`. A separate earlier run also hit runner port `54322` already in use; later hosted run `42823819918` started the disposable stack and passed.
+- Local Supabase remained unavailable: registry pulls were rate limited and the Postgres image extraction ran out of container disk. `npm run test:db` could not connect to `127.0.0.1:54322`; hosted PgTAP/RLS is the successful database evidence.
+- CD01's final code SHA was `89bc16c` when its hosted checks completed. The CD01 evidence was reconciled at that point; CD02 has its own validated SHA and reconciliation below.
+- CD02 revalidated audit base `a7cfc9edce735bd4d0900ca7de2b9e12c434bab4` on `feat/dif-studio-mvp-001` before edits; it matched the branch tip and the worktree was clean. CD02 implementation/test SHA `68b4f867274e296a52c763851537ebf326f5eb8e` passed hosted PR CI `42833608157` and push CI `42833596156`, including baseline, database/RLS, direct authenticated Data API, and complete authenticated E2E checks. Documentation-only reconciliation after this validated code SHA does not alter the tested application.
+- Prior to bootstrap the remote was empty (`git ls-remote` returned no refs), and the workspace was empty. There was no prior code, checkpoint, ADR, workflow, branch, or PR to preserve.
+- Base working tree was clean before the feature branch was created.
+
+## Base fingerprints (SHA-256)
+
+| File at base | SHA-256                                                            |
+| ------------ | ------------------------------------------------------------------ |
+| `README.md`  | `BB5711B757FDC9B38612F207B5F25CFD485855B424C67AE81AEA4538C2C543DE` |
+| `.gitignore` | `599F2C11DEB8C3CA3FB2B948EB5822292C019D502C7F6832E8274CB3219DB629` |
+
+## Canonical sources checked
+
+- User-authorized Work Order: `C:\Users\csn19\Downloads\DIF_Studio_Codex_OneShot.pdf`, 9 pages.
+- GitHub issues [#1–#13](https://github.com/KayzenRoot/dep-instfinal/issues), all open when checked.
+- Issue #4 title/body mismatch was resolved by its latest 2026-11-09 approved delta and the PDF: PostgreSQL is canonical; no SQLite/local source of truth.
+- No existing Checkpoint, Decisions Ledger, ADR, Scope, DoD, migrations, `package.json`, workflows, or other files existed before this branch.
+
+## Stale triggers
+
+Revalidate before any external action if `main` changes; the feature branch is rebased/updated; issue or owner decisions change; the canonical PDF/Source Pack changes; dependencies or security advisories drift; or the GitHub target/permissions change. Never force-push. Record any new base SHA and fingerprints in the Evidence Bundle.
+
+## Correction Delta CD01
+
+- Audit base: `d7887cfdee219f5b9e081c89e79d4ae61ee0c8f5`.
+- Earlier correction commit: `4b92fdee08e339090fbce5e9abcfe70059a042a1`.
+- Hosted-validated code HEAD: `89bc16c05912a7b50b47ac3cf2cc3e9b2eef5359`.
+- Corrected forms now map camelCase inputs explicitly to snake_case Supabase columns for seasons, characters, and lore. Other write paths were reviewed for the same mismatch.
+- All 14 exposed table policies and privileged episode RPCs require signed `app_metadata.dif_studio_owner=true` in addition to matching `auth.uid()`. App routes still check the configured owner UID. Operations require the claim to be administered in Supabase App Metadata and never user-editable User Metadata.
+- Cloudinary orphan reconciliation and synthetic external-boundary tests were added. Real Cloudinary validation remains blocked until the owner supplies a selected account/credentials.
+- The full E2E acceptance test covers series through ZIP export; hosted PgTAP/RLS and authenticated owner E2E passed on `89bc16c`. Local anonymous E2E passes, while local database/Auth setup is blocked by Docker registry/disk failures.
+- Cloudinary live verification remains blocked by absent credentials, as required by the no-credentials/no-paid-services scope. Provider-boundary mocks cover media authorization, upload failure, orphan reconciliation, and export; they are not live integration evidence.
+- `ManualTextProvider` remains `NOT_CONFIGURED`. Automatic story generation is pending; the manual editing fallback remains supported.
+- At the end of CD01, `docs/CHECKPOINT_DELTA.md`, the Evidence Bundle, and Source Pack recorded the checkpoint as **PROPOSED — NOT PROMOTED** and the proposed verdict as **CORRECTION REQUIRED**, pending live Cloudinary verification and independent review. CD02 supersedes that proposal below.
+
+## Correction Delta CD02
+
+- Audit base revalidated before changes: `a7cfc9edce735bd4d0900ca7de2b9e12c434bab4`; validated application/test SHA: `68b4f867274e296a52c763851537ebf326f5eb8e`.
+- Hosted PR CI [`42833608157`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42833608157) and push CI [`42833596156`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42833596156) passed on the implementation SHA. The authenticated browser suite completed the full owner journey and verified hypothetical branches, pending-vote gating, prior facts, and exported context.
+- The continuation builder uses only an exact verified poll result referenced by the latest author-approved canonical decision. A pending/open vote or a stale decision is never treated as canon. The owner-filtered context retains the approved series/season bible, characters, lore, prior published episodes, events, scene notes, choices and consequences.
+- DIF-005/DIF-007 use the permitted manual provider path: private context-complete prompt export and validated response import. No eligible official provider was confirmed and configured; automatic AI generation remains pending. No private ChatGPT/Google Flow session or paid service was used.
+- Local baseline passed. Local anonymous E2E passed with authenticated cases skipped because no local Supabase stack was available; local PgTAP could not connect at `127.0.0.1:54322`. Hosted CI passed database/RLS, direct Data API owner isolation, and 8/8 authenticated E2E. The CI database/Auth users were disposable synthetic accounts.
+- Cloudinary boundary mocks passed, but a real account and credentials were unavailable and intentionally not created. `docs/EVIDENCE_BUNDLE.md` records the exact private upload/delivery, rejection/timeout, orphan reconciliation, finalization failure, ZIP media inclusion/omission, and expiry/cache acceptance steps still required against an owner-authorized account.
+- Automatic checkpoint promotion remains prohibited. CD02 checkpoint is **PROPOSED — NOT PROMOTED**; proposed verdict is **BLOCKED** pending Cloudinary live acceptance and independent review. PR #14 must remain Draft; no merge, deployment, spend, external provisioning, or promotion occurred.
+
+## Correction Delta CD03
+
+- Revalidated CD03 audit base `546353727d69b930f016b1faffa99d0e16bf6115` before edits, along with the approved Source Pack rev 1.1 and canonical decisions: manual verified voting, explicit append-only author approval for canon, one integrated branch/Draft PR, and no merge or deployment. The user-authorized CD03 requirement adds a vote-free season finale while retaining two distinct choices for other episodes.
+- CD03 source/test commits on the same feature branch: `134053b437492f3a5e8e5ac16dd845c11efd3995`, `ec47a56fe0aa983a4409b55491922defcac86c17`, `49665849f97fcb6f25064dcddff33dbe41decb13`, `f05da38f3d7722964ebed53e289f16d3d42deb0f`, `9537cc49cd2bbc2470211b87062aaab527c105f1`, `da5aaa011bf13b378922357911dda74ee198750f`, `92ff6428c318b6fc21c7611ce9d7db5c5227fb45`, and E2E reliability commits `0ea69457d1c99fbb374209b296fda5a0844f579e`, `04e29692e1787893dcdb71975025fa72ff94c89d`, `1766b158c8a4e1054e6cb6c2a0c7a3aa79515d92`.
+- The database publication guard runs for both `set_episode_status` and direct table transitions. A continuation is blocked until its existing immediately preceding episode has a closed, verified poll, a latest verified result with a valid winner, and an owner-approved canonical decision tied to that exact latest result. Hypothetical branches remain `HYPOTHETICAL_NOT_CANON`; they do not update canon automatically.
+- Season finale status is derived from the season plan; the plan is locked once episodes exist. The final planned episode accepts zero voting options, may be published without a poll, and rejects poll creation. Every other episode still requires two distinct options. The UI reports the specific pending publication validation.
+- Hosted PR CI [`42881078808`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42881078808) and push CI [`42881066718`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42881066718) passed at code/test SHA `1766b158`. Both passed baseline, Supabase startup, PgTAP/RLS, and the authenticated Playwright suite (8/8 on the first attempt, no retries). E2E covers premature publication, pending/unverified and stale results, corrected approval, distinct branches, the approved immediate predecessor, episode 10 verified as the planned finale, and finale import/publication without a poll. The earlier retry exposed browser hydration resetting the finale number to the default; the test now waits for network idle before editing and verifies the stored prompt context.
+- Local lint, typecheck, 23 unit tests, production build, and 15 security policy invariants passed individually. The local full baseline stops at `format:check` for 13 files in the Windows workspace; hosted baseline passes. Local Supabase was unavailable at `127.0.0.1:54322`, so PgTAP/authenticated E2E evidence comes from hosted CI. The latest local dependency audit could not reach npm registry (`socket hang up`); hosted baseline passed the configured high threshold. A prior successful audit reported four LOW transitive `deepmerge` advisories; the forced fix proposes an incompatible SvelteKit downgrade.
+- Cloudinary live acceptance, real backup/restore, and independent review remain not run/pending. No service, account, credentials, billing, merge, deployment, or checkpoint promotion was created or performed. PR #14 remains open, unmerged, and Draft; the Checkpoint Delta remains **PROPOSED — NOT PROMOTED** with proposed verdict **BLOCKED**. CD03 is not a completed release.
+
+## Correction Delta CD04
+
+- Before implementation, revalidated the requested base `34ab6b7c9156de054dfd4969e761d456cc4890c4` as the clean local and remote tip of `feat/dif-studio-mvp-001`, and verified PR #14 was open, unmerged, and Draft. Rechecked Source Pack rev 1.1, the proposed/blocked CD03 Checkpoint Delta, and canonical decisions: PostgreSQL is authoritative; all nonfinal episodes have two distinct choices; voting is manually closed and verified; canon requires explicit append-only author approval; conditional branches remain hypothetical; seasons target 10–15 episodes; work stays on the integrated branch and Draft PR with no merge or deploy.
+- The user-authorized CD04 change adds an existence requirement for the immediately preceding episode to `assert_episode_publication_allowed`. The guard still runs in `set_episode_status` and direct PostgreSQL status transitions. If the predecessor exists, CD03's latest verified vote, valid winner, and exact approved-canon checks remain intact. Draft creation/edit/import remains available out of sequence and does not alter canon. The owner receives a clear missing-predecessor message.
+- The additive migration is `20261110190000_cd04_require_previous_episode.sql`. Test fixtures now maintain a valid complete sequence before publishing episodes 11 and 12. PgTAP includes missing-predecessor rejection through the RPC and direct update, editable out-of-order draft without poll/canon, and publication after validated continuity; the finale remains choice-free and vote-free. Authenticated E2E keeps the 10-episode plan, tests an out-of-order draft and blocked publication, fills the missing chain with verified votes and approved canon, publishes the continuation, and imports/publishes finale 10 without its own choices or poll.
+- CD04 commits on the same feature branch: implementation `3c560489788d0c1efaf16dd26d81b709daad4406`; test-fixture and 10-episode E2E correction `45840f9199783c251c4da8b10bff3fcda14de629`. The first CI attempt exposed a duplicate `READY` transition in the new fixture; it was removed before the final commit.
+- Hosted PR CI [`42898556365`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898556365) and push CI [`42898547547`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898547547) passed on final code/test HEAD `45840f9`: full baseline, PgTAP (20 tests), and authenticated E2E (8/8; 10-episode continuity journey included). No retries were reported.
+- Local lint, typecheck (0 Svelte errors/warnings), unit tests (23/23), build, and 15 policy invariants passed. Local dependency audit exited 0 at its configured high threshold with four LOW transitive `deepmerge` advisories. Local `check:baseline` stops at Windows `format:check` for 13 existing files. The local Supabase test command could not connect to `127.0.0.1:54322`; hosted PgTAP and authenticated E2E supply the successful evidence.
+- Final PR readback after the application/test push: #14 remained `OPEN`, `isDraft=true`, `mergedAt=null`, targeting `main`. Evidence Bundle and Checkpoint Delta are updated for CD04; status remains **PROPOSED — NOT PROMOTED**, proposed verdict **BLOCKED**. Live Cloudinary acceptance, external backup/restore, and independent review remain pending. No merge, deployment, spend, service provisioning, credential use, or checkpoint promotion occurred.
+
+## Correction Delta CD05
+
+- Revalidated CD05 base `b78609d9f0e3a32773733df6c3303edf994c7b0c` as the clean branch tip before live acceptance. The dedicated Supabase project `dif` (`zottgifcocnjguhmnezx`, us-east-1) and the Cloudinary environment `dt4qdzuus` were selected from the owner's authenticated sessions. No new project, plan, or paid service was created.
+- The four committed migrations were applied in order through the Supabase Management API: 14 public tables, 50 policies, 22 functions, and RLS enabled on all 14 tables. The owner `owner@dif.local` was created with `app_metadata.dif_studio_owner=true` (UID `75a301f7-c0ee-4bd9-863e-95d42b7037b0`). Password-grant login returned 200; the owner REST read returned 200 `[]`; `scripts/set-owner-uid.mjs` wrote the UID to the git-ignored `.env`.
+- Cloudinary credentials and generated owner credentials were stored only in the git-ignored `.env` and an external local secrets directory. No secret, key, or password is committed or recorded in the evidence documents.
+- Live media acceptance passed: a real 64×64 PNG reached `READY` with Cloudinary `asset_id`, version, dimensions, byte size, and SHA-256; owner delivery returned 200/235 bytes with `private, no-store`; the unauthenticated route returned 401; the unsigned raw URL returned 401; a signed URL returned 200 before expiry and 401 after expiry; invalid bytes returned 415; a 10 MiB + 1 byte upload returned 413; an invalid Cloudinary secret preserved `ORPHANED` / `CLOUDINARY_UPLOAD_OUTCOME_UNKNOWN`.
+- Live reconciliation exposed an SDK error-shape mismatch: the real 404 is nested under `error.http_code`. Commit `b89240f061d9976a0a7db28003d63d5daf977dfe` recognizes both nested and top-level shapes and updates the unit fixture. A real object reconciled to `READY`; a missing object reconciled to `FAILED` / `CLOUDINARY_ASSET_NOT_FOUND`. Local unit tests 23/23, typecheck 0/0, lint, build, and 15 policy invariants passed.
+- A disposable authenticated non-owner user read `[]` and received 403 (`42501`) on insert, then was deleted. Authenticated ZIP export returned 29 entries including the private PNG and empty `missing_frames.json`, with 15 contiguous SRT segments.
+- External backup/restore remains **NOT RUN**: the Free plan shows no scheduled backups and no external restore target was provisioned. Independent review remains pending. Hosted PR CI `43038342557` and push CI `43038328934` passed at final code/test HEAD `852b970` (baseline, PgTAP 20, E2E 8/8), and PR `43041393787` / push `43041387125` passed again at documentation/helper HEAD `e47ecaa`; the earlier `388577e` attempts failed only on Ubuntu mirror DNS during the Playwright apt step, fixed by pinning `ubuntu-24.04` and installing Chromium without apt. A temporary owner-authorized Cloudflare quick tunnel was validated for public access; it is ephemeral, has no Cloudflare Access policy, and is not a production deployment. The live acceptance fixture remains owner-scoped test data. No merge, production deployment, spend, new service provisioning, credential commit, or checkpoint promotion occurred.
+
+## Correction Delta CD06
+
+- Revalidated CD06 base `d5e43f258101af8388d030554c6ca9c0084d7309` as the clean branch tip before edits. Implementation commit `218f18f74e7720105d136c2fa3f0546ba789e9fd` adds the issue-closing production workflow without changing the approved stack.
+- Three additive migrations: `20261111120000_cd06_production_metadata.sql` (episode scene duration, scene direction/prompt metadata, continuity review, deferrable scene unique constraint, `swap_scene_order`), `20261111121000_cd06_scene_actions.sql` (`set_episode_scene_duration`, `save_scene_production`), and `20261111122000_cd06_fix_episode_scene_duration.sql` (the content-save RPC now honors the configured scene duration instead of hardcoding 8 s).
+- Continuity review is deterministic and advisory: DECEASED/MISSING/ARCHIVED characters and SUPERSEDED/ARCHIVED lore titles found in the episode text produce warnings; canon approval requires an explicit review when warnings exist and stores the reviewed warnings in `canonical_decisions.continuity_review`.
+- The library now serves server-generated private variants (`thumb`, `4x5`, `3x4`), compares two frames side by side, and warns about a non-matching aspect. The export adds platform targets/preset, per-channel covers/hashtags, AI disclosure, effects/assembly notes, credit estimate, production checklist, and assembly manifest.
+- Local validation passed: unit 27/27, typecheck 0 errors/warnings, lint, build, and PgTAP 25/25 on the minimal local stack. The Windows E2E suite was slow and flaky while reusing a stale dev server; the hosted E2E is the authoritative run.
+- Backup/restore was executed live: all 14 public tables and the owner UUID were exported, restored into a dedicated local Supabase target with the same owner UID, and verified by matching counts, owner login 200, anonymous REST 401, and a 235-byte Cloudinary image with matching SHA-256. Auth passwords were re-provisioned, not copied from the backup.
+- Hosted PR `43080981120` and push `43080968791` passed at final code/test HEAD `b23d40c` (PgTAP 28 tests; E2E 9 passed in 2.3 minutes, no retry). The independent reviewer agent first returned CORRECTION REQUIRED (HIGH: narrative import hardcoded 8 s and could truncate content); commit `08a4567` fixed the HIGH and MEDIUM findings and the follow-up audit returned **APPROVED** with no HIGH/CRITICAL findings. Three LOW residuals are documented in the Evidence Bundle. The checkpoint remains **PROPOSED — NOT PROMOTED** with proposed verdict **APPROVED — ready for owner promotion**. No merge, production deployment, paid service, credential commit, or promotion occurred.
