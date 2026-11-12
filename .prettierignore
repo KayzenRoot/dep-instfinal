@@ -6,3 +6,5 @@ node_modules
 playwright-report
 test-results
 package-lock.json
+# Raw benchmark evidence must stay byte-exact
+docs/evidence/wo-002/runs/**/ffprobe.json

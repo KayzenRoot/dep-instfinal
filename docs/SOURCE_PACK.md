@@ -212,7 +212,7 @@ Proposed owner-scoped entities: `video_assets`, `edit_timelines`, `edit_versions
 ### Deployment and rollout (PROPOSED)
 
 - **UI/orquestração:** Vercel Hobby com `adapter-vercel`, URL atual, deploy somente do SHA exato de `main` após CI/auditoria; preview de PR não é produção.
-- **Worker:** ambiente separado (candidato Oracle ARM64) provisionado apenas após WO-002 e autorização; uma concorrência inicial, segredos server-side, storage privado montado/objeto, sem alterar firewall/Portainer de produção sem autorização específica.
+- **Worker:** ambiente separado (candidato Oracle ARM64) provisionado apenas após WO-002 e autorização; uma concorrência inicial, segredos server-side, storage privado montado/objeto, sem alterar firewall/Portainer de produção sem autorização específica. O benchmark WO-002 (2026-11-12) mediu **GO CONDITIONAL** nesse VPS: 120 s 9:16 em ~70 s (RTF 0,58), 365 MB de pico, 177 GB livres, ~94% de 2 vCPU e US$ 0 estimado (billing não consultado); exige concurrency 1, `nice`/`ionice`, timeout de 10 min, cota de 2 GB e fallback 720p. Ver [`V2_BENCHMARK_WO002.md`](V2_BENCHMARK_WO002.md).
 - **Ordem:** migrações aditivas Supabase → feature flag desligada → worker/queue → smoke → habilitação gradual; nunca render de 120 s em função HTTP.
 - **Rollout:** preview → smoke do owner (auth, upload privado, render, download, expiração de URL) → produção; V1 permanece operável e o flag V2 pode ser desligado.
 - **Rollback:** desligar flag, cancelar/parar jobs, reverter para o SHA anterior de `main`/Vercel, manter artefatos e metadados; nenhuma exclusão destrutiva sem backup verificado.
@@ -227,14 +227,14 @@ Proposed owner-scoped entities: `video_assets`, `edit_timelines`, `edit_versions
 
 ### Decisions ledger V2 (all PROPOSED)
 
-| ID         | Decision                                                                                                                             | Status                           |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
-| ADR-V2-001 | Vercel UI/orchestration + separate CPU FFmpeg worker + private video storage; no serverless render; US$0 target subject to benchmark | **ACCEPTED — owner, 2026-11-12** |
-| ADR-V2-002 | Video storage provider/contract outside Postgres and outside the image Cloudinary policy                                             | PROPOSED — after WO-002          |
-| ADR-V2-003 | Job queue with lease/heartbeat/retry/cancel/idempotency; one concurrent worker initially                                             | PROPOSED                         |
-| ADR-V2-004 | One director (WO-010), one editor (WO-011), one exporter/QA (WO-012); creative WOs extend these modules                              | PROPOSED                         |
-| ADR-V2-005 | V2 feature flag; additive migrations; V1 immutable and rollback-capable                                                              | PROPOSED                         |
+| ID         | Decision                                                                                                                             | Status                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| ADR-V2-001 | Vercel UI/orchestration + separate CPU FFmpeg worker + private video storage; no serverless render; US$0 target subject to benchmark | **ACCEPTED — owner, 2026-11-12**                            |
+| ADR-V2-002 | Video storage provider/contract outside Postgres and outside the image Cloudinary policy                                             | PROPOSED — WO-002 GO conditional; provider decision pending |
+| ADR-V2-003 | Job queue with lease/heartbeat/retry/cancel/idempotency; one concurrent worker initially                                             | PROPOSED                                                    |
+| ADR-V2-004 | One director (WO-010), one editor (WO-011), one exporter/QA (WO-012); creative WOs extend these modules                              | PROPOSED                                                    |
+| ADR-V2-005 | V2 feature flag; additive migrations; V1 immutable and rollback-capable                                                              | PROPOSED                                                    |
 
 ### Gate
 
-WO-001 documentation is **APPROVED** and ADR-V2-001 is **ACCEPTED**. **WO-002 is authorized** to benchmark the Oracle ARM64 environment; **WO-003+ remains BLOCKED** until WO-002 returns GO, the benchmark proves zero incremental cost/capacity, and the preceding WO is `APPROVED`. No V2 code, migration, worker, storage, production deploy or spend was created by this addendum.
+WO-001 documentation is **APPROVED** and ADR-V2-001 is **ACCEPTED**. **WO-002** benchmark returned **GO CONDITIONAL** for the existing Oracle ARM64 VPS with concurrency 1, zero incremental compute and the documented limits; its evidence is **pending independent audit**. **WO-003+ remains BLOCKED** until WO-002 is `APPROVED` and the preceding WO is `APPROVED`. No V2 code, migration, worker, storage, production deploy or spend was created by this addendum.

@@ -1,0 +1,5 @@
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x3e3d9130] moov atom not found
+[concat @ 0x3e3cfaa0] Impossible to open '/home/ubuntu/v2-bench/runs/failures/corrupt.mp4'
+[in#0 @ 0x3e3cf840] Error opening input: Invalid data found when processing input
+Error opening input file /home/ubuntu/v2-bench/runs/failures/corrupt-concat.txt.
+Error opening input files: Invalid data found when processing input

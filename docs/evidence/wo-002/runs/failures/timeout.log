@@ -1,0 +1,8 @@
+[vost#0:0/libx264 @ 0x38865630] Error submitting a packet to the muxer: Immediate exit requested
+    Last message repeated 1 times
+[out#0/mp4 @ 0x3886d260] Error muxing a packet
+[out#0/mp4 @ 0x3886d260] Task finished with error code: -1414092869 (Immediate exit requested)
+[out#0/mp4 @ 0x3886d260] Terminating thread with return code -1414092869 (Immediate exit requested)
+[in#0/concat @ 0x387fe870] Error during demuxing: Immediate exit requested
+[out#0/mp4 @ 0x3886d260] Error writing trailer: Immediate exit requested
+[out#0/mp4 @ 0x3886d260] Error closing file: Immediate exit requested

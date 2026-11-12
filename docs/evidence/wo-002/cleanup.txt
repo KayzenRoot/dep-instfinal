@@ -1,0 +1,15 @@
+== before cleanup ==
+Thu Nov 12 15:32:16 UTC 2026
+747M	/home/ubuntu/v2-bench
+/dev/sda1       193G   17G  177G   9% /
+== removing own disposable benchmark dirs/files ==
+== after cleanup ==
+~/v2-bench removed
+harness removed
+/dev/sda1       193G   16G  177G   9% /
+0.41 1.66 1.51 1/362 432217
+nginx: active
+docker: active
+containerd: active
+code-server@ubuntu: active
+9router Up 5 days (healthy)

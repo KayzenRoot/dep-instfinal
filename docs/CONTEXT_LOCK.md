@@ -122,3 +122,21 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Dependency graph:** documented in `docs/V2_EXECUTION_PLAN.md`; key edges: WO-024 depends on WO-025; WO-013 is final hardening, not a prerequisite of WO-023; WO-014 is terminal; WO-026 requires WO-019 and WO-025. The proposed graph has no cycle; live issue bodies prevail if they change.
 - **Budget:** incremental spend target **US$ 0**; no paid API, GPU, domain, storage or billing activation. Vercel Hobby, Supabase Free and the existing Oracle VPS are candidates, not guarantees.
 - **Gate:** WO-001 documentation is **APPROVED** at `ae1f44d`; ADR-V2-001 is **ACCEPTED** by the owner (2026-11-12); WO-002 benchmark is authorized. WO-003+ remains **BLOCKED** until WO-002 returns GO and the preceding WO is APPROVED. Stale triggers: any change to main, PR #16 closure evidence, issue dependencies/scope, ADR, V1 contracts, provider quotas or tool capacity requires rebase/revalidation before execution.
+
+## V2 Context Lock — WO-002 (#19)
+
+- **Base revalidated:** `main` `01405cbb641e7814cbd964157d0814ba4e23d7c7` after squash merge of WO-001/PR #46 (`docs(v2): complete WO-001 execution plan and accepted ADR`), 2026-11-12. Branch for this WO: `bench/dif-v2-wo-002`.
+- **Critical source fingerprints at base (SHA-256, canonical LF blob via `git show 01405cb:<path> | sha256sum`):**
+  - `docs/CHECKPOINT_DELTA.md` `bc84b4ff868e321c9fbd50051d952c6a2590bd6efc0b125e1977b822412b69c7`
+  - `docs/SOURCE_PACK.md` `0f3cf03ca5d3570a68d6e55825e25fc4af4434e33178866f43394b6d80b30536`
+  - `docs/CONTEXT_LOCK.md` `5755f22886ff6a159d631fb163c2c28f231e1d34be4eef1fabaa38a7efe8b538`
+  - `docs/EVIDENCE_BUNDLE.md` `bcb8d045955c2885b5e982dfdc8f4a5bfc6065aa9c3b8b6714914a42fd5d1de7`
+  - `docs/OPERATIONS.md` `ac5819a3dc6450f2243387347b144487fc09554701718f658f54d8361aa12f91`
+  - `README.md` `8f63c4278b81d60a36590f46d01d727713854679d8af736ebe328d9d6e1ea687`
+  - `package.json` `c0852118f82eefcaeb409281f758be22ed51aaa0785da74edb4469a4a7e9f394`
+  - `.github/workflows/ci.yml` `5a164edb4338d313492ed87a1188543c844855d6e1d3d609328215854803d389`
+- **Issue inventory:** WO-001/#18 is **CLOSED**; WO-002/#19 is **OPEN** pending evidence audit; WO-003+ #20–#45 remain OPEN/UNAPPROVED and **BLOCKED**; epic #17 remains OPEN `PLANNED / PROPOSED`. ADR-V2-001 is **ACCEPTED**; ADR-V2-002–005 remain **PROPOSED**. No V2 runtime branch, migration, table, worker, storage or deployment exists.
+- **Environment measured:** Oracle VPS ARM64 (aarch64), Neoverse-N1, 2 vCPU, 11,924 MB RAM, no swap, 177 GB free; kernel `7.0.0-1015-oracle`; FFmpeg/ffprobe 7.0.2-static aarch64 (GPLv3, libx264/AAC); no sudo, system package, daemon or new port. The static binary and all benchmark data were removed after evidence collection.
+- **Benchmark result:** 3 × 1080×1920 in 69.65–70.53 s (mean 70.02 s, RTF 0.58, 1.72× realtime), max RSS 364,572 KB, 188–191% process CPU, 103,939,130 B output; 720×1280 in 46.55 s / 31,557,798 B. `ffprobe`: 120.000000 s, exact 9:16, H.264 30 fps + AAC 48 kHz stereo, clean full decode. Failure tests: timeout rc 124 / 0 orphans, corrupt input rc 183, simulated low disk rc 153, recovery PASS, CPU saturation 7.17× slowdown / 0.83× recovery.
+- **Decision:** **GO CONDITIONAL** for one FFmpeg worker on this VPS with concurrency **1**, `nice`/`ionice`, 10 min timeout, 2 GB temp reserve and 720p fallback. US$ 0 incremental compute (estimate; no billing check). Storage/egress is outside this measurement and remains pending ADR-V2-002.
+- **Gate:** WO-003+ remains **BLOCKED** until the WO-002 evidence receives independent **APPROVED** and the preceding WO is approved. Checkpoint V2 remains **PROPOSED — NOT PROMOTED**; no merge, deploy, worker, schema, production change or spend occurred. Stale triggers: any change to main, WO-001 approval, ADR, V1 contracts, provider quotas, VPS capacity/services or benchmark evidence requires revalidation before WO-003.

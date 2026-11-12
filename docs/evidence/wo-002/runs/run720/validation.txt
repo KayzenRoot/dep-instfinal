@@ -1,0 +1,10 @@
+label=run720
+expected=720x1280
+duration=120.000000
+video_streams=1
+audio_streams=1
+width=720
+height=1280
+decode_rc=0
+decode_log_bytes=0
+pass=1
