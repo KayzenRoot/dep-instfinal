@@ -2,7 +2,7 @@
 
 ## DIF-V2-WO-001 — V1 gate closure + V2 planning/ADR (2026-11-12) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; **V2 implementation BLOCKED**.
+- **Status:** **PROPOSED — NOT PROMOTED**; WO-001 documentation **APPROVED** by independent re-audit; **V2 implementation BLOCKED** pending owner ADR acceptance and WO-002 environment.
 - **Base:** `main` `13467ab009e0eaaee1be6ba2e35678228cfbdf32`; branch `docs/dif-v2-wo-001`.
 - **V1 gate:** PR #16 (docs-only) was Draft/mergeable CLEAN with CI `43220790406` PASS and Vercel preview success; an independent agent audit recorded outside GitHub (GitHub shows only Copilot `COMMENTED`) returned **APPROVED**, net diff only in the three V1 docs. Squash-merged normally at `13467ab` (no force-push; `main` has no branch protection). Post-merge smoke: `/health` 200, `/login` 200, anonymous `/app` 303. Exact Vercel deployment SHA remains unverifiable without a Vercel credential; the production alias responds as documented.
 - **WO-001 deliverables:** [ADR-V2-001 PROPOSED](ADR_V2_PROPOSED.md), [V2 execution plan/graph](V2_EXECUTION_PLAN.md), Source Pack V2 addendum, V2 Context Lock, Evidence Bundle section and this delta. Only documentation changed; no runtime, schema, migration, worker, storage, secret, deploy or spend.

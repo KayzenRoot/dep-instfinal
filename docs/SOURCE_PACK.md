@@ -2,7 +2,7 @@
 
 **Work Order:** `DIF-MVP-ALL-001`
 **Revision:** 1.3
-**Status:** V1 COMPLETE on `main` `13467ab`; V2 WO-001 planning docs **PROPOSED**; ADR-V2-001 awaits explicit owner acceptance; no V2 implementation authorized.
+**Status:** V1 COMPLETE on `main` `13467ab`; V2 WO-001 planning docs **APPROVED** by independent re-audit at `ae1f44d`; ADR-V2-001 awaits explicit owner acceptance; no V2 implementation authorized.
 **Last reconciled:** 2026-11-12
 
 ## Source hierarchy and context
