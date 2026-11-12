@@ -781,13 +781,19 @@ select throws_ok(
   'owner cannot create a video upload session through the Data API'
 );
 
+select set_config(
+  'test.video_scene_id',
+  (select id::text from public.scenes
+   where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+  true
+);
 set local role service_role;
 insert into public.video_upload_sessions (
   id, episode_id, scene_id, idempotency_key, quarantine_key, part_size_bytes, total_bytes
 ) values (
   'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0',
   'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-  (select id from public.scenes where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+  current_setting('test.video_scene_id')::uuid,
   'idem-video-owner-001',
   'quarantine/11111111-1111-4111-8111-111111111111/e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0/source',
   8388608,
