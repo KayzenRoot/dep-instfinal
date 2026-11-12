@@ -63,8 +63,9 @@ interface AssetRow {
 	scenes?: { scene_index: number } | null;
 }
 
-function sumBytes(rows: Array<{ byte_size?: number | null; total_bytes?: number | null }>): number {
-	return rows.reduce((total, row) => total + (row.byte_size ?? row.total_bytes ?? 0), 0);
+function aggregateNumber(value: unknown): number {
+	const number = Number(value ?? 0);
+	return Number.isFinite(number) ? number : 0;
 }
 
 function contentTypeIsVideo(value: string): boolean {
@@ -283,23 +284,27 @@ export async function createUploadSession(input: {
 		};
 	}
 
-	const { data: assets, error: assetsError } = await db
+	// PostgREST aggregates avoid the max_rows truncation that a row fetch would
+	// suffer once an owner has more than 1000 assets or sessions.
+	const { data: ownerAssets, error: assetsError } = await db
 		.from('video_assets')
-		.select('byte_size')
+		.select('byte_size.sum()')
 		.eq('owner_id', owner.id)
-		.neq('status', 'DELETED');
+		.neq('status', 'DELETED')
+		.maybeSingle();
 	if (assetsError)
 		throw new VideoAssetError(
 			503,
 			'VIDEO_QUOTA_LOOKUP_FAILED',
 			'Não foi possível verificar a cota.',
 		);
-	const { data: activeSessions, error: sessionsError } = await db
+	const { data: ownerSessions, error: sessionsError } = await db
 		.from('video_upload_sessions')
-		.select('total_bytes')
+		.select('total_bytes.sum()')
 		.eq('owner_id', owner.id)
 		.in('status', ['CREATED', 'UPLOADING'])
-		.gt('expires_at', new Date().toISOString());
+		.gt('expires_at', new Date().toISOString())
+		.maybeSingle();
 	if (sessionsError)
 		throw new VideoAssetError(
 			503,
@@ -307,8 +312,8 @@ export async function createUploadSession(input: {
 			'Não foi possível verificar a cota.',
 		);
 	const used =
-		sumBytes((assets ?? []) as Array<{ byte_size: number | null }>) +
-		sumBytes((activeSessions ?? []) as Array<{ total_bytes: number | null }>);
+		aggregateNumber((ownerAssets as { sum?: unknown } | null)?.sum) +
+		aggregateNumber((ownerSessions as { sum?: unknown } | null)?.sum);
 	if (used + input.byteSize > VIDEO_OWNER_QUOTA_BLOCK_BYTES)
 		throw new VideoAssetError(
 			413,
@@ -317,10 +322,11 @@ export async function createUploadSession(input: {
 		);
 	const { data: episodeAssets, error: episodeAssetsError } = await db
 		.from('video_assets')
-		.select('byte_size')
+		.select('id.count(),byte_size.sum()')
 		.eq('owner_id', owner.id)
 		.eq('episode_id', input.episodeId)
-		.neq('status', 'DELETED');
+		.neq('status', 'DELETED')
+		.maybeSingle();
 	if (episodeAssetsError)
 		throw new VideoAssetError(
 			503,
@@ -329,21 +335,24 @@ export async function createUploadSession(input: {
 		);
 	const { data: episodeSessions, error: episodeSessionsError } = await db
 		.from('video_upload_sessions')
-		.select('total_bytes')
+		.select('id.count(),total_bytes.sum()')
 		.eq('owner_id', owner.id)
 		.eq('episode_id', input.episodeId)
 		.in('status', ['CREATED', 'UPLOADING'])
-		.gt('expires_at', new Date().toISOString());
+		.gt('expires_at', new Date().toISOString())
+		.maybeSingle();
 	if (episodeSessionsError)
 		throw new VideoAssetError(
 			503,
 			'VIDEO_QUOTA_LOOKUP_FAILED',
 			'Não foi possível verificar a cota do episódio.',
 		);
+	const episodeAssetUsage = episodeAssets as { count?: unknown; sum?: unknown } | null;
+	const episodeSessionUsage = episodeSessions as { count?: unknown; sum?: unknown } | null;
 	const episodeUsed =
-		sumBytes((episodeAssets ?? []) as Array<{ byte_size: number | null }>) +
-		sumBytes((episodeSessions ?? []) as Array<{ total_bytes: number | null }>);
-	const episodeClips = (episodeAssets?.length ?? 0) + (episodeSessions?.length ?? 0);
+		aggregateNumber(episodeAssetUsage?.sum) + aggregateNumber(episodeSessionUsage?.sum);
+	const episodeClips =
+		aggregateNumber(episodeAssetUsage?.count) + aggregateNumber(episodeSessionUsage?.count);
 	if (episodeClips >= VIDEO_MAX_CLIPS_PER_EPISODE)
 		throw new VideoAssetError(
 			409,
@@ -687,6 +696,74 @@ export async function completeUploadSession(input: {
 			throw new VideoAssetError(422, validation.code, validation.message);
 		}
 		probeResult = validation.result;
+	}
+
+	// Re-check limits at completion time: another session may have completed or
+	// another tab may have created uploads after this session was opened.
+	const { data: usageOwnerAssets, error: usageOwnerAssetsError } = await db
+		.from('video_assets')
+		.select('byte_size.sum()')
+		.eq('owner_id', owner.id)
+		.neq('status', 'DELETED')
+		.maybeSingle();
+	const { data: usageOwnerSessions, error: usageOwnerSessionsError } = await db
+		.from('video_upload_sessions')
+		.select('total_bytes.sum()')
+		.eq('owner_id', owner.id)
+		.in('status', ['CREATED', 'UPLOADING'])
+		.gt('expires_at', new Date().toISOString())
+		.maybeSingle();
+	const { data: usageEpisodeAssets, error: usageEpisodeAssetsError } = await db
+		.from('video_assets')
+		.select('id.count(),byte_size.sum()')
+		.eq('owner_id', owner.id)
+		.eq('episode_id', session.episode_id)
+		.neq('status', 'DELETED')
+		.maybeSingle();
+	const { data: usageEpisodeSessions, error: usageEpisodeSessionsError } = await db
+		.from('video_upload_sessions')
+		.select('id.count(),total_bytes.sum()')
+		.eq('owner_id', owner.id)
+		.eq('episode_id', session.episode_id)
+		.in('status', ['CREATED', 'UPLOADING'])
+		.gt('expires_at', new Date().toISOString())
+		.maybeSingle();
+	if (
+		usageOwnerAssetsError ||
+		usageOwnerSessionsError ||
+		usageEpisodeAssetsError ||
+		usageEpisodeSessionsError
+	)
+		throw new VideoAssetError(
+			503,
+			'VIDEO_QUOTA_LOOKUP_FAILED',
+			'Não foi possível verificar a cota antes de concluir.',
+		);
+	const ownerUsage =
+		aggregateNumber((usageOwnerAssets as { sum?: unknown } | null)?.sum) +
+		aggregateNumber((usageOwnerSessions as { sum?: unknown } | null)?.sum);
+	const episodeAssetUsage = usageEpisodeAssets as { count?: unknown; sum?: unknown } | null;
+	const episodeSessionUsage = usageEpisodeSessions as { count?: unknown; sum?: unknown } | null;
+	const episodeClips =
+		aggregateNumber(episodeAssetUsage?.count) + aggregateNumber(episodeSessionUsage?.count);
+	const episodeUsage =
+		aggregateNumber(episodeAssetUsage?.sum) + aggregateNumber(episodeSessionUsage?.sum);
+	if (
+		ownerUsage > VIDEO_OWNER_QUOTA_BLOCK_BYTES ||
+		episodeUsage > VIDEO_EPISODE_QUOTA_BYTES ||
+		episodeClips > VIDEO_MAX_CLIPS_PER_EPISODE
+	) {
+		await storage.deleteObject(quarantineKey).catch(() => undefined);
+		await sessionDb
+			.from('video_upload_sessions')
+			.update({ status: 'ABORTED', safe_error_code: 'VIDEO_QUOTA_EXCEEDED' })
+			.eq('id', session.id)
+			.eq('owner_id', owner.id);
+		throw new VideoAssetError(
+			413,
+			'VIDEO_QUOTA_EXCEEDED',
+			'A cota ou o limite de clipes foi atingido antes da conclusão.',
+		);
 	}
 
 	const ready = Boolean(input.probe && probeResult);
