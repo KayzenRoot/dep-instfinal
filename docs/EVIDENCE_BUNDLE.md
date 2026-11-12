@@ -1,5 +1,21 @@
 # DIF Studio — Evidence Bundle
 
+## FINAL V1 RELEASE — operational closure (2026-11-12)
+
+**Verdict: APPROVED / COMPLETED** for V1 private single-owner release. User authorization and independent audit were recorded before the guarded squash merge.
+
+- **Repo:** `KayzenRoot/dep-instfinal`; initial full MVP PR #14 `MERGED`; exact original PR head `0a93b3f68638ddc56f1337578c3ecb4a9928c5f3`; squash merge/main commit `441888e7ca1a80f038d97a7392a9da406eb88239`.
+- **Full GitHub checks:** PR `43218862212` and push `43218854310` PASS on the exact PR head. Baseline PASS, 45 unit pass plus skipped opt-in live API test, Supabase PgTAP/RLS PASS, authenticated Playwright 9/9 PASS, lint, typecheck (zero errors), build, security policy and high severity audit PASS.
+- **Vercel main production:** `dpl_FEpLGWcuPCGRU9tN8A1BdWwbB32G` READY and alias `https://dif-studio.vercel.app` confirms `441888e7ca1a80f038d97a7392a9da406eb88239` (not merely an unmerged branch). Separate external smoke `dpl_8eG3Yg75Ffc5KFDxDdeyDtiRD4eh` READY: `/health` and `/login` returned HTTP 200; anonymous `/app` returned HTTP 303 redirect to login.
+- **Gemini:** real single-call 120-second, 15-scene and two choice synthetic story generation PASS, `dpl_AQwvQM1XkN1Q6Jh8J1QoJLpV21SW` READY; Gemini 3.5 Flash-Lite HTTP200, completed JSON parsed and passed runtime validation, with video/image Flow prompts and TikTok/Instagram metadata. The owner must review the material before saving/publishing.
+- **Owner/Cloudinary:** separate CD06 owner-supplied production acceptance screenshots documented real login, story creation, private READY upload, signed variants and ZIP, continuation/vote and anonymous denial. The V1 code extension limits full ZIP media to 3MB and adds a lite ZIP with individual authenticated, short-lived signed originals; unit and security regressions passed. No unsanctioned user credentials were accessed in this review.
+- **Issue #15:** `CLOSED`. All initial 13 module issues also closed.
+- **Operational risks:** known 4 LOW/3 MODERATE transitive advisories, no HIGH/CRITICAL; rotate the Cloudinary API secret previously shared in chat; set recoverable owner email; observe Gemini and hosting free quota limits. No force-push, bypass, paid service, web posting or secret literals in this document. These follow-ups do not represent automated code changes.
+- **After closure:** only a documentation checkpoint patch is proposed in a dedicated branch/PR, without runtime code changes. It is subject to CI and merge review.
+
+---
+
+
 ## Independent V1 release audit and checkpoint promotion — 2026-11-12
 
 **Decision: APPROVED FOR SQUASH MERGE AND MAIN DEPLOY** at tested code SHA `8ebf44acf827f0a14ac85bd380785574d378a6e8`. No HIGH/CRITICAL defects known. This approval covers this tested code and review of the release delta; the subsequent documentation-only checkpoint commits do not alter runtime code and remain subject to their own CI checks.
