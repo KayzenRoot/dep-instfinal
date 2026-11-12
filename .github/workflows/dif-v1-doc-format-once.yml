@@ -1,0 +1,30 @@
+name: DIF V1 documentation formatting once
+on:
+  push:
+    branches: [release/dif-v1-closure-001]
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Format only final documentation
+        run: npx prettier --write docs/SOURCE_PACK.md docs/EVIDENCE_BUNDLE.md docs/CHECKPOINT_DELTA.md
+      - name: Commit documentation formatting
+        run: |
+          git add docs/SOURCE_PACK.md docs/EVIDENCE_BUNDLE.md docs/CHECKPOINT_DELTA.md
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'style(docs): format V1 final completion evidence'
+          git push origin HEAD:release/dif-v1-closure-001
