@@ -62,6 +62,7 @@ const privateAsset = {
 	resource_type: 'image',
 	delivery_type: 'authenticated',
 	format: 'png',
+	byte_size: 4,
 	upload_status: 'READY',
 };
 
@@ -105,6 +106,7 @@ function exportEvent() {
 	return {
 		params: { episodeId },
 		request: new Request(`http://localhost/api/export/${episodeId}`),
+		url: new URL(`http://localhost/api/export/${episodeId}`),
 	} as never;
 }
 
