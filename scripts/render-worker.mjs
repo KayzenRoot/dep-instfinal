@@ -1,4 +1,5 @@
-import { hostname } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
@@ -12,7 +13,7 @@ if (!url || !serviceKey) {
 	);
 	process.exit(1);
 }
-const stub = process.env.WORKER_STUB !== '0';
+const stub = process.env.WORKER_STUB === '1';
 
 const workerId = (process.env.WORKER_ID ?? `worker-${hostname()}-${process.pid}`).slice(0, 80);
 const pollMs = Math.max(250, Math.min(30_000, Number(process.env.WORKER_POLL_MS ?? 1_000)));
@@ -64,9 +65,15 @@ function stopChild(child) {
 }
 
 async function runRealRender(job, signal) {
+	if (signal.aborted) throw new Error('WORKER_CANCELED');
 	const cli = join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
+	const jobTemp = await mkdtemp(join(tmpdir(), 'dif-render-job-'));
 	const child = spawn(process.execPath, [cli, 'scripts/render-job.ts'], {
-		env: { ...process.env, RENDER_JOB_ID: job.id },
+		env: {
+			...process.env,
+			RENDER_JOB_ID: job.id,
+			WORKER_RENDER_TMPDIR: jobTemp,
+		},
 		detached: process.platform !== 'win32',
 		stdio: ['ignore', 'pipe', 'pipe'],
 	});
@@ -87,6 +94,7 @@ async function runRealRender(job, signal) {
 	} finally {
 		signal.removeEventListener('abort', abort);
 		activeChild = null;
+		await rm(jobTemp, { recursive: true, force: true });
 	}
 }
 

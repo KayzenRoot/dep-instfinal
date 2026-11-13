@@ -7,7 +7,11 @@ import { pipeline } from 'node:stream/promises';
 import { createClient, type User } from '@supabase/supabase-js';
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { videoEditPlanSchema } from '../src/lib/schemas/video-edit-plan.js';
-import { loadEditPlanContext, validateForContext } from '../src/lib/server/video-edit-plans.js';
+import {
+	loadEditPlanContext,
+	manifestHash,
+	validateForContext,
+} from '../src/lib/server/video-edit-plans.js';
 import { probeMedia, renderPlanToFile } from '../src/lib/server/render-compose.js';
 
 function required(name: string): string {
@@ -43,7 +47,7 @@ async function main() {
 
 	const { data: version, error: versionError } = await admin
 		.from('video_edit_plan_versions')
-		.select('plan')
+		.select('plan,manifest_hash')
 		.eq('owner_id', job.owner_id)
 		.eq('plan_id', job.plan_id)
 		.eq('version', job.plan_version)
@@ -53,6 +57,8 @@ async function main() {
 	const owner = { id: job.owner_id } as User;
 	const context = await loadEditPlanContext(admin, owner, job.episode_id);
 	const validated = validateForContext(plan, context);
+	if (manifestHash(validated) !== version.manifest_hash)
+		throw new Error('render_plan_hash_mismatch');
 	const assets = [];
 	for (const clip of validated.clips) {
 		const { data: asset, error: assetError } = await admin
@@ -65,7 +71,9 @@ async function main() {
 			throw new Error('render_asset_not_ready');
 		assets.push(asset);
 	}
-	const work = await mkdtemp(join(tmpdir(), `dif-render-${jobId.slice(0, 8)}-`));
+	const providedWork = process.env.WORKER_RENDER_TMPDIR;
+	const work = providedWork ?? (await mkdtemp(join(tmpdir(), `dif-render-${jobId.slice(0, 8)}-`)));
+	const ownsWork = !providedWork;
 	try {
 		const localDir = process.env.WORKER_ASSET_DIR;
 		const localPaths = new Map<string, string>();
@@ -157,7 +165,7 @@ async function main() {
 		};
 		process.stdout.write(`${JSON.stringify(manifest)}\n`);
 	} finally {
-		await rm(work, { recursive: true, force: true });
+		if (ownsWork) await rm(work, { recursive: true, force: true });
 	}
 }
 

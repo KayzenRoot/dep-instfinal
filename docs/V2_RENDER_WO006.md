@@ -3,7 +3,7 @@
 **Work Order:** `DIF-V2-WO-006` · issue #23 · epic #17
 **Base:** `main` `b1081e9` (checkpoint WO-003/004/005 promovido)
 **Branch:** `feat/dif-v2-wo-006`
-**Status:** implementação, composição real, ffprobe/integração, worker real e E2E **PASS**; CI hospedado `43426225313` **PASS** em 9m45s; **auditoria independente pendente**. Nenhum worker foi implantado na VPS.
+**Status:** implementação, composição real, ffprobe/integração, worker real e E2E **PASS**; correções B1–B5 da auditoria aplicadas; **nova CI e reauditoria pendentes**. Nenhum worker foi implantado na VPS.
 
 ## 1. Entregue
 
@@ -55,7 +55,17 @@ O worker não aceita comando, URL ou caminho do usuário; só IDs owner-scoped e
 | VFR, rotacionados, codecs diferentes e fontes inválidas sem crash global | **PARCIAL**      | normalização fps/scale e ffprobe; fixtures VFR/rotação/codec dedicadas pendentes                |
 | Retry com mesmo plano equivalente, sem sobrescrever mídia aprovada       | **PASS parcial** | saída determinística e objeto por job; idempotência de artefato/GC em WO-012/013                |
 
-## 5. Limites e riscos
+## 5. Correções da auditoria
+
+- **B1 crossfade:** `settb=1/30` após cada `concat`/`xfade`; teste de integração real com crossfade 500 ms e saída de 11,5 s.
+- **B2 READY:** worker passa a operar real por padrão (`WORKER_STUB=1` só explícito); `complete_render_job` rejeita manifesto stub e exige objectKey/SHA-256/1080x1920/H.264/duração.
+- **B3 temporários:** o worker cria o temp do job, passa `WORKER_RENDER_TMPDIR` e remove no `finally`, inclusive após cancelamento/kill.
+- **B4 segredos:** ffmpeg/ffprobe recebem ambiente mínimo, sem service role/R2; paths de mídia continuam allowlisted.
+- **B5 duração:** a validação usa `max(timelineEndMs)` (não a duração nominal), cobrindo crossfades/trims; teste multi-crossfade.
+- **N1/N2/N6/N7:** hash do plano verificado no worker; clips ordenados e somente track de vídeo; `noise` com seed fixa; profile/pix_fmt validados.
+- **N4:** `tsx` movido para dependências de produção do worker.
+
+## 6. Limites e riscos
 
 - **Sem áudio final:** vídeo-only; narração/mix/legendas em WO-007/008/009.
 - **Sem deploy VPS:** worker real executado localmente/CI com ffmpeg 9.0.2; Oracle tem FFmpeg 7.0.2 e exige instalação/smoke aprovado.
@@ -64,6 +74,6 @@ O worker não aceita comando, URL ou caminho do usuário; só IDs owner-scoped e
 - **Residual WO-005:** lease em start/fail, claim epoch e backoff/aging seguem para WO-013/014, salvo correção em auditoria.
 - **Qualidade visual:** presets VHS são conservadores e determinísticos; revisão visual humana ainda necessária.
 
-## 6. Gate
+## 7. Gate
 
 Auditoria independente, CI no head final, Evidence Bundle e checkpoint PROPOSED. WO-007+ bloqueado.

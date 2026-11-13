@@ -104,3 +104,88 @@ describe.skipIf(!enabled)('FFmpeg composition integration', () => {
 		expect(output.sha256).toMatch(/^[0-9a-f]{64}$/);
 	}, 300_000);
 });
+
+describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {
+	it('renders a crossfade with matching xfade timebases', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'dif-crossfade-'));
+		try {
+			const scenes = [1, 2, 3].map((index) => ({
+				id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+				sceneIndex: index,
+				startMs: (index - 1) * 4_000,
+				endMs: index * 4_000,
+			}));
+			const assets = [];
+			for (const scene of scenes) {
+				const assetId = `22222222-2222-4222-8222-${String(scene.sceneIndex).padStart(12, '0')}`;
+				const path = join(workspace, `${assetId}.mp4`);
+				execFileSync(
+					'ffmpeg',
+					[
+						'-y',
+						'-hide_banner',
+						'-loglevel',
+						'error',
+						'-f',
+						'lavfi',
+						'-i',
+						'testsrc2=size=180x320:rate=30:duration=4',
+						'-c:v',
+						'libx264',
+						'-preset',
+						'ultrafast',
+						'-pix_fmt',
+						'yuv420p',
+						path,
+					],
+					{ timeout: 60_000, windowsHide: true },
+				);
+				assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 4_000 });
+			}
+			const clips = assets.map((asset, index) => ({
+				id: asset.id,
+				sceneId: asset.sceneId,
+				assetId: asset.id,
+				trackId: 'video-main',
+				sourceInMs: 0,
+				sourceOutMs: 4_000,
+				timelineStartMs: index === 0 ? 0 : index === 1 ? 3_500 : 7_500,
+				timelineEndMs: index === 0 ? 4_000 : index === 1 ? 7_500 : 11_500,
+				transition: (index === 1 ? 'crossfade' : 'cut') as 'cut' | 'crossfade',
+				transitionMs: index === 1 ? 500 : 0,
+				gainDb: 0,
+			}));
+			const plan = {
+				schemaVersion: 1 as const,
+				episodeId: '11111111-1111-4111-8111-111111111111',
+				episodeRevisionNumber: 1,
+				durationMs: 11_500,
+				sceneDurationMs: 4_000 as const,
+				fps: 30 as const,
+				tracks: [{ id: 'video-main', kind: 'video' as const, label: 'Vídeo principal' }],
+				clips,
+				captions: { template: 'clean' as const },
+				cta: null,
+			};
+			const outputPath = join(workspace, 'crossfade.mp4');
+			const output = await renderPlanToFile({
+				plan,
+				assets: assets.map((asset) => ({
+					assetId: asset.id,
+					path: join(workspace, `${asset.id}.mp4`),
+					durationMs: 4_000,
+					width: 180,
+					height: 320,
+				})),
+				outputPath,
+				vhsIntensity: 1,
+				timeoutMs: 120_000,
+			});
+			expect(output.width).toBe(1080);
+			expect(output.height).toBe(1920);
+			expect(Math.abs(output.durationMs - 11_500)).toBeLessThanOrEqual(1_000);
+		} finally {
+			await rm(workspace, { recursive: true, force: true });
+		}
+	}, 180_000);
+});

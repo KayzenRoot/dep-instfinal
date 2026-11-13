@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(82);
+select plan(83);
 
 do $$
 declare
@@ -1165,12 +1165,21 @@ select lives_ok(
     );$$,
   'worker heartbeat extends the lease'
 );
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job1'), 'worker-a',
+      '{"stub":true}'::jsonb
+    );$$,
+  '23514',
+  'render_stub_not_allowed',
+  'stub manifest cannot mark a render READY'
+);
 select lives_ok(
   $$select public.complete_render_job(
       (select id from test_render_jobs where name = 'job1'), 'worker-a',
-      '{"schemaVersion":1,"stub":true}'::jsonb
+      '{"schemaVersion":1,"codec":"h264","width":1080,"height":1920,"durationMs":120000,"objectKey":"renders/test.mp4","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}'::jsonb
     );$$,
-  'worker completes the render job'
+  'worker completes the render job with a real artifact manifest'
 );
 select is(
   (select status from public.render_jobs

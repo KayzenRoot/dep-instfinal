@@ -2,10 +2,10 @@
 
 ## DIF-V2-WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; real composition, integration, PgTAP and real-worker E2E **PASS**; hosted CI `43426225313` PASS (9m45s); independent audit pending. No VPS deploy.
+- **Status:** **PROPOSED — NOT PROMOTED**; real composition, integration, PgTAP and real-worker E2E **PASS**; B1–B5 corrigidos; nova CI/reauditoria pendentes. No VPS deploy.
 - **Base:** `main` `b1081e9`; branch `feat/dif-v2-wo-006`.
 - **Delivered:** render-composition command builder (cuts/xfade/VHS/9:16 normalization), FFmpeg executor + ffprobe validation, real `render-job.ts`, worker real mode with kill tree, worker read grants, manifest with real MP4 metadata.
-- **Tests:** 99 + 1 unit (incl. 120s integration), PgTAP 82/82, policy 23/20, real-worker E2E 4.2m.
+- **Tests:** 100 + 1 unit (120s cuts + crossfade), PgTAP 83/83, policy 23/20, real-worker E2E 4.1m.
 - **Limits:** video-only; R2 worker path untested live; VFR/rotation fixtures, preview rendition, visual review and VPS smoke pending; WO-005 queue residuals still tracked.
 - **Gate:** hosted CI + independent audit; WO-007+ blocked.
 
