@@ -178,12 +178,19 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 
 	const sceneById = new Map(context.scenes.map((scene) => [scene.id, scene]));
 	const assetById = new Map(context.assets.map((asset) => [asset.id, asset]));
+	const seenClipIds = new Set<string>();
 	const seenScenes = new Set<string>();
 	const seenAssets = new Set<string>();
 	const clipsByTrack = new Map<string, EditPlanClip[]>();
 	for (const clip of plan.clips) {
 		if (!trackIds.has(clip.trackId))
 			throw new EditPlanError('EDIT_PLAN_TRACK_UNKNOWN', 'Clipe aponta para track inexistente.');
+		if (seenClipIds.has(clip.id))
+			throw new EditPlanError(
+				'EDIT_PLAN_CLIP_DUPLICATE',
+				'O mesmo id de clipe foi usado duas vezes.',
+			);
+		seenClipIds.add(clip.id);
 		assertInteger(clip.sourceInMs, 'EDIT_PLAN_TRIM_INVALID', 'Trim inicial inválido.');
 		assertInteger(clip.sourceOutMs, 'EDIT_PLAN_TRIM_INVALID', 'Trim final inválido.');
 		assertInteger(clip.timelineStartMs, 'EDIT_PLAN_TIMELINE_INVALID', 'Offset inicial inválido.');

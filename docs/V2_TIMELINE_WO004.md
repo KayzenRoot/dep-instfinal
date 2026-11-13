@@ -3,7 +3,7 @@
 **Work Order:** `DIF-V2-WO-004` · issue #21 · epic #17
 **Base:** `feat/dif-v2-wo-003` head `4d1aa3c` (WO-003 audit-approved, not merged)
 **Branch:** `feat/dif-v2-wo-004` (stacked on WO-003)
-**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado final `43369752010` **PASS** em 6m1s; **reauditoria independente pendente** após correções B1/B2/B3. O merge de WO-003/WO-004 e a promoção do checkpoint exigem autorização explícita do owner.
+**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado `43369752010` passou antes das correções H1/M1/M2; **novo CI e reauditoria pendentes** após conflito P0001, rebuild de revisão e validação de aprovação. O merge de WO-003/WO-004 e a promoção do checkpoint exigem autorização explícita do owner.
 
 ## 1. Objetivo
 
@@ -16,9 +16,9 @@ Migration `supabase/migrations/20261113090000_v2_wo004_edit_plans.sql`:
 - `video_edit_plans`: um plano atual por owner/episódio; `current_version`, `current_status` (`DRAFT`, `APPROVED`, `RENDERED`), `plan jsonb`, `manifest_hash`, timestamps.
 - `video_edit_plan_versions`: snapshots imutáveis (`plan`, hash, nota, versão); unique por owner/plano/versão; trigger rejeita UPDATE/DELETE.
 - RLS owner-only para leitura; `authenticated` não tem INSERT/UPDATE/DELETE. Escritas passam por RPCs `SECURITY DEFINER` executáveis **somente por `service_role`**, chamadas pelo servidor com o owner verificado; a validação completa do plano e o hash ficam no servidor:
-  - `save_video_edit_plan(episode, expected_version, plan, hash, note)` — cria v1 ou falha com `40001` em conflito.
-  - `restore_video_edit_plan(episode, version, expected_version, note)` — anexa uma nova versão; não apaga o histórico.
-  - `set_video_edit_plan_status(episode, expected_version, status)` — DRAFT/APPROVED.
+  - `save_video_edit_plan(owner, episode, expected_version, plan, hash, note)` — cria v1 ou falha com `P0001` (HTTP 409) em conflito; `P0001` evita o retry automático do PostgREST para `40001`.
+  - `restore_video_edit_plan(owner, episode, version, expected_version, note)` — anexa uma nova versão; não apaga o histórico.
+  - `set_video_edit_plan_status(owner, episode, expected_version, status)` — DRAFT/APPROVED; o servidor revalida hash, revisão e plano antes de aprovar.
 - `episode_revision_number` é gravado a partir do plano; o plano não reescreve `episode_revisions`.
 - `restore` revalida a versão de origem contra o contexto atual (episódio, cenas, assets READY, revisão) antes de anexar a nova versão.
 - `loadEditPlan` recalcula o SHA-256 canônico e rejeita hash divergente; revogar `authenticated` das RPCs fecha o caminho de plano/hash forjado pelo Data API.
@@ -32,6 +32,7 @@ Migration `supabase/migrations/20261113090000_v2_wo004_edit_plans.sql`:
 - CTA opcional com janela explícita; template de legendas.
 - `src/lib/domain/video-edit-plan.ts` valida invariantes: offsets monotônicos, duração explícita, trim preservado, asset READY da cena correta, sem asset/cena duplicado, sem sobreposição exceto crossfade curto, todas as cenas presentes, CTA dentro da duração.
 - `buildDefaultEditPlan` usa as cenas e o asset READY mais recente por cena; 120 s/15×8 s, 90 s/12 cenas e 150 s/19 cenas com último clipe parcial.
+- Quando o roteiro ganha uma revisão, a UI mostra aviso de plano obsoleto e oferece `Reconstruir para a revisão atual`, que cria uma nova versão default sem apagar o histórico.
 - `canonicalEditPlanJson` ordena chaves; o servidor calcula SHA-256 e persiste em `manifest_hash`.
 
 ## 4. Server/UI
@@ -68,7 +69,7 @@ Migration `supabase/migrations/20261113090000_v2_wo004_edit_plans.sql`:
 ## 7. Riscos e limites
 
 - **Stacked branch:** WO-004 depende do branch WO-003 ainda não mergeado; o merge dos dois exige autorização do owner. Não há deploy de produção.
-- **Concorrência:** a RPC serializa por episódio com `FOR UPDATE`; `expected_version` nulo/obsoleto retorna 40001/409 sem lost update. A UI exige reload após conflito.
+- **Concorrência:** a RPC serializa por episódio com `FOR UPDATE`; `expected_version` nulo/obsoleto retorna 409 sem lost update. `P0001` é usado no lugar de `40001` para não acionar retry automático do PostgREST. A UI exige reload após conflito.
 - **Tracks:** o editor entregue usa a track `video-main`; overlay/áudio/legendas ficam no contrato e no worker/WO-006/WO-009.
 - **Render:** `RENDERED` existe no schema, mas só será definido pelo worker WO-006; o WO-004 não renderiza.
 - **E2E:** timeline + upload de 15 clipes saturam o PostgREST local em paralelo; a suíte usa `workers: 1`. O CI hospedado é a autoridade.

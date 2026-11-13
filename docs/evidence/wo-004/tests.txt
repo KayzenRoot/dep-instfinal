@@ -6,15 +6,15 @@ Head under test: 698bb68 (CI 43362722816); source code e68d14c/6f62c69
 
 1) Domain/schema tests
 Command: npx vitest run src/lib/domain/video-edit-plan.test.ts
-Result: 11 passed.
+Result: 12 passed.
 Coverage: 120s/15x8s, 90/150s with partial last clip, reorder, trim, crossfade
 overlap, foreign asset, double-booked scene with distinct asset, negative trims,
 source out of range, missing scene, multiple video tracks, first crossfade, CTA
-bounds and canonical JSON hash.
+bounds, duplicate clip IDs and canonical JSON hash.
 
 2) Full unit suite
 Command: npm test
-Result: 15 files passed + 1 skipped (16); 92 tests passed + 1 skipped (93).
+Result: 15 files passed + 1 skipped (16); 93 tests passed + 1 skipped (94).
 
 3) PgTAP/RLS
 Command: supabase test db
@@ -38,9 +38,11 @@ Result: PASS 22 invariants across 18 tables, including:
 Command: CI=1 node scripts/test-local-e2e.mjs e2e/timeline.spec.ts
 Result: 1 passed (49-53s local; 12.4s hosted CI).
 Journey: create series/season/episode, upload 15 synthetic clips, open
-/app/timeline, reorder scene 1 down, save v1, clean GET, approve, save v2,
-restore v1 as v3, clean GET; plan remains owner-only. Clean GET avoids the
-browser resubmitting the previous POST on reload.
+/app/timeline, reorder scene 1 down, save v1, HTTP stale restore -> 409,
+clean GET, approve, save v2, restore v1 as v3, append a revision through the
+episode UI, see stale warning, reject approval, rebuild to v4, clean GET;
+plan remains owner-only. Clean GET avoids the browser resubmitting the
+previous POST on reload.
 
 7) Full E2E suite
 Command: CI=1 node scripts/test-local-e2e.mjs

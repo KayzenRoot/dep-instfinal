@@ -1018,7 +1018,7 @@ select throws_ok(
       '{"schemaVersion":1,"episodeId":"e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6","durationMs":120000,"tracks":[],"clips":[{}]}'::jsonb,
       repeat('a', 64), 'stale'
     );$$,
-  '40001',
+  'P0001',
   'edit_plan_version_conflict',
   'stale edit plan save is rejected without lost update'
 );

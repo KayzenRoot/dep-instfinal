@@ -26,6 +26,10 @@ const editPlanServerMigration = await readFile(
 	'supabase/migrations/20261113091000_v2_wo004_edit_plan_server_rpc.sql',
 	'utf8',
 );
+const editPlanConflictMigration = await readFile(
+	'supabase/migrations/20261113093000_v2_wo004_conflict_semantics.sql',
+	'utf8',
+);
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -200,6 +204,8 @@ const checks = [
 			editPlanServerMigration.includes('p_expected_version is null') &&
 			editPlans.includes('p_owner_id') &&
 			editPlans.includes('EDIT_PLAN_HASH_MISMATCH') &&
+			editPlanConflictMigration.includes("errcode = 'P0001'") &&
+			!editPlanConflictMigration.includes("errcode = '40001'") &&
 			timelineRoute.includes('createSupabaseAdminClient'),
 	],
 	[

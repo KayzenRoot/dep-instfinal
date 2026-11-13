@@ -161,6 +161,17 @@
 		</div>
 	</section>
 
+	{#if data.planStale}
+		<div class="notice warning" role="status">
+			<p>O plano está preso a uma revisão anterior do episódio. Reconstrua para adotar o roteiro atual; os ajustes manuais serão substituídos pelo plano padrão.</p>
+			<form method="POST" action="?/rebuild">
+				<input type="hidden" name="episodeId" value={data.selectedEpisode.id} />
+				<input type="hidden" name="expectedVersion" value={expectedVersion} />
+				<button type="submit">Reconstruir para a revisão atual</button>
+			</form>
+		</div>
+	{/if}
+
 	{#if editError}
 		<p class="notice error" role="alert">{editError}</p>
 	{/if}
@@ -180,7 +191,7 @@
 				bind:value={changeNote}
 				placeholder="Ex.: reordenei o plano de abertura"
 			/>
-			<button class="primary" type="submit" disabled={Boolean(editError)}>
+			<button class="primary" type="submit" disabled={Boolean(editError) || data.planStale}>
 				Salvar nova versão
 			</button>
 		</div>
@@ -379,6 +390,14 @@
 		border: 1px solid #5a5;
 		color: #b8f5c0;
 		background: #102a16;
+	}
+	.notice.warning {
+		border: 1px solid #b58a2a;
+		color: #ffe4a3;
+		background: #2a210f;
+	}
+	.notice.warning form {
+		margin-block-start: 0.6rem;
 	}
 	.empty {
 		color: var(--muted);

@@ -4,6 +4,10 @@ import path from 'node:path';
 test('owner edits a versioned timeline and restores an earlier version', async ({ page }) => {
 	test.setTimeout(600_000);
 	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
+	test.skip(
+		!process.env.SUPABASE_SERVICE_ROLE_KEY,
+		'requires local service role for revision fixture',
+	);
 
 	const seriesTitle = `Timeline E2E ${crypto.randomUUID().slice(0, 8)}`;
 	await page.goto('/login');
@@ -49,6 +53,12 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page.locator('.notice.error')).toHaveCount(0);
 	await expect(page.getByText('v1', { exact: true })).toBeVisible();
 
+	const stale = await page.request.post('/app/timeline?/restore', {
+		headers: { origin: 'http://127.0.0.1:4173' },
+		form: { episodeId, version: '1', expectedVersion: '2' },
+	});
+	expect(stale.status()).toBe(409);
+
 	await page.goto(`/app/timeline?episodeId=${episodeId}`);
 	await expect(page.locator('.clip-card')).toHaveCount(15);
 	await expect(page.locator('.clip-card').first()).toContainText('CENA 2');
@@ -69,4 +79,16 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page.getByText('v3', { exact: true })).toBeVisible();
 	await page.goto(`/app/timeline?episodeId=${episodeId}`);
 	await expect(page.locator('.clip-card').first()).toContainText('CENA 2');
+
+	await page.goto(`/app/episodes/${episodeId}`);
+	await page.getByRole('button', { name: 'Salvar roteiro e revisar timeline' }).click();
+	await page.waitForLoadState('networkidle');
+	await page.goto(`/app/timeline?episodeId=${episodeId}`);
+	await expect(page.getByText(/preso a uma revisão anterior/)).toBeVisible();
+	await page.getByRole('button', { name: 'Aprovar plano atual' }).click();
+	await expect(page.locator('.notice.error')).toBeVisible();
+	await page.getByRole('button', { name: 'Reconstruir para a revisão atual' }).click();
+	await expect(page.getByText('Plano salvo.')).toBeVisible();
+	await expect(page.getByText('v4', { exact: true })).toBeVisible();
+	await expect(page.getByText(/preso a uma revisão anterior/)).toHaveCount(0);
 });

@@ -39,7 +39,7 @@ export interface EditPlanVersionSummary {
 
 function mapRpcError(error: { code?: string; message?: string }): VideoEditPlanError {
 	const code = error.code ?? '';
-	if (code === '40001') {
+	if (code === 'P0001' || code === '40001') {
 		return new VideoEditPlanError(
 			409,
 			'EDIT_PLAN_VERSION_CONFLICT',
@@ -308,6 +308,17 @@ export async function setVideoEditPlanStatus(input: {
 	expectedVersion: number;
 	status: 'DRAFT' | 'APPROVED';
 }): Promise<void> {
+	const stored = await loadEditPlan(input.db, input.owner, input.episodeId);
+	if (!stored.plan)
+		throw new VideoEditPlanError(404, 'EDIT_PLAN_NOT_FOUND', 'Plano não encontrado.');
+	const context = await loadEditPlanContext(input.db, input.owner, input.episodeId);
+	validateForContext(stored.plan.plan, context);
+	if (stored.plan.current_version !== input.expectedVersion)
+		throw new VideoEditPlanError(
+			409,
+			'EDIT_PLAN_VERSION_CONFLICT',
+			'O plano foi alterado em outra aba. Recarregue antes de aprovar.',
+		);
 	if (!input.adminDb)
 		throw new VideoEditPlanError(
 			503,

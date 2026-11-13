@@ -231,3 +231,17 @@ describe('plan rejection matrix', () => {
 		);
 	});
 });
+
+describe('clip identity', () => {
+	it('rejects duplicate clip ids', () => {
+		const context120 = context(120_000, 8_000);
+		const plan = buildDefaultEditPlan(context120);
+		const duplicate = plan.clips.map((clip, index) =>
+			index === 1 ? { ...clip, id: plan.clips[0]!.id } : clip,
+		);
+		expectPlanError(
+			() => validateEditPlan({ ...plan, clips: duplicate }, context120),
+			'EDIT_PLAN_CLIP_DUPLICATE',
+		);
+	});
+});

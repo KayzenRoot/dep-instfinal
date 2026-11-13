@@ -64,6 +64,7 @@ export const load: PageServerLoad = async (event) => {
 			versions: [],
 			context: null,
 			planError: null,
+			planStale: false,
 		};
 
 	try {
@@ -82,6 +83,11 @@ export const load: PageServerLoad = async (event) => {
 			episodes: episodeList,
 			selectedEpisode,
 			plan,
+			planStale: Boolean(
+				stored.plan &&
+					plan &&
+					plan.episodeRevisionNumber !== context.episodeRevisionNumber,
+			),
 			versions: stored.versions,
 			storedPlan: stored.plan
 				? {
@@ -104,6 +110,7 @@ export const load: PageServerLoad = async (event) => {
 			storedPlan: null,
 			context: null,
 			planError: errorInfo.message,
+			planStale: false,
 		};
 	}
 };
@@ -151,6 +158,30 @@ export const actions: Actions = {
 				adminDb: createSupabaseAdminClient(),
 				owner,
 				...parsed.data,
+			});
+			return { success: true, version };
+		} catch (cause) {
+			const errorInfo = messageFor(cause);
+			return fail(errorInfo.status, { message: errorInfo.message });
+		}
+	},
+	rebuild: async (event) => {
+		const { db, owner } = ownerDatabase(event);
+		const form = await event.request.formData();
+		const episodeId = readFormText(form, 'episodeId');
+		const expectedVersion = Number.parseInt(readFormText(form, 'expectedVersion'), 10);
+		if (!episodeId || !Number.isInteger(expectedVersion) || expectedVersion < 0)
+			return fail(400, { message: 'Episódio ou versão inválidos.' });
+		try {
+			const context = await loadEditPlanContext(db, owner, episodeId);
+			const version = await saveVideoEditPlan({
+				db,
+				adminDb: createSupabaseAdminClient(),
+				owner,
+				episodeId,
+				expectedVersion,
+				plan: defaultEditPlan(context),
+				changeNote: 'Plano reconstruído para a revisão atual do episódio',
 			});
 			return { success: true, version };
 		} catch (cause) {
