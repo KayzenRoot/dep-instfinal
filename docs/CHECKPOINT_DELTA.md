@@ -2,7 +2,7 @@
 
 ## DIF-V2-WO-004 — Timeline canônica, alinhamento e versões (2026-11-13) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; implementation, PgTAP, unit and E2E **PASS**; hosted CI `43369752010` PASS (6m1s); **independent re-audit pending** after B1/B2/B3 corrections. Stacked on WO-003, which remains audit-approved but unmerged. WO-005+ remains **BLOCKED**.
+- **Status:** **PROPOSED — NOT PROMOTED**; implementation, PgTAP, unit and E2E **PASS**; hosted CI `43376699502` PASS (5m57s); **independent re-audit pending** after H1/M1/M2 corrections. Stacked on WO-003, which remains audit-approved but unmerged. WO-005+ remains **BLOCKED**.
 - **Base:** `feat/dif-v2-wo-003` `4d1aa3c`; branch `feat/dif-v2-wo-004`; Draft PR #49.
 - **Delivered:** additive `video_edit_plans`/`video_edit_plan_versions` migration; owner-only read RLS; server-only service-role RPCs with optimistic concurrency, restore-as-new-version and DRAFT/APPROVED; Zod/domain plan contract with 4/6/8 s timing, trims, transitions, tracks, CTA and canonical manifest hash; `/app/timeline` editor with reorder, trim, crossfade, version history and restore.
 - **Tests:** PgTAP **58/58**; unit **93 + 1 skip** (domain 11); policy **22 invariants/18 tables**; lint/typecheck/build PASS; E2E **11/11** including timeline 15-clip edit/restore.

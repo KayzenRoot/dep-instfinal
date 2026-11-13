@@ -2,7 +2,7 @@ DIF-V2-WO-004 — timeline canônica, alinhamento e versões
 Date: 2026-11-13
 Base: feat/dif-v2-wo-003 @ 4d1aa3c
 Branch: feat/dif-v2-wo-004
-Head under test: 698bb68 (CI 43362722816); source code e68d14c/6f62c69
+Head under test: 94f09ca (CI 43376699502); source code 94f09ca
 
 1) Domain/schema tests
 Command: npx vitest run src/lib/domain/video-edit-plan.test.ts
@@ -51,12 +51,12 @@ Includes owner journey, video 15-clip upload, timeline 15-clip edit/restore,
 anonymous/cross-origin/layout checks.
 
 8) Hosted CI
-Run: 43369752010 (workflow_dispatch, branch feat/dif-v2-wo-004) on f886b2d
-Result: PASS in 6m1s (post B1/B2/B3 hardening).
-- format:check/lint/typecheck/unit (92+1)/build/audit deps PASS
+Run: 43376699502 (workflow_dispatch, branch feat/dif-v2-wo-004) on 94f09ca
+Result: PASS in 5m57s (post H1/M1/M2 corrections).
+- format:check/lint/typecheck/unit (93+1)/build/audit deps PASS
 - PgTAP 58/58 PASS
 - policy 22/18 PASS
-- E2E 11/11 PASS (timeline 12.4s, video 11.0s; suite 3.2m)
+- E2E 11/11 PASS (timeline 15.3s, video 11.2s; suite 3.2m)
 No production deploy, merge, paid service or secret.
 
 9) Design notes
@@ -64,9 +64,13 @@ No production deploy, merge, paid service or secret.
 - Plan write RPCs are executable only by service_role; the SvelteKit server
   validates the full plan, computes SHA-256 and passes the verified owner id.
   Tables expose SELECT only to authenticated; direct RPC/insert/update is denied.
-- Every RPC checks published status and NULL/stale expected_version; restore
-  revalidates the source snapshot; load verifies the stored canonical hash.
+- Conflicts raise P0001 (HTTP 409), not 40001, so PostgREST does not retry a
+  stale expected_version. Every RPC checks published status and NULL/stale
+  expected_version; restore revalidates the source snapshot; load verifies the
+  stored canonical hash; status approval revalidates plan/revision/hash.
 - Plan revision binding and global scene uniqueness are enforced in the domain.
+- A revision change shows a stale-plan warning and a rebuild action that appends
+  a new default plan version without deleting history.
 - Plan versions are immutable; restore appends a new snapshot.
 - Manifest hash is SHA-256 of canonical sorted-key JSON.
 - No video bytes are stored in PostgreSQL; plans reference READY video_assets.
