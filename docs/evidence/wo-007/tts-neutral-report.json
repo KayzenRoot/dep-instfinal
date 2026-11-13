@@ -1,70 +1,67 @@
 {
-  "schemaVersion": 1,
-  "provider": "piper-local",
-  "model": "pt_BR-edresson-low",
-  "modelLicense": "CC BY 4.0",
-  "capability": {
-    "emotion": false,
-    "speed": true,
-    "pause": true,
-    "volume": true,
-    "pronunciationMap": true
-  },
-  "targetRangeMs": [
-    90000,
-    150000
-  ],
-  "withinTarget": false,
-  "totalMs": 12570,
-  "peakDb": -2.5,
-  "rmsDb": -20.4,
-  "truePeakDb": -2.4,
-  "lufs": -19.3,
-  "clipping": false,
-  "byteSize": 1206798,
-  "format": "wav",
-  "sampleRate": 48000,
-  "channels": 1,
-  "segmentCount": 3,
-  "segments": [
-    {
-      "index": 0,
-      "emotion": "neutral",
-      "speed": 1,
-      "intendedWpm": 145,
-      "effectiveWpm": 134.1,
-      "speechMs": 5368,
-      "paddedMs": 5918,
-      "startMs": 0,
-      "endMs": 5918,
-      "truePeakDb": -2.5,
-      "lufs": -19.4
-    },
-    {
-      "index": 1,
-      "emotion": "neutral",
-      "speed": 1,
-      "intendedWpm": 145,
-      "effectiveWpm": 103.3,
-      "speechMs": 2904,
-      "paddedMs": 3404,
-      "startMs": 5918,
-      "endMs": 9322,
-      "truePeakDb": -2.4,
-      "lufs": -20.3
-    },
-    {
-      "index": 2,
-      "emotion": "neutral",
-      "speed": 1,
-      "intendedWpm": 145,
-      "effectiveWpm": 158.6,
-      "speechMs": 2648,
-      "paddedMs": 3248,
-      "startMs": 9322,
-      "endMs": 12570,
-      "truePeakDb": -3,
-      "lufs": -18.2
-    }
-  ]
+	"schemaVersion": 1,
+	"provider": "piper-local",
+	"model": "pt_BR-edresson-low",
+	"modelLicense": "CC BY 4.0",
+	"capability": {
+		"emotion": false,
+		"speed": true,
+		"pause": true,
+		"volume": true,
+		"pronunciationMap": true
+	},
+	"targetRangeMs": [90000, 150000],
+	"withinTarget": false,
+	"totalMs": 12570,
+	"peakDb": -2.5,
+	"rmsDb": -20.4,
+	"truePeakDb": -2.4,
+	"lufs": -19.3,
+	"clipping": false,
+	"byteSize": 1206798,
+	"format": "wav",
+	"sampleRate": 48000,
+	"channels": 1,
+	"segmentCount": 3,
+	"segments": [
+		{
+			"index": 0,
+			"emotion": "neutral",
+			"speed": 1,
+			"intendedWpm": 145,
+			"effectiveWpm": 134.1,
+			"speechMs": 5368,
+			"paddedMs": 5918,
+			"startMs": 0,
+			"endMs": 5918,
+			"truePeakDb": -2.5,
+			"lufs": -19.4
+		},
+		{
+			"index": 1,
+			"emotion": "neutral",
+			"speed": 1,
+			"intendedWpm": 145,
+			"effectiveWpm": 103.3,
+			"speechMs": 2904,
+			"paddedMs": 3404,
+			"startMs": 5918,
+			"endMs": 9322,
+			"truePeakDb": -2.4,
+			"lufs": -20.3
+		},
+		{
+			"index": 2,
+			"emotion": "neutral",
+			"speed": 1,
+			"intendedWpm": 145,
+			"effectiveWpm": 158.6,
+			"speechMs": 2648,
+			"paddedMs": 3248,
+			"startMs": 9322,
+			"endMs": 12570,
+			"truePeakDb": -3,
+			"lufs": -18.2
+		}
+	]
 }

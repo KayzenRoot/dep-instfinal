@@ -89,11 +89,7 @@ export async function enqueueRenderJob(input: {
 			.eq('episode_id', input.episodeId)
 			.maybeSingle();
 		if (voiceError)
-			throw new RenderJobError(
-				503,
-				'RENDER_JOB_FAILED',
-				'Não foi possível ler a direção de voz.',
-			);
+			throw new RenderJobError(503, 'RENDER_JOB_FAILED', 'Não foi possível ler a direção de voz.');
 		if (voicePlan?.current_status === 'APPROVED') {
 			const takeId = (voicePlan.plan as { takeId?: unknown } | null)?.takeId;
 			if (typeof takeId === 'string') narrationTakeId = takeId;

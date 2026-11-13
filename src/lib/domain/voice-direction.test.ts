@@ -46,9 +46,9 @@ describe('voice direction plan', () => {
 	});
 
 	it('rejects empty narration, foreign scenes and duplicate segment ids', () => {
-		expect(() =>
-			buildHeuristicVoicePlan({ ...context(), narrationPtBr: '   ' }),
-		).toThrow(VoiceDirectionError);
+		expect(() => buildHeuristicVoicePlan({ ...context(), narrationPtBr: '   ' })).toThrow(
+			VoiceDirectionError,
+		);
 		const plan = planOf();
 		expect(() =>
 			validateVoicePlan(
@@ -61,15 +61,15 @@ describe('voice direction plan', () => {
 		).toThrow('Segmento aponta para cena inexistente.');
 		expect(() =>
 			validateVoicePlan(
-				{ ...plan, segments: [plan.segments[0]!, { ...plan.segments[1]!, id: plan.segments[0]!.id }] },
+				{
+					...plan,
+					segments: [plan.segments[0]!, { ...plan.segments[1]!, id: plan.segments[0]!.id }],
+				},
 				context(),
 			),
 		).toThrow('Segmento duplicado.');
 		expect(() =>
-			validateVoicePlan(
-				{ ...plan, episodeId: '22222222-2222-4222-8222-222222222222' },
-				context(),
-			),
+			validateVoicePlan({ ...plan, episodeId: '22222222-2222-4222-8222-222222222222' }, context()),
 		).toThrow('O plano é de outro episódio.');
 	});
 
@@ -110,6 +110,8 @@ describe('voice direction plan', () => {
 			trimmedMs: 250,
 			overflowMs: 750,
 		});
-		expect(() => narrationDurationPolicy(0, 120_000)).toThrow('Duração de áudio ou vídeo inválida.');
+		expect(() => narrationDurationPolicy(0, 120_000)).toThrow(
+			'Duração de áudio ou vídeo inválida.',
+		);
 	});
 });

@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 1,
-  "scope": "owner Windows x64 host; NOT the ARM64 worker",
-  "platform": "Microsoft Windows 10.0.26200",
-  "architecture": "X64",
-  "processorCount": 8,
-  "elapsedMs": 23811,
-  "incrementalPeakMemoryBytes": 645992448,
-  "incrementalCpuSeconds": 18,
-  "arm64Benchmark": "BLOCKED: no authorized ARM64 VPS execution in WO-007"
+	"schemaVersion": 1,
+	"scope": "owner Windows x64 host; NOT the ARM64 worker",
+	"platform": "Microsoft Windows 10.0.26200",
+	"architecture": "X64",
+	"processorCount": 8,
+	"elapsedMs": 23811,
+	"incrementalPeakMemoryBytes": 645992448,
+	"incrementalCpuSeconds": 18,
+	"arm64Benchmark": "BLOCKED: no authorized ARM64 VPS execution in WO-007"
 }
