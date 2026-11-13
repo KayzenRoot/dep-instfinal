@@ -1,5 +1,25 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-004 — Timeline canônica, alinhamento e versões (2026-11-13)
+
+- **Work Order:** `DIF-V2-WO-004` · issue #21 · epic #17
+- **Base:** `feat/dif-v2-wo-003` `4d1aa3c` (WO-003 audit APPROVED, merge pending)
+- **Branch:** `feat/dif-v2-wo-004` (stacked; Draft PR #49)
+- **Status:** implementation, unit/PgTAP/E2E and hosted CI **PASS**; **independent audit pending**. No merge, production deploy, paid service or checkpoint promotion occurred.
+
+| Check                  | Result           | Evidence                                                                                                            |
+| ---------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Scope                  | PASS (code/docs) | Additive edit-plan migration; domain/schema; server RPC wrappers; `/app/timeline`; tests; no canon/episode mutation |
+| Database/RLS           | PASS             | `20261113090000_v2_wo004_edit_plans.sql`; PgTAP **54/54**; owner read-only tables and SECURITY DEFINER RPCs         |
+| Domain/schema          | PASS 7           | 120/15×8, 90/150 partial, reorder, trim, crossfade, foreign/double-booked assets, canonical hash                    |
+| Unit/format/typecheck  | PASS             | 88 passed + 1 skipped; lint 0; typecheck 0/0; build adapter-node PASS                                               |
+| Policy audit           | PASS             | 21 invariants across 18 tables, including edit plans owner-only/versioned/append-only                               |
+| E2E                    | PASS             | hosted CI `43362722816`: timeline 15 clips/reorder/save/reload/approve/restore v1→v3; full suite 11/11 (4.9m)       |
+| Optimistic concurrency | PASS             | stale `expected_version` returns 40001; restore appends v2; history preserved                                       |
+| Safety                 | PASS             | no merge, production deploy, paid service, secret or checkpoint promotion                                           |
+
+**Verdict:** WO-004 implementation and evidence are **PASS** pending independent audit. `video_edit_plans` stays separate from episode/canon writes; published episodes reject saves; versions are immutable. Merge of stacked WO-003/WO-004 requires explicit owner authorization. WO-005+ remains blocked until both approvals.
+
 ## V2 WO-003 — Private Flow clip ingest + Cloudflare R2 (2026-11-12)
 
 - **Work Order:** `DIF-V2-WO-003` · issue #20 · epic #17
