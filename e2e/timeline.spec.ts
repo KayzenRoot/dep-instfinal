@@ -35,7 +35,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	page,
 	request,
 }) => {
-	test.setTimeout(2_700_000);
+	test.setTimeout(1_500_000);
 	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
 	test.skip(
 		!process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -256,7 +256,18 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	const workerExit = new Promise<number>((resolve) =>
 		worker.on('exit', (code) => resolve(code ?? 1)),
 	);
-	await expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 1_200_000 });
+	try {
+		await Promise.race([
+			expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 600_000 }),
+			workerExit.then((code) => {
+				if (code !== 0) throw new Error(`worker exited ${code}\n${workerOutput}`);
+			}),
+		]);
+		await expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 15_000 });
+	} catch (cause) {
+		console.error(`worker output:\n${workerOutput}`);
+		throw cause;
+	}
 	const exitCode = await workerExit;
 	expect(exitCode, workerOutput).toBe(0);
 	const jobsResponse = await page.request.get(`/api/render-jobs?episodeId=${episodeId}`);

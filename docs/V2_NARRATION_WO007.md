@@ -13,7 +13,7 @@
 - `narration_takes` imutável por identidade (hash, tamanho, duração, loudness, modelo, licença); RLS owner-only.
 - `VoiceDirectionPlan`: segmentos por sentença, emoção (`neutral/tension/whisper/urgency/fear/revelation`), speed 0,75–1,25, pausas antes/depois, volume, WPM alvo e mapa de pronúncia. Heurística determinística offline; JSON validado por Zod.
 - Aprovação de direção exige take `READY` do mesmo episódio, garantido no servidor e por trigger no banco.
-- Render com narração: o job fixa `narration_take_id` no enqueue (imutável), baixa o áudio privado, revalida SHA/tamanho/duração, renderiza vídeo, copia o stream de vídeo e faz mux AAC 48 kHz estéreo. Áudio mais curto é preenchido com silêncio; overflow acima de 250 ms falha explicitamente (`NARRATION_OVERFLOW`), sem corte oculto.
+- Render com narração: o job fixa `narration_take_id` no enqueue (imutável), baixa o áudio privado, revalida SHA/tamanho/duração, renderiza vídeo, copia o stream de vídeo e faz mux AAC 48 kHz estéreo. Áudio mais curto é preenchido com silêncio desde que cubra ao menos 50% do vídeo; overflow acima de 250 ms falha explicitamente (`NARRATION_OVERFLOW`), sem corte oculto.
 - TTS local Piper opcional: geração por segmento, pausas/velocidade/volume, normalização, concatenação, relatório de duração/WPM/true peak/LUFS/clipping, regeneração de um único segmento e upload opcional para R2/DB.
 - UI `/app/narration`: seletor de episódio, edição por segmento, pronúncia/WPM, upload, preview, seleção de take, aprovação, histórico de versões e restauração.
 - Timeline mostra a narração aprovada e o take que será fixado no render; sem narração aprovada o render segue vídeo-only.

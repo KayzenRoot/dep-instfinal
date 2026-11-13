@@ -110,6 +110,11 @@ describe('voice direction plan', () => {
 			trimmedMs: 250,
 			overflowMs: 750,
 		});
+		expect(narrationDurationPolicy(10_000, 120_000)).toMatchObject({
+			ok: false,
+			minimumMs: 60_000,
+			underflowMs: 50_000,
+		});
 		expect(() => narrationDurationPolicy(0, 120_000)).toThrow(
 			'Duração de áudio ou vídeo inválida.',
 		);

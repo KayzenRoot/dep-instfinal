@@ -127,6 +127,15 @@ describe('narration mux command', () => {
 				narrationDurationMs: 121_000,
 			}),
 		).toThrow('A narração excede o vídeo em 750 ms.');
+		expect(() =>
+			buildNarrationMuxCommand({
+				videoPath: '/tmp/output.mp4',
+				narrationPath: '/tmp/voice.wav',
+				outputPath: '/tmp/final.mp4',
+				videoDurationMs: 120_000,
+				narrationDurationMs: 10_000,
+			}),
+		).toThrow('A narração cobre menos da metade do vídeo');
 	});
 
 	it('rejects unsafe paths and invalid durations', () => {

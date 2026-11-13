@@ -185,16 +185,19 @@ export function buildNarrationTimings(
 export interface NarrationDurationPolicy {
 	narrationMs: number;
 	videoMs: number;
+	minimumMs: number;
 	paddedMs: number;
 	trimmedMs: number;
 	overflowMs: number;
+	underflowMs: number;
 	ok: boolean;
 }
 
 /**
- * A shorter take is padded with silence; a longer take may only exceed the
- * video by the same small tolerance used by the render contract. Anything
- * larger is an explicit failure instead of a hidden trim.
+ * A take may be shorter than the video (trailing silence is added) but it
+ * must cover at least half of it. A longer take may only exceed the video by
+ * the render tolerance. Both violations are explicit instead of a hidden
+ * pad/trim that would silently desynchronize narration and subtitles.
  */
 export function narrationDurationPolicy(
 	narrationMs: number,
@@ -208,13 +211,17 @@ export function narrationDurationPolicy(
 		videoMs < 1_000
 	)
 		throw new VoiceDirectionError('VOICE_DURATION_INVALID', 'Duração de áudio ou vídeo inválida.');
+	const minimumMs = Math.max(1_000, Math.round(videoMs * 0.5));
 	const overflowMs = Math.max(0, narrationMs - videoMs);
+	const underflowMs = Math.max(0, minimumMs - narrationMs);
 	return {
 		narrationMs,
 		videoMs,
+		minimumMs,
 		paddedMs: Math.max(0, videoMs - narrationMs),
 		trimmedMs: Math.min(overflowMs, toleranceMs),
 		overflowMs: Math.max(0, overflowMs - toleranceMs),
-		ok: overflowMs <= toleranceMs,
+		underflowMs,
+		ok: overflowMs <= toleranceMs && underflowMs === 0,
 	};
 }

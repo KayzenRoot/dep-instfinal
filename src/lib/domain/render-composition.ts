@@ -271,7 +271,12 @@ export function buildNarrationMuxCommand(input: {
 			'Duração da narração ou do vídeo inválida.',
 		);
 	}
-	if (!policy.ok)
+	if (policy.underflowMs > 0)
+		throw new RenderCompositionError(
+			'NARRATION_TOO_SHORT',
+			`A narração cobre menos da metade do vídeo (${policy.narrationMs} de ${policy.videoMs} ms).`,
+		);
+	if (policy.overflowMs > 0)
 		throw new RenderCompositionError(
 			'NARRATION_OVERFLOW',
 			`A narração excede o vídeo em ${policy.overflowMs} ms.`,

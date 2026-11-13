@@ -12,7 +12,7 @@
 | Direction contract | PASS       | `VoiceDirectionPlan` 6 emotions, speed 0.75–1.25, pauses, volume, WPM, pronunciation map; text SHA; schema/domain tests                      |
 | Versioning         | PASS       | plan versions with snapshots; restore as new DRAFT; takes immutable and never overwritten                                                    |
 | Database/RLS       | PASS       | PgTAP **103/103**; owner-only SELECT, service-only writes; approval requires READY take; render narration FK/immutability                    |
-| Render mux         | PASS       | real 4 s FFmpeg mux test: video copy + AAC 48 kHz stereo, pad to exact duration; overflow >250 ms fails                                      |
+| Render mux         | PASS       | real 4 s FFmpeg mux test: video copy + AAC 48 kHz stereo, pad to exact duration after a 50% minimum coverage check; overflow >250 ms fails   |
 | TTS 120 s          | PASS local | Piper `pt_BR-edresson-low` (CC BY 4.0): 232 words → 110.730 s, −2.0 dBFS true peak, −18.5 LUFS, 10.6 MB, no clipping                         |
 | TTS styles         | PENDING    | neutral 12.570 s / −2.4 dBFS / −19.3 LUFS; tension 10.308 s / −2.2 dBFS / −17.8 LUFS; owner must listen                                      |
 | Unit/integration   | PASS       | voice-direction 5, render composition 8, real mux 1, opt-in Piper 1; lint/typecheck PASS                                                     |
