@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { retimeClips, reorderClips, trimClip } from '#lib/domain/video-edit-plan.js';
 	import type { EditPlanClip, VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
+	import type { RenderJob } from '#lib/server/render-jobs.js';
 
 	let { data, form }: { data: PageData; form: { success?: boolean; message?: string } | null } =
 		$props();
@@ -9,6 +10,10 @@
 	let editError = $state<string | null>(null);
 	let editorKey = $state('');
 	let changeNote = $state('');
+	let renderJobs = $state<RenderJob[]>([]);
+	let renderEpisodeKey = $state('');
+	let renderError = $state<string | null>(null);
+	let renderBusy = $state(false);
 
 	$effect(() => {
 		const key = `${data.selectedEpisode?.id ?? ''}:${data.storedPlan?.currentVersion ?? 0}:${data.plan?.episodeId ?? ''}`;
@@ -16,6 +21,21 @@
 		editorKey = key;
 		clips = data.plan ? data.plan.clips.map((clip) => ({ ...clip })) : [];
 		editError = null;
+	});
+
+	$effect(() => {
+		const key = data.selectedEpisode?.id ?? '';
+		if (key !== renderEpisodeKey) {
+			renderEpisodeKey = key;
+			renderJobs = [...(data.renderJobs ?? [])];
+		}
+	});
+
+	$effect(() => {
+		const active = renderJobs.some((job) => ['QUEUED', 'CLAIMED', 'RUNNING'].includes(job.status));
+		if (!active) return;
+		const timer = setInterval(() => void refreshRenderJobs(), 2000);
+		return () => clearInterval(timer);
 	});
 
 	const sceneIndex = $derived(
@@ -28,6 +48,9 @@
 		clips.length > 0 ? Math.max(...clips.map((clip) => clip.timelineEndMs)) : 0,
 	);
 	const expectedVersion = $derived(data.storedPlan?.currentVersion ?? 0);
+	const canRender = $derived(
+		data.storedPlan?.currentStatus === 'APPROVED' && !data.planStale && !renderBusy,
+	);
 	const planForSave = $derived<VideoEditPlan | null>(data.plan ? { ...data.plan, clips } : null);
 
 	function apply(next: EditPlanClip[], errorCode = 'Timeline inválida.') {
@@ -95,6 +118,60 @@
 		apply(
 			clips.map((clip, position) => (position === index ? { ...clip, transitionMs: value } : clip)),
 		);
+	}
+
+	async function refreshRenderJobs() {
+		if (!data.selectedEpisode) return;
+		const response = await fetch(
+			`/api/render-jobs?episodeId=${encodeURIComponent(data.selectedEpisode.id)}`,
+		);
+		if (!response.ok) return;
+		const payload = (await response.json()) as { jobs?: RenderJob[] };
+		renderJobs = payload.jobs ?? [];
+	}
+
+	async function enqueueRender() {
+		if (!data.selectedEpisode || !canRender) return;
+		renderBusy = true;
+		renderError = null;
+		try {
+			const response = await fetch('/api/render-jobs', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					episodeId: data.selectedEpisode.id,
+					idempotencyKey: `ui:${crypto.randomUUID()}`,
+				}),
+			});
+			if (!response.ok) {
+				const payload = (await response.json().catch(() => ({}))) as { message?: string };
+				renderError = payload.message ?? 'Não foi possível enfileirar o render.';
+				return;
+			}
+			await refreshRenderJobs();
+		} catch {
+			renderError = 'Não foi possível enfileirar o render.';
+		} finally {
+			renderBusy = false;
+		}
+	}
+
+	async function cancelRender(jobId: string) {
+		renderBusy = true;
+		renderError = null;
+		try {
+			const response = await fetch(`/api/render-jobs/${jobId}`, { method: 'DELETE' });
+			if (!response.ok) {
+				const payload = (await response.json().catch(() => ({}))) as { message?: string };
+				renderError = payload.message ?? 'Não foi possível cancelar o render.';
+				return;
+			}
+			await refreshRenderJobs();
+		} catch {
+			renderError = 'Não foi possível cancelar o render.';
+		} finally {
+			renderBusy = false;
+		}
 	}
 </script>
 
@@ -286,6 +363,39 @@
 				<input type="hidden" name="status" value="DRAFT" />
 				<button type="submit">Reabrir como DRAFT</button>
 			</form>
+		{/if}
+	</section>
+
+	<section class="render-section" aria-label="Renderização">
+		<div class="render-head">
+			<div>
+				<h2>Render</h2>
+				<p class="meta-label">Fila owner-only, 1 job simultâneo, lease e retry.</p>
+			</div>
+			<button class="primary" type="button" onclick={enqueueRender} disabled={!canRender}>
+				Renderizar plano aprovado
+			</button>
+		</div>
+		{#if renderError}<p class="notice error" role="alert">{renderError}</p>{/if}
+		{#if !renderJobs.length}
+			<p class="empty">Nenhum render enfileirado.</p>
+		{:else}
+			<ul class="render-list">
+				{#each renderJobs as job (job.id)}
+					<li>
+						<div>
+							<strong>{job.status}</strong>
+							<span>v{job.plan_version} · tentativa {job.attempts}/{job.max_attempts}</span>
+							{#if job.error_code}<code>{job.error_code}</code>{/if}
+						</div>
+						{#if ['QUEUED', 'CLAIMED', 'RUNNING'].includes(job.status)}
+							<button type="button" onclick={() => cancelRender(job.id)} disabled={renderBusy}>
+								Cancelar
+							</button>
+						{/if}
+					</li>
+				{/each}
+			</ul>
 		{/if}
 	</section>
 
@@ -484,6 +594,44 @@
 	.history time {
 		color: var(--muted);
 		font-variant-numeric: tabular-nums;
+	}
+	.render-section {
+		margin-block: 1.5rem;
+		padding: 1rem;
+		border: 1px solid var(--line);
+		border-radius: 0.75rem;
+		background: var(--surface);
+	}
+	.render-head {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+	.render-list {
+		display: grid;
+		gap: 0.5rem;
+		list-style: none;
+		padding: 0;
+		margin-block-start: 0.75rem;
+	}
+	.render-list li {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		align-items: center;
+		border-block-end: 1px solid var(--line);
+		padding-block: 0.5rem;
+	}
+	.render-list div {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		align-items: center;
+	}
+	.render-list code {
+		color: var(--muted);
 	}
 	@media (max-width: 640px) {
 		.clip-card header,

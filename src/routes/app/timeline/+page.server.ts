@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { ownerDatabase, readFormText } from '#lib/server/authorized.js';
 import { firstRelation } from '#lib/server/relations.js';
 import { createSupabaseAdminClient } from '#lib/server/supabase.js';
+import { listRenderJobs, type RenderJob } from '#lib/server/render-jobs.js';
 import {
 	defaultEditPlan,
 	loadEditPlan,
@@ -65,6 +66,7 @@ export const load: PageServerLoad = async (event) => {
 			context: null,
 			planError: null,
 			planStale: false,
+			renderJobs: [],
 		};
 
 	try {
@@ -79,10 +81,17 @@ export const load: PageServerLoad = async (event) => {
 				planError = cause instanceof Error ? cause.message : 'Não foi possível criar o plano.';
 			}
 		}
+		let renderJobs: RenderJob[] = [];
+		try {
+			renderJobs = await listRenderJobs({ db, owner, episodeId: selectedEpisode.id });
+		} catch {
+			renderJobs = [];
+		}
 		return {
 			episodes: episodeList,
 			selectedEpisode,
 			plan,
+			renderJobs,
 			planStale: Boolean(
 				stored.plan && plan && plan.episodeRevisionNumber !== context.episodeRevisionNumber,
 			),
@@ -109,6 +118,7 @@ export const load: PageServerLoad = async (event) => {
 			context: null,
 			planError: errorInfo.message,
 			planStale: false,
+			renderJobs: [],
 		};
 	}
 };

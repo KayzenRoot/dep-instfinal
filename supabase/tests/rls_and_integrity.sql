@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(58);
+select plan(81);
 
 do $$
 declare
@@ -11,7 +11,8 @@ declare
     'series', 'seasons', 'characters', 'lore_facts', 'episodes', 'episode_revisions',
     'media_assets', 'scenes', 'choices', 'polls', 'poll_results', 'canonical_decisions',
     'image_references', 'generation_jobs', 'video_upload_sessions', 'video_assets',
-    'video_edit_plans', 'video_edit_plan_versions'
+    'video_edit_plans', 'video_edit_plan_versions',
+    'render_jobs', 'render_job_events'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -54,7 +55,7 @@ begin
         or has_table_privilege('authenticated', 'public.video_assets', 'DELETE') then
         raise exception 'authenticated can mutate video_assets outside the server';
       end if;
-    elsif v_table in ('video_edit_plans', 'video_edit_plan_versions') then
+    elsif v_table in ('video_edit_plans', 'video_edit_plan_versions', 'render_jobs', 'render_job_events') then
       if v_policy_count <> 1 then raise exception 'edit plan policies must be read-only'; end if;
       if has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
         or has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
@@ -1098,6 +1099,188 @@ select throws_ok(
   '42501',
   'permission denied for table video_edit_plans',
   'owner cannot insert edit plans outside the RPC'
+);
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select throws_ok(
+  $$select public.enqueue_render_job(
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      'render-auth-denied', 50::smallint
+    );$$,
+  '42501',
+  'permission denied for function enqueue_render_job',
+  'authenticated owner cannot enqueue render jobs directly'
+);
+
+set local role service_role;
+create temp table test_render_jobs (name text primary key, id uuid);
+insert into test_render_jobs
+select 'job1', public.enqueue_render_job(
+  '11111111-1111-4111-8111-111111111111',
+  'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+  'render-job-001', 50::smallint
+);
+select is(
+  (select count(*) from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job1')),
+  1::bigint,
+  'service role enqueues a render job'
+);
+select is(
+  public.enqueue_render_job(
+    '11111111-1111-4111-8111-111111111111',
+    'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+    'render-job-001', 50::smallint
+  ),
+  (select id from test_render_jobs where name = 'job1'),
+  'render enqueue is idempotent by key'
+);
+select is(
+  public.claim_render_job('worker-a', 60) ->> 'status',
+  'CLAIMED',
+  'worker-a claims the queued job'
+);
+select ok(
+  public.claim_render_job('worker-b', 60) is null,
+  'a second worker cannot claim while the first lease is active'
+);
+select lives_ok(
+  $$select public.start_render_job(
+      (select id from test_render_jobs where name = 'job1'), 'worker-a'
+    );$$,
+  'claimed job can start'
+);
+select is(
+  (select status from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job1')),
+  'RUNNING',
+  'job reaches RUNNING'
+);
+select lives_ok(
+  $$select public.heartbeat_render_job(
+      (select id from test_render_jobs where name = 'job1'), 'worker-a', 60
+    );$$,
+  'worker heartbeat extends the lease'
+);
+select lives_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job1'), 'worker-a',
+      '{"schemaVersion":1,"stub":true}'::jsonb
+    );$$,
+  'worker completes the render job'
+);
+select is(
+  (select status from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job1')),
+  'READY',
+  'job reaches READY with output manifest'
+);
+
+insert into test_render_jobs
+select 'job2', public.enqueue_render_job(
+  '11111111-1111-4111-8111-111111111111',
+  'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+  'render-job-002', 50::smallint
+);
+select is(
+  public.claim_render_job('worker-a', 60) ->> 'id',
+  (select id::text from test_render_jobs where name = 'job2'),
+  'worker claims the next queued job'
+);
+select lives_ok(
+  $$select public.fail_render_job(
+      (select id from test_render_jobs where name = 'job2'), 'worker-a', 'RENDER_TIMEOUT'
+    );$$,
+  'worker failure is recorded'
+);
+select is(
+  (select status from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job2')),
+  'QUEUED',
+  'failed job is requeued while attempts remain'
+);
+select is(
+  public.claim_render_job('worker-a', 60) ->> 'status',
+  'CLAIMED',
+  'requeued job can be claimed again'
+);
+select is(
+  public.cancel_render_job(
+    '11111111-1111-4111-8111-111111111111',
+    (select id from test_render_jobs where name = 'job2')
+  ),
+  true,
+  'owner can cancel a running job through the server RPC'
+);
+select is(
+  (select status from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job2')),
+  'CANCELED',
+  'canceled job reaches CANCELED'
+);
+
+insert into test_render_jobs
+select 'job3', public.enqueue_render_job(
+  '11111111-1111-4111-8111-111111111111',
+  'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+  'render-job-003', 50::smallint
+);
+select is(
+  public.claim_render_job('worker-c', 60) ->> 'status',
+  'CLAIMED',
+  'worker-c claims the lease-expiry fixture'
+);
+reset role;
+update public.render_jobs
+set lease_expires_at = now() - interval '1 minute'
+where id = (select id from test_render_jobs where name = 'job3');
+set local role service_role;
+select is(
+  public.reconcile_render_jobs(),
+  1,
+  'reconcile detects one expired lease'
+);
+select is(
+  (select status from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job3')),
+  'QUEUED',
+  'expired job is requeued with attempts remaining'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select ok(
+  (select count(*) from public.render_job_events) > 0,
+  'owner can read sanitized render events'
+);
+select is(
+  (select count(*) from public.render_jobs),
+  3::bigint,
+  'owner can read all own render jobs'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.render_jobs),
+  0::bigint,
+  'second owner cannot read render jobs'
+);
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select throws_ok(
+  $$insert into public.render_jobs (
+      owner_id, episode_id, plan_id, plan_version, idempotency_key
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      (select id from public.video_edit_plans where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+      2,
+      'render-direct-insert'
+    );$$,
+  '42501',
+  'permission denied for table render_jobs',
+  'owner cannot insert render jobs outside the RPC'
 );
 reset role;
 

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { spawn } from 'node:child_process';
 import path from 'node:path';
 
 test('owner edits a versioned timeline and restores an earlier version', async ({ page }) => {
@@ -91,4 +92,39 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page.getByText('Plano salvo.')).toBeVisible();
 	await expect(page.getByText('v4', { exact: true })).toBeVisible();
 	await expect(page.getByText(/preso a uma revisão anterior/)).toHaveCount(0);
+
+	await page.getByRole('button', { name: 'Aprovar plano atual' }).click();
+	await expect(page.getByText('APPROVED')).toBeVisible();
+	await page.waitForTimeout(1_000);
+	await page.getByRole('button', { name: 'Renderizar plano aprovado' }).click();
+	await expect(page.getByText(/QUEUED|CLAIMED|RUNNING/)).toBeVisible();
+
+	const worker = spawn(process.execPath, [path.join(process.cwd(), 'scripts/render-worker.mjs')], {
+		env: {
+			...process.env,
+			WORKER_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL!,
+			WORKER_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+			WORKER_STUB: '1',
+			WORKER_MAX_JOBS: '1',
+			WORKER_POLL_MS: '250',
+			WORKER_LEASE_SECONDS: '30',
+			WORKER_ID: `e2e-${crypto.randomUUID()}`,
+		},
+		stdio: ['ignore', 'pipe', 'pipe'],
+	});
+	let workerOutput = '';
+	worker.stdout?.on('data', (chunk) => (workerOutput += String(chunk)));
+	worker.stderr?.on('data', (chunk) => (workerOutput += String(chunk)));
+	const workerExit = new Promise<number>((resolve) =>
+		worker.on('exit', (code) => resolve(code ?? 1)),
+	);
+	await expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 30_000 });
+	const exitCode = await workerExit;
+	expect(exitCode, workerOutput).toBe(0);
+
+	await page.waitForTimeout(1_000);
+	await page.getByRole('button', { name: 'Renderizar plano aprovado' }).click();
+	await expect(page.getByText('QUEUED', { exact: true })).toBeVisible();
+	await page.getByRole('button', { name: 'Cancelar' }).first().click();
+	await expect(page.getByText('CANCELED', { exact: true })).toBeVisible();
 });

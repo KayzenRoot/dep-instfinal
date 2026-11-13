@@ -167,3 +167,12 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Delivered locally:** additive `video_edit_plans`/`video_edit_plan_versions`; owner read RLS; server-only service-role save/restore/status RPCs with `FOR UPDATE`, `expected_version` conflict (P0001 → HTTP 409), published-episode rejection and server-computed hash; Zod/domain plan contract (4/6/8 s, trims, crossfade, tracks, CTA, captions, canonical SHA-256); `/app/timeline` editor and nav.
 - **Tests:** PgTAP **58/58**; unit **93 + 1 skip**; policy **22 invariants/18 tables**; lint/typecheck/build PASS; hosted CI `43376699502` PASS (5m57s) with E2E **11/11** (3.2m).
 - **Gate:** independent audit pending. Merge is stacked on WO-003 and requires explicit owner authorization; no production deploy, paid service, secret or checkpoint promotion occurred. Stale triggers: any change to WO-003 approval/merge, timeline contract, migration, E2E or CI evidence requires revalidation before WO-005.
+
+## V2 Context Lock — WO-005 (#22)
+
+- **Base revalidated:** `feat/dif-v2-wo-004` `0860fd3` (WO-004 audit APPROVED, unmerged). Branch: `feat/dif-v2-wo-005` (stacked).
+- **Critical sources read:** WO-002 benchmark, WO-003 R2/storage, WO-004 edit-plan versions, ADR/SOURCE_PACK, owner-only RLS/RPC patterns, `docs/OPERATIONS.md`.
+- **Issue inventory:** WO-001/#18 and WO-002/#19 **CLOSED**; WO-003/#20 and WO-004/#21 **audit APPROVED, Draft/unmerged**; WO-005/#22 **IN PROGRESS**; WO-006+ #23–#45 **BLOCKED**.
+- **Delivered locally:** `render_jobs`/`render_job_events`; owner SELECT, service-only RPCs; single active job; advisory lock + `SKIP LOCKED`; lease/heartbeat/retry/cancel/reconcile; enqueue idempotency and backpressure; Node ARM64 stub worker; `/api/render-jobs`; timeline render panel.
+- **Tests:** PgTAP **81/81**; unit **95 + 1 skip**; policy **23 invariants/20 tables**; timeline+worker E2E PASS; hosted CI `43383787230` PASS (6m25s); final independent audit **APPROVED** at `6ca4523`; lint/typecheck/build PASS.
+- **Gate:** final independent audit **APPROVED** at `6ca4523` for queue/stub scope; residuals N1-N15 are WO-006 obligations. No VPS deployment/container/firewall/key, no merge/deploy/promotion. WO-006+ blocked until WO-005 approved and owner authorizes the stacked merge.

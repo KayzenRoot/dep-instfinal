@@ -1,5 +1,14 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-005 — Render job engine, worker stub and recovery (2026-11-13) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP/unit/policy/E2E **PASS**; hosted CI `43383787230` PASS (6m25s); final independent audit **APPROVED** at `6ca4523`. Stacked on WO-003/WO-004. No VPS deploy, container, firewall or checkpoint promotion.
+- **Base:** `feat/dif-v2-wo-004` `0860fd3`; branch `feat/dif-v2-wo-005`.
+- **Delivered:** `render_jobs`/`render_job_events`; owner SELECT, service-only RPCs; QUEUED→CLAIMED/RUNNING→READY/FAILED/CANCELED; advisory lock/one active job; lease/heartbeat/retry/reconcile; enqueue idempotency/backpressure; Node stub worker; `/api/render-jobs`; timeline render panel.
+- **Tests:** PgTAP **81/81**; unit **95 + 1 skip**; policy **23 invariants/20 tables**; timeline+worker E2E PASS local; lint/typecheck/build PASS.
+- **Risks/limits:** no VPS install; stub only; real FFmpeg kill/temp cleanup in WO-006; service role credential hardening in WO-013/014; stacked merge requires owner authorization.
+- **Gate:** hosted CI + independent audit before merge/promotion.
+
 ## DIF-V2-WO-004 — Timeline canônica, alinhamento e versões (2026-11-13) — PROPOSED
 
 - **Status:** **PROPOSED — NOT PROMOTED**; implementation, PgTAP, unit and E2E **PASS**; hosted CI `43376699502` PASS (5m57s); **independent re-audit pending** after H1/M1/M2 corrections. Stacked on WO-003, which remains audit-approved but unmerged. WO-005+ remains **BLOCKED**.

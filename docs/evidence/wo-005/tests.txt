@@ -1,0 +1,55 @@
+DIF-V2-WO-005 — motor de jobs, worker stub e recuperação
+Date: 2026-11-13
+Hosted CI: 43383787230 (PASS 6m25s; PgTAP 81/81; unit 95+1; policy 23/20; E2E 11/11)
+Final independent audit: APPROVED at 6ca4523 (queue/stub scope)
+Base: feat/dif-v2-wo-004 @ 0860fd3
+Branch: feat/dif-v2-wo-005
+
+1) Migration
+supabase/migrations/20261113100000_v2_wo005_render_jobs.sql
+- render_jobs + render_job_events; owner SELECT; service_role-only RPCs.
+- unique partial index one active job; advisory lock + FOR UPDATE SKIP LOCKED.
+- enqueue requires APPROVED plan, 3 active/episode, global queue 100, idempotency.
+- claim/start/heartbeat/complete/fail/cancel/reconcile.
+
+2) PgTAP/RLS
+Command: supabase test db
+Result: All tests successful. Files=1, Tests=81, Result: PASS.
+Coverage: 20 tables; authenticated enqueue denied; service claim; second worker
+gets null; start/heartbeat/complete; fail -> QUEUED; cancel -> CANCELED;
+expired lease -> requeue; owner/non-owner read; direct insert denied.
+
+3) Unit/schema
+Command: npm test
+Result: 16 files passed + 1 skipped; 95 tests passed + 1 skipped.
+Schema tests: render enqueue defaults/IDs/priority.
+
+4) Lint/typecheck/build
+Commands: npm run lint; npm run typecheck; npm run build
+Result: PASS (0 errors/warnings; adapter-node build completed).
+
+5) Policy audit
+Command: npm run audit:policy
+Result: PASS 23 invariants / 20 tables, including render jobs owner-read,
+server-write leases and recovery.
+
+6) E2E timeline + worker
+Command: CI=1 node scripts/test-local-e2e.mjs e2e/timeline.spec.ts
+Result: 1 passed.
+- approve plan v4 -> Renderizar plano aprovado -> job QUEUED
+- spawn scripts/render-worker.mjs WORKER_STUB=1 WORKER_MAX_JOBS=1
+- worker claims/starts/heartbeats/completes -> job READY
+- enqueue second job -> cancel -> CANCELED
+- stale restore 409, revision rebuild v4, stale approval rejected.
+Worker logs sanitized JSON; no secrets.
+
+7) Full E2E suite
+Command: CI=1 node scripts/test-local-e2e.mjs
+Result: hosted CI 43383787230 PASS; 11/11 in 3.5m (timeline 22.9s, video 12.3s).
+
+8) Limits
+- No VPS deployment, container, firewall or new key.
+- Worker is stub only; real FFmpeg process kill/temp cleanup is WO-006.
+- Service role remains the worker credential; least-privilege role/deploy in
+  WO-013/WO-014.
+- Stacked on WO-003/WO-004; merge/promotion require owner authorization.
