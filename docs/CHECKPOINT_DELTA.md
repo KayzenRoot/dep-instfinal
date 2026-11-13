@@ -1,5 +1,14 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; real composition, integration, PgTAP and real-worker E2E **PASS locally**; hosted CI and independent audit pending. No VPS deploy.
+- **Base:** `main` `b1081e9`; branch `feat/dif-v2-wo-006`.
+- **Delivered:** render-composition command builder (cuts/xfade/VHS/9:16 normalization), FFmpeg executor + ffprobe validation, real `render-job.ts`, worker real mode with kill tree, worker read grants, manifest with real MP4 metadata.
+- **Tests:** 99 + 1 unit (incl. 120s integration), PgTAP 82/82, policy 23/20, real-worker E2E 4.2m.
+- **Limits:** video-only; R2 worker path untested live; VFR/rotation fixtures, preview rendition, visual review and VPS smoke pending; WO-005 queue residuals still tracked.
+- **Gate:** hosted CI + independent audit; WO-007+ blocked.
+
 ## V2 checkpoint promotion — 2026-11-13 — PROMOTED
 
 - **Decision:** owner explicitly authorized the stacked merge and checkpoint promotion on 2026-11-13.

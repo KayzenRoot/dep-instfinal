@@ -1,0 +1,69 @@
+# DIF-V2-WO-006 — Composição FFmpeg, cortes, transições e VHS 9:16
+
+**Work Order:** `DIF-V2-WO-006` · issue #23 · epic #17
+**Base:** `main` `b1081e9` (checkpoint WO-003/004/005 promovido)
+**Branch:** `feat/dif-v2-wo-006`
+**Status:** implementação, composição real, testes ffprobe/integração e E2E local **PASS**; CI hospedado e auditoria independente **pendentes**. Nenhum worker foi implantado na VPS.
+
+## 1. Entregue
+
+- `src/lib/domain/render-composition.ts`: comando FFmpeg determinístico e allowlisted.
+  - normalização por clipe: trim, setpts, fps 30, scale/crop 1080x1920, setsar, yuv420p;
+  - corte seco via `concat`; crossfade via `xfade` com offsets do plano;
+  - VHS/terror por `noise`, `eq` e `vignette` com intensidade limitada;
+  - H.264 High, `+faststart`, vídeo-only nesta WO; sem shell, sem interpolação de prompt.
+- `src/lib/server/render-compose.ts`: executa ffmpeg via `execFile`, valida saída por ffprobe (H.264, 1080x1920, 30 fps, duração ±1 s), calcula SHA-256/tamanho.
+- `scripts/render-job.ts`: worker real com service role, revalidação do plano/contexto, download R2 ou `WORKER_ASSET_DIR`, verificação de SHA-256/tamanho, render local, upload R2 ou `WORKER_LOCAL_OUTPUT_DIR`, manifesto de saída.
+- `scripts/render-worker.mjs`: `WORKER_STUB=0` executa o render real via `tsx`, heartbeat durante o render, kill da árvore de processos em SIGTERM/cancelamento e falha/retry.
+- Migration `20261113101000_v2_wo006_worker_grants.sql`: SELECT service_role para episodes/revisions/scenes/video_assets necessários ao contexto; nenhuma escrita nova.
+
+## 2. Pipeline
+
+```
+plano APROVADO + assets READY
+  -> revalidar contexto/revisão/hash
+  -> baixar (ou usar WORKER_ASSET_DIR) e verificar SHA-256/bytes
+  -> normalizar cada clipe 1080x1920/30fps/yuv420p
+  -> concat/xfade + VHS
+  -> libx264 High + faststart
+  -> ffprobe (geometria/duração/fps/codec)
+  -> upload R2 privado ou saída local de teste
+  -> render_job READY + output_manifest
+```
+
+O worker não aceita comando, URL ou caminho do usuário; só IDs owner-scoped e filtros allowlisted. `READY` agora significa um MP4 real validado, não um stub.
+
+## 3. Testes
+
+| Verificação          | Resultado                            | Evidência                                                                                                                            |
+| -------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Command builder      | **PASS 3**                           | 15 clipes/120 s, xfade 0.5 s, asset ausente/curto/path inseguro                                                                      |
+| FFmpeg integration   | **PASS**                             | 15 clipes 180x320 8 s → 120 s 1080x1920 H.264, 39.594.383 bytes, ffprobe ±1 s, SHA-256                                               |
+| E2E real worker      | **PASS local**                       | upload de 15 clipes reais → plano aprovado → worker real via `tsx` → READY com manifesto 1080x1920/h264/120 s; segundo job cancelado |
+| Unit total           | **PASS 99 + 1 skip**                 | `npm test` (inclui integração FFmpeg quando disponível)                                                                              |
+| PgTAP                | **PASS 82/82**                       | + grant de leitura do worker; RLS/queue continuam verdes                                                                             |
+| Policy audit         | **PASS 23 invariantes / 20 tabelas** |                                                                                                                                      |
+| Lint/typecheck/build | **PASS**                             |                                                                                                                                      |
+
+## 4. Matriz de aceitação (issue #23)
+
+| Critério                                                                 | Status           | Evidência/limite                                                                                |
+| ------------------------------------------------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------- |
+| 15 cenas 8 s = 120 s ±1 s, 9:16, sem quadro preto/A/V drift              | **PASS**         | integração ffprobe; E2E real; vídeo-only (áudio é WO-007/009)                                   |
+| Corte seco, fade/crossfade, transição VHS e safe zone                    | **PASS parcial** | corte/xfade/VHS/scale-crop implementados; ajuste fino de safe zone por momento fica para WO-011 |
+| Preview reproduz timing do manifesto                                     | **PARCIAL**      | preview reduzida/rendition ainda não gerada; o MP4 final segue o plano                          |
+| VFR, rotacionados, codecs diferentes e fontes inválidas sem crash global | **PARCIAL**      | normalização fps/scale e ffprobe; fixtures VFR/rotação/codec dedicadas pendentes                |
+| Retry com mesmo plano equivalente, sem sobrescrever mídia aprovada       | **PASS parcial** | saída determinística e objeto por job; idempotência de artefato/GC em WO-012/013                |
+
+## 5. Limites e riscos
+
+- **Sem áudio final:** vídeo-only; narração/mix/legendas em WO-007/008/009.
+- **Sem deploy VPS:** worker real executado localmente/CI com ffmpeg 9.0.2; Oracle tem FFmpeg 7.0.2 e exige instalação/smoke aprovado.
+- **R2 real:** caminho de download/upload implementado, mas E2E usa `WORKER_ASSET_DIR`/`WORKER_LOCAL_OUTPUT_DIR`; smoke R2 do worker fica para aprovação de instalação.
+- **Processos:** kill tree implementado no worker; validação em Linux real fica para o smoke VPS.
+- **Residual WO-005:** lease em start/fail, claim epoch e backoff/aging seguem para WO-013/014, salvo correção em auditoria.
+- **Qualidade visual:** presets VHS são conservadores e determinísticos; revisão visual humana ainda necessária.
+
+## 6. Gate
+
+Auditoria independente, CI no head final, Evidence Bundle e checkpoint PROPOSED. WO-007+ bloqueado.

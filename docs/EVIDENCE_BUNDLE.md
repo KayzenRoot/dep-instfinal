@@ -1,5 +1,24 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13)
+
+- **Work Order:** `DIF-V2-WO-006` · issue #23 · epic #17
+- **Base:** `main` `b1081e9` (checkpoint WO-003/004/005 promoted)
+- **Branch:** `feat/dif-v2-wo-006`
+- **Status:** implementation, real FFmpeg composition, ffprobe integration, PgTAP and real-worker E2E **PASS locally**; hosted CI and independent audit **pending**. No VPS deployment.
+
+| Check       | Result     | Evidence                                                                                                               |
+| ----------- | ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Composition | PASS       | deterministic allowlisted FFmpeg graph: trim/scale/crop/fps/concat/xfade/VHS; H.264 High/yuv420p/faststart             |
+| Integration | PASS       | 15×8s 180x320 → 120s 1080x1920 H.264, 39.6 MB, ffprobe duration ±1s, SHA-256                                           |
+| Worker      | PASS local | `render-job.ts` revalidates plan/context, verifies assets, renders and completes manifest; `WORKER_STUB=0` + kill tree |
+| E2E         | PASS local | real 15-clip upload → approved plan → real worker READY → second job canceled; 4.2m                                    |
+| Database    | PASS       | worker read grants migration; PgTAP **82/82**; policy 23 invariants/20 tables                                          |
+| Unit/build  | PASS       | 99 passed + 1 skipped; lint/typecheck/build                                                                            |
+| Limits      | —          | video-only; R2 worker path untested live; VFR/rotation fixtures, preview rendition and VPS smoke pending               |
+
+**Verdict:** WO-006 implementation is locally green; hosted CI and independent audit pending. READY now means a validated 1080x1920 H.264 artifact. Audio/captions/preview remain WO-007/008/009/011. No deploy, merge or checkpoint promotion.
+
 ## V2 WO-005 — Render job engine, worker stub and recovery (2026-11-13) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-005` · issue #22 · epic #17

@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(81);
+select plan(82);
 
 do $$
 declare
@@ -1283,6 +1283,13 @@ select throws_ok(
   'owner cannot insert render jobs outside the RPC'
 );
 reset role;
+
+select ok(
+  has_table_privilege('service_role', 'public.episodes', 'SELECT')
+    and has_table_privilege('service_role', 'public.scenes', 'SELECT')
+    and has_table_privilege('service_role', 'public.video_assets', 'SELECT'),
+  'render worker has read-only context grants'
+);
 
 select pass('single-owner RLS, append-only history, revisions, voting, and immutable publication invariants hold');
 select * from finish();

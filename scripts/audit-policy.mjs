@@ -34,6 +34,10 @@ const renderJobMigration = await readFile(
 	'supabase/migrations/20261113100000_v2_wo005_render_jobs.sql',
 	'utf8',
 );
+const renderWorkerGrantsMigration = await readFile(
+	'supabase/migrations/20261113101000_v2_wo006_worker_grants.sql',
+	'utf8',
+);
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -221,7 +225,14 @@ const checks = [
 			renderJobMigration.includes('reconcile_render_jobs') &&
 			renderJobMigration.includes('pg_advisory_xact_lock') &&
 			renderJobMigration.includes('revoke all on table public.render_jobs') &&
-			renderJobMigration.includes('to service_role'),
+			renderJobMigration.includes('to service_role') &&
+			renderWorkerGrantsMigration.includes(
+				'grant select on table public.episodes to service_role',
+			) &&
+			renderWorkerGrantsMigration.includes('grant select on table public.scenes to service_role') &&
+			renderWorkerGrantsMigration.includes(
+				'grant select on table public.video_assets to service_role',
+			),
 	],
 	[
 		'video storage is private, multipart and short-lived signed',

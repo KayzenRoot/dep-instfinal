@@ -1,0 +1,41 @@
+DIF-V2-WO-006 — composição FFmpeg e worker real
+Date: 2026-11-13
+Base: main b1081e9 (checkpoint promovido)
+Branch: feat/dif-v2-wo-006
+
+1) Command builder
+Command: npx vitest run src/lib/domain/render-composition.test.ts
+Result: 3 passed.
+Coverage: 15 clips/120s, xfade 0.5s, missing/short asset, unsafe output path.
+
+2) FFmpeg integration
+Command: npx vitest run src/lib/server/render-compose.integration.test.ts
+Result: 1 passed (177.6s).
+- 15 synthetic 8s 180x320 clips -> 120s 1080x1920 H.264.
+- ffprobe: h264, 30fps, duration 120000ms, width 1080, height 1920.
+- output 39,594,383 bytes; SHA-256 computed.
+- ffmpeg 9.0.2 local (Gyan build).
+
+3) E2E real worker
+Command: CI=1 node scripts/test-local-e2e.mjs e2e/timeline.spec.ts
+Result: 1 passed (4.2m).
+- 15 real 8s clips uploaded; plan approved; worker WORKER_STUB=0 via tsx.
+- render-job revalidated plan/context, read local assets, rendered 120s.
+- job READY with output_manifest 1080x1920/h264/120000ms.
+- second job QUEUED -> CANCELED.
+- stale 409, revision rebuild v4 and rejected stale approval remain covered.
+
+4) PgTAP
+Command: supabase test db
+Result: 82/82 PASS.
+New assertion: service_role has SELECT on episodes/scenes/video_assets for worker context.
+
+5) Unit/policy/build
+Commands: npm test (99 passed + 1 skipped); npm run lint; npm run typecheck; npm run build; npm run audit:policy
+Result: PASS; policy 23 invariants/20 tables.
+
+6) Limits
+- No VPS deployment/container/firewall/new key.
+- R2 worker upload/download path implemented but E2E uses local asset/output dirs.
+- Audio, captions, preview rendition and visual review remain WO-007/008/009/011/012.
+- VFR/rotation/different-codec fixtures and process-group smoke on Linux pending.
