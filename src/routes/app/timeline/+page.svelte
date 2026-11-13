@@ -157,6 +157,13 @@
 		}
 	}
 
+	function renderAudioLabel(job: RenderJob): string | null {
+		const audio = job.output_manifest?.audio as
+			{ paddedMs?: number; trimmedMs?: number } | undefined;
+		if (!audio) return null;
+		return `áudio: ${audio.paddedMs ?? 0} ms de pad, ${audio.trimmedMs ?? 0} ms de corte`;
+	}
+
 	async function cancelRender(jobId: string) {
 		renderBusy = true;
 		renderError = null;
@@ -400,6 +407,9 @@
 						<div>
 							<strong>{job.status}</strong>
 							<span>v{job.plan_version} · tentativa {job.attempts}/{job.max_attempts}</span>
+							{#if renderAudioLabel(job)}
+								<span>{renderAudioLabel(job)}</span>
+							{/if}
 							{#if job.error_code}<code>{job.error_code}</code>{/if}
 						</div>
 						{#if ['QUEUED', 'CLAIMED', 'RUNNING'].includes(job.status)}

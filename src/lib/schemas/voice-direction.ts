@@ -20,6 +20,7 @@ export const voiceSegmentSchema = z.object({
 	volumeDb: z.number().min(-12).max(6).default(0),
 	intendedWpm: z.number().int().min(80).max(220).default(145),
 	pronunciation: z.string().trim().max(200).default(''),
+	variant: z.string().trim().max(60).default('default'),
 });
 
 export const voiceDirectionPlanSchema = z.object({
@@ -29,6 +30,9 @@ export const voiceDirectionPlanSchema = z.object({
 	takeId: z.string().uuid().nullable().default(null),
 	generatedBy: z.enum(['heuristic', 'manual', 'tts']).default('heuristic'),
 	modelId: z.string().trim().max(120).nullable().default(null),
+	seriesPreset: z
+		.enum(['none', 'sussurro', 'documento_policial', 'narrador_tenso', 'alarme'])
+		.default('none'),
 	narrationTextSha256: z
 		.string()
 		.regex(/^[0-9a-f]{64}$/)

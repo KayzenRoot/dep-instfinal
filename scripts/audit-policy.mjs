@@ -262,6 +262,10 @@ const checks = [
 			narrationRenderMigration.includes('render_narration_immutable') &&
 			narrationRenderMigration.includes('render_narration_missing') &&
 			narrationRenderMigration.includes('narration_take_id') &&
+			narrationRenderMigration.includes('reject_narration_take_mutation') &&
+			narrationRenderMigration.includes('revoke update, delete on table public.narration_takes') &&
+			narrationRenderMigration.includes("channels')::integer, 0) <> 2") &&
+			narrationRenderMigration.includes("sampleRate')::integer, 0) <> 48000") &&
 			narrationRenderMigration.includes('to service_role'),
 	],
 	[

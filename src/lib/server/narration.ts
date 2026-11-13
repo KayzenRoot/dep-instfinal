@@ -205,6 +205,7 @@ export async function saveVoicePlan(input: {
 		plan = validateVoicePlan(input.plan, context);
 		if (!plan.narrationTextSha256)
 			plan = { ...plan, narrationTextSha256: narrationTextHash(context.narrationPtBr) };
+		plan = { ...plan, episodeRevisionNumber: context.episodeRevisionNumber };
 	} catch (cause) {
 		if (cause instanceof VoiceDirectionError)
 			throw new NarrationError(
@@ -345,15 +346,28 @@ async function probeAudio(path: string): Promise<{
 	sampleRate: number;
 	channels: number;
 }> {
-	const { stdout } = await execFileAsync(
-		'ffprobe',
-		['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', path],
-		{ timeout: 30_000, maxBuffer: 2 * 1024 * 1024, windowsHide: true, env: mediaProcessEnv() },
-	);
-	const parsed = JSON.parse(stdout) as {
+	let stdout: string;
+	try {
+		({ stdout } = await execFileAsync(
+			'ffprobe',
+			['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', path],
+			{ timeout: 30_000, maxBuffer: 2 * 1024 * 1024, windowsHide: true, env: mediaProcessEnv() },
+		));
+	} catch {
+		throw new NarrationError(422, 'NARRATION_AUDIO_INVALID', 'O áudio não pôde ser lido.');
+	}
+	let parsed: {
 		format?: { format_name?: string; duration?: string };
 		streams?: Array<{ codec_type?: string; sample_rate?: string; channels?: number }>;
 	};
+	try {
+		parsed = JSON.parse(stdout) as {
+			format?: { format_name?: string; duration?: string };
+			streams?: Array<{ codec_type?: string; sample_rate?: string; channels?: number }>;
+		};
+	} catch {
+		throw new NarrationError(422, 'NARRATION_AUDIO_INVALID', 'O áudio não pôde ser lido.');
+	}
 	const audio = parsed.streams?.find((stream) => stream.codec_type === 'audio');
 	const durationSeconds = Number(parsed.format?.duration);
 	if (!audio || !Number.isFinite(durationSeconds) || durationSeconds <= 0)
@@ -434,14 +448,24 @@ export async function storeNarrationTake(input: {
 			throw new NarrationError(422, 'NARRATION_DURATION_INVALID', 'Duração do áudio inválida.');
 		if (probed.channels < 1 || probed.channels > 2 || probed.sampleRate < 8_000)
 			throw new NarrationError(422, 'NARRATION_AUDIO_INVALID', 'Formato de áudio inválido.');
+		const extension = input.fileName.split('.').at(-1)?.toLowerCase() ?? 'wav';
+		const expectedFormats =
+			extension === 'mp3' ? ['mp3'] : extension === 'm4a' ? ['mp4', 'm4a', 'mov'] : ['wav'];
+		if (!expectedFormats.some((format) => probed.format.toLowerCase().includes(format)))
+			throw new NarrationError(
+				415,
+				'NARRATION_FORMAT_MISMATCH',
+				'A extensão não corresponde ao formato real do áudio.',
+			);
 		const loudness = await measureLoudness(localPath);
 		if (
 			(loudness.truePeakDb !== null && loudness.truePeakDb > -0.5) ||
 			(loudness.peakDb !== null && loudness.peakDb > -0.5)
 		)
 			throw new NarrationError(422, 'NARRATION_CLIPPING', 'O áudio está com clipping.');
+		if (loudness.peakDb !== null && loudness.peakDb < -60)
+			throw new NarrationError(422, 'NARRATION_SILENT', 'O áudio não tem voz audível.');
 		const takeId = crypto.randomUUID();
-		const extension = input.fileName.split('.').at(-1)?.toLowerCase() ?? 'wav';
 		const audioContentType =
 			extension === 'mp3' ? 'audio/mpeg' : extension === 'm4a' ? 'audio/mp4' : 'audio/wav';
 		const key = `narration/${input.owner.id}/${input.episodeId}/${takeId}.${extension}`;
@@ -476,7 +500,9 @@ export async function storeNarrationTake(input: {
 				model_license: input.modelLicense ?? null,
 				model_sha256: input.modelSha256 ?? null,
 			})
-			.select('*')
+			.select(
+				'id,episode_id,plan_version,source,status,sha256,byte_size,duration_ms,format,sample_rate,channels,peak_db,rms_db,true_peak_db,lufs,model_id,model_license,model_sha256,created_at',
+			)
 			.single();
 		if (error || !data) {
 			await input.storage.deleteObject(key).catch(() => undefined);
@@ -495,7 +521,9 @@ export async function listNarrationTakes(
 ): Promise<NarrationTake[]> {
 	const { data, error } = await db
 		.from('narration_takes')
-		.select('*')
+		.select(
+			'id,episode_id,plan_version,source,status,sha256,byte_size,duration_ms,format,sample_rate,channels,peak_db,rms_db,true_peak_db,lufs,model_id,model_license,model_sha256,created_at',
+		)
 		.eq('owner_id', owner.id)
 		.eq('episode_id', episodeId)
 		.order('created_at', { ascending: false })

@@ -44,7 +44,12 @@ export function buildHeuristicVoicePlan(context: VoiceContext): VoiceDirectionPl
 	const sentences = splitSentences(context.narrationPtBr);
 	if (sentences.length === 0)
 		throw new VoiceDirectionError('VOICE_TEXT_EMPTY', 'O episódio não tem narração para dirigir.');
-	const segments = sentences.slice(0, 60).map((text, index) => ({
+	if (sentences.length > 60)
+		throw new VoiceDirectionError(
+			'VOICE_TOO_MANY_SEGMENTS',
+			'A narração excede 60 sentenças. Divida o texto antes de dirigir.',
+		);
+	const segments = sentences.map((text, index) => ({
 		id: crypto.randomUUID(),
 		sceneId: context.scenes[index % Math.max(1, context.scenes.length)]?.id ?? null,
 		text,
@@ -55,6 +60,7 @@ export function buildHeuristicVoicePlan(context: VoiceContext): VoiceDirectionPl
 		volumeDb: 0,
 		intendedWpm: 145,
 		pronunciation: '',
+		variant: 'default',
 	}));
 	return {
 		schemaVersion: 1,
@@ -63,6 +69,7 @@ export function buildHeuristicVoicePlan(context: VoiceContext): VoiceDirectionPl
 		takeId: null,
 		generatedBy: 'heuristic',
 		modelId: null,
+		seriesPreset: 'none',
 		narrationTextSha256: narrationTextHash(context.narrationPtBr),
 		segments,
 	};

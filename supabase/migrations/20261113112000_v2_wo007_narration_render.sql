@@ -86,6 +86,26 @@ create trigger validate_voice_plan_approval
   on public.voice_direction_plans
   for each row execute function public.validate_voice_plan_approval();
 
+create or replace function public.reject_narration_take_mutation()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  raise exception 'narration_takes_are_immutable' using errcode = '55000';
+end;
+$$;
+
+create trigger reject_narration_take_mutation
+  before update or delete on public.narration_takes
+  for each row execute function public.reject_narration_take_mutation();
+
+revoke update, delete on table public.narration_takes from service_role;
+grant select, insert on table public.narration_takes to service_role;
+
+revoke all on function public.reject_narration_take_mutation()
+  from public, anon, authenticated;
+
 drop function if exists public.enqueue_render_job(uuid, uuid, text, smallint);
 
 create function public.enqueue_render_job(
@@ -218,7 +238,13 @@ begin
   if not found then raise exception 'render_job_not_running' using errcode = 'P0001'; end if;
   if v_job.narration_take_id is not null then
     if coalesce(p_output_manifest -> 'audio' ->> 'codec', '') <> 'aac'
+      or coalesce((p_output_manifest -> 'audio' ->> 'channels')::integer, 0) <> 2
+      or coalesce((p_output_manifest -> 'audio' ->> 'sampleRate')::integer, 0) <> 48000
       or coalesce((p_output_manifest -> 'audio' ->> 'durationMs')::integer, 0) <= 0
+      or abs(
+        coalesce((p_output_manifest -> 'audio' ->> 'durationMs')::integer, 0)
+        - coalesce((p_output_manifest ->> 'durationMs')::integer, 0)
+      ) > 1000
       or (p_output_manifest -> 'audio' ->> 'narrationTakeId') is distinct from v_job.narration_take_id::text then
       raise exception 'render_narration_missing' using errcode = '23514';
     end if;

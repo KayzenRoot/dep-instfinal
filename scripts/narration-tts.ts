@@ -48,6 +48,10 @@ async function synthesize(text: string, output: string, lengthScale: number): Pr
 	const model = required('PIPER_MODEL');
 	const args = ['-m', model, '-f', output, '--length_scale', lengthScale.toFixed(3)];
 	if (process.env.PIPER_ESPEAK_DATA) args.push('--espeak_data', process.env.PIPER_ESPEAK_DATA);
+	const timeoutMs = Math.max(
+		5_000,
+		Math.min(600_000, Number(process.env.TTS_TIMEOUT_MS ?? 120_000)),
+	);
 	await new Promise<void>((resolvePromise, reject) => {
 		const child = spawn(piper, args, {
 			stdio: ['pipe', 'ignore', 'pipe'],
@@ -55,11 +59,23 @@ async function synthesize(text: string, output: string, lengthScale: number): Pr
 			env: minimalEnv(),
 		});
 		let stderr = '';
+		let settled = false;
+		const finish = (cause?: Error) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			if (cause) reject(cause);
+			else resolvePromise();
+		};
+		const timer = setTimeout(() => {
+			child.kill();
+			finish(new Error('piper_timeout'));
+		}, timeoutMs);
 		child.stderr?.on('data', (chunk) => (stderr += String(chunk)));
-		child.on('error', reject);
+		child.on('error', (cause) => finish(cause));
 		child.on('exit', (code) => {
-			if (code === 0) resolvePromise();
-			else reject(new Error(`piper_exit_${code ?? 1}:${stderr.slice(0, 200)}`));
+			if (code === 0) finish();
+			else finish(new Error(`piper_exit_${code ?? 1}:${stderr.slice(0, 200)}`));
 		});
 		child.stdin?.end(`${text}\n`);
 	});
@@ -386,6 +402,7 @@ async function main() {
 			id: segment.id,
 			index: segment.index,
 			file: segment.file,
+			textForTts: segment.textForTts,
 			emotion: segment.emotion,
 			speed: segment.speed,
 			volumeDb: segment.volumeDb,

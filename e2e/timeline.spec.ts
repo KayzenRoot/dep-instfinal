@@ -206,6 +206,11 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	console.log('[timeline-e2e] uploading narration take');
 	await page.locator('input[type="file"]').setInputFiles(voicePath);
 	await expect(page.locator('.takes li')).toHaveCount(1, { timeout: 180_000 });
+	const preview = page.locator('.takes audio').first();
+	await expect(preview).toHaveAttribute('src', /\/api\/narration\/takes\//);
+	const previewUrl = await preview.getAttribute('src');
+	const previewResponse = await page.request.get(previewUrl!, { maxRedirects: 0 });
+	expect([200, 302]).toContain(previewResponse.status());
 	await page.locator('input[type="radio"][name="take"]').first().check();
 	await page.getByRole('button', { name: 'Aprovar direção + voz' }).click();
 	await expect(page.locator('.notice.success')).toContainText('versão');

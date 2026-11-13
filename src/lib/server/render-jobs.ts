@@ -72,7 +72,6 @@ export async function enqueueRenderJob(input: {
 	episodeId: string;
 	idempotencyKey?: string;
 	priority?: number;
-	narrationTakeId?: string;
 }): Promise<{ jobId: string }> {
 	if (!input.adminDb)
 		throw new RenderJobError(
@@ -80,20 +79,18 @@ export async function enqueueRenderJob(input: {
 			'RENDER_WRITER_UNAVAILABLE',
 			'O worker de render não está configurado.',
 		);
-	let narrationTakeId = input.narrationTakeId ?? null;
-	if (!narrationTakeId) {
-		const { data: voicePlan, error: voiceError } = await input.adminDb
-			.from('voice_direction_plans')
-			.select('plan,current_status')
-			.eq('owner_id', input.owner.id)
-			.eq('episode_id', input.episodeId)
-			.maybeSingle();
-		if (voiceError)
-			throw new RenderJobError(503, 'RENDER_JOB_FAILED', 'Não foi possível ler a direção de voz.');
-		if (voicePlan?.current_status === 'APPROVED') {
-			const takeId = (voicePlan.plan as { takeId?: unknown } | null)?.takeId;
-			if (typeof takeId === 'string') narrationTakeId = takeId;
-		}
+	let narrationTakeId: string | null = null;
+	const { data: voicePlan, error: voiceError } = await input.adminDb
+		.from('voice_direction_plans')
+		.select('plan,current_status')
+		.eq('owner_id', input.owner.id)
+		.eq('episode_id', input.episodeId)
+		.maybeSingle();
+	if (voiceError)
+		throw new RenderJobError(503, 'RENDER_JOB_FAILED', 'Não foi possível ler a direção de voz.');
+	if (voicePlan?.current_status === 'APPROVED') {
+		const takeId = (voicePlan.plan as { takeId?: unknown } | null)?.takeId;
+		if (typeof takeId === 'string') narrationTakeId = takeId;
 	}
 	const idempotencyKey = input.idempotencyKey ?? `web:${randomUUID()}`;
 	const { data, error } = await input.adminDb.rpc('enqueue_render_job', {

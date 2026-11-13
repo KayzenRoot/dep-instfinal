@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(103);
+select plan(108);
 
 do $$
 declare
@@ -1352,6 +1352,19 @@ select lives_ok(
   'service role can store a TTS narration take with true peak'
 );
 select throws_ok(
+  $$update public.narration_takes
+    set duration_ms = 9000
+    where id = 'a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7';$$,
+  '42501',
+  'permission denied for table narration_takes',
+  'narration take rows are not writable by the service role'
+);
+select ok(
+  not has_table_privilege('service_role', 'public.narration_takes', 'UPDATE')
+    and not has_table_privilege('service_role', 'public.narration_takes', 'DELETE'),
+  'service role has no update/delete grant on narration takes'
+);
+select throws_ok(
   $$update public.voice_direction_plans
     set current_status = 'APPROVED'
     where owner_id = '11111111-1111-4111-8111-111111111111'
@@ -1426,6 +1439,33 @@ select throws_ok(
   '23514',
   'render_narration_missing',
   'narrated job cannot complete without AAC audio'
+);
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job4'), 'worker-e',
+      '{"schemaVersion":1,"codec":"h264","width":1080,"height":1920,"durationMs":120000,"objectKey":"renders/test4.mp4","sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","audio":{"codec":"aac","channels":1,"sampleRate":48000,"durationMs":120000,"narrationTakeId":"a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7"}}'::jsonb
+    );$$,
+  '23514',
+  'render_narration_missing',
+  'narrated job rejects mono audio'
+);
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job4'), 'worker-e',
+      '{"schemaVersion":1,"codec":"h264","width":1080,"height":1920,"durationMs":120000,"objectKey":"renders/test4.mp4","sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","audio":{"codec":"aac","channels":2,"sampleRate":44100,"durationMs":120000,"narrationTakeId":"a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7"}}'::jsonb
+    );$$,
+  '23514',
+  'render_narration_missing',
+  'narrated job rejects 44.1 kHz audio'
+);
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job4'), 'worker-e',
+      '{"schemaVersion":1,"codec":"h264","width":1080,"height":1920,"durationMs":120000,"objectKey":"renders/test4.mp4","sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","audio":{"codec":"aac","channels":2,"sampleRate":48000,"durationMs":100000,"narrationTakeId":"a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7"}}'::jsonb
+    );$$,
+  '23514',
+  'render_narration_missing',
+  'narrated job rejects audio duration mismatch'
 );
 select lives_ok(
   $$select public.complete_render_job(

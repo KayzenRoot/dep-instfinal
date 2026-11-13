@@ -10,7 +10,6 @@ export const renderJobEnqueueSchema = z.object({
 		.regex(/^[A-Za-z0-9._:-]+$/)
 		.optional(),
 	priority: z.coerce.number().int().min(0).max(100).default(50),
-	narrationTakeId: z.string().uuid().optional(),
 });
 
 export const renderJobIdSchema = z.string().uuid();

@@ -19,7 +19,7 @@ import {
 	videoEditPlanSchema,
 } from '#lib/schemas/video-edit-plan.js';
 import { EditPlanError } from '#lib/domain/video-edit-plan.js';
-import { listNarrationTakes, loadVoicePlan } from '#lib/server/narration.js';
+import { loadVoicePlan } from '#lib/server/narration.js';
 
 function messageFor(cause: unknown): { status: number; message: string } {
 	if (cause instanceof VideoEditPlanError) return { status: cause.status, message: cause.message };
@@ -99,10 +99,16 @@ export const load: PageServerLoad = async (event) => {
 		try {
 			const voice = await loadVoicePlan(db, owner, selectedEpisode.id);
 			if (voice) {
-				const takes = voice.plan.takeId
-					? await listNarrationTakes(db, owner, selectedEpisode.id)
-					: [];
-				const take = takes.find((candidate) => candidate.id === voice.plan.takeId) ?? null;
+				const { data: take } = voice.plan.takeId
+					? await db
+							.from('narration_takes')
+							.select('id,duration_ms,format,source')
+							.eq('owner_id', owner.id)
+							.eq('episode_id', selectedEpisode.id)
+							.eq('id', voice.plan.takeId)
+							.eq('status', 'READY')
+							.maybeSingle()
+					: { data: null };
 				narration = {
 					currentVersion: voice.currentVersion,
 					status: voice.status,

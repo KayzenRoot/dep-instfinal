@@ -15,6 +15,8 @@
 	let uploadError = $state<string | null>(null);
 	let uploading = $state(false);
 	let editorKey = $state('');
+	let compareA = $state<string | null>(null);
+	let compareB = $state<string | null>(null);
 
 	$effect(() => {
 		const key = `${data.selectedEpisode?.id ?? ''}:${data.storedPlan?.currentVersion ?? 0}`;
@@ -22,6 +24,12 @@
 		editorKey = key;
 		plan = data.plan ? structuredClone(data.plan) : null;
 		takeId = plan?.takeId ?? null;
+	});
+
+	$effect(() => {
+		const ids = data.takes.map((take) => take.id);
+		if (!compareA || !ids.includes(compareA)) compareA = ids[0] ?? null;
+		if (!compareB || !ids.includes(compareB)) compareB = ids[1] ?? ids[0] ?? null;
 	});
 
 	function updateSegment(index: number, patch: Partial<VoiceSegment>) {
@@ -75,7 +83,8 @@
 	<h1>Narração e direção</h1>
 	<p class="lede">
 		Importe a voz do autor ou use o TTS local; a emoção é direção versionada, não promessa
-		automática de prosódia.
+		automática de prosódia. Velocidades fora de 1,0 degradam a fala; o Piper aplica
+		velocidade/volume/pausas, não emoção.
 	</p>
 </section>
 
@@ -130,6 +139,23 @@
 		<input type="hidden" name="expectedVersion" value={data.storedPlan?.currentVersion ?? 0} />
 		<input type="hidden" name="plan" value={JSON.stringify({ ...plan, takeId })} />
 		<label>Nota da versão <input name="changeNote" maxlength="500" /></label>
+		<label
+			>Preset editorial
+			<select
+				value={plan.seriesPreset}
+				onchange={(event) =>
+					(plan = {
+						...plan!,
+						seriesPreset: event.currentTarget.value as VoiceDirectionPlan['seriesPreset'],
+					})}
+			>
+				<option value="none">Sem preset</option>
+				<option value="sussurro">Sussurro</option>
+				<option value="documento_policial">Documento policial</option>
+				<option value="narrador_tenso">Narrador tenso</option>
+				<option value="alarme">Alarme</option>
+			</select>
+		</label>
 		<ol class="segments">
 			{#each plan.segments as segment, index (segment.id)}
 				<li>
@@ -211,6 +237,14 @@
 									updateSegment(index, { intendedWpm: Number(event.currentTarget.value) })}
 							/></label
 						>
+						<label
+							>Variante <input
+								value={segment.variant}
+								maxlength="60"
+								placeholder="default"
+								oninput={(event) => updateSegment(index, { variant: event.currentTarget.value })}
+							/></label
+						>
 					</div>
 					<label class="pronunciation"
 						>Pronúncia para o TTS (termo=substituição, separados por vírgula)
@@ -262,7 +296,9 @@
 		<p class="hint">
 			O TTS Piper é offline e opcional. Ele aplica velocidade, volume e pausas, mas não altera a
 			prosódia emocional real: emoção permanece direção/legenda e a voz importada é o fallback
-			honesto. Gere com <code>scripts/narration-tts.ts</code> ou envie seu arquivo.
+			honesto. Gere com <code>scripts/narration-tts.ts</code> ou envie seu arquivo. Para regenerar
+			só um trecho, rode o CLI com <code>TTS_SEGMENT_ID=&lt;uuid&gt;</code> e envie o novo take; o vídeo
+			aprovado é reutilizado no mux.
 		</p>
 		<label class="upload">
 			WAV, MP3 ou M4A até 20 MB
@@ -293,6 +329,35 @@
 					</li>
 				{/each}
 			</ul>
+			{#if data.takes.length > 1}
+				<div class="compare">
+					<h3>Comparar takes</h3>
+					<div class="compare-grid">
+						<label
+							>Take A
+							<select bind:value={compareA}>
+								{#each data.takes as take (take.id)}
+									<option value={take.id}>{take.source} · {take.duration_ms} ms</option>
+								{/each}
+							</select>
+						</label>
+						<label
+							>Take B
+							<select bind:value={compareB}>
+								{#each data.takes as take (take.id)}
+									<option value={take.id}>{take.source} · {take.duration_ms} ms</option>
+								{/each}
+							</select>
+						</label>
+						{#if compareA}
+							<audio controls preload="none" src={`/api/narration/takes/${compareA}`}></audio>
+						{/if}
+						{#if compareB}
+							<audio controls preload="none" src={`/api/narration/takes/${compareB}`}></audio>
+						{/if}
+					</div>
+				</div>
+			{/if}
 			<form method="POST" action="?/approve">
 				<input type="hidden" name="episodeId" value={data.selectedEpisode.id} />
 				<input type="hidden" name="expectedVersion" value={data.storedPlan?.currentVersion ?? 0} />
@@ -420,6 +485,20 @@
 	.takes,
 	.history {
 		margin-block-start: 2rem;
+	}
+	.compare {
+		margin-block-start: 1rem;
+		border: 1px solid var(--line);
+		border-radius: 0.6rem;
+		padding: 0.8rem;
+	}
+	.compare-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+		gap: 0.7rem;
+	}
+	.compare-grid audio {
+		width: 100%;
 	}
 	.history ul {
 		display: grid;

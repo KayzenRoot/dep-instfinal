@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -214,6 +214,14 @@ describe.skipIf(!enabled)('FFmpeg narration mux integration', () => {
 			});
 			expect(output.audio!.paddedMs).toBeGreaterThanOrEqual(900);
 			expect(Math.abs(output.audio!.durationMs - output.durationMs)).toBeLessThanOrEqual(1_000);
+			const loudness = spawnSync(
+				'ffmpeg',
+				['-hide_banner', '-nostdin', '-i', output.path, '-af', 'volumedetect', '-f', 'null', '-'],
+				{ encoding: 'utf8', windowsHide: true },
+			);
+			const meanVolume = /mean_volume:\s*(-?[0-9.]+) dB/.exec(loudness.stderr);
+			expect(meanVolume).not.toBeNull();
+			expect(Number(meanVolume![1])).toBeGreaterThan(-60);
 		} finally {
 			await rm(workspace, { recursive: true, force: true });
 		}
