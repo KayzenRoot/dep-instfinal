@@ -90,6 +90,9 @@ describe('voice direction plan', () => {
 			'A fita da Vovô Álissi.',
 		);
 		expect(applyPronunciation('Aliceado não muda.', 'Alice=Álissi')).toBe('Aliceado não muda.');
+		expect(applyPronunciation('A fita tem dez segundos.', 'dez=10')).toBe(
+			'A fita tem 10 segundos.',
+		);
 		expect(applyPronunciation('Ação e coração.', '')).toBe('Ação e coração.');
 	});
 

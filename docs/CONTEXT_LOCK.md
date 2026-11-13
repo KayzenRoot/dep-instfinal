@@ -207,7 +207,7 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Base revalidated:** `main` `c0f3cfd` (checkpoint WO-006 promoted). Branch: `feat/dif-v2-wo-007`.
 - **Issue inventory:** WO-001–006 **MERGED/CLOSED/PROMOTED**; WO-007/#24 **IN PROGRESS**; WO-008+ #25–#45 **BLOCKED**.
 - **Delivered locally:** private narration takes (WAV/MP3/M4A) with SHA/loudness/true peak, versioned `VoiceDirectionPlan` by episode revision + narration text hash, deterministic heuristic direction, snapshot restore, owner-only RLS with service-only writes, approval guard requiring a READY take, render-job narration pin/mux (AAC 48 kHz stereo), and optional offline Piper TTS with per-segment regeneration and honest capability metadata.
-- **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **110.730 ms / −2,0 dBFS / −18,5 LUFS / 10,6 MB**, hosted CI `43527026122` **SUCCESS** with E2E **12/12** (timeline narrada READY em 43,4s), owner-boundary narration 401 and responsive layout PASS.
+- **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **111.882 ms / −1,8 dBFS / −18,1 LUFS / 10,2 MB**, hosted CI `43527026122` **SUCCESS** with E2E **12/12** (timeline narrada READY em 43,4s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner auditory acceptance of two styles, ARM64 TTS benchmark and independent audit. Hosted CI is green. No merge, deploy, VPS change or promotion. WO-008+ stays blocked.
 
 ### Fingerprints no base `c0f3cfd`

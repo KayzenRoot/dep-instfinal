@@ -13,7 +13,7 @@ import { promisify } from 'node:util';
 import { createClient } from '@supabase/supabase-js';
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { voiceDirectionPlanSchema } from '../src/lib/schemas/voice-direction.js';
-import { applyPronunciation } from '../src/lib/domain/voice-direction.js';
+import { applyPronunciation, narrationTextHash } from '../src/lib/domain/voice-direction.js';
 
 const execFileAsync = promisify(execFile);
 const SAMPLE_RATE = 48_000;
@@ -48,10 +48,10 @@ async function synthesize(text: string, output: string, lengthScale: number): Pr
 	const model = required('PIPER_MODEL');
 	const args = ['-m', model, '-f', output, '--length_scale', lengthScale.toFixed(3)];
 	if (process.env.PIPER_ESPEAK_DATA) args.push('--espeak_data', process.env.PIPER_ESPEAK_DATA);
-	const timeoutMs = Math.max(
-		5_000,
-		Math.min(600_000, Number(process.env.TTS_TIMEOUT_MS ?? 120_000)),
-	);
+	const requestedTimeout = Number(process.env.TTS_TIMEOUT_MS ?? 120_000);
+	const timeoutMs = Number.isFinite(requestedTimeout)
+		? Math.max(5_000, Math.min(600_000, requestedTimeout))
+		: 120_000;
 	await new Promise<void>((resolvePromise, reject) => {
 		const child = spawn(piper, args, {
 			stdio: ['pipe', 'ignore', 'pipe'],
@@ -371,7 +371,9 @@ async function main() {
 		schemaVersion: 1,
 		generatedAt: new Date().toISOString(),
 		episodeId: plan.episodeId,
-		narrationTextSha256: plan.narrationTextSha256,
+		narrationTextSha256:
+			plan.narrationTextSha256 ??
+			narrationTextHash(plan.segments.map((segment) => segment.text).join(' ')),
 		provider: 'piper-local',
 		model: piperVoice,
 		modelPath,

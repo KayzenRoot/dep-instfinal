@@ -11,5 +11,5 @@
 	"model": "pt_BR-edresson-low",
 	"modelSha256": "de4cecee38b30bb1a6378a337af605d59f0c377df702c6a6752870db8991cd84",
 	"modelLicense": "CC BY 4.0",
-	"ttsOutputMs": 110730
+	"ttsOutputMs": 111882
 }

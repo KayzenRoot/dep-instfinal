@@ -12,7 +12,24 @@ import {
 	restoreVoicePlan,
 	saveVoicePlan,
 } from '#lib/server/narration.js';
-import { voiceDirectionPlanSchema } from '#lib/schemas/voice-direction.js';
+import { voiceDirectionPlanSchema, type VoiceDirectionPlan } from '#lib/schemas/voice-direction.js';
+
+function parseVoicePlanForm(
+	form: FormData,
+): { plan: VoiceDirectionPlan; expectedVersion: number } | { error: string } {
+	let value: unknown;
+	try {
+		value = JSON.parse(readFormText(form, 'plan'));
+	} catch {
+		return { error: 'Plano de voz inválido.' };
+	}
+	const parsed = voiceDirectionPlanSchema.safeParse(value);
+	if (!parsed.success) return { error: 'Plano de voz inválido.' };
+	const expectedVersion = Number.parseInt(readFormText(form, 'expectedVersion'), 10);
+	if (!Number.isInteger(expectedVersion) || expectedVersion < 0)
+		return { error: 'Versão inválida.' };
+	return { plan: parsed.data, expectedVersion };
+}
 
 export const load: PageServerLoad = async (event) => {
 	const { db, owner } = ownerDatabase(event);
@@ -94,26 +111,16 @@ export const actions: Actions = {
 	save: async (event) => {
 		const { db, owner } = ownerDatabase(event);
 		const form = await event.request.formData();
-		const raw = readFormText(form, 'plan');
-		let value: unknown;
-		try {
-			value = JSON.parse(raw);
-		} catch {
-			return fail(400, { message: 'Plano de voz inválido.' });
-		}
-		const parsed = voiceDirectionPlanSchema.safeParse(value);
-		if (!parsed.success) return fail(400, { message: 'Plano de voz inválido.' });
-		const expectedVersion = Number.parseInt(readFormText(form, 'expectedVersion'), 10);
-		if (!Number.isInteger(expectedVersion) || expectedVersion < 0)
-			return fail(400, { message: 'Versão inválida.' });
+		const parsed = parseVoicePlanForm(form);
+		if ('error' in parsed) return fail(400, { message: parsed.error });
 		try {
 			const version = await saveVoicePlan({
 				adminDb: createSupabaseAdminClient(),
 				db,
 				owner,
-				episodeId: parsed.data.episodeId,
-				expectedVersion,
-				plan: parsed.data,
+				episodeId: parsed.plan.episodeId,
+				expectedVersion: parsed.expectedVersion,
+				plan: parsed.plan,
 				changeNote: readFormText(form, 'changeNote'),
 			});
 			return { success: true, version };
@@ -125,24 +132,16 @@ export const actions: Actions = {
 	approve: async (event) => {
 		const { db, owner } = ownerDatabase(event);
 		const form = await event.request.formData();
-		const raw = readFormText(form, 'plan');
-		let value: unknown;
-		try {
-			value = JSON.parse(raw);
-		} catch {
-			return fail(400, { message: 'Plano de voz inválido.' });
-		}
-		const parsed = voiceDirectionPlanSchema.safeParse(value);
-		if (!parsed.success) return fail(400, { message: 'Plano de voz inválido.' });
-		const expectedVersion = Number.parseInt(readFormText(form, 'expectedVersion'), 10);
+		const parsed = parseVoicePlanForm(form);
+		if ('error' in parsed) return fail(400, { message: parsed.error });
 		try {
 			const version = await saveVoicePlan({
 				adminDb: createSupabaseAdminClient(),
 				db,
 				owner,
-				episodeId: parsed.data.episodeId,
-				expectedVersion,
-				plan: parsed.data,
+				episodeId: parsed.plan.episodeId,
+				expectedVersion: parsed.expectedVersion,
+				plan: parsed.plan,
 				changeNote: 'Direção aprovada',
 				status: 'APPROVED',
 			});

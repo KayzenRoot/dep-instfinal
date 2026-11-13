@@ -18,6 +18,32 @@ function hasFfmpeg(): boolean {
 	}
 }
 
+function createSyntheticClip(directory: string, assetId: string, seconds: number): string {
+	const path = join(directory, `${assetId}.mp4`);
+	execFileSync(
+		'ffmpeg',
+		[
+			'-y',
+			'-hide_banner',
+			'-loglevel',
+			'error',
+			'-f',
+			'lavfi',
+			'-i',
+			`testsrc2=size=180x320:rate=30:duration=${seconds}`,
+			'-c:v',
+			'libx264',
+			'-preset',
+			'ultrafast',
+			'-pix_fmt',
+			'yuv420p',
+			path,
+		],
+		{ timeout: 60_000, windowsHide: true },
+	);
+	return path;
+}
+
 const enabled = hasFfmpeg();
 let workspace: string | null = null;
 
@@ -37,28 +63,7 @@ describe.skipIf(!enabled)('FFmpeg composition integration', () => {
 		const assets = [];
 		for (const scene of scenes) {
 			const assetId = `22222222-2222-4222-8222-${String(scene.sceneIndex).padStart(12, '0')}`;
-			const path = join(workspace, `${assetId}.mp4`);
-			execFileSync(
-				'ffmpeg',
-				[
-					'-y',
-					'-hide_banner',
-					'-loglevel',
-					'error',
-					'-f',
-					'lavfi',
-					'-i',
-					`testsrc2=size=180x320:rate=30:duration=8`,
-					'-c:v',
-					'libx264',
-					'-preset',
-					'ultrafast',
-					'-pix_fmt',
-					'yuv420p',
-					path,
-				],
-				{ timeout: 60_000, windowsHide: true },
-			);
+			createSyntheticClip(workspace!, assetId, 8);
 			assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 8_000 });
 		}
 		const context = {
@@ -118,28 +123,7 @@ describe.skipIf(!enabled)('FFmpeg narration mux integration', () => {
 			const assets = [];
 			for (const scene of scenes) {
 				const assetId = `22222222-2222-4222-8222-${String(scene.sceneIndex).padStart(12, '0')}`;
-				const path = join(workspace, `${assetId}.mp4`);
-				execFileSync(
-					'ffmpeg',
-					[
-						'-y',
-						'-hide_banner',
-						'-loglevel',
-						'error',
-						'-f',
-						'lavfi',
-						'-i',
-						'testsrc2=size=180x320:rate=30:duration=2',
-						'-c:v',
-						'libx264',
-						'-preset',
-						'ultrafast',
-						'-pix_fmt',
-						'yuv420p',
-						path,
-					],
-					{ timeout: 60_000, windowsHide: true },
-				);
+				createSyntheticClip(workspace!, assetId, 2);
 				assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 2_000 });
 			}
 			const narrationPath = join(workspace, 'voice.wav');
@@ -241,28 +225,7 @@ describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {
 			const assets = [];
 			for (const scene of scenes) {
 				const assetId = `22222222-2222-4222-8222-${String(scene.sceneIndex).padStart(12, '0')}`;
-				const path = join(workspace, `${assetId}.mp4`);
-				execFileSync(
-					'ffmpeg',
-					[
-						'-y',
-						'-hide_banner',
-						'-loglevel',
-						'error',
-						'-f',
-						'lavfi',
-						'-i',
-						'testsrc2=size=180x320:rate=30:duration=2',
-						'-c:v',
-						'libx264',
-						'-preset',
-						'ultrafast',
-						'-pix_fmt',
-						'yuv420p',
-						path,
-					],
-					{ timeout: 60_000, windowsHide: true },
-				);
+				createSyntheticClip(workspace!, assetId, 2);
 				assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 2_000 });
 			}
 			const starts = [0, 1_500, 3_000, 5_000];

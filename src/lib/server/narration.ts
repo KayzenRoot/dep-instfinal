@@ -458,6 +458,12 @@ export async function storeNarrationTake(input: {
 				'A extensão não corresponde ao formato real do áudio.',
 			);
 		const loudness = await measureLoudness(localPath);
+		if (loudness.peakDb === null && loudness.truePeakDb === null)
+			throw new NarrationError(
+				422,
+				'NARRATION_LOUDNESS_FAILED',
+				'Não foi possível medir o nível do áudio.',
+			);
 		if (
 			(loudness.truePeakDb !== null && loudness.truePeakDb > -0.5) ||
 			(loudness.peakDb !== null && loudness.peakDb > -0.5)
