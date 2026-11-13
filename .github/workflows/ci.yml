@@ -1,6 +1,7 @@
 name: DIF Studio CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, feat/dif-studio-mvp-001]
   pull_request:

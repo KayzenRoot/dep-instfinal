@@ -1,5 +1,14 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-004 — Timeline canônica, alinhamento e versões (2026-11-13) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; implementation, PgTAP, unit and E2E **PASS**; hosted CI `43376699502` PASS (5m57s); **independent re-audit pending** after H1/M1/M2 corrections. Stacked on WO-003, which remains audit-approved but unmerged. WO-005+ remains **BLOCKED**.
+- **Base:** `feat/dif-v2-wo-003` `4d1aa3c`; branch `feat/dif-v2-wo-004`; Draft PR #49.
+- **Delivered:** additive `video_edit_plans`/`video_edit_plan_versions` migration; owner-only read RLS; server-only service-role RPCs with optimistic concurrency, restore-as-new-version and DRAFT/APPROVED; Zod/domain plan contract with 4/6/8 s timing, trims, transitions, tracks, CTA and canonical manifest hash; `/app/timeline` editor with reorder, trim, crossfade, version history and restore.
+- **Tests:** PgTAP **58/58**; unit **93 + 1 skip** (domain 12); policy **22 invariants/18 tables**; lint/typecheck/build PASS; E2E **11/11** including timeline 15-clip edit/restore.
+- **Risks/limits:** stacked merge requires owner authorization; overlay/audio/subtitle tracks and RENDERED state belong to WO-005/006/009; E2E serial due local PostgREST pool contention; WO-003 M2 quota residual remains tracked for WO-013/WO-005.
+- **Gate:** independent audit before merge/promotion; no production deploy, paid service or secret occurred.
+
 ## DIF-V2-WO-003 — Private Flow clip ingest + Cloudflare R2 (2026-11-12) — PROPOSED
 
 - **Status:** **PROPOSED — NOT PROMOTED**; first independent audit **BLOCKED** at `fb6a3c8`; re-audit at `3a6a22f` returned **CORRECTION REQUIRED**; M4/M9/M11/M12, session-key H1 and M4 recovery B1 were corrected; final independent audit **APPROVED** at `c07af6e`. Implementation, local tests and **live R2 acceptance PASS**; lifecycle automation (token lacks permission), M2 quota pagination/check-then-act (non-blocking; WO-013/WO-005) and real ffprobe worker validation remain pending. WO-004+ remains **BLOCKED** until owner approval/merge of WO-003.

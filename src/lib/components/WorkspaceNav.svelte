@@ -31,6 +31,12 @@
 			glyph: 'film',
 		},
 		{
+			path: '/app/timeline',
+			href: resolve('/app/timeline'),
+			label: 'Timeline',
+			glyph: 'frames',
+		},
+		{
 			path: '/app/continuity',
 			href: resolve('/app/continuity'),
 			label: 'Votações e cânone',

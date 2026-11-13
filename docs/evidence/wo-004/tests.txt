@@ -1,0 +1,76 @@
+DIF-V2-WO-004 — timeline canônica, alinhamento e versões
+Date: 2026-11-13
+Base: feat/dif-v2-wo-003 @ 4d1aa3c
+Branch: feat/dif-v2-wo-004
+Head under test: 94f09ca (CI 43376699502); source code 94f09ca
+
+1) Domain/schema tests
+Command: npx vitest run src/lib/domain/video-edit-plan.test.ts
+Result: 12 passed.
+Coverage: 120s/15x8s, 90/150s with partial last clip, reorder, trim, crossfade
+overlap, foreign asset, double-booked scene with distinct asset, negative trims,
+source out of range, missing scene, multiple video tracks, first crossfade, CTA
+bounds, duplicate clip IDs and canonical JSON hash.
+
+2) Full unit suite
+Command: npm test
+Result: 15 files passed + 1 skipped (16); 93 tests passed + 1 skipped (94).
+
+3) PgTAP/RLS
+Command: supabase test db
+Result: All tests successful. Files=1, Tests=58, Result: PASS.
+Coverage: 18 tables; authenticated cannot execute plan RPCs; service role creates,
+restores and approves; NULL/stale expected_version rejected; plan versions
+append-only; owner/non-owner reads; direct insert denied; WO-003 boundaries green.
+
+4) Lint/typecheck/build
+Commands: npm run lint; npm run typecheck; npm run build
+Result: PASS (0 errors/0 warnings; adapter-node build completed).
+
+5) Policy audit
+Command: npm run audit:policy
+Result: PASS 22 invariants across 18 tables, including:
+- video edit plans are owner-only, versioned and append-only
+- video session keys and lifecycle writes are server-owned
+- video READY and tombstone writes are server-mediated
+
+6) E2E timeline
+Command: CI=1 node scripts/test-local-e2e.mjs e2e/timeline.spec.ts
+Result: 1 passed (49-53s local; 12.4s hosted CI).
+Journey: create series/season/episode, upload 15 synthetic clips, open
+/app/timeline, reorder scene 1 down, save v1, HTTP stale restore -> 409,
+clean GET, approve, save v2, restore v1 as v3, append a revision through the
+episode UI, see stale warning, reject approval, rebuild to v4, clean GET;
+plan remains owner-only. Clean GET avoids the browser resubmitting the
+previous POST on reload.
+
+7) Full E2E suite
+Command: CI=1 node scripts/test-local-e2e.mjs
+Result: 11 passed (10.3m locally; 3.2m hosted final).
+Includes owner journey, video 15-clip upload, timeline 15-clip edit/restore,
+anonymous/cross-origin/layout checks.
+
+8) Hosted CI
+Run: 43376699502 (workflow_dispatch, branch feat/dif-v2-wo-004) on 94f09ca
+Result: PASS in 5m57s (post H1/M1/M2 corrections).
+- format:check/lint/typecheck/unit (93+1)/build/audit deps PASS
+- PgTAP 58/58 PASS
+- policy 22/18 PASS
+- E2E 11/11 PASS (timeline 15.3s, video 11.2s; suite 3.2m)
+No production deploy, merge, paid service or secret.
+
+9) Design notes
+- Additive migration 20261113090000_v2_wo004_edit_plans.sql.
+- Plan write RPCs are executable only by service_role; the SvelteKit server
+  validates the full plan, computes SHA-256 and passes the verified owner id.
+  Tables expose SELECT only to authenticated; direct RPC/insert/update is denied.
+- Conflicts raise P0001 (HTTP 409), not 40001, so PostgREST does not retry a
+  stale expected_version. Every RPC checks published status and NULL/stale
+  expected_version; restore revalidates the source snapshot; load verifies the
+  stored canonical hash; status approval revalidates plan/revision/hash.
+- Plan revision binding and global scene uniqueness are enforced in the domain.
+- A revision change shows a stale-plan warning and a rebuild action that appends
+  a new default plan version without deleting history.
+- Plan versions are immutable; restore appends a new snapshot.
+- Manifest hash is SHA-256 of canonical sorted-key JSON.
+- No video bytes are stored in PostgreSQL; plans reference READY video_assets.

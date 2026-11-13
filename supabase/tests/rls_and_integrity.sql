@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(42);
+select plan(58);
 
 do $$
 declare
@@ -10,7 +10,8 @@ declare
   v_tables text[] := array[
     'series', 'seasons', 'characters', 'lore_facts', 'episodes', 'episode_revisions',
     'media_assets', 'scenes', 'choices', 'polls', 'poll_results', 'canonical_decisions',
-    'image_references', 'generation_jobs', 'video_upload_sessions', 'video_assets'
+    'image_references', 'generation_jobs', 'video_upload_sessions', 'video_assets',
+    'video_edit_plans', 'video_edit_plan_versions'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -52,6 +53,13 @@ begin
       if has_table_privilege('authenticated', 'public.video_assets', 'UPDATE')
         or has_table_privilege('authenticated', 'public.video_assets', 'DELETE') then
         raise exception 'authenticated can mutate video_assets outside the server';
+      end if;
+    elsif v_table in ('video_edit_plans', 'video_edit_plan_versions') then
+      if v_policy_count <> 1 then raise exception 'edit plan policies must be read-only'; end if;
+      if has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
+        or has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
+        or has_table_privilege('authenticated', format('public.%I', v_table), 'DELETE') then
+        raise exception 'authenticated can mutate edit plan tables outside the RPCs: public.%', v_table;
       end if;
     elsif v_policy_count <> 4 then
       raise exception 'owner CRUD policies missing for public.%', v_table;
@@ -945,6 +953,153 @@ select is(
 );
 
 select pass('video upload and asset RLS isolate owners and hide anonymous access');
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select throws_ok(
+  $$select public.save_video_edit_plan(
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 0,
+      '{"schemaVersion":1,"episodeId":"e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6","durationMs":120000,"tracks":[],"clips":[{}]}'::jsonb,
+      repeat('a', 64), 'owner'
+    );$$,
+  '42501',
+  'permission denied for function save_video_edit_plan',
+  'authenticated owner cannot call the plan writer RPC'
+);
+
+set local role service_role;
+select lives_ok(
+  $$select public.save_video_edit_plan(
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      0,
+      '{"schemaVersion":1,"episodeId":"e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6","durationMs":120000,"tracks":[{"id":"video-main","kind":"video","label":"Vídeo principal"}],"clips":[{}]}'::jsonb,
+      repeat('a', 64),
+      'fixture'
+    );$$,
+  'service role can create an edit plan through the RPC'
+);
+select is(
+  (select current_version from public.video_edit_plans
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  1,
+  'edit plan starts at version 1'
+);
+select is(
+  (select count(*) from public.video_edit_plan_versions
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  1::bigint,
+  'edit plan creation appends one immutable version'
+);
+
+select throws_ok(
+  $$select public.restore_video_edit_plan(
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 1, null, 'null expected'
+    );$$,
+  '23514',
+  'edit_plan_version_invalid',
+  'restore rejects a null expected version'
+);
+select throws_ok(
+  $$select public.set_video_edit_plan_status(
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', null, 'APPROVED'
+    );$$,
+  '23514',
+  'edit_plan_expected_version_invalid',
+  'status update rejects a null expected version'
+);
+select throws_ok(
+  $$select public.save_video_edit_plan(
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 0,
+      '{"schemaVersion":1,"episodeId":"e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6","durationMs":120000,"tracks":[],"clips":[{}]}'::jsonb,
+      repeat('a', 64), 'stale'
+    );$$,
+  'P0001',
+  'edit_plan_version_conflict',
+  'stale edit plan save is rejected without lost update'
+);
+select is(
+  public.restore_video_edit_plan(
+    '11111111-1111-4111-8111-111111111111',
+    'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 1, 1, 'restore fixture'
+  ),
+  2,
+  'restoring a version appends a new snapshot'
+);
+select is(
+  (select count(*) from public.video_edit_plan_versions
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  2::bigint,
+  'restore preserves the original version history'
+);
+
+reset role;
+select throws_ok(
+  $$update public.video_edit_plan_versions set change_note = 'mutated'
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '55000',
+  'video_edit_plan_versions_are_immutable',
+  'edit plan versions reject mutation'
+);
+set local role service_role;
+
+select lives_ok(
+  $$select public.set_video_edit_plan_status(
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 2, 'APPROVED'
+    );$$,
+  'service role can approve the current edit plan'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select current_status from public.video_edit_plans
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  'APPROVED',
+  'approved status is persisted'
+);
+select is(
+  (select count(*) from public.video_edit_plans
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  1::bigint,
+  'owner can read the server-created edit plan'
+);
+
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.video_edit_plans
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  0::bigint,
+  'second owner cannot read the first owner edit plan'
+);
+select is(
+  (select count(*) from public.video_edit_plan_versions
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  0::bigint,
+  'second owner cannot read the first owner edit plan versions'
+);
+
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select throws_ok(
+  $$insert into public.video_edit_plans (
+      owner_id, episode_id, current_version, plan, manifest_hash
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      3,
+      '{}'::jsonb,
+      repeat('b', 64)
+    );$$,
+  '42501',
+  'permission denied for table video_edit_plans',
+  'owner cannot insert edit plans outside the RPC'
+);
+reset role;
 
 select pass('single-owner RLS, append-only history, revisions, voting, and immutable publication invariants hold');
 select * from finish();

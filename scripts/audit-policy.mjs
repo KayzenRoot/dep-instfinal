@@ -18,6 +18,18 @@ const videoSessionBoundaryMigration = await readFile(
 	'supabase/migrations/20261112210000_v2_wo003_session_boundary.sql',
 	'utf8',
 );
+const editPlanMigration = await readFile(
+	'supabase/migrations/20261113090000_v2_wo004_edit_plans.sql',
+	'utf8',
+);
+const editPlanServerMigration = await readFile(
+	'supabase/migrations/20261113091000_v2_wo004_edit_plan_server_rpc.sql',
+	'utf8',
+);
+const editPlanConflictMigration = await readFile(
+	'supabase/migrations/20261113093000_v2_wo004_conflict_semantics.sql',
+	'utf8',
+);
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -39,13 +51,16 @@ const videoComplete = await readFile(
 const videoAssets = await readFile('src/lib/server/video-assets.ts', 'utf8');
 const videoStorage = await readFile('src/lib/server/video-storage.ts', 'utf8');
 const videoDownload = await readFile('src/routes/api/video/[assetId]/+server.ts', 'utf8');
+const timelineRoute = await readFile('src/routes/app/timeline/+page.server.ts', 'utf8');
+const editPlans = await readFile('src/lib/server/video-edit-plans.ts', 'utf8');
 
 const tables = [
 	...migration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...videoMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...editPlanMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['16 owner-scoped public tables', tables.length === 16],
+	['18 owner-scoped public tables', tables.length === 18],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -171,6 +186,27 @@ const checks = [
 			videoAssets.includes('adminDb') &&
 			videoAssets.includes('if (ready && !input.adminDb)') &&
 			!videoUpload.includes('SUPABASE_SERVICE_ROLE_KEY'),
+	],
+	[
+		'video edit plans are owner-only, versioned and append-only',
+		editPlanMigration.includes('video_edit_plans') &&
+			editPlanMigration.includes('video_edit_plan_versions') &&
+			editPlanMigration.includes('security definer') &&
+			editPlanMigration.includes('edit_plan_version_conflict') &&
+			editPlanMigration.includes('video_edit_plan_versions_are_immutable') &&
+			editPlanMigration.includes('revoke all on table public.video_edit_plan_versions') &&
+			editPlanMigration.includes('grant select on table public.video_edit_plan_versions'),
+	],
+	[
+		'video edit plan writes are server-only and hash-verified',
+		editPlanServerMigration.includes('revoke all on function public.save_video_edit_plan') &&
+			editPlanServerMigration.includes('to service_role') &&
+			editPlanServerMigration.includes('p_expected_version is null') &&
+			editPlans.includes('p_owner_id') &&
+			editPlans.includes('EDIT_PLAN_HASH_MISMATCH') &&
+			editPlanConflictMigration.includes("errcode = 'P0001'") &&
+			!editPlanConflictMigration.includes("errcode = '40001'") &&
+			timelineRoute.includes('createSupabaseAdminClient'),
 	],
 	[
 		'video storage is private, multipart and short-lived signed',
