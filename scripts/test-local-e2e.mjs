@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 function parseEnvironment(output) {
@@ -44,6 +45,14 @@ function readSupabaseEnvironment() {
 	}
 }
 
+function readOptionalEnvironment(path) {
+	try {
+		return parseEnvironment(readFileSync(path, 'utf8'));
+	} catch {
+		return {};
+	}
+}
+
 const localEnvironment = readSupabaseEnvironment();
 const apiUrl = new URL(localEnvironment.API_URL ?? '');
 if (
@@ -53,6 +62,22 @@ if (
 	!localEnvironment.SERVICE_ROLE_KEY
 ) {
 	throw new Error('The local E2E runner only accepts the Supabase CLI stack on port 54321.');
+}
+
+const useR2 = process.env.E2E_R2 === '1';
+const r2Environment = useR2
+	? readOptionalEnvironment(process.env.R2_ENV_FILE ?? 'C:/Users/csn19/.zcode/dif-secrets/r2.env')
+	: {};
+if (useR2) {
+	for (const key of [
+		'R2_ACCOUNT_ID',
+		'R2_ACCESS_KEY_ID',
+		'R2_SECRET_ACCESS_KEY',
+		'R2_BUCKET',
+		'R2_ENDPOINT',
+	]) {
+		if (!r2Environment[key]) throw new Error(`E2E_R2=1 requires ${key} in R2_ENV_FILE.`);
+	}
 }
 
 const runId = randomBytes(6).toString('hex');
@@ -160,11 +185,21 @@ const childEnvironment = {
 	PUBLIC_SUPABASE_URL: apiUrl.origin,
 	PUBLIC_SUPABASE_ANON_KEY: localEnvironment.ANON_KEY,
 	PUBLIC_SUPABASE_PUBLISHABLE_KEY: '',
+	SUPABASE_SERVICE_ROLE_KEY: localEnvironment.SERVICE_ROLE_KEY,
 	SUPABASE_OWNER_USER_ID: ownerId,
 	APP_ORIGIN: 'http://127.0.0.1:4173',
 	CLOUDINARY_CLOUD_NAME: '',
 	CLOUDINARY_API_KEY: '',
 	CLOUDINARY_API_SECRET: '',
+	VIDEO_STORAGE_DRIVER: useR2 ? 'r2' : 'memory',
+	VIDEO_PROBE_DRIVER: 'fixture',
+	MAX_VIDEO_MB: '200',
+	VIDEO_PART_SIZE_MB: '8',
+	R2_ACCOUNT_ID: r2Environment.R2_ACCOUNT_ID ?? '',
+	R2_ACCESS_KEY_ID: r2Environment.R2_ACCESS_KEY_ID ?? '',
+	R2_SECRET_ACCESS_KEY: r2Environment.R2_SECRET_ACCESS_KEY ?? '',
+	R2_BUCKET: r2Environment.R2_BUCKET ?? '',
+	R2_ENDPOINT: r2Environment.R2_ENDPOINT ?? '',
 	E2E_OWNER_EMAIL: ownerEmail,
 	E2E_OWNER_PASSWORD: ownerPassword,
 	E2E_OTHER_EMAIL: otherEmail,

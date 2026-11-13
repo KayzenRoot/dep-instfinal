@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(28);
+select plan(42);
 
 do $$
 declare
@@ -10,7 +10,7 @@ declare
   v_tables text[] := array[
     'series', 'seasons', 'characters', 'lore_facts', 'episodes', 'episode_revisions',
     'media_assets', 'scenes', 'choices', 'polls', 'poll_results', 'canonical_decisions',
-    'image_references', 'generation_jobs'
+    'image_references', 'generation_jobs', 'video_upload_sessions', 'video_assets'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -39,6 +39,19 @@ begin
       if has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
         or has_table_privilege('authenticated', format('public.%I', v_table), 'DELETE') then
         raise exception 'append-only table grants mutation privilege: public.%', v_table;
+      end if;
+    elsif v_table = 'video_upload_sessions' then
+      if v_policy_count <> 1 then raise exception 'video_upload_sessions policies must be server-write-only'; end if;
+      if has_table_privilege('authenticated', 'public.video_upload_sessions', 'INSERT')
+        or has_table_privilege('authenticated', 'public.video_upload_sessions', 'UPDATE')
+        or has_table_privilege('authenticated', 'public.video_upload_sessions', 'DELETE') then
+        raise exception 'authenticated can mutate video_upload_sessions outside the server';
+      end if;
+    elsif v_table = 'video_assets' then
+      if v_policy_count <> 2 then raise exception 'video_assets policies must be quarantine-only'; end if;
+      if has_table_privilege('authenticated', 'public.video_assets', 'UPDATE')
+        or has_table_privilege('authenticated', 'public.video_assets', 'DELETE') then
+        raise exception 'authenticated can mutate video_assets outside the server';
       end if;
     elsif v_policy_count <> 4 then
       raise exception 'owner CRUD policies missing for public.%', v_table;
@@ -748,6 +761,190 @@ begin
   end if;
 end;
 $$;
+
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+
+select throws_ok(
+  $$insert into public.video_upload_sessions (
+      id, episode_id, scene_id, idempotency_key, quarantine_key, part_size_bytes, total_bytes
+    ) values (
+      'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      (select id from public.scenes where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+      'idem-video-owner-001',
+      'quarantine/11111111-1111-4111-8111-111111111111/e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0/source',
+      8388608,
+      1048576
+    );$$,
+  '42501',
+  'permission denied for table video_upload_sessions',
+  'owner cannot create a video upload session through the Data API'
+);
+
+select set_config(
+  'test.video_scene_id',
+  (select id::text from public.scenes
+   where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+  true
+);
+set local role service_role;
+insert into public.video_upload_sessions (
+  id, episode_id, scene_id, idempotency_key, quarantine_key, part_size_bytes, total_bytes
+) values (
+  'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0',
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  current_setting('test.video_scene_id')::uuid,
+  'idem-video-owner-001',
+  'quarantine/11111111-1111-4111-8111-111111111111/e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0/source',
+  8388608,
+  1048576
+);
+set local role authenticated;
+
+select ok(
+  exists (
+    select 1 from public.video_upload_sessions
+    where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0'
+  ),
+  'owner can read the server-created video upload session'
+);
+
+insert into public.video_assets (
+  id, owner_id, episode_id, scene_id, asset_version, bucket, object_key, status
+) values (
+  'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0',
+  '11111111-1111-4111-8111-111111111111',
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  (select id from public.scenes where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+  1,
+  'dif-studio-video-private',
+  'owners/11111111-1111-4111-8111-111111111111/episodes/cccccccc-cccc-4ccc-8ccc-cccccccccccc/scenes/f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0/v1/f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0.mp4',
+  'QUARANTINED'
+);
+
+select throws_ok(
+  $$insert into public.video_assets (
+      id, owner_id, episode_id, scene_id, asset_version, bucket, object_key, status
+    ) values (
+      'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1',
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      (select id from public.scenes where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+      2,
+      'dif-studio-video-private',
+      'owners/11111111-1111-4111-8111-111111111111/episodes/cccccccc-cccc-4ccc-8ccc-cccccccccccc/scenes/spoofed/v2/spoofed.mp4',
+      'READY'
+    );$$,
+  '42501',
+  'video_assets must be created in quarantine',
+  'owner cannot forge a READY video asset through the Data API'
+);
+
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+
+select is(
+  (select count(*) from public.video_upload_sessions),
+  0::bigint,
+  'second owner cannot read the first owner video upload session'
+);
+
+select throws_ok(
+  $$insert into public.video_assets (
+      owner_id, episode_id, scene_id, asset_version, bucket, object_key, status
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      (select id from public.scenes where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and scene_index = 1),
+      2,
+      'dif-studio-video-private',
+      'owners/11111111-1111-4111-8111-111111111111/episodes/cccccccc-cccc-4ccc-8ccc-cccccccccccc/scenes/spoofed/v2/spoofed.mp4',
+      'QUARANTINED'
+    );$$,
+  '42501',
+  'new row violates row-level security policy for table "video_assets"',
+  'second owner cannot create a video asset for the first owner'
+);
+
+select ok(
+  not has_table_privilege('anon', 'public.video_assets', 'SELECT'),
+  'anonymous role has no video asset table privilege'
+);
+
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select throws_ok(
+  $$update public.video_upload_sessions set status = 'COMPLETED'
+    where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0';$$,
+  '42501',
+  'permission denied for table video_upload_sessions',
+  'owner cannot update the video upload session through the Data API'
+);
+
+set local role service_role;
+select throws_ok(
+  $$update public.video_upload_sessions
+    set quarantine_key = 'owners/11111111-1111-4111-8111-111111111111/episodes/cccccccc-cccc-4ccc-8ccc-cccccccccccc/final.mp4'
+    where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0';$$,
+  '42501',
+  'video_upload_sessions identity fields are immutable',
+  'server role cannot rewrite the session quarantine key'
+);
+update public.video_upload_sessions set status = 'COMPLETED'
+where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0';
+set local role authenticated;
+
+select is(
+  (select status from public.video_upload_sessions
+   where id = 'e0e0e0e0-e0e0-4e0e-8e0e-e0e0e0e0e0e0'),
+  'COMPLETED',
+  'server can update the video upload session status'
+);
+
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+do $$
+begin
+  begin
+    update public.video_assets set safe_error_code = 'SPOOFED'
+    where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
+    if found then raise exception 'second owner updated the first owner video asset'; end if;
+  exception when insufficient_privilege then
+    null;
+  end;
+end;
+$$;
+select pass('second owner cannot update the first owner video asset');
+
+do $$
+begin
+  begin
+    delete from public.video_assets
+    where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
+    if found then raise exception 'second owner deleted the first owner video asset'; end if;
+  exception when insufficient_privilege then
+    null;
+  end;
+end;
+$$;
+select pass('second owner cannot delete the first owner video asset');
+
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select throws_ok(
+  $$delete from public.video_assets
+    where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';$$,
+  '42501',
+  'permission denied for table video_assets',
+  'owner cannot hard-delete the video asset tombstone'
+);
+reset role;
+delete from public.video_assets
+where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0';
+select is(
+  (select count(*) from public.video_assets
+   where id = 'f0f0f0f0-f0f0-4f0f-8f0f-f0f0f0f0f0f0'),
+  0::bigint,
+  'test cleanup removes the synthetic video asset'
+);
+
+select pass('video upload and asset RLS isolate owners and hide anonymous access');
 
 select pass('single-owner RLS, append-only history, revisions, voting, and immutable publication invariants hold');
 select * from finish();

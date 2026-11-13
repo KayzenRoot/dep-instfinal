@@ -227,14 +227,14 @@ Proposed owner-scoped entities: `video_assets`, `edit_timelines`, `edit_versions
 
 ### Decisions ledger V2 (all PROPOSED)
 
-| ID         | Decision                                                                                                                             | Status                                                      |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| ADR-V2-001 | Vercel UI/orchestration + separate CPU FFmpeg worker + private video storage; no serverless render; US$0 target subject to benchmark | **ACCEPTED — owner, 2026-11-12**                            |
-| ADR-V2-002 | Video storage provider/contract outside Postgres and outside the image Cloudinary policy                                             | PROPOSED — WO-002 GO conditional; provider decision pending |
-| ADR-V2-003 | Job queue with lease/heartbeat/retry/cancel/idempotency; one concurrent worker initially                                             | PROPOSED                                                    |
-| ADR-V2-004 | One director (WO-010), one editor (WO-011), one exporter/QA (WO-012); creative WOs extend these modules                              | PROPOSED                                                    |
-| ADR-V2-005 | V2 feature flag; additive migrations; V1 immutable and rollback-capable                                                              | PROPOSED                                                    |
+| ID         | Decision                                                                                                                             | Status                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| ADR-V2-001 | Vercel UI/orchestration + separate CPU FFmpeg worker + private video storage; no serverless render; US$0 target subject to benchmark | **ACCEPTED — owner, 2026-11-12**                        |
+| ADR-V2-002 | Video storage provider/contract outside Postgres and outside the image Cloudinary policy; [contrato R2](ADR_V2_002_STORAGE.md)       | **ACCEPTED — owner, 2026-11-12: Cloudflare R2 privado** |
+| ADR-V2-003 | Job queue with lease/heartbeat/retry/cancel/idempotency; one concurrent worker initially                                             | PROPOSED                                                |
+| ADR-V2-004 | One director (WO-010), one editor (WO-011), one exporter/QA (WO-012); creative WOs extend these modules                              | PROPOSED                                                |
+| ADR-V2-005 | V2 feature flag; additive migrations; V1 immutable and rollback-capable                                                              | PROPOSED                                                |
 
 ### Gate
 
-WO-001 documentation is **APPROVED** and ADR-V2-001 is **ACCEPTED**. **WO-002** benchmark returned **GO CONDITIONAL** for the existing Oracle ARM64 VPS with concurrency 1, zero incremental compute and the documented limits; its evidence is **APPROVED** by independent audit (2026-11-12). **WO-003+ remains BLOCKED** until ADR-V2-002/storage is approved and the owner authorizes the next increment. No V2 code, migration, worker, storage, production deploy or spend was created by this addendum.
+WO-001 documentation is **APPROVED**, ADR-V2-001 is **ACCEPTED**, and **WO-002** is **APPROVED** with GO CONDITIONAL. ADR-V2-002 is **ACCEPTED** by the owner (2026-11-12): **Cloudflare R2 privado**. **WO-003** is authorized and in execution; **WO-004+ remains BLOCKED** until WO-003 is `APPROVED`. No V2 worker, production deploy or paid service was created by this addendum; the WO-003 migration/UI/tests are on a feature branch.

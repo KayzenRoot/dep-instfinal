@@ -1,5 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { RequestEvent } from '@sveltejs/kit';
 import { getAppConfig } from './config.js';
 
@@ -33,5 +33,17 @@ export function createSupabaseServerClient(event: RequestEvent): SupabaseClient 
 				}
 			},
 		},
+	});
+}
+
+/**
+ * Server-only privileged client used for transitions the browser must never
+ * perform (for example VIDEO asset READY/tombstone writes).
+ */
+export function createSupabaseAdminClient(): SupabaseClient | null {
+	const config = getAppConfig();
+	if (!config.supabaseUrl || !config.supabaseServiceRoleKey) return null;
+	return createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+		auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
 	});
 }

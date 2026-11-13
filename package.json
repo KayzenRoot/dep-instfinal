@@ -30,12 +30,15 @@
 		"test:db": "supabase test db",
 		"test:e2e": "playwright test",
 		"test:e2e:local": "node scripts/test-local-e2e.mjs",
+		"check:r2": "node scripts/check-r2.mjs",
 		"audit:policy": "node scripts/audit-policy.mjs",
 		"audit:deps": "npm audit --audit-level=high",
 		"check:baseline": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run audit:policy && npm run audit:deps",
 		"ci:all": "npm run check:baseline && npm run test:db && npm run test:e2e:local"
 	},
 	"dependencies": {
+		"@aws-sdk/client-s3": "3.1167.0",
+		"@aws-sdk/s3-request-presigner": "3.1167.0",
 		"@fontsource/cormorant-garamond": "5.3.0",
 		"@fontsource/dm-sans": "5.3.0",
 		"@fontsource/ibm-plex-mono": "5.3.0",

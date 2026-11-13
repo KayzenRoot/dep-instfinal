@@ -1,0 +1,35 @@
+
+Running 10 tests using 2 workers
+
+  ok  1 [chromium] › e2e\owner-boundary.spec.ts:39:1 › health exposes setup booleans only and is never cached (162ms)
+  ok  2 [chromium] › e2e\owner-boundary.spec.ts:52:1 › anonymous visitor can only reach the login surface (6.9s)
+[WebServer] 401 GET /api/media/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+  ok  4 [chromium] › e2e\owner-boundary.spec.ts:87:1 › private media endpoint rejects anonymous visitors (2.9s)
+[WebServer] 403 POST /auth/logout
+  ok  5 [chromium] › e2e\owner-boundary.spec.ts:99:1 › cross-origin mutations are rejected before reaching their handlers (244ms)
+  ok  3 [chromium] › e2e\owner-boundary.spec.ts:69:1 › login layout fits 360, 768, and 1440 pixel viewports (9.9s)
+[WebServer] [sveltekit] ssr_fetch_eager
+[WebServer] Avoid calling `fetch` eagerly during server-side rendering — put your `fetch` calls inside `onMount` or a `load` function instead
+[WebServer] https://svelte.dev/e/kit/ssr_fetch_eager
+[WebServer] [sveltekit] ssr_fetch_eager
+[WebServer] Avoid calling `fetch` eagerly during server-side rendering — put your `fetch` calls inside `onMount` or a `load` function instead
+[WebServer] https://svelte.dev/e/kit/ssr_fetch_eager
+[WebServer] [sveltekit] ssr_fetch_eager
+[WebServer] Avoid calling `fetch` eagerly during server-side rendering — put your `fetch` calls inside `onMount` or a `load` function instead
+[WebServer] https://svelte.dev/e/kit/ssr_fetch_eager
+[WebServer] 400 POST /app/episodes/a299de37-da30-4204-97e0-ff1911dd3e76?/importNarrativeResponse
+[WebServer] 409 POST /app/episodes/a299de37-da30-4204-97e0-ff1911dd3e76?/approveCanon
+  ok  7 [chromium] › e2e\owner-boundary.spec.ts:684:1 › authenticated studio pages fit 360, 768, and 1440 pixel viewports (1.6m)
+[WebServer] 401 POST /login
+[WebServer] 409 POST /app/episodes/3befc044-7292-4e38-ae3a-1896886ebfde?/publish
+  ok  8 [chromium] › e2e\owner-boundary.spec.ts:732:1 › a valid non-owner Supabase identity is rejected (8.3s)
+[WebServer] 401 POST /login
+  ok  9 [chromium] › e2e\owner-boundary.spec.ts:742:1 › owner credentials with an invalid password are rejected (5.5s)
+[WebServer] 409 POST /app/episodes/3befc044-7292-4e38-ae3a-1896886ebfde?/publish
+[WebServer] 401 GET /api/video/cdd41930-3be7-46f6-b1a4-480d8428ae64
+  ok 10 [chromium] › e2e\video-upload.spec.ts:4:1 › owner uploads a scene clip to private storage and it survives reload (1.5m)
+[WebServer] 409 POST /app/episodes/b357eb26-1201-4869-9e39-3880bab83051?/publish
+[WebServer] 409 POST /app/episodes/bda1a16e-b721-4d1a-aad3-1fb171a6c4d0?/createPoll
+  ok  6 [chromium] › e2e\owner-boundary.spec.ts:106:1 › owner completes series, episode, voting, canon, continuation, and export journey (7.2m)
+
+  10 passed (7.6m)

@@ -1,0 +1,95 @@
+DIF-V2-WO-003 — local verification evidence
+Date: 2026-11-12
+Base: b0f78064a2a5902acc98c20efc92648ec540b7e9
+Branch: feat/dif-v2-wo-003
+Head under test: working tree after M4/M9/M11/M12 corrections (pre-commit)
+
+1) PgTAP / RLS
+Command: supabase test db
+Result: All tests successful. Files=1, Tests=42, 3 wallclock secs. Result: PASS.
+Coverage: 16 owner-scoped tables, including video_upload_sessions and video_assets.
+Boundary: authenticated cannot INSERT/UPDATE/DELETE video_upload_sessions; session key is
+bound to owner/session and immutable; service role creates/updates sessions.
+authenticated cannot UPDATE/DELETE video_assets; READY insert is rejected by
+guard_video_asset_insert; hard delete raises 42501; service-role grant present.
+
+2) Unit tests
+Command: npm test
+Result: Test Files 14 passed | 1 skipped (15); Tests 81 passed | 1 skipped (82).
+New coverage: video-probe 15 (incl. VFR/ffprobe JSON), video-assets 11 (parts/resume,
+tampered key, hash mismatch, injected M4 insert/update failures, expiry, non-READY download), video-storage 4, schemas 6.
+
+3) Lint
+Command: npm run lint
+Result: exit 0, no errors/warnings.
+
+4) Typecheck
+Command: npm run typecheck
+Result: svelte-check found 0 errors and 0 warnings.
+
+5) Build
+Command: npm run build
+Result: built successfully with adapter-node; copy/compress assets done.
+
+6) Policy audit
+Command: npm run audit:policy
+Result: PASS 20 policy invariants across 16 tables, including:
+- video metadata tables force owner-only RLS
+- video upload is owner-scoped, idempotent, bounded and quarantined
+- video session keys and lifecycle writes are server-owned
+- video READY and tombstone writes are server-mediated
+- video storage is private, multipart and short-lived signed
+
+7) E2E (fresh server, CI=1)
+Command: CI=1 node scripts/test-local-e2e.mjs
+Result: hosted CI **10 passed (2.6m)** on head `7f2cc69`, run 43332950992:
+- PgTAP 42/42 PASS in the same job;
+- e2e/video-upload.spec.ts PASS (16.2s), including the READY assertion and 15-clip reload;
+- anonymous /api/video returned 401;
+- Playwright evidence artifact uploaded.
+Historical local clean run: 10 passed (7.6m). Local Docker/WSL later became unavailable
+(docker engine 500, wsl --status timeout); hosted CI is authoritative.
+
+8) Dependency audit
+Command: npm run audit:deps
+Result: 7 vulnerabilities (4 low, 3 moderate), no high/critical; known transitive advisories.
+
+Notes:
+- E2E uses VIDEO_STORAGE_DRIVER=memory and VIDEO_PROBE_DRIVER=fixture; this proves the UI/API/DB
+  contract without R2 credentials. It does not prove live R2 upload/read.
+- The synthetic MP4 fixture is e2e/fixtures/synthetic-scene.mp4 (4 KiB, ftyp header only).
+- No production deploy, paid service or secret in Git/logs.
+
+9) Live Cloudflare R2 E2E
+Command: E2E_R2=1 R2_ENV_FILE=C:/Users/csn19/.zcode/dif-secrets/r2.env CI=1 node scripts/test-local-e2e.mjs e2e/video-upload.spec.ts
+Result: 1 passed (2.2m). 15 synthetic clips uploaded directly to R2 with confirmed parts and SHA-256 assertions, associated to 15 scenes,
+READY assets, reload preserved, anonymous /api/video returned 401.
+Fix applied: CSP connect-src in vite.config.ts now allows https://*.r2.cloudflarestorage.com.
+Cleanup: 42 objects deleted across live runs; incomplete multipart uploads aborted.
+
+10) R2 lifecycle
+Command: GetBucketLifecycleConfiguration / PutBucketLifecycleConfiguration via S3 API
+Result: AccessDenied with the current bucket-scoped token. Lifecycle remains pending and must
+be configured in the Cloudflare dashboard or with a token that includes lifecycle permission.
+No credentials were printed.
+
+11) M4/M9/M11/M12 corrections in this head
+- M4: complete falls back to statObject after CompleteMultipartUpload failure and recovers an
+  already-created asset before retrying; quarantine is retained until the asset row commits.
+  Tests inject asset-insert and session-update failures and verify retry success.
+- M9: video-assets.test.ts covers parts/resume, hash rejection, M4, expiry and non-READY download.
+- M11: asset boundary migration revokes UPDATE/DELETE from authenticated, permits only
+  QUARANTINED inserts, and promotes READY through the server-only service-role client.
+- Re-audit H1: session boundary migration revokes INSERT/UPDATE/DELETE from authenticated,
+  binds quarantine_key to owner/session, makes identity fields immutable, and rejects a
+  tampered key in the service before any R2 read/delete.
+- M12: ffprobe parser detects VFR via avg_frame_rate vs r_frame_rate and implausible nb_frames;
+  validateProbe rejects VFR and implausible frame density.
+
+12) Final independent audit
+Head audited: c07af6e (docs-only after CI-tested 7f2cc69)
+Verdict: APPROVED — no blocking findings.
+Closed: H1 session key, B1/M4 quarantine retention + recovery, H1/H2 earlier findings.
+Non-blocking: M2 quota pagination/check-then-act (single-owner; WO-013/WO-005), lifecycle
+AccessDenied, tombstone/GC and real ffprobe worker (WO-005), low test/documentation gaps.
+PR #48 remains Draft; merge and checkpoint promotion require explicit owner approval.

@@ -1,5 +1,28 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-003 — Private Flow clip ingest + Cloudflare R2 (2026-11-12)
+
+- **Work Order:** `DIF-V2-WO-003` · issue #20 · epic #17
+- **Base:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9` (WO-002 merge)
+- **Branch:** `feat/dif-v2-wo-003`
+- **Status:** final independent audit **APPROVED** at `c07af6e`; H1/H2, M4/M9/M11/M12, session-key and M4 recovery findings are closed. Local tests and live R2 acceptance **PASS** (15 clips); lifecycle automation, real ffprobe worker validation and orphan GC remain. M2 quota pagination/check-then-act is non-blocking for the single-owner scope and tracked for WO-013/WO-005. Checkpoint V2 remains **PROPOSED — NOT PROMOTED**; merge/promotion requires explicit owner approval.
+
+| Check                   | Result                             | Evidence                                                                                                                                                                                   |
+| ----------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Scope                   | PASS (code/docs only)              | Additive migrations, R2/in-memory storage adapter, ffprobe/fixture probe, upload/complete/list/download routes, `/app/video`, schemas, unit/PgTAP/E2E tests; no production deploy or spend |
+| Database/RLS            | PASS                               | `20261112170000_v2_wo003_video_storage.sql` + `20261112200000_v2_wo003_asset_boundary.sql` + `20261112210000_v2_wo003_session_boundary.sql`; `supabase test db` **42/42**                  |
+| Unit tests              | PASS                               | probe 15, storage 4, schemas 6, service 11; full suite **81 passed + 1 skipped**                                                                                                           |
+| Policy audit            | PASS                               | `npm run audit:policy`: 20 invariants across 16 tables                                                                                                                                     |
+| Lint/typecheck/build    | PASS                               | `npm run lint`; `npm run typecheck` 0/0; `npm run build`                                                                                                                                   |
+| E2E 15 clips + reload   | PASS                               | Hosted CI run `43332950992` on `7f2cc69`: PgTAP 42/42 and full E2E **10/10 (2.6m)**; video spec 16.2s with READY assertion and reload                                                      |
+| R2 bucket               | PASS (manual)                      | `dif-studio-video-private` created; public access not enabled                                                                                                                              |
+| R2 token/CORS/lifecycle | TOKEN/CORS PASS; lifecycle PENDING | Bucket-scoped token `-2` lacks lifecycle permission (`AccessDenied`); CORS configured; first token exposed in local output was revoked; no secret committed                                |
+| Live R2 upload/read     | PASS                               | `check:r2` PASS; 15-clip E2E live PASS (2.2m), reload and anonymous 401; 15 objects cleaned, 30 multipart aborted                                                                          |
+| Independent audit       | **APPROVED at `c07af6e`**          | Final audit: no blocking findings; H1/H2, session-key H1 and M4 recovery B1 closed; M2 quota residual non-blocking for single-owner and tracked for WO-013/WO-005                          |
+| Safety                  | PASS                               | No production deploy, paid service, credential in Git/logs, or checkpoint promotion                                                                                                        |
+
+**Verdict:** WO-003 implementation, RLS, local tests and live R2 upload/read are **PASS**; final independent audit **APPROVED** at `c07af6e`. Lifecycle automation, worker ffprobe and orphan GC remain WO-005 items, and M2 quota hardening is tracked for WO-013/WO-005. WO-004+ stays blocked until the owner formally approves/merges WO-003; the checkpoint remains **PROPOSED — NOT PROMOTED**.
+
 ## V2 WO-002 — Oracle ARM64 benchmark (2026-11-12)
 
 - **Work Order:** `DIF-V2-WO-002` · issue #19 · epic #17
