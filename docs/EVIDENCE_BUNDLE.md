@@ -1,6 +1,6 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13)
+## V2 WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-006` · issue #23 · epic #17
 - **Base:** `main` `b1081e9` (checkpoint WO-003/004/005 promoted)
@@ -17,7 +17,7 @@
 | Unit/build  | PASS   | 103 passed + 1 skipped; lint/typecheck/build                                                                     |
 | Limits      | —      | video-only; R2 worker path untested live; VFR/rotation fixtures, preview rendition and VPS smoke pending         |
 
-**Verdict:** WO-006 implementation, real worker, integration and hosted CI are green; re-audit pending. CI `43446568528` PASS 9m37s. READY now means a validated 1080x1920 H.264 artifact. Audio/captions/preview remain WO-007/008/009/011. No deploy, merge or checkpoint promotion.
+**Verdict:** WO-006 implementation, real worker, integration and hosted CI are green; final independent audit **APPROVED** at `6aee143`; squash-merged at `239f3ba`. Checkpoint promoted. READY now means a validated 1080x1920 H.264 artifact. Audio/captions/preview remain WO-007/008/009/011. No deploy, merge or checkpoint promotion.
 
 ## V2 WO-005 — Render job engine, worker stub and recovery (2026-11-13) — PROMOTED
 

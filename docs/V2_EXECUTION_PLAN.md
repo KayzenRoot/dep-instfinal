@@ -2,8 +2,8 @@
 
 - **Work Order:** `DIF-V2-WO-001` · issue #18
 - **Epic:** #17 · issues #18–#45
-- **Base atual:** `main` `b1081e9` (após checkpoint WO-003/004/005); plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
-- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 em execução; WO-007+ **BLOCKED** até aprovação do WO-006.
+- **Base atual:** `main` `239f3ba` (após checkpoint WO-006); plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
+- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged**; WO-007 em execução; WO-008+ **BLOCKED**.
 - **Fonte viva:** os corpos atuais das issues #18–#45 prevalecem sobre este plano.
 
 ## Inventário — 28 WOs e 20 melhorias
