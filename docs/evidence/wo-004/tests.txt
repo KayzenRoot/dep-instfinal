@@ -6,20 +6,22 @@ Head under test: 698bb68 (CI 43362722816); source code e68d14c/6f62c69
 
 1) Domain/schema tests
 Command: npx vitest run src/lib/domain/video-edit-plan.test.ts
-Result: 7 passed.
+Result: 11 passed.
 Coverage: 120s/15x8s, 90/150s with partial last clip, reorder, trim, crossfade
-overlap, foreign asset, double-booked scene, canonical JSON hash.
+overlap, foreign asset, double-booked scene with distinct asset, negative trims,
+source out of range, missing scene, multiple video tracks, first crossfade, CTA
+bounds and canonical JSON hash.
 
 2) Full unit suite
 Command: npm test
-Result: 15 files passed + 1 skipped (16); 88 tests passed + 1 skipped (89).
+Result: 15 files passed + 1 skipped (16); 92 tests passed + 1 skipped (93).
 
 3) PgTAP/RLS
 Command: supabase test db
-Result: All tests successful. Files=1, Tests=54, Result: PASS.
-Coverage: 18 tables; edit plan owner/non-owner; plan versions append-only; stale
-expected_version -> 40001; restore appends v2; APPROVED status; direct insert
-denied; hard delete and session boundaries from WO-003 remain green.
+Result: All tests successful. Files=1, Tests=58, Result: PASS.
+Coverage: 18 tables; authenticated cannot execute plan RPCs; service role creates,
+restores and approves; NULL/stale expected_version rejected; plan versions
+append-only; owner/non-owner reads; direct insert denied; WO-003 boundaries green.
 
 4) Lint/typecheck/build
 Commands: npm run lint; npm run typecheck; npm run build
@@ -27,7 +29,7 @@ Result: PASS (0 errors/0 warnings; adapter-node build completed).
 
 5) Policy audit
 Command: npm run audit:policy
-Result: PASS 21 invariants across 18 tables, including:
+Result: PASS 22 invariants across 18 tables, including:
 - video edit plans are owner-only, versioned and append-only
 - video session keys and lifecycle writes are server-owned
 - video READY and tombstone writes are server-mediated
@@ -36,27 +38,33 @@ Result: PASS 21 invariants across 18 tables, including:
 Command: CI=1 node scripts/test-local-e2e.mjs e2e/timeline.spec.ts
 Result: 1 passed (2.0-3.0m local).
 Journey: create series/season/episode, upload 15 synthetic clips, open
-/app/timeline, reorder scene 1 down, save v1, reload, approve, save v2,
-restore v1 as v3, reload; plan remains owner-only.
+/app/timeline, reorder scene 1 down, save v1, clean GET, approve, save v2,
+restore v1 as v3, clean GET; plan remains owner-only. Clean GET avoids the
+browser resubmitting the previous POST on reload.
 
 7) Full E2E suite
 Command: CI=1 node scripts/test-local-e2e.mjs
-Result: 11 passed (10.3m locally; 4.9m hosted).
+Result: 11 passed (10.3m locally; 4.9m hosted pre-hardening).
 Includes owner journey, video 15-clip upload, timeline 15-clip edit/restore,
 anonymous/cross-origin/layout checks.
 
 8) Hosted CI
-Run: 43362722816 (workflow_dispatch, branch feat/dif-v2-wo-004)
-Result: PASS in 7m30s.
+Run: 43362722816 (workflow_dispatch, branch feat/dif-v2-wo-004) on 698bb68
+Result: PASS in 7m30s (pre-hardening).
 - format:check/lint/typecheck/unit (88+1)/build/audit deps PASS
 - PgTAP 54/54 PASS
 - E2E 11/11 PASS (timeline 2.2m, video 19.2s)
-No production deploy, merge, paid service or secret in Git/logs.
+A new hosted run is pending for the B1/B2/B3 hardening head; local PgTAP is 58/58
+and local unit is 92+1. No production deploy, merge, paid service or secret.
 
 9) Design notes
 - Additive migration 20261113090000_v2_wo004_edit_plans.sql.
-- SECURITY DEFINER RPCs check auth.uid(), owner claim, published status and
-  optimistic expected_version; tables expose SELECT only to authenticated.
+- Plan write RPCs are executable only by service_role; the SvelteKit server
+  validates the full plan, computes SHA-256 and passes the verified owner id.
+  Tables expose SELECT only to authenticated; direct RPC/insert/update is denied.
+- Every RPC checks published status and NULL/stale expected_version; restore
+  revalidates the source snapshot; load verifies the stored canonical hash.
+- Plan revision binding and global scene uniqueness are enforced in the domain.
 - Plan versions are immutable; restore appends a new snapshot.
 - Manifest hash is SHA-256 of canonical sorted-key JSON.
 - No video bytes are stored in PostgreSQL; plans reference READY video_assets.

@@ -46,23 +46,27 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page.locator('.clip-card').first()).toContainText('CENA 2');
 	await page.getByRole('button', { name: 'Salvar nova versão' }).click();
 	await expect(page.getByText('Plano salvo.')).toBeVisible();
+	await expect(page.locator('.notice.error')).toHaveCount(0);
 	await expect(page.getByText('v1', { exact: true })).toBeVisible();
 
-	await page.reload();
+	await page.goto(`/app/timeline?episodeId=${episodeId}`);
 	await expect(page.locator('.clip-card')).toHaveCount(15);
 	await expect(page.locator('.clip-card').first()).toContainText('CENA 2');
 
 	await page.getByRole('button', { name: 'Aprovar plano atual' }).click();
 	await expect(page.getByText('APPROVED')).toBeVisible();
+	await expect(page.locator('.notice.error')).toHaveCount(0);
 
 	await page.getByRole('button', { name: '↓' }).first().click();
 	await page.getByRole('button', { name: 'Salvar nova versão' }).click();
 	await expect(page.getByText('Plano salvo.')).toBeVisible();
+	await expect(page.locator('.notice.error')).toHaveCount(0);
 	await expect(page.getByText('v2', { exact: true })).toBeVisible();
 
 	await page.getByRole('button', { name: 'Restaurar' }).last().click();
 	await expect(page.getByText('Plano salvo.')).toBeVisible();
+	await expect(page.locator('.notice.error')).toHaveCount(0);
 	await expect(page.getByText('v3', { exact: true })).toBeVisible();
-	await page.reload();
+	await page.goto(`/app/timeline?episodeId=${episodeId}`);
 	await expect(page.locator('.clip-card').first()).toContainText('CENA 2');
 });

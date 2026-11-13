@@ -4,8 +4,8 @@
 
 - **Status:** **PROPOSED — NOT PROMOTED**; implementation, PgTAP, unit and E2E **PASS**; hosted CI `43362722816` PASS; **independent audit pending**. Stacked on WO-003, which remains audit-approved but unmerged. WO-005+ remains **BLOCKED**.
 - **Base:** `feat/dif-v2-wo-003` `4d1aa3c`; branch `feat/dif-v2-wo-004`; Draft PR #49.
-- **Delivered:** additive `video_edit_plans`/`video_edit_plan_versions` migration; owner-only read RLS; SECURITY DEFINER RPCs with optimistic concurrency, restore-as-new-version and DRAFT/APPROVED; Zod/domain plan contract with 4/6/8 s timing, trims, transitions, tracks, CTA and canonical manifest hash; `/app/timeline` editor with reorder, trim, crossfade, version history and restore.
-- **Tests:** PgTAP **54/54**; unit **88 + 1 skip** (domain 7); policy **21 invariants/18 tables**; lint/typecheck/build PASS; E2E **11/11** including timeline 15-clip edit/restore.
+- **Delivered:** additive `video_edit_plans`/`video_edit_plan_versions` migration; owner-only read RLS; server-only service-role RPCs with optimistic concurrency, restore-as-new-version and DRAFT/APPROVED; Zod/domain plan contract with 4/6/8 s timing, trims, transitions, tracks, CTA and canonical manifest hash; `/app/timeline` editor with reorder, trim, crossfade, version history and restore.
+- **Tests:** PgTAP **58/58**; unit **92 + 1 skip** (domain 11); policy **22 invariants/18 tables**; lint/typecheck/build PASS; E2E **11/11** including timeline 15-clip edit/restore. Hosted re-run pending after server-only RPC hardening.
 - **Risks/limits:** stacked merge requires owner authorization; overlay/audio/subtitle tracks and RENDERED state belong to WO-005/006/009; E2E serial due local PostgREST pool contention; WO-003 M2 quota residual remains tracked for WO-013/WO-005.
 - **Gate:** independent audit before merge/promotion; no production deploy, paid service or secret occurred.
 

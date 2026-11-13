@@ -167,6 +167,12 @@ export async function loadEditPlan(
 	const parsed = videoEditPlanSchema.safeParse(data.plan);
 	if (!parsed.success)
 		throw new VideoEditPlanError(500, 'EDIT_PLAN_STORED_INVALID', 'O plano armazenado é inválido.');
+	if (manifestHash(parsed.data) !== data.manifest_hash)
+		throw new VideoEditPlanError(
+			500,
+			'EDIT_PLAN_HASH_MISMATCH',
+			'O hash do plano armazenado não confere.',
+		);
 	const { data: versionRows, error: versionsError } = await db
 		.from('video_edit_plan_versions')
 		.select('id,version,change_note,manifest_hash,created_at')
@@ -213,6 +219,7 @@ export function validateForContext(plan: VideoEditPlan, context: EditPlanContext
 
 export async function saveVideoEditPlan(input: {
 	db: SupabaseClient;
+	adminDb: SupabaseClient | null;
 	owner: User;
 	episodeId: string;
 	expectedVersion: number;
@@ -221,7 +228,14 @@ export async function saveVideoEditPlan(input: {
 }): Promise<number> {
 	const context = await loadEditPlanContext(input.db, input.owner, input.episodeId);
 	const plan = validateForContext(input.plan, context);
-	const { data, error } = await input.db.rpc('save_video_edit_plan', {
+	if (!input.adminDb)
+		throw new VideoEditPlanError(
+			503,
+			'EDIT_PLAN_WRITE_UNAVAILABLE',
+			'O writer do plano não está configurado.',
+		);
+	const { data, error } = await input.adminDb.rpc('save_video_edit_plan', {
+		p_owner_id: input.owner.id,
 		p_episode_id: input.episodeId,
 		p_expected_version: input.expectedVersion,
 		p_plan: plan,
@@ -236,13 +250,41 @@ export async function saveVideoEditPlan(input: {
 
 export async function restoreVideoEditPlan(input: {
 	db: SupabaseClient;
+	adminDb: SupabaseClient | null;
 	owner: User;
 	episodeId: string;
 	version: number;
 	expectedVersion: number;
 	changeNote?: string;
 }): Promise<number> {
-	const { data, error } = await input.db.rpc('restore_video_edit_plan', {
+	const context = await loadEditPlanContext(input.db, input.owner, input.episodeId);
+	const { data: source, error: sourceError } = await input.db
+		.from('video_edit_plan_versions')
+		.select('plan,manifest_hash')
+		.eq('owner_id', input.owner.id)
+		.eq('episode_id', input.episodeId)
+		.eq('version', input.version)
+		.maybeSingle();
+	if (sourceError || !source)
+		throw new VideoEditPlanError(404, 'EDIT_PLAN_VERSION_NOT_FOUND', 'Versão não encontrada.');
+	const parsedSource = videoEditPlanSchema.safeParse(source.plan);
+	if (!parsedSource.success)
+		throw new VideoEditPlanError(
+			409,
+			'EDIT_PLAN_STORED_INVALID',
+			'A versão armazenada é inválida.',
+		);
+	validateForContext(parsedSource.data, context);
+	if (manifestHash(parsedSource.data) !== source.manifest_hash)
+		throw new VideoEditPlanError(409, 'EDIT_PLAN_HASH_MISMATCH', 'O hash da versão não confere.');
+	if (!input.adminDb)
+		throw new VideoEditPlanError(
+			503,
+			'EDIT_PLAN_WRITE_UNAVAILABLE',
+			'O writer do plano não está configurado.',
+		);
+	const { data, error } = await input.adminDb.rpc('restore_video_edit_plan', {
+		p_owner_id: input.owner.id,
 		p_episode_id: input.episodeId,
 		p_version: input.version,
 		p_expected_version: input.expectedVersion,
@@ -260,12 +302,20 @@ export async function restoreVideoEditPlan(input: {
 
 export async function setVideoEditPlanStatus(input: {
 	db: SupabaseClient;
+	adminDb: SupabaseClient | null;
 	owner: User;
 	episodeId: string;
 	expectedVersion: number;
 	status: 'DRAFT' | 'APPROVED';
 }): Promise<void> {
-	const { error } = await input.db.rpc('set_video_edit_plan_status', {
+	if (!input.adminDb)
+		throw new VideoEditPlanError(
+			503,
+			'EDIT_PLAN_WRITE_UNAVAILABLE',
+			'O writer do plano não está configurado.',
+		);
+	const { error } = await input.adminDb.rpc('set_video_edit_plan_status', {
+		p_owner_id: input.owner.id,
 		p_episode_id: input.episodeId,
 		p_expected_version: input.expectedVersion,
 		p_status: input.status,

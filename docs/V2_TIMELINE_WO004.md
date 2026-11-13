@@ -15,11 +15,13 @@ Migration `supabase/migrations/20261113090000_v2_wo004_edit_plans.sql`:
 
 - `video_edit_plans`: um plano atual por owner/episódio; `current_version`, `current_status` (`DRAFT`, `APPROVED`, `RENDERED`), `plan jsonb`, `manifest_hash`, timestamps.
 - `video_edit_plan_versions`: snapshots imutáveis (`plan`, hash, nota, versão); unique por owner/plano/versão; trigger rejeita UPDATE/DELETE.
-- RLS owner-only para leitura; `authenticated` não tem INSERT/UPDATE/DELETE. Escritas passam por RPCs `SECURITY DEFINER` com checagem de `auth.uid()`, claim `dif_studio_owner`, episódio e status de publicação:
+- RLS owner-only para leitura; `authenticated` não tem INSERT/UPDATE/DELETE. Escritas passam por RPCs `SECURITY DEFINER` executáveis **somente por `service_role`**, chamadas pelo servidor com o owner verificado; a validação completa do plano e o hash ficam no servidor:
   - `save_video_edit_plan(episode, expected_version, plan, hash, note)` — cria v1 ou falha com `40001` em conflito.
   - `restore_video_edit_plan(episode, version, expected_version, note)` — anexa uma nova versão; não apaga o histórico.
   - `set_video_edit_plan_status(episode, expected_version, status)` — DRAFT/APPROVED.
-- `episode_revision_number` fica disponível para o worker/render futuro; o plano não reescreve `episode_revisions`.
+- `episode_revision_number` é gravado a partir do plano; o plano não reescreve `episode_revisions`.
+- `restore` revalida a versão de origem contra o contexto atual (episódio, cenas, assets READY, revisão) antes de anexar a nova versão.
+- `loadEditPlan` recalcula o SHA-256 canônico e rejeita hash divergente; revogar `authenticated` das RPCs fecha o caminho de plano/hash forjado pelo Data API.
 
 ## 3. Contrato do plano
 
@@ -42,16 +44,16 @@ Migration `supabase/migrations/20261113090000_v2_wo004_edit_plans.sql`:
 
 ## 5. Testes
 
-| Verificação          | Resultado                            | Evidência                                                                                                      |
-| -------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| Domain/schema        | **PASS 7**                           | `video-edit-plan.test.ts`: 120/90/150, reorder, trim, crossfade, foreign asset, double-booking, canonical hash |
-| PgTAP/RLS            | **PASS 54/54**                       | owner/non-owner plans, append-only versions, optimistic conflict, restore, approve, direct insert denied       |
-| Unit total           | **PASS 88 + 1 skip**                 | `npm test`                                                                                                     |
-| Lint/typecheck/build | **PASS**                             | `npm run lint`, `npm run typecheck`, `npm run build`                                                           |
-| Policy audit         | **PASS 21 invariantes / 18 tabelas** | `npm run audit:policy`                                                                                         |
-| E2E timeline         | **PASS local e CI**                  | `e2e/timeline.spec.ts`: 15 uploads, reorder, save v1, reload, approve, save v2, restore v1→v3, reload          |
-| E2E suíte            | **PASS 11/11** (4.9m no CI)          | hosted CI `43362722816`; serial `workers=1` avoids artificial PostgREST pool contention                        |
-| CI baseline          | **PASS 7m30s**                       | run `43362722816`: format/lint/typecheck/unit/build/audit deps + PgTAP 54/54 + E2E 11/11                       |
+| Verificação                 | Resultado                            | Evidência                                                                                                      |
+| --------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Domain/schema               | **PASS 11**                          | `video-edit-plan.test.ts`: 120/90/150, reorder, trim, crossfade, foreign asset, double-booking, canonical hash |
+| PgTAP/RLS                   | **PASS 58/58**                       | owner/non-owner plans, append-only versions, optimistic conflict, restore, approve, direct insert denied       |
+| Unit total                  | **PASS 92 + 1 skip**                 | `npm test`                                                                                                     |
+| Lint/typecheck/build        | **PASS**                             | `npm run lint`, `npm run typecheck`, `npm run build`                                                           |
+| Policy audit                | **PASS 22 invariantes / 18 tabelas** | `npm run audit:policy`                                                                                         |
+| E2E timeline                | **PASS local**                       | `e2e/timeline.spec.ts`: 15 uploads, reorder, save v1, clean GET, approve, save v2, restore v1→v3, clean GET    |
+| E2E suíte                   | **PASS 11/11 local**                 | serial `workers=1`; hosted re-run pending after server-only RPC hardening                                      |
+| CI baseline (pré-hardening) | **PASS 7m30s**                       | run `43362722816` on `698bb68`: unit 88+1, PgTAP 54/54, E2E 11/11; new head re-run pending                     |
 
 ## 6. Matriz de aceitação (issue #21)
 
@@ -66,7 +68,7 @@ Migration `supabase/migrations/20261113090000_v2_wo004_edit_plans.sql`:
 ## 7. Riscos e limites
 
 - **Stacked branch:** WO-004 depende do branch WO-003 ainda não mergeado; o merge dos dois exige autorização do owner. Não há deploy de produção.
-- **Concorrência:** a RPC serializa por episódio com `FOR UPDATE`; conflito retorna 409 sem lost update. A UI exige reload após conflito.
+- **Concorrência:** a RPC serializa por episódio com `FOR UPDATE`; `expected_version` nulo/obsoleto retorna 40001/409 sem lost update. A UI exige reload após conflito.
 - **Tracks:** o editor entregue usa a track `video-main`; overlay/áudio/legendas ficam no contrato e no worker/WO-006/WO-009.
 - **Render:** `RENDERED` existe no schema, mas só será definido pelo worker WO-006; o WO-004 não renderiza.
 - **E2E:** timeline + upload de 15 clipes saturam o PostgREST local em paralelo; a suíte usa `workers: 1`. O CI hospedado é a autoridade.

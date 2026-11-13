@@ -2,6 +2,7 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { ownerDatabase, readFormText } from '#lib/server/authorized.js';
 import { firstRelation } from '#lib/server/relations.js';
+import { createSupabaseAdminClient } from '#lib/server/supabase.js';
 import {
 	defaultEditPlan,
 	loadEditPlan,
@@ -122,6 +123,7 @@ export const actions: Actions = {
 		try {
 			const version = await saveVideoEditPlan({
 				db,
+				adminDb: createSupabaseAdminClient(),
 				owner,
 				episodeId,
 				expectedVersion,
@@ -144,7 +146,12 @@ export const actions: Actions = {
 		});
 		if (!parsed.success) return fail(400, { message: 'Versão de restauração inválida.' });
 		try {
-			const version = await restoreVideoEditPlan({ db, owner, ...parsed.data });
+			const version = await restoreVideoEditPlan({
+				db,
+				adminDb: createSupabaseAdminClient(),
+				owner,
+				...parsed.data,
+			});
 			return { success: true, version };
 		} catch (cause) {
 			const errorInfo = messageFor(cause);
@@ -161,7 +168,12 @@ export const actions: Actions = {
 		});
 		if (!parsed.success) return fail(400, { message: 'Status do plano inválido.' });
 		try {
-			await setVideoEditPlanStatus({ db, owner, ...parsed.data });
+			await setVideoEditPlanStatus({
+				db,
+				adminDb: createSupabaseAdminClient(),
+				owner,
+				...parsed.data,
+			});
 			return { success: true };
 		} catch (cause) {
 			const errorInfo = messageFor(cause);

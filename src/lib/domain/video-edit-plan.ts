@@ -1,4 +1,4 @@
-import type { EditPlanClip, EditPlanTrack, VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
+import type { EditPlanClip, VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
 
 export class EditPlanError extends Error {
 	constructor(
@@ -156,6 +156,11 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 		throw new EditPlanError('EDIT_PLAN_DURATION_MISMATCH', 'A duração do plano não confere.');
 	if (plan.sceneDurationMs !== context.sceneDurationMs)
 		throw new EditPlanError('EDIT_PLAN_SCENE_DURATION_MISMATCH', 'A duração de cena não confere.');
+	if (plan.episodeRevisionNumber !== context.episodeRevisionNumber)
+		throw new EditPlanError(
+			'EDIT_PLAN_REVISION_STALE',
+			'O plano referencia uma revisão diferente do episódio.',
+		);
 
 	const trackIds = new Set<string>();
 	let videoTracks = 0;
@@ -171,7 +176,6 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 			'O plano precisa de uma track de vídeo.',
 		);
 
-	const videoTrack = plan.tracks.find((track) => track.kind === 'video') as EditPlanTrack;
 	const sceneById = new Map(context.scenes.map((scene) => [scene.id, scene]));
 	const assetById = new Map(context.assets.map((asset) => [asset.id, asset]));
 	const seenScenes = new Set<string>();
@@ -203,14 +207,12 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 				'O mesmo clipe foi usado duas vezes.',
 			);
 		seenAssets.add(clip.assetId);
-		if (clip.trackId === videoTrack.id) {
-			if (seenScenes.has(clip.sceneId))
-				throw new EditPlanError(
-					'EDIT_PLAN_SCENE_DOUBLE_BOOKED',
-					'A mesma cena foi usada duas vezes.',
-				);
-			seenScenes.add(clip.sceneId);
-		}
+		if (seenScenes.has(clip.sceneId))
+			throw new EditPlanError(
+				'EDIT_PLAN_SCENE_DOUBLE_BOOKED',
+				'A mesma cena foi usada duas vezes.',
+			);
+		seenScenes.add(clip.sceneId);
 		const list = clipsByTrack.get(clip.trackId) ?? [];
 		list.push(clip);
 		clipsByTrack.set(clip.trackId, list);
@@ -266,7 +268,7 @@ export function canonicalEditPlanJson(plan: VideoEditPlan): string {
 		if (value && typeof value === 'object') {
 			return Object.fromEntries(
 				Object.entries(value as Record<string, unknown>)
-					.sort(([left], [right]) => left.localeCompare(right))
+					.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
 					.map(([key, entry]) => [key, sort(entry)]),
 			);
 		}
