@@ -192,4 +192,12 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Issue inventory:** WO-001–005 **MERGED/CLOSED**; WO-006/#23 **IN PROGRESS**; WO-007+ #24–#45 **BLOCKED**.
 - **Delivered locally:** allowlisted FFmpeg composition (trim/scale/crop/fps/concat/xfade/VHS), H.264 High 1080x1920 faststart, ffprobe validation, real `render-job.ts` with plan/context revalidation and asset hash checks, worker real mode/kill tree, worker read grants.
 - **Tests:** 103 + 1 unit (120s cuts + multi-crossfade; `settb`), PgTAP 83/83 (stub rejected), policy 23/20, E2E real worker local.
-- **Gate:** B1–B5/NEW-1/B4-R/N1/N2/N6/N7 corrections applied; CI `43446568528` PASS (9m37s); re-audit pending. No VPS deployment/container/firewall/key, no merge/promotion. WO-007+ blocked. Residuals: R2 worker live path, VFR/rotation fixtures, preview rendition, process-group Linux smoke, WO-005 queue hardening. Residuals: R2 worker live path, VFR/rotation fixtures, preview rendition, process-group Linux smoke, WO-005 queue hardening.
+- **Gate:** B1–B5/NEW-1/B4-R/N1/N2/N6/N7 corrections applied; final audit **APPROVED** at `6aee143`; squash-merged at `239f3ba`; checkpoint promoted. No VPS deployment/container/firewall/key, no merge/promotion. WO-007+ blocked. Residuals: R2 worker live path, VFR/rotation fixtures, preview rendition, process-group Linux smoke, WO-005 queue hardening. Residuals: R2 worker live path, VFR/rotation fixtures, preview rendition, process-group Linux smoke, WO-005 queue hardening.
+
+## V2 checkpoint promotion — WO-006 (2026-11-13)
+
+- **Owner decision:** continued merge/promotion authorization; PR #53 squash-merged at `239f3ba`; issue #23 closed.
+- **Audit:** final independent audit **APPROVED** at `6aee143` after B1–B5/NEW-1/B4-R closure.
+- **Scope:** FFmpeg cuts/crossfade/VHS composition, 1080x1920 H.264 real artifacts, real worker with hash/plan validation, READY artifact guard and worker grants.
+- **Residuals:** VPS/R2 live smoke, VFR/rotation fixtures, audio/captions/preview, 720p/disk limits and least-privilege worker role remain tracked for later WOs.
+- **Next:** WO-007 (#24) narration; WO-008+ remain gated by their own approvals.
