@@ -17,6 +17,10 @@ const TABLES = [
 	'canonical_decisions',
 	'image_references',
 	'generation_jobs',
+	'video_upload_sessions',
+	'video_assets',
+	'video_edit_plans',
+	'video_edit_plan_versions',
 ] as const;
 
 export const GET: RequestHandler = async (event) => {

@@ -3,7 +3,7 @@
 - **Work Order:** `DIF-V2-WO-001` · issue #18
 - **Epic:** #17 · issues #18–#45
 - **Base atual:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9` (após WO-002); plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
-- **Status:** **PROPOSED** — WO-001 **APPROVED/merged**; WO-002 evidência **APPROVED** (GO CONDITIONAL); ADR-V2-002 **ACCEPTED** (R2); WO-003 em execução; WO-004+ **BLOCKED**.
+- **Status:** **PROPOSED** — WO-001 **APPROVED/merged**; WO-002 evidência **APPROVED** (GO CONDITIONAL); ADR-V2-002 **ACCEPTED** (R2); WO-003 **audit APPROVED em `c07af6e`, merge pendente**; WO-004 em execução no branch empilhado `feat/dif-v2-wo-004`; WO-005+ **BLOCKED**.
 - **Fonte viva:** os corpos atuais das issues #18–#45 prevalecem sobre este plano.
 
 ## Inventário — 28 WOs e 20 melhorias
@@ -12,8 +12,8 @@
 | ------ | ----- | ------------------------------------------------------- | -------- | ----------------------------------------------------------------- | ------------------- |
 | WO-001 | #18   | Gate V1 + Source Pack V2 + ADR PROPOSED + Context Lock  | ELEVATED | PR #16 encerrado (mergeado em `13467ab`)                          | APPROVED (merged)   |
 | WO-002 | #19   | Benchmark FFmpeg/ARM64 e viabilidade US$ 0              | ELEVATED | WO-001 APPROVED + ADR aceita                                      | APPROVED (GO COND.) |
-| WO-003 | #20   | Ingestão segura de clipes e storage privado             | ELEVATED | WO-001; WO-002 GO; contrato de storage                            | IN PROGRESS (R2)    |
-| WO-004 | #21   | Timeline canônica, alinhamento e versões                | ELEVATED | WO-001; WO-003 (proposta)                                         | PLANNED             |
+| WO-003 | #20   | Ingestão segura de clipes e storage privado             | ELEVATED | WO-001; WO-002 GO; contrato de storage                            | AUDIT APPROVED (merge pendente) |
+| WO-004 | #21   | Timeline canônica, alinhamento e versões                | ELEVATED | WO-001; WO-003 (audit approved)                                   | IN PROGRESS (stacked) |
 | WO-005 | #22   | Worker, fila, lease, retry, recuperação                 | ELEVATED | WO-001; WO-003; WO-004 (proposta)                                 | PLANNED             |
 | WO-006 | #23   | Composição FFmpeg, cortes, transições, VHS 9:16         | ELEVATED | WO-002; WO-004; WO-005                                            | PLANNED             |
 | WO-007 | #24   | Narração pt-BR, voz importada e TTS local opcional      | ELEVATED | WO-005; WO-006; adendo emoção                                     | PLANNED             |
