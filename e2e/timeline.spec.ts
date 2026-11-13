@@ -77,9 +77,15 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 		'A voz sussurrou que ninguém deveria abrir a caixa azul.',
 		'Mesmo assim, Alice abriu.',
 	].join(' ');
-	await page.getByLabel('Narração completa · português brasileiro').fill(narrationText);
-	await page.getByRole('button', { name: 'Salvar roteiro e revisar timeline' }).click();
 	await page.waitForLoadState('networkidle');
+	const narrationField = page.getByLabel('Narração completa · português brasileiro');
+	await narrationField.fill(narrationText);
+	await page.waitForTimeout(500);
+	await expect(narrationField).toHaveValue(narrationText);
+	await page.getByRole('button', { name: 'Salvar roteiro e revisar timeline' }).click();
+	await expect(page.locator('p.form-success[role="status"]')).toBeVisible();
+	await page.waitForLoadState('networkidle');
+	console.log('[timeline-e2e] episode narration saved');
 
 	const renderRoot = await mkdtemp(path.join(tmpdir(), 'dif-e2e-render-'));
 	const fixtures: string[] = [];
