@@ -1,4 +1,7 @@
-import { hostname } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
 const url =
@@ -10,15 +13,7 @@ if (!url || !serviceKey) {
 	);
 	process.exit(1);
 }
-if (process.env.WORKER_STUB !== '1') {
-	console.error(
-		JSON.stringify({
-			event: 'worker_config_error',
-			message: 'WO-005 worker currently requires WORKER_STUB=1; real FFmpeg is WO-006',
-		}),
-	);
-	process.exit(1);
-}
+const stub = process.env.WORKER_STUB === '1';
 
 const workerId = (process.env.WORKER_ID ?? `worker-${hostname()}-${process.pid}`).slice(0, 80);
 const pollMs = Math.max(250, Math.min(30_000, Number(process.env.WORKER_POLL_MS ?? 1_000)));
@@ -30,6 +25,7 @@ const client = createClient(url, serviceKey, {
 
 let stopping = false;
 let activeAbort = null;
+let activeChild = null;
 let jobsRun = 0;
 
 function log(event, fields = {}) {
@@ -49,6 +45,57 @@ function sleep(ms, signal) {
 			{ once: true },
 		);
 	});
+}
+
+function stopChild(child) {
+	if (!child?.pid) return;
+	if (process.platform === 'win32') {
+		const taskkill = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'taskkill.exe');
+		spawn(taskkill, ['/PID', String(child.pid), '/T', '/F'], {
+			stdio: 'ignore',
+			windowsHide: true,
+		});
+	} else {
+		try {
+			process.kill(-child.pid, 'SIGTERM');
+		} catch {
+			child.kill('SIGTERM');
+		}
+	}
+}
+
+async function runRealRender(job, signal) {
+	if (signal.aborted) throw new Error('WORKER_CANCELED');
+	const cli = join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
+	const jobTemp = await mkdtemp(join(tmpdir(), 'dif-render-job-'));
+	const child = spawn(process.execPath, [cli, 'scripts/render-job.ts'], {
+		env: {
+			...process.env,
+			RENDER_JOB_ID: job.id,
+			WORKER_RENDER_TMPDIR: jobTemp,
+		},
+		detached: process.platform !== 'win32',
+		stdio: ['ignore', 'pipe', 'pipe'],
+	});
+	activeChild = child;
+	let stdout = '';
+	let stderr = '';
+	child.stdout?.on('data', (chunk) => (stdout += String(chunk)));
+	child.stderr?.on('data', (chunk) => (stderr += String(chunk)));
+	const abort = () => stopChild(child);
+	signal.addEventListener('abort', abort, { once: true });
+	try {
+		const code = await new Promise((resolve) => child.on('exit', (value) => resolve(value ?? 1)));
+		if (code !== 0) throw new Error(stderr.trim().slice(0, 64) || 'WORKER_RENDER_FAILED');
+		const lines = stdout.trim().split(String.fromCharCode(10));
+		const lastLine = lines[lines.length - 1];
+		if (!lastLine) throw new Error('WORKER_RENDER_FAILED');
+		return JSON.parse(lastLine);
+	} finally {
+		signal.removeEventListener('abort', abort);
+		activeChild = null;
+		await rm(jobTemp, { recursive: true, force: true });
+	}
 }
 
 async function rpc(name, args) {
@@ -86,22 +133,27 @@ async function runJob(job) {
 	);
 	try {
 		await rpc('start_render_job', { p_job_id: job.id, p_worker_id: workerId });
-		log('render_started', { jobId: job.id, planVersion: job.plan_version });
-		await sleep(250, abort.signal);
-		if (abort.signal.aborted) {
-			throw new Error(stopping ? 'WORKER_SHUTDOWN' : 'WORKER_LEASE_LOST');
+		log('render_started', { jobId: job.id, planVersion: job.plan_version, stub });
+		let outputManifest;
+		if (stub) {
+			await sleep(250, abort.signal);
+			if (abort.signal.aborted) {
+				throw new Error(stopping ? 'WORKER_SHUTDOWN' : 'WORKER_LEASE_LOST');
+			}
+			const status = await jobStatus(job.id);
+			if (status === 'CANCELED') throw new Error('WORKER_CANCELED');
+			if (status !== 'RUNNING') throw new Error('WORKER_LEASE_LOST');
+			outputManifest = {
+				schemaVersion: 1,
+				jobId: job.id,
+				planId: job.plan_id,
+				planVersion: job.plan_version,
+				stub: true,
+				completedAt: new Date().toISOString(),
+			};
+		} else {
+			outputManifest = await runRealRender(job, abort.signal);
 		}
-		const status = await jobStatus(job.id);
-		if (status === 'CANCELED') throw new Error('WORKER_CANCELED');
-		if (status !== 'RUNNING') throw new Error('WORKER_LEASE_LOST');
-		const outputManifest = {
-			schemaVersion: 1,
-			jobId: job.id,
-			planId: job.plan_id,
-			planVersion: job.plan_version,
-			stub: true,
-			completedAt: new Date().toISOString(),
-		};
 		await rpc('complete_render_job', {
 			p_job_id: job.id,
 			p_worker_id: workerId,
@@ -123,12 +175,13 @@ async function runJob(job) {
 		log('render_failed', { jobId: job.id, code, heartbeatError: Boolean(heartbeatError) });
 	} finally {
 		clearInterval(heartbeat);
+		if (activeChild) stopChild(activeChild);
 		activeAbort = null;
 	}
 }
 
 async function main() {
-	log('worker_started', { pollMs, leaseSeconds, maxJobs });
+	log('worker_started', { pollMs, leaseSeconds, maxJobs, stub });
 	while (!stopping && (maxJobs === 0 || jobsRun < maxJobs)) {
 		try {
 			await rpc('reconcile_render_jobs');

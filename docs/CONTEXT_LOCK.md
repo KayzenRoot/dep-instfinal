@@ -185,3 +185,11 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Checkpoint status:** **PROMOTED** on 2026-11-13. The checkpoint covers private R2 ingest, canonical timeline versions and render queue/stub worker.
 - **Residuals:** R2 lifecycle/GC, M2 quota hardening, real FFmpeg/VPS worker and least-privilege worker credential remain tracked; WO-006+ still requires its own implementation, CI, evidence and audit.
 - **No new external service** was purchased or provisioned by this promotion. The Vercel production deployment associated with `main` is the owner-authorized deployment of the merged code.
+
+## V2 Context Lock — WO-006 (#23)
+
+- **Base revalidated:** `main` `b1081e9` (checkpoint WO-003/004/005 promoted). Branch: `feat/dif-v2-wo-006`.
+- **Issue inventory:** WO-001–005 **MERGED/CLOSED**; WO-006/#23 **IN PROGRESS**; WO-007+ #24–#45 **BLOCKED**.
+- **Delivered locally:** allowlisted FFmpeg composition (trim/scale/crop/fps/concat/xfade/VHS), H.264 High 1080x1920 faststart, ffprobe validation, real `render-job.ts` with plan/context revalidation and asset hash checks, worker real mode/kill tree, worker read grants.
+- **Tests:** 103 + 1 unit (120s cuts + multi-crossfade; `settb`), PgTAP 83/83 (stub rejected), policy 23/20, E2E real worker local.
+- **Gate:** B1–B5/NEW-1/B4-R/N1/N2/N6/N7 corrections applied; CI `43446568528` PASS (9m37s); re-audit pending. No VPS deployment/container/firewall/key, no merge/promotion. WO-007+ blocked. Residuals: R2 worker live path, VFR/rotation fixtures, preview rendition, process-group Linux smoke, WO-005 queue hardening. Residuals: R2 worker live path, VFR/rotation fixtures, preview rendition, process-group Linux smoke, WO-005 queue hardening.

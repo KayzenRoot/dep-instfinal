@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { hasMp4Magic, parseFfprobeOutput, validateProbe, type ProbeResult } from './video-probe.js';
+import {
+	hasMp4Magic,
+	mediaProcessEnv,
+	parseFfprobeOutput,
+	validateProbe,
+	type ProbeResult,
+} from './video-probe.js';
 
 const valid: ProbeResult = {
 	container: 'mov,mp4,m4a,3gp,3g2,mj2',
@@ -126,5 +132,14 @@ describe('ffprobe JSON parsing', () => {
 		expect(() => parseFfprobeOutput(JSON.stringify({ format: {}, streams: [] }))).toThrow(
 			'ffprobe did not return a video stream.',
 		);
+	});
+});
+
+describe('ffprobe child environment', () => {
+	it('does not pass service or storage secrets to ffprobe', () => {
+		const env = mediaProcessEnv();
+		expect(Object.keys(env).sort()).toEqual(['PATH', 'SystemRoot']);
+		expect(env.SUPABASE_SERVICE_ROLE_KEY).toBeUndefined();
+		expect(env.R2_SECRET_ACCESS_KEY).toBeUndefined();
 	});
 });

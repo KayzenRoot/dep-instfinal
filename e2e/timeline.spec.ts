@@ -1,9 +1,41 @@
 import { expect, test } from '@playwright/test';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
+import { copyFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-test('owner edits a versioned timeline and restores an earlier version', async ({ page }) => {
-	test.setTimeout(600_000);
+async function cancelOpenRenderJobs(
+	request: import('@playwright/test').APIRequestContext,
+): Promise<void> {
+	const base = process.env.PUBLIC_SUPABASE_URL;
+	const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+	if (!base || !key) return;
+	const response = await request.patch(
+		`${base}/rest/v1/render_jobs?status=in.(QUEUED,CLAIMED,RUNNING)`,
+		{
+			headers: {
+				apikey: key,
+				Authorization: `Bearer ${key}`,
+				'content-type': 'application/json',
+				Prefer: 'return=minimal',
+			},
+			data: {
+				status: 'CANCELED',
+				finished_at: new Date().toISOString(),
+				lease_owner: null,
+				lease_expires_at: null,
+				heartbeat_at: null,
+			},
+		},
+	);
+	expect(response.ok()).toBeTruthy();
+}
+
+test('owner edits a versioned timeline and restores an earlier version', async ({
+	page,
+	request,
+}) => {
+	test.setTimeout(900_000);
 	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
 	test.skip(
 		!process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -32,11 +64,38 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
 	const episodeId = page.url().split('/').at(-1)!;
 
+	const renderRoot = await mkdtemp(path.join(tmpdir(), 'dif-e2e-render-'));
+	const fixtures: string[] = [];
+	for (let index = 1; index <= 15; index += 1) {
+		const directory = path.join(renderRoot, `scene-${String(index).padStart(2, '0')}`);
+		await mkdir(directory, { recursive: true });
+		const fixture = path.join(directory, 'synthetic-scene.mp4');
+		execFileSync(
+			'ffmpeg',
+			[
+				'-y',
+				'-hide_banner',
+				'-loglevel',
+				'error',
+				'-f',
+				'lavfi',
+				'-i',
+				'testsrc2=size=180x320:rate=30:duration=8',
+				'-c:v',
+				'libx264',
+				'-preset',
+				'ultrafast',
+				'-pix_fmt',
+				'yuv420p',
+				fixture,
+			],
+			{ stdio: 'ignore', timeout: 60_000, windowsHide: true },
+		);
+		fixtures.push(fixture);
+	}
+
 	await page.goto(`/app/video?episodeId=${episodeId}`);
-	const fixture = path.join(process.cwd(), 'e2e/fixtures/synthetic-scene.mp4');
-	await page
-		.getByLabel('Arquivos de vídeo')
-		.setInputFiles(Array.from({ length: 15 }, () => fixture));
+	await page.getByLabel('Arquivos de vídeo').setInputFiles(fixtures);
 	await expect(page.getByText('synthetic-scene.mp4')).toHaveCount(15);
 	await page.getByRole('button', { name: 'Enviar clipes' }).click();
 	await expect(page.locator('.asset-card')).toHaveCount(15, { timeout: 300_000 });
@@ -96,18 +155,30 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await page.getByRole('button', { name: 'Aprovar plano atual' }).click();
 	await expect(page.getByText('APPROVED')).toBeVisible();
 	await page.waitForTimeout(1_000);
+	await cancelOpenRenderJobs(request);
 	await page.getByRole('button', { name: 'Renderizar plano aprovado' }).click();
 	await expect(page.getByText(/QUEUED|CLAIMED|RUNNING/)).toBeVisible();
 
+	const assetResponse = await page.request.get(`/api/video/assets?episodeId=${episodeId}`);
+	expect(assetResponse.ok()).toBeTruthy();
+	const { assets } = (await assetResponse.json()) as { assets: Array<{ id: string }> };
+	expect(assets).toHaveLength(15);
+	const assetDir = path.join(renderRoot, 'assets');
+	await mkdir(assetDir, { recursive: true });
+	for (const [index, asset] of assets.entries()) {
+		await copyFile(fixtures[index]!, path.join(assetDir, `${asset.id}.mp4`));
+	}
 	const worker = spawn(process.execPath, [path.join(process.cwd(), 'scripts/render-worker.mjs')], {
 		env: {
 			...process.env,
 			WORKER_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL!,
 			WORKER_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-			WORKER_STUB: '1',
+			WORKER_STUB: '0',
+			WORKER_ASSET_DIR: assetDir,
+			WORKER_LOCAL_OUTPUT_DIR: path.join(renderRoot, 'out'),
 			WORKER_MAX_JOBS: '1',
 			WORKER_POLL_MS: '250',
-			WORKER_LEASE_SECONDS: '30',
+			WORKER_LEASE_SECONDS: '180',
 			WORKER_ID: `e2e-${crypto.randomUUID()}`,
 		},
 		stdio: ['ignore', 'pipe', 'pipe'],
@@ -118,13 +189,25 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	const workerExit = new Promise<number>((resolve) =>
 		worker.on('exit', (code) => resolve(code ?? 1)),
 	);
-	await expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 300_000 });
 	const exitCode = await workerExit;
 	expect(exitCode, workerOutput).toBe(0);
+	const jobsResponse = await page.request.get(`/api/render-jobs?episodeId=${episodeId}`);
+	expect(jobsResponse.ok()).toBeTruthy();
+	const { jobs } = (await jobsResponse.json()) as {
+		jobs: Array<{
+			status: string;
+			output_manifest: { width: number; height: number; codec: string; durationMs: number };
+		}>;
+	};
+	expect(jobs[0]?.status).toBe('READY');
+	expect(jobs[0]?.output_manifest).toMatchObject({ width: 1080, height: 1920, codec: 'h264' });
+	expect(Math.abs(jobs[0]!.output_manifest.durationMs - 120_000)).toBeLessThanOrEqual(1_000);
 
 	await page.waitForTimeout(1_000);
 	await page.getByRole('button', { name: 'Renderizar plano aprovado' }).click();
 	await expect(page.getByText('QUEUED', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Cancelar' }).first().click();
 	await expect(page.getByText('CANCELED', { exact: true })).toBeVisible();
+	await rm(renderRoot, { recursive: true, force: true });
 });

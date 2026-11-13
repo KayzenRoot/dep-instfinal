@@ -25,6 +25,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: npm run check:baseline
       - uses: supabase/setup-cli@v3.2.0
         with:
