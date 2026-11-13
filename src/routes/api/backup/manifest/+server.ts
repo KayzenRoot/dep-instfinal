@@ -21,6 +21,8 @@ const TABLES = [
 	'video_assets',
 	'video_edit_plans',
 	'video_edit_plan_versions',
+	'render_jobs',
+	'render_job_events',
 ] as const;
 
 export const GET: RequestHandler = async (event) => {

@@ -1,5 +1,23 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-005 — Render job engine, worker stub and recovery (2026-11-13)
+
+- **Work Order:** `DIF-V2-WO-005` · issue #22 · epic #17
+- **Base:** `feat/dif-v2-wo-004` `0860fd3` (stacked, unmerged)
+- **Branch:** `feat/dif-v2-wo-005` (Draft PR pending)
+- **Status:** implementation, PgTAP, unit, policy and timeline+worker E2E **PASS locally**; hosted CI and independent audit **pending**. No VPS deployment, container, firewall, paid service, merge or checkpoint promotion.
+
+| Check          | Result     | Evidence                                                                                                                               |
+| -------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Database/state | PASS       | `20261113100000_v2_wo005_render_jobs.sql`; PgTAP **81/81**; one active job, advisory lock/SKIP LOCKED, lease, retry, cancel, reconcile |
+| Worker         | PASS stub  | `scripts/render-worker.mjs` claims/starts/heartbeats/completes; SIGTERM abort; `WORKER_STUB=1` only                                    |
+| API/UI         | PASS local | `/api/render-jobs` enqueue/list/status/cancel; timeline render panel and polling                                                       |
+| Unit/policy    | PASS       | 95 + 1 skipped; policy 23 invariants/20 tables; lint/typecheck/build                                                                   |
+| E2E            | PASS local | approve -> enqueue -> worker READY -> second job cancel; timeline also covers 409/stale/rebuild                                        |
+| Safety         | PASS       | owner-only SELECT, service-only RPCs, sanitized events, no worker HTTP port, no secret in client                                       |
+
+**Verdict:** WO-005 implementation is locally green pending hosted CI and independent audit. Real FFmpeg execution, process termination/temp cleanup and least-privilege VPS credential remain WO-006/WO-013. Merge of stacked WO-003/WO-004/WO-005 requires explicit owner authorization.
+
 ## V2 WO-004 — Timeline canônica, alinhamento e versões (2026-11-13)
 
 - **Work Order:** `DIF-V2-WO-004` · issue #21 · epic #17
