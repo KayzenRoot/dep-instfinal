@@ -3,7 +3,7 @@
 **Work Order:** `DIF-V2-WO-004` · issue #21 · epic #17
 **Base:** `feat/dif-v2-wo-003` head `4d1aa3c` (WO-003 audit-approved, not merged)
 **Branch:** `feat/dif-v2-wo-004` (stacked on WO-003)
-**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado final `43376699502` **PASS** em 5m57s; **reauditoria independente pendente** após correções H1/M1/M2. O merge de WO-003/WO-004 e a promoção do checkpoint exigem autorização explícita do owner.
+**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado final `43376699502` **PASS** em 5m57s; **reauditoria independente pendente** após correções H1/M1/M2. Checkpoint V2 **PROMOTED** em 2026-11-13; merge `c6be101`.
 
 ## 1. Objetivo
 

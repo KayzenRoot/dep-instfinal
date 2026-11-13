@@ -238,3 +238,7 @@ Proposed owner-scoped entities: `video_assets`, `edit_timelines`, `edit_versions
 ### Gate
 
 WO-001 documentation is **APPROVED**, ADR-V2-001 is **ACCEPTED**, and **WO-002** is **APPROVED** with GO CONDITIONAL. ADR-V2-002 is **ACCEPTED** by the owner (2026-11-12): **Cloudflare R2 privado**. **WO-003** is authorized and in execution; **WO-004+ remains BLOCKED** until WO-003 is `APPROVED`. No V2 worker, production deploy or paid service was created by this addendum; the WO-003 migration/UI/tests are on a feature branch.
+
+## V2 checkpoint after WO-003/004/005 (2026-11-13) — PROMOTED
+
+The owner explicitly authorized the stacked merges and promoted the first V2 checkpoint. WO-003 was squash-merged at `ac55d27`, WO-004 at `c6be101`, and WO-005 at `dc405d8`; issues #20/#21/#22 are CLOSED. Independent audits returned APPROVED at `c07af6e`, `637aaa9` and `6ca4523`, with hosted CI green before each merge. Promoted scope: private Cloudflare R2 clip ingest, canonical versioned timeline, and render-job queue/stub worker. Residuals (R2 lifecycle/GC, M2 quotas, real FFmpeg/VPS worker, least-privilege worker credential) remain tracked for later WOs. WO-006+ still requires its own implementation, evidence and audit.

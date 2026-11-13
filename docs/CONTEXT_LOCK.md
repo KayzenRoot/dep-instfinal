@@ -141,7 +141,7 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Decision:** **GO CONDITIONAL** for one FFmpeg worker on this VPS with concurrency **1**, `nice`/`ionice`, 10 min timeout, 2 GB temp reserve and 720p fallback. US$ 0 incremental compute (estimate; no billing check). The benchmark measured raw capacity; worker guards were not exercised and are a WO-003+ requirement. Storage/egress is outside this measurement and remains pending ADR-V2-002.
 - **Gate:** WO-002 evidence is **APPROVED** (2026-11-12); WO-003+ remains **BLOCKED** until ADR-V2-002/storage is approved and the owner authorizes the next increment. Checkpoint V2 remains **PROPOSED — NOT PROMOTED**; no merge, production deploy, worker, schema, production change or spend occurred; the automatic PR preview is not production. Stale triggers: any change to main, WO-001 approval, ADR, V1 contracts, provider quotas, VPS capacity/services or benchmark evidence requires revalidation before WO-003.
 
-## V2 Context Lock — WO-003 (#20)
+## V2 Context Lock — WO-003 (#20) — historical, superseded by promotion
 
 - **Base revalidated:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9` after WO-002/PR #47 squash merge, 2026-11-12. Branch: `feat/dif-v2-wo-003`.
 - **Critical source fingerprints at base (SHA-256, canonical LF blob via `git show b0f7806:<path> | sha256sum`):**
@@ -159,20 +159,29 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **42/42**; policy audit **20 invariants/16 tables**; unit **81 + 1 skip**; lint/typecheck/build PASS; hosted E2E **10/10**, including the 15-clip batch with reload; live R2 E2E **15/15 PASS**.
 - **Gate:** first independent audit returned **BLOCKED** at `fb6a3c8`; re-audit at `3a6a22f` returned **CORRECTION REQUIRED**; M4/M9/M11/M12, session-key H1 and M4 recovery B1 corrected; final independent audit **APPROVED** at `c07af6e`. M2 quota pagination/check-then-act is non-blocking for single-owner and tracked for WO-013/WO-005. WO-004+ remains **BLOCKED** until the owner formally approves/merges WO-003. Checkpoint V2 remains **PROPOSED — NOT PROMOTED**; no production deploy, paid service or spend occurred. Stale triggers: any change to main, WO-002 approval, ADR-V2-002, R2 bucket/token/CORS, migration or test evidence requires revalidation before WO-004.
 
-## V2 Context Lock — WO-004 (#21)
+## V2 Context Lock — WO-004 (#21) — historical, superseded by promotion
 
 - **Base revalidated:** `feat/dif-v2-wo-003` `4d1aa3c` (WO-003 audit APPROVED, merge pending). Branch: `feat/dif-v2-wo-004` (stacked; Draft PR #49).
 - **Critical sources read:** `docs/CHECKPOINT_DELTA.md`, `docs/SOURCE_PACK.md`, `docs/EVIDENCE_BUNDLE.md`, `docs/V2_EXECUTION_PLAN.md`, `docs/ADR_V2_PROPOSED.md`, `docs/ADR_V2_002_STORAGE.md`, `supabase/migrations/*`, `src/lib/domain/timeline.ts`, video asset tables/RPCs, owner-only route patterns.
 - **Issue inventory:** WO-001/#18 and WO-002/#19 **CLOSED**; WO-003/#20 **OPEN** (audit APPROVED, merge pending); WO-004/#21 **IN PROGRESS** (Draft PR #49); WO-005+ #22–#45 **BLOCKED**; epic #17 OPEN `PLANNED / PROPOSED`.
 - **Delivered locally:** additive `video_edit_plans`/`video_edit_plan_versions`; owner read RLS; server-only service-role save/restore/status RPCs with `FOR UPDATE`, `expected_version` conflict (P0001 → HTTP 409), published-episode rejection and server-computed hash; Zod/domain plan contract (4/6/8 s, trims, crossfade, tracks, CTA, captions, canonical SHA-256); `/app/timeline` editor and nav.
 - **Tests:** PgTAP **58/58**; unit **93 + 1 skip**; policy **22 invariants/18 tables**; lint/typecheck/build PASS; hosted CI `43376699502` PASS (5m57s) with E2E **11/11** (3.2m).
-- **Gate:** independent audit pending. Merge is stacked on WO-003 and requires explicit owner authorization; no production deploy, paid service, secret or checkpoint promotion occurred. Stale triggers: any change to WO-003 approval/merge, timeline contract, migration, E2E or CI evidence requires revalidation before WO-005.
+- **Gate (historical):** final independent audit APPROVED at `637aaa9`; squash-merged at `c6be101`. The current checkpoint is PROMOTED; see the promotion section below.
 
-## V2 Context Lock — WO-005 (#22)
+## V2 Context Lock — WO-005 (#22) — historical, superseded by promotion
 
 - **Base revalidated:** `feat/dif-v2-wo-004` `0860fd3` (WO-004 audit APPROVED, unmerged). Branch: `feat/dif-v2-wo-005` (stacked).
 - **Critical sources read:** WO-002 benchmark, WO-003 R2/storage, WO-004 edit-plan versions, ADR/SOURCE_PACK, owner-only RLS/RPC patterns, `docs/OPERATIONS.md`.
 - **Issue inventory:** WO-001/#18 and WO-002/#19 **CLOSED**; WO-003/#20 and WO-004/#21 **audit APPROVED, Draft/unmerged**; WO-005/#22 **IN PROGRESS**; WO-006+ #23–#45 **BLOCKED**.
 - **Delivered locally:** `render_jobs`/`render_job_events`; owner SELECT, service-only RPCs; single active job; advisory lock + `SKIP LOCKED`; lease/heartbeat/retry/cancel/reconcile; enqueue idempotency and backpressure; Node ARM64 stub worker; `/api/render-jobs`; timeline render panel.
 - **Tests:** PgTAP **81/81**; unit **95 + 1 skip**; policy **23 invariants/20 tables**; timeline+worker E2E PASS; hosted CI `43383787230` PASS (6m25s); final independent audit **APPROVED** at `6ca4523`; lint/typecheck/build PASS.
-- **Gate:** final independent audit **APPROVED** at `6ca4523` for queue/stub scope; residuals N1-N15 are WO-006 obligations. No VPS deployment/container/firewall/key, no merge/deploy/promotion. WO-006+ blocked until WO-005 approved and owner authorizes the stacked merge.
+- **Gate (historical):** final independent audit **APPROVED** at `6ca4523`; squash-merged at `dc405d8`. Residuals N1-N15 are WO-006 obligations. No VPS deployment/container/firewall/key.
+
+## V2 checkpoint promotion — 2026-11-13
+
+- **Owner decision:** explicit authorization to merge the stacked WO-003/WO-004/WO-005 PRs and promote the V2 checkpoint.
+- **Merged to `main`:** WO-003 `ac55d27`, WO-004 `c6be101`, WO-005 `dc405d8`; issues #20/#21/#22 closed.
+- **Audits:** APPROVED at `c07af6e`, `637aaa9`, `6ca4523`; CI green before each squash merge.
+- **Checkpoint status:** **PROMOTED** on 2026-11-13. The checkpoint covers private R2 ingest, canonical timeline versions and render queue/stub worker.
+- **Residuals:** R2 lifecycle/GC, M2 quota hardening, real FFmpeg/VPS worker and least-privilege worker credential remain tracked; WO-006+ still requires its own implementation, CI, evidence and audit.
+- **No new external service** was purchased or provisioned by this promotion. The Vercel production deployment associated with `main` is the owner-authorized deployment of the merged code.
