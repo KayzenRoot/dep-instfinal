@@ -3,7 +3,7 @@
 **Work Order:** `DIF-V2-WO-005` · issue #22 · epic #17
 **Base:** `feat/dif-v2-wo-004` `0860fd3` (WO-004 audit-approved, unmerged)
 **Branch:** `feat/dif-v2-wo-005` (stacked)
-**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado `43383787230` **PASS** em 6m25s; **auditoria independente pendente**. Nenhum daemon/worker foi implantado na VPS; o worker entregue é stub local (`WORKER_STUB=1`). Merge/deploy/promoção exigem autorização explícita do owner.
+**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado `43383787230` **PASS** em 6m25s; **auditoria independente final APPROVED** em `6ca4523` (código testado `f17209d`) para o escopo fila/stub. Merge/deploy/promoção exigem autorização explícita do owner. Nenhum daemon/worker foi implantado na VPS; o worker entregue é stub local (`WORKER_STUB=1`). Merge/deploy/promoção exigem autorização explícita do owner.
 
 ## 1. Objetivo
 
@@ -66,6 +66,7 @@ Migration `supabase/migrations/20261113100000_v2_wo005_render_jobs.sql`:
 - **Credencial:** service role no worker é poderosa; o contrato de menor privilégio na VPS precisa de role/RPC dedicada antes do deploy (WO-013/WO-014).
 - **Concorrência:** 1 job global ativo; backpressure 100 e 3/episódio. Ajuste exige medição no worker real.
 - **Cancelamento:** DB marca CANCELED e o worker aborta o stub; matar processo FFmpeg e limpar temporários é WO-006.
+- **Residual não bloqueante (WO-006):** start/fail não exigem lease não expirado; shutdown consome tentativa; enqueue direto não pina expected plan version/revisão; worker id não é claim token/epoch; READY de stub não é indicado na UI; sem backoff/aging; offline é silencioso; testes negativos de lease/wrong-worker/anon e limite de fila pendentes.
 - **Stacked:** depende de WO-003/WO-004, ambos Draft; merge/promoção exigem autorização.
 
 ## 8. Gate

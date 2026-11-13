@@ -1,6 +1,7 @@
 DIF-V2-WO-005 — motor de jobs, worker stub e recuperação
 Date: 2026-11-13
 Hosted CI: 43383787230 (PASS 6m25s; PgTAP 81/81; unit 95+1; policy 23/20; E2E 11/11)
+Final independent audit: APPROVED at 6ca4523 (queue/stub scope)
 Base: feat/dif-v2-wo-004 @ 0860fd3
 Branch: feat/dif-v2-wo-005
 

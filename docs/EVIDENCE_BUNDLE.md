@@ -5,7 +5,7 @@
 - **Work Order:** `DIF-V2-WO-005` · issue #22 · epic #17
 - **Base:** `feat/dif-v2-wo-004` `0860fd3` (stacked, unmerged)
 - **Branch:** `feat/dif-v2-wo-005` (Draft PR pending)
-- **Status:** implementation, PgTAP, unit, policy and timeline+worker E2E **PASS**; hosted CI `43383787230` **PASS** (6m25s); independent audit **pending**. No VPS deployment, container, firewall, paid service, merge or checkpoint promotion.
+- **Status:** implementation, PgTAP, unit, policy and timeline+worker E2E **PASS**; hosted CI `43383787230` **PASS** (6m25s); final independent audit **APPROVED** at `6ca4523` for the queue/stub scope. No VPS deployment, container, firewall, paid service, merge or checkpoint promotion.
 
 | Check          | Result     | Evidence                                                                                                                               |
 | -------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
