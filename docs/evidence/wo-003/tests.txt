@@ -15,9 +15,9 @@ guard_video_asset_insert; hard delete raises 42501; service-role grant present.
 
 2) Unit tests
 Command: npm test
-Result: Test Files 14 passed | 1 skipped (15); Tests 78 passed | 1 skipped (79).
-New coverage: video-probe 15 (incl. VFR/ffprobe JSON), video-assets 8 (parts/resume,
-tampered key, hash mismatch, M4 recovery, expiry, non-READY download), video-storage 4, schemas 6.
+Result: Test Files 14 passed | 1 skipped (15); Tests 81 passed | 1 skipped (82).
+New coverage: video-probe 15 (incl. VFR/ffprobe JSON), video-assets 11 (parts/resume,
+tampered key, hash mismatch, injected M4 insert/update failures, expiry, non-READY download), video-storage 4, schemas 6.
 
 3) Lint
 Command: npm run lint
@@ -42,9 +42,9 @@ Result: PASS 20 policy invariants across 16 tables, including:
 
 7) E2E (fresh server, CI=1)
 Command: CI=1 node scripts/test-local-e2e.mjs
-Result: hosted CI **10 passed (2.5m)** on head `c5fcb10`, run 43326435534:
+Result: hosted CI **10 passed (2.6m)** on head `7f2cc69`, run 43332950992:
 - PgTAP 42/42 PASS in the same job;
-- e2e/video-upload.spec.ts PASS (17.6s), including the READY assertion and 15-clip reload;
+- e2e/video-upload.spec.ts PASS (16.2s), including the READY assertion and 15-clip reload;
 - anonymous /api/video returned 401;
 - Playwright evidence artifact uploaded.
 Historical local clean run: 10 passed (7.6m). Local Docker/WSL later became unavailable
@@ -75,7 +75,8 @@ No credentials were printed.
 
 11) M4/M9/M11/M12 corrections in this head
 - M4: complete falls back to statObject after CompleteMultipartUpload failure and recovers an
-  already-created asset before retrying, so retries are idempotent.
+  already-created asset before retrying; quarantine is retained until the asset row commits.
+  Tests inject asset-insert and session-update failures and verify retry success.
 - M9: video-assets.test.ts covers parts/resume, hash rejection, M4, expiry and non-READY download.
 - M11: asset boundary migration revokes UPDATE/DELETE from authenticated, permits only
   QUARANTINED inserts, and promotes READY through the server-only service-role client.

@@ -49,22 +49,22 @@ Migration `supabase/migrations/20261112170000_v2_wo003_video_storage.sql`:
 
 ## 4. Testes executados
 
-| Verificação              | Resultado                            | Evidência                                                                            |
-| ------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------ |
-| PgTAP/RLS local          | **PASS 42/42**                       | `supabase test db`; 16 tabelas owner-scoped, incluindo as duas novas                 |
-| Unit — probe             | **PASS 15**                          | magic bytes, duração, 9:16, codec, container, rotação, VFR/ffprobe                   |
-| Unit — storage           | **PASS 4**                           | multipart, hash, copy, prefix, presign R2 sem vazar segredo                          |
-| Unit — schemas           | **PASS 6**                           | nome/idempotência/tamanho/partes                                                     |
-| Unit — service           | **PASS 8**                           | partes/resume, hash, chave adulterada, recuperação M4, expiração, download não-READY |
-| Unit total               | **PASS 78 + 1 skip**                 | `npm test`                                                                           |
-| Lint                     | **PASS**                             | `npm run lint`                                                                       |
-| Typecheck                | **PASS 0 erros/0 warnings**          | `npm run typecheck`                                                                  |
-| Build                    | **PASS**                             | `npm run build` (adapter-node local)                                                 |
-| Policy audit             | **PASS 20 invariantes / 16 tabelas** | `npm run audit:policy`                                                               |
-| E2E upload 15 clipes     | **PASS**                             | `e2e/video-upload.spec.ts`: 15 fixtures, 15 cenas, READY, reload                     |
-| E2E suíte completa       | **PASS 10/10**                       | hosted CI run `43326435534` no head `c5fcb10`; 10 passed (2.5m)                      |
-| R2 live (upload/leitura) | **PASS**                             | 15 clipes enviados ao R2, READY, reload, 401 anônimo; `check:r2` PASS                |
-| CORS/lifecycle R2        | **CORS PASS / lifecycle PENDING**    | CORS PUT/GET/HEAD + ETag configurado; lifecycle pendente                             |
+| Verificação              | Resultado                            | Evidência                                                                                    |
+| ------------------------ | ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| PgTAP/RLS local          | **PASS 42/42**                       | `supabase test db`; 16 tabelas owner-scoped, incluindo as duas novas                         |
+| Unit — probe             | **PASS 15**                          | magic bytes, duração, 9:16, codec, container, rotação, VFR/ffprobe                           |
+| Unit — storage           | **PASS 4**                           | multipart, hash, copy, prefix, presign R2 sem vazar segredo                                  |
+| Unit — schemas           | **PASS 6**                           | nome/idempotência/tamanho/partes                                                             |
+| Unit — service           | **PASS 11**                          | partes/resume, hash, chave adulterada, falhas injetadas no M4, expiração, download não-READY |
+| Unit total               | **PASS 81 + 1 skip**                 | `npm test`                                                                                   |
+| Lint                     | **PASS**                             | `npm run lint`                                                                               |
+| Typecheck                | **PASS 0 erros/0 warnings**          | `npm run typecheck`                                                                          |
+| Build                    | **PASS**                             | `npm run build` (adapter-node local)                                                         |
+| Policy audit             | **PASS 20 invariantes / 16 tabelas** | `npm run audit:policy`                                                                       |
+| E2E upload 15 clipes     | **PASS**                             | `e2e/video-upload.spec.ts`: 15 fixtures, 15 cenas, READY, reload                             |
+| E2E suíte completa       | **PASS 10/10**                       | hosted CI run `43332950992` no head `7f2cc69`; 10 passed (2.6m)                              |
+| R2 live (upload/leitura) | **PASS**                             | 15 clipes enviados ao R2, READY, reload, 401 anônimo; `check:r2` PASS                        |
+| CORS/lifecycle R2        | **CORS PASS / lifecycle PENDING**    | CORS PUT/GET/HEAD + ETag configurado; lifecycle pendente                                     |
 
 ## 5. Matriz de aceitação (issue #20)
 
@@ -108,7 +108,7 @@ A primeira auditoria independente (commit `fb6a3c8`) retornou **BLOCKED**; a rea
 - **M2 idempotência:** a sessão existente só é retomada se owner/episódio/cena/tamanho/hash coincidirem; caso contrário, 409.
 - **H1 session key (reauditoria):** a reauditoria independente do head `27a54d1` encontrou que um owner podia alterar `quarantine_key` via Data API e induzir o servidor a apagar um objeto R2 conhecido. A migration `20261112210000` revoga INSERT/UPDATE/DELETE de sessões para `authenticated`, amarra a chave ao owner/sessão e imutabiliza owner, IDs, chave, tamanho e hash; o servidor re-deriva e valida a chave. Teste de chave adulterada adicionado.
 - **M3 retry parcial:** `uploaded_parts` + rota `PUT /api/video/uploads/{sessionId}/parts/{partNumber}`; o resume assina/reenvia apenas partes faltantes e o complete mescla as confirmadas.
-- **M4 conclusão:** além do rollback de hash/prefix/copy, a conclusão recupera `CompleteMultipartUpload` já efetivado (fallback `statObject`) e um asset já criado quando a atualização da sessão falhou; retries não duplicam o clipe.
+- **M4 conclusão:** além do rollback de hash/prefix/copy, a conclusão recupera `CompleteMultipartUpload` já efetivado (fallback `statObject`) e um asset já criado quando a atualização da sessão falhou; a quarentena só é removida após o commit do asset, e testes injetam falha de insert e de update.
 - **M5 quotas/limite:** 15 clipes/episódio aplicados no servidor e na UI; a cota do episódio soma assets + sessões ativas; owner 10 GB com bloqueio em 95%.
 - **M6 cache:** URLs assinadas R2 incluem `ResponseCacheControl: private, no-store` e `Content-Disposition: inline`.
 - **M7 drivers:** `memory` e `fixture` só funcionam em `import.meta.env.DEV`; produção retorna 503/sem probe.
