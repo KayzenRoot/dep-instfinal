@@ -1,26 +1,35 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-005 — Render job engine, worker stub and recovery (2026-11-13) — PROPOSED
+## V2 checkpoint promotion — 2026-11-13 — PROMOTED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP/unit/policy/E2E **PASS**; hosted CI `43383787230` PASS (6m25s); final independent audit **APPROVED** at `6ca4523`. Stacked on WO-003/WO-004. No VPS deploy, container, firewall or checkpoint promotion.
+- **Decision:** owner explicitly authorized the stacked merge and checkpoint promotion on 2026-11-13.
+- **Merged to `main`:** WO-003 `ac55d27`, WO-004 `c6be101`, WO-005 `dc405d8`; issues #20/#21/#22 closed.
+- **Evidence:** independent audits APPROVED at `c07af6e` (WO-003), `637aaa9` (WO-004) and `6ca4523` (WO-005); hosted CI final PASS (PgTAP 42/42 → 58/58 → 81/81; unit 81+1 → 93+1 → 95+1; E2E 10/10 → 11/11).
+- **Scope promoted:** private R2 ingest, canonical versioned timeline, render-job queue and stub worker. No VPS worker install, paid service, or new external project was created.
+- **Residuals tracked:** R2 lifecycle/GC, M2 quota hardening, real FFmpeg/worker deployment, least-privilege worker credential; WO-006+ remains gated by its own approval.
+- **Next:** WO-006 (#23) composition FFmpeg, with the WO-005 residuals as explicit obligations.
+
+## DIF-V2-WO-005 — Render job engine, worker stub and recovery (2026-11-13) — PROMOTED
+
+- **Status:** **PROMOTED**; PgTAP/unit/policy/E2E **PASS**; hosted CI `43383787230` PASS (6m25s); final independent audit **APPROVED** at `6ca4523`; squash-merged at `dc405d8`. No VPS deploy, container or firewall.
 - **Base:** `feat/dif-v2-wo-004` `0860fd3`; branch `feat/dif-v2-wo-005`.
 - **Delivered:** `render_jobs`/`render_job_events`; owner SELECT, service-only RPCs; QUEUED→CLAIMED/RUNNING→READY/FAILED/CANCELED; advisory lock/one active job; lease/heartbeat/retry/reconcile; enqueue idempotency/backpressure; Node stub worker; `/api/render-jobs`; timeline render panel.
 - **Tests:** PgTAP **81/81**; unit **95 + 1 skip**; policy **23 invariants/20 tables**; timeline+worker E2E PASS local; lint/typecheck/build PASS.
 - **Risks/limits:** no VPS install; stub only; real FFmpeg kill/temp cleanup in WO-006; service role credential hardening in WO-013/014; stacked merge requires owner authorization.
 - **Gate:** hosted CI + independent audit before merge/promotion.
 
-## DIF-V2-WO-004 — Timeline canônica, alinhamento e versões (2026-11-13) — PROPOSED
+## DIF-V2-WO-004 — Timeline canônica, alinhamento e versões (2026-11-13) — PROMOTED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; implementation, PgTAP, unit and E2E **PASS**; hosted CI `43376699502` PASS (5m57s); **independent re-audit pending** after H1/M1/M2 corrections. Stacked on WO-003, which remains audit-approved but unmerged. WO-005+ remains **BLOCKED**.
+- **Status:** **PROMOTED**; implementation, PgTAP, unit and E2E **PASS**; hosted CI `43376699502` PASS (5m57s); final independent audit **APPROVED** at `637aaa9`; squash-merged at `c6be101`.
 - **Base:** `feat/dif-v2-wo-003` `4d1aa3c`; branch `feat/dif-v2-wo-004`; Draft PR #49.
 - **Delivered:** additive `video_edit_plans`/`video_edit_plan_versions` migration; owner-only read RLS; server-only service-role RPCs with optimistic concurrency, restore-as-new-version and DRAFT/APPROVED; Zod/domain plan contract with 4/6/8 s timing, trims, transitions, tracks, CTA and canonical manifest hash; `/app/timeline` editor with reorder, trim, crossfade, version history and restore.
 - **Tests:** PgTAP **58/58**; unit **93 + 1 skip** (domain 12); policy **22 invariants/18 tables**; lint/typecheck/build PASS; E2E **11/11** including timeline 15-clip edit/restore.
 - **Risks/limits:** stacked merge requires owner authorization; overlay/audio/subtitle tracks and RENDERED state belong to WO-005/006/009; E2E serial due local PostgREST pool contention; WO-003 M2 quota residual remains tracked for WO-013/WO-005.
 - **Gate:** independent audit before merge/promotion; no production deploy, paid service or secret occurred.
 
-## DIF-V2-WO-003 — Private Flow clip ingest + Cloudflare R2 (2026-11-12) — PROPOSED
+## DIF-V2-WO-003 — Private Flow clip ingest + Cloudflare R2 (2026-11-12) — PROMOTED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; first independent audit **BLOCKED** at `fb6a3c8`; re-audit at `3a6a22f` returned **CORRECTION REQUIRED**; M4/M9/M11/M12, session-key H1 and M4 recovery B1 were corrected; final independent audit **APPROVED** at `c07af6e`. Implementation, local tests and **live R2 acceptance PASS**; lifecycle automation (token lacks permission), M2 quota pagination/check-then-act (non-blocking; WO-013/WO-005) and real ffprobe worker validation remain pending. WO-004+ remains **BLOCKED** until owner approval/merge of WO-003.
+- **Status:** **PROMOTED**; final independent audit **APPROVED** at `c07af6e`; squash-merged at `ac55d27`. Private R2 ingest, 15-clip live acceptance and HTTP/RLS boundaries PASS; lifecycle/GC, M2 quota hardening and real ffprobe remain tracked for later WOs.
 - **Base:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9`; branch `feat/dif-v2-wo-003`.
 - **Delivered:** additive `video_upload_sessions`/`video_assets` migrations plus server-mediated asset and session boundaries; Cloudflare R2 S3 adapter + in-memory test adapter; ffprobe/fixture probe with VFR detection; multipart upload, idempotent completion/recovery, quarantine, SHA-256, signed download, list/resume routes; `/app/video` UI with episode/scene selection, multi-file reorder and protected preview.
 - **Tests:** PgTAP **42/42** (session/asset boundary included); unit **81 + 1 skip** (probe 15, service 11); policy audit **20 invariants/16 tables**; lint/typecheck/build PASS; hosted E2E **10/10**, including the 15-clip batch with reload; live R2 E2E **15/15 PASS**.

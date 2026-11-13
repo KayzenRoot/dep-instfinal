@@ -3,7 +3,7 @@
 **Work Order:** `DIF-V2-WO-003` · issue #20 · epic #17
 **Base:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9` (WO-002 merge, 2026-11-12)
 **Branch:** `feat/dif-v2-wo-003`
-**Status:** implementação, testes locais e **aceitação live do R2 PASS** (15 clipes); M4/M9/M11/M12, a falha de chave de sessão e a recuperação M4 foram corrigidos. **Auditoria independente final: APPROVED em `c07af6e`**. Lifecycle automático do R2 está bloqueado pelo escopo do token (AccessDenied), a cota M2 tem paginação/check-then-act residual (não bloqueante no escopo single-owner; hardening em WO-013/WO-005) e a validação ffprobe real permanece no worker/WO-005. Checkpoint V2 permanece **PROPOSED — NOT PROMOTED** até aprovação/merge do owner.
+**Status:** implementação, testes locais e **aceitação live do R2 PASS** (15 clipes); M4/M9/M11/M12, a falha de chave de sessão e a recuperação M4 foram corrigidos. **Auditoria independente final: APPROVED em `c07af6e`**. Lifecycle automático do R2 está bloqueado pelo escopo do token (AccessDenied), a cota M2 tem paginação/check-then-act residual (não bloqueante no escopo single-owner; hardening em WO-013/WO-005) e a validação ffprobe real permanece no worker/WO-005. Checkpoint V2 **PROMOTED** em 2026-11-13; merge `ac55d27`.
 
 ## 1. Objetivo
 
@@ -118,7 +118,7 @@ A primeira auditoria independente (commit `fb6a3c8`) retornou **BLOCKED**; a rea
 - **M13 expiração:** `loadSession` e o caminho de idempotência retornam 410; listas/cotas filtram sessões expiradas.
 - **L1/L2:** dev-object exige DEV; `r2Configured` exige endpoint.
 
-**Auditoria final:** a reauditoria independente do head `c07af6e` retornou **APPROVED**, sem findings bloqueantes. H1 (chave de sessão), B1/M4 (retenção da quarentena até o commit e recuperação após falha) e H1/H2 anteriores foram verificados; M2 (paginação/atômica de quotas) foi classificado como **não bloqueante** no escopo single-owner e fica para WO-013/WO-005. O PR permanece Draft e o merge/promoção exige aprovação explícita do owner.
+**Auditoria final:** a reauditoria independente do head `c07af6e` retornou **APPROVED**, sem findings bloqueantes. H1 (chave de sessão), B1/M4 (retenção da quarentena até o commit e recuperação após falha) e H1/H2 anteriores foram verificados; M2 (paginação/atômica de quotas) foi classificado como **não bloqueante** no escopo single-owner e fica para WO-013/WO-005. O PR foi squash-merged em `ac55d27`; checkpoint promovido pelo owner.
 
 **Pendências conhecidas (não bloqueantes):** lifecycle do bucket (bloqueado por escopo do token), fixtures truncada/zero-byte e concorrência no E2E, paginação/limite atômico de quotas (somas de linhas; check-then-act), poster/GC e ffprobe real no worker (WO-005). O WO-004+ permanece bloqueado até aprovação formal/merge do WO-003.
 

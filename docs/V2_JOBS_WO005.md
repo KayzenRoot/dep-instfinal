@@ -3,7 +3,7 @@
 **Work Order:** `DIF-V2-WO-005` · issue #22 · epic #17
 **Base:** `feat/dif-v2-wo-004` `0860fd3` (WO-004 audit-approved, unmerged)
 **Branch:** `feat/dif-v2-wo-005` (stacked)
-**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado `43383787230` **PASS** em 6m25s; **auditoria independente final APPROVED** em `6ca4523` (código testado `f17209d`) para o escopo fila/stub. Merge/deploy/promoção exigem autorização explícita do owner. Nenhum daemon/worker foi implantado na VPS; o worker entregue é stub local (`WORKER_STUB=1`). Merge/deploy/promoção exigem autorização explícita do owner.
+**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado `43383787230` **PASS** em 6m25s; **auditoria independente final APPROVED** em `6ca4523` (código testado `f17209d`) para o escopo fila/stub. Checkpoint V2 **PROMOTED** em 2026-11-13; merge `dc405d8`. Nenhum daemon/worker foi implantado na VPS; o worker entregue é stub local (`WORKER_STUB=1`). Checkpoint V2 **PROMOTED** em 2026-11-13; merge `dc405d8`.
 
 ## 1. Objetivo
 

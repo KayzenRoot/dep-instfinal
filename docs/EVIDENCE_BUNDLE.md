@@ -1,11 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-005 — Render job engine, worker stub and recovery (2026-11-13)
+## V2 WO-005 — Render job engine, worker stub and recovery (2026-11-13) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-005` · issue #22 · epic #17
-- **Base:** `feat/dif-v2-wo-004` `0860fd3` (stacked, unmerged)
-- **Branch:** `feat/dif-v2-wo-005` (Draft PR pending)
-- **Status:** implementation, PgTAP, unit, policy and timeline+worker E2E **PASS**; hosted CI `43383787230` **PASS** (6m25s); final independent audit **APPROVED** at `6ca4523` for the queue/stub scope. No VPS deployment, container, firewall, paid service, merge or checkpoint promotion.
+- **Merged:** `main` `dc405d8` (squash of PR #50), 2026-11-13
+- **Status:** implementation, PgTAP, unit, policy and timeline+worker E2E **PASS**; hosted CI `43383787230` **PASS** (6m25s); final independent audit **APPROVED** at `6ca4523`. Checkpoint promoted by the owner. No VPS deployment, container or firewall.
 
 | Check          | Result     | Evidence                                                                                                                               |
 | -------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -18,12 +17,11 @@
 
 **Verdict:** WO-005 implementation is locally green pending hosted CI and independent audit. Real FFmpeg execution, process termination/temp cleanup and least-privilege VPS credential remain WO-006/WO-013. Merge of stacked WO-003/WO-004/WO-005 requires explicit owner authorization.
 
-## V2 WO-004 — Timeline canônica, alinhamento e versões (2026-11-13)
+## V2 WO-004 — Timeline canônica, alinhamento e versões (2026-11-13) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-004` · issue #21 · epic #17
-- **Base:** `feat/dif-v2-wo-003` `4d1aa3c` (WO-003 audit APPROVED, merge pending)
-- **Branch:** `feat/dif-v2-wo-004` (stacked; Draft PR #49)
-- **Status:** implementation, unit/PgTAP/E2E and hosted CI **PASS** before hardening; after B1/B2/B3 and H1/M1/M2 corrections hosted CI `43376699502` is **PASS** (5m57s); a **re-audit is pending**. No merge, production deploy, paid service or checkpoint promotion occurred.
+- **Merged:** `main` `c6be101` (squash of PR #51), 2026-11-13
+- **Status:** implementation, unit/PgTAP/E2E and hosted CI **PASS**; final independent audit **APPROVED** at `637aaa9`; checkpoint promoted by the owner.
 
 | Check                  | Result           | Evidence                                                                                                                                                                                   |
 | ---------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -38,12 +36,13 @@
 
 **Verdict:** WO-004 implementation and evidence are **PASS** pending independent audit. `video_edit_plans` stays separate from episode/canon writes; published episodes reject saves; versions are immutable. Merge of stacked WO-003/WO-004 requires explicit owner authorization. WO-005+ remains blocked until both approvals.
 
-## V2 WO-003 — Private Flow clip ingest + Cloudflare R2 (2026-11-12)
+## V2 WO-003 — Private Flow clip ingest + Cloudflare R2 (2026-11-12) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-003` · issue #20 · epic #17
 - **Base:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9` (WO-002 merge)
 - **Branch:** `feat/dif-v2-wo-003`
-- **Status:** final independent audit **APPROVED** at `c07af6e`; H1/H2, M4/M9/M11/M12, session-key and M4 recovery findings are closed. Local tests and live R2 acceptance **PASS** (15 clips); lifecycle automation, real ffprobe worker validation and orphan GC remain. M2 quota pagination/check-then-act is non-blocking for the single-owner scope and tracked for WO-013/WO-005. Checkpoint V2 remains **PROPOSED — NOT PROMOTED**; merge/promotion requires explicit owner approval.
+- **Merged:** `main` `ac55d27` (squash of PR #48), 2026-11-13
+- **Status:** final independent audit **APPROVED** at `c07af6e`; H1/H2, M4/M9/M11/M12, session-key and M4 recovery findings are closed. Local tests and live R2 acceptance **PASS** (15 clips); lifecycle automation, real ffprobe worker validation and orphan GC remain tracked for later WOs. Checkpoint promoted by the owner.
 
 | Check                   | Result                             | Evidence                                                                                                                                                                                   |
 | ----------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -59,7 +58,7 @@
 | Independent audit       | **APPROVED at `c07af6e`**          | Final audit: no blocking findings; H1/H2, session-key H1 and M4 recovery B1 closed; M2 quota residual non-blocking for single-owner and tracked for WO-013/WO-005                          |
 | Safety                  | PASS                               | No production deploy, paid service, credential in Git/logs, or checkpoint promotion                                                                                                        |
 
-**Verdict:** WO-003 implementation, RLS, local tests and live R2 upload/read are **PASS**; final independent audit **APPROVED** at `c07af6e`. Lifecycle automation, worker ffprobe and orphan GC remain WO-005 items, and M2 quota hardening is tracked for WO-013/WO-005. WO-004+ stays blocked until the owner formally approves/merges WO-003; the checkpoint remains **PROPOSED — NOT PROMOTED**.
+**Verdict:** WO-003 implementation, RLS, local tests and live R2 upload/read are **PASS**; final independent audit **APPROVED** at `c07af6e`. Lifecycle automation, worker ffprobe and orphan GC remain WO-005 items, and M2 quota hardening is tracked for WO-013/WO-005. WO-004+ is unblocked by the owner-approved promotion; the checkpoint is **PROMOTED**.
 
 ## V2 WO-002 — Oracle ARM64 benchmark (2026-11-12)
 
@@ -183,7 +182,7 @@
 - **CD04 final code/test HEAD:** `45840f9199783c251c4da8b10bff3fcda14de629`
 - **Hosted PR CI (CD04):** [run `42898556365`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898556365) — PASS
 - **Hosted push CI (CD04):** [run `42898547547`](https://github.com/KayzenRoot/dep-instfinal/actions/runs/42898547547) — PASS
-- **Checkpoint Delta:** **PROPOSED — NOT PROMOTED**; see `docs/CHECKPOINT_DELTA.md`.
+- **Checkpoint Delta:** V2 WO-003/004/005 checkpoint **PROMOTED** on 2026-11-13; see `docs/CHECKPOINT_DELTA.md`.
 
 ## CD06 — issue-closing production workflow
 
