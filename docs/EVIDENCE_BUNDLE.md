@@ -5,7 +5,7 @@
 - **Work Order:** `DIF-V2-WO-006` · issue #23 · epic #17
 - **Base:** `main` `b1081e9` (checkpoint WO-003/004/005 promoted)
 - **Branch:** `feat/dif-v2-wo-006`
-- **Status:** implementation, real FFmpeg composition, ffprobe integration, PgTAP and real-worker E2E **PASS**; B1–B5 corrigidos; CI final `43439800152` **PASS** (8m15s); reauditoria pendente. No VPS deployment.
+- **Status:** implementation, real FFmpeg composition, ffprobe integration, PgTAP and real-worker E2E **PASS**; B1–B5/NEW-1/B4-R corrigidos; CI final `43446568528` **PASS** (9m37s); reauditoria pendente. No VPS deployment.
 
 | Check       | Result     | Evidence                                                                                                               |
 | ----------- | ---------- | ---------------------------------------------------------------------------------------------------------------------- |

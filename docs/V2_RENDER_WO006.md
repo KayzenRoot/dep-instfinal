@@ -3,7 +3,7 @@
 **Work Order:** `DIF-V2-WO-006` · issue #23 · epic #17
 **Base:** `main` `b1081e9` (checkpoint WO-003/004/005 promovido)
 **Branch:** `feat/dif-v2-wo-006`
-**Status:** implementação, composição real, ffprobe/integração, worker real e E2E **PASS**; correções B1–B5 aplicadas; CI final `43439800152` **PASS** em 8m15s; **reauditoria pendente**. Nenhum worker foi implantado na VPS.
+**Status:** implementação, composição real, ffprobe/integração, worker real e E2E **PASS**; correções B1–B5/NEW-1/B4-R aplicadas; CI final `43446568528` **PASS** em 9m37s; **reauditoria pendente**. Nenhum worker foi implantado na VPS.
 
 ## 1. Entregue
 
