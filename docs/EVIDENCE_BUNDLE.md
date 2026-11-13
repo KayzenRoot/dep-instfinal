@@ -6,19 +6,19 @@
 - **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`
 - **Status:** implementation, local database/unit/FFmpeg/TTS evidence and hosted CI **PASS**; owner auditory acceptance and independent audit **PENDING**; ARM64 benchmark **BLOCKED**. No merge/deploy.
 
-| Check              | Result     | Evidence                                                                                                                                     |
-| ------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Private ingest     | PASS       | WAV/MP3/M4A ≤20 MB, ffprobe, SHA-256, duration/sample rate/channels, RMS/peak/true peak, clipping rejection, private R2 key                  |
-| Direction contract | PASS       | `VoiceDirectionPlan` 6 emotions, speed 0.75–1.25, pauses, volume, WPM, pronunciation map; text SHA; schema/domain tests                      |
-| Versioning         | PASS       | plan versions with snapshots; restore as new DRAFT; takes immutable and never overwritten                                                    |
-| Database/RLS       | PASS       | PgTAP **108/108**; owner-only SELECT, service-only writes; approval requires READY take; render narration FK/immutability                    |
-| Render mux         | PASS       | real 4 s FFmpeg mux test: video copy + AAC 48 kHz stereo, pad to exact duration after a 50% minimum coverage check; overflow >250 ms fails   |
-| TTS 120 s          | PASS local | Piper `pt_BR-edresson-low` (CC BY 4.0): 232 words → 110.730 s, −2.0 dBFS true peak, −18.5 LUFS, 10.6 MB, no clipping                         |
-| TTS styles         | PENDING    | neutral 12.570 s / −2.4 dBFS / −19.3 LUFS; tension 10.308 s / −2.2 dBFS / −17.8 LUFS; owner must listen                                      |
-| Unit/integration   | PASS       | voice-direction 5, render composition 8, real mux 1, opt-in Piper 1; lint/typecheck PASS                                                     |
-| Policy             | PASS       | **25 invariants / 22 tables**                                                                                                                |
-| E2E                | PASS local | timeline upload → preview → approve → restore → approve → real worker READY with audio manifest; owner-boundary 401; responsive 360/768/1440 |
-| Limits             | —          | Piper emotion unsupported; ARM64 benchmark blocked; R2 GC, SRT (WO-008), worker least privilege (WO-013/014) pending                         |
+| Check              | Result     | Evidence                                                                                                                                                              |
+| ------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Private ingest     | PASS       | WAV/MP3/M4A ≤20 MB, ffprobe, SHA-256, duration/sample rate/channels, RMS/peak/true peak, clipping rejection, private R2 key                                           |
+| Direction contract | PASS       | `VoiceDirectionPlan` 6 emotions, speed 0.75–1.25, pauses, volume, WPM, pronunciation map; text SHA; schema/domain tests                                               |
+| Versioning         | PASS       | plan versions with snapshots; restore as new DRAFT; takes immutable and never overwritten                                                                             |
+| Database/RLS       | PASS       | PgTAP **108/108**; owner-only SELECT, service-only writes; approval requires READY take; render narration FK/immutability                                             |
+| Render mux         | PASS       | real 4 s FFmpeg mux test: video copy + AAC 48 kHz stereo, pad to exact duration after a 50% minimum coverage check; overflow >250 ms fails                            |
+| TTS 120 s          | PASS local | Piper `pt_BR-edresson-low` (CC BY 4.0): 232 words → 110.730 s, −2.0 dBFS true peak, −18.5 LUFS, 10.6 MB, no clipping                                                  |
+| TTS styles         | PENDING    | `sample-neutral.wav` 12.410 s / −2.9 dBFS / −19.4 LUFS; `sample-tension.wav` 10.564 s / −2.4 dBFS / −17.8 LUFS; owner must listen                                     |
+| Unit/integration   | PASS       | 116 passed + 2 skipped; narration upload negatives 4, voice-direction 5, render composition 8, real mux 1, opt-in Piper 1; lint/typecheck/build PASS                  |
+| Policy             | PASS       | **25 invariants / 22 tables**                                                                                                                                         |
+| E2E                | PASS CI    | CI `43527026122` @ `3f24176`: 12/12 in 4.2m; upload → preview → approve → restore → approve → real worker READY in 43.4s; owner-boundary 401; responsive 360/768/1440 |
+| Limits             | —          | Piper emotion unsupported; ARM64 blocked; narration R2 live download not exercised; R2 GC, SRT (WO-008), worker least privilege (WO-013/014) pending                  |
 
 **Verdict:** WO-007 is locally implemented with honest capability reporting and a real narrated render. It **cannot be APPROVED** until the owner auditions the two styles and the ARM64 benchmark/independent audit close. No merge, deploy or checkpoint promotion.
 

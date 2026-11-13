@@ -30,7 +30,7 @@ Modelo de audição: `pt_BR-edresson-low.onnx` (Piper, CC BY 4.0), SHA-256 `de4c
 
 | Critério                                                                                    | Estado       | Evidência                                                                                                                                                                               |
 | ------------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS CI**  | E2E `e2e/timeline.spec.ts` no CI `43518610642`: upload WAV 118 s, preview, aprovação, restauração, render READY com AAC 48 kHz; áudio preenche os 2 s restantes; timestamps monotônicos |
+| Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS CI**  | E2E `e2e/timeline.spec.ts` no CI `43527026122`: upload WAV 118 s, preview, aprovação, restauração, render READY com AAC 48 kHz; áudio preenche os 2 s restantes; timestamps monotônicos |
 | TTS local gera narração inteligível pt-BR em episódio sintético, com custo medido           | **PARCIAL**  | 232 palavras → 110.730 ms, true peak −2,0 dBFS, −18,5 LUFS, 10,6 MB, sem clipping; benchmark host x64 registrado; benchmark ARM64 **BLOCKED** sem execução autorizada na VPS            |
 | Qualidade aceita pelo owner                                                                 | **PENDING**  | Amostras `sample-neutral.wav` e `sample-tension.wav`; aceitação auditiva humana ainda não registrada                                                                                    |
 | Acentos/pontuação preservados e pausas ajustáveis                                           | **PASS**     | fixtures com `Às`, `três`, `dezessete`, `Alice=Álissi`, `dez=10`; relatório por segmento                                                                                                |
@@ -49,12 +49,12 @@ Modelo de audição: `pt_BR-edresson-low.onnx` (Piper, CC BY 4.0), SHA-256 `de4c
 - `npm run lint`: PASS.
 - `npm run typecheck`: PASS.
 - Vitest unitário/integração: **116 passed + 2 skipped**; `voice-direction` + `render-composition` + mux FFmpeg real; TTS Piper opt-in real.
-- CI hospedada `43518610642` em `efea85a`: **SUCCESS** (6m49s); E2E **12/12** em 3,2m; timeline com narração e render READY em **47,9s**; worker real `render_completed`.
+- CI hospedada `43527026122` em `3f24176`: **SUCCESS** (8m27s); E2E **12/12** em 4,2m; timeline com narração e render READY em **43,4s**; worker real `render_completed`.
 - E2E: upload, preview, aprovação, restauração de versão, recompravação, render real com AAC e READY.
 - E2E owner-boundary: rotas de narração anônimas retornam 401; layout 360/768/1440 sem overflow.
 - TTS 120 s: `docs/evidence/wo-007/tts-full-120-report.json`.
 - Amostras de audição: `docs/evidence/wo-007/sample-neutral.wav`, `sample-tension.wav` e relatórios `tts-neutral-report.json`/`tts-tension-report.json`.
-- Log sanitizado do CI: `docs/evidence/wo-007/ci-efea85a.txt`.
+- Log sanitizado do CI: `docs/evidence/wo-007/ci-3f24176.txt`.
 
 ## Riscos e residuais
 
