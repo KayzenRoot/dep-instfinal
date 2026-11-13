@@ -38,7 +38,7 @@ Migration `supabase/migrations/20261113090000_v2_wo004_edit_plans.sql`:
 ## 4. Server/UI
 
 - `src/lib/server/video-edit-plans.ts`: contexto owner-only, load, validação, hash, RPCs e mapeamento de conflito/erros.
-- `src/routes/app/timeline/+page.server.ts`: load do episódio, cenas, assets READY, plano, versões e ações `save`, `restore`, `status`.
+- `src/routes/app/timeline/+page.server.ts`: load do episódio, cenas, assets READY, plano, versões e ações `save`, `restore`, `status`, `rebuild`.
 - `src/routes/app/timeline/+page.svelte`: seletor de episódio, timeline de 15 clipes, trim, reordenação, crossfade, status, hash e histórico com restauração.
 - `WorkspaceNav.svelte`: link “Timeline”.
 - Nenhum campo de vídeo é gravado no PostgreSQL; o plano referencia `video_assets` READY e o storage permanece R2 privado.
@@ -69,7 +69,7 @@ Migration `supabase/migrations/20261113090000_v2_wo004_edit_plans.sql`:
 ## 7. Riscos e limites
 
 - **Stacked branch:** WO-004 depende do branch WO-003 ainda não mergeado; o merge dos dois exige autorização do owner. Não há deploy de produção.
-- **Concorrência:** a RPC serializa por episódio com `FOR UPDATE`; `expected_version` nulo/obsoleto retorna 409 sem lost update. `P0001` é usado no lugar de `40001` para não acionar retry automático do PostgREST. A UI exige reload após conflito.
+- **Concorrência:** a RPC serializa por episódio com `FOR UPDATE`; `expected_version` nulo retorna 400/23514 e obsoleto retorna 409 sem lost update. `P0001` é usado no lugar de `40001` para não acionar retry automático do PostgREST. A UI exige reload após conflito.
 - **Tracks:** o editor entregue usa a track `video-main`; overlay/áudio/legendas ficam no contrato e no worker/WO-006/WO-009.
 - **Render:** `RENDERED` existe no schema, mas só será definido pelo worker WO-006; o WO-004 não renderiza.
 - **E2E:** timeline + upload de 15 clipes saturam o PostgREST local em paralelo; a suíte usa `workers: 1`. O CI hospedado é a autoridade.
