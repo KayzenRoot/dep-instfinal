@@ -3,7 +3,7 @@
 **Work Order:** `DIF-V2-WO-004` · issue #21 · epic #17
 **Base:** `feat/dif-v2-wo-003` head `4d1aa3c` (WO-003 audit-approved, not merged)
 **Branch:** `feat/dif-v2-wo-004` (stacked on WO-003)
-**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado `43362722816` **PASS**; **auditoria independente pendente**. O merge de WO-003/WO-004 e a promoção do checkpoint exigem autorização explícita do owner.
+**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado final `43369752010` **PASS** em 6m1s; **reauditoria independente pendente** após correções B1/B2/B3. O merge de WO-003/WO-004 e a promoção do checkpoint exigem autorização explícita do owner.
 
 ## 1. Objetivo
 
@@ -44,16 +44,16 @@ Migration `supabase/migrations/20261113090000_v2_wo004_edit_plans.sql`:
 
 ## 5. Testes
 
-| Verificação                 | Resultado                            | Evidência                                                                                                      |
-| --------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| Domain/schema               | **PASS 11**                          | `video-edit-plan.test.ts`: 120/90/150, reorder, trim, crossfade, foreign asset, double-booking, canonical hash |
-| PgTAP/RLS                   | **PASS 58/58**                       | owner/non-owner plans, append-only versions, optimistic conflict, restore, approve, direct insert denied       |
-| Unit total                  | **PASS 92 + 1 skip**                 | `npm test`                                                                                                     |
-| Lint/typecheck/build        | **PASS**                             | `npm run lint`, `npm run typecheck`, `npm run build`                                                           |
-| Policy audit                | **PASS 22 invariantes / 18 tabelas** | `npm run audit:policy`                                                                                         |
-| E2E timeline                | **PASS local**                       | `e2e/timeline.spec.ts`: 15 uploads, reorder, save v1, clean GET, approve, save v2, restore v1→v3, clean GET    |
-| E2E suíte                   | **PASS 11/11 local**                 | serial `workers=1`; hosted re-run pending after server-only RPC hardening                                      |
-| CI baseline (pré-hardening) | **PASS 7m30s**                       | run `43362722816` on `698bb68`: unit 88+1, PgTAP 54/54, E2E 11/11; new head re-run pending                     |
+| Verificação          | Resultado                            | Evidência                                                                                                      |
+| -------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Domain/schema        | **PASS 11**                          | `video-edit-plan.test.ts`: 120/90/150, reorder, trim, crossfade, foreign asset, double-booking, canonical hash |
+| PgTAP/RLS            | **PASS 58/58**                       | owner/non-owner plans, append-only versions, optimistic conflict, restore, approve, direct insert denied       |
+| Unit total           | **PASS 92 + 1 skip**                 | `npm test`                                                                                                     |
+| Lint/typecheck/build | **PASS**                             | `npm run lint`, `npm run typecheck`, `npm run build`                                                           |
+| Policy audit         | **PASS 22 invariantes / 18 tabelas** | `npm run audit:policy`                                                                                         |
+| E2E timeline         | **PASS local e CI**                  | `e2e/timeline.spec.ts`: 15 uploads, reorder, save v1, clean GET, approve, save v2, restore v1→v3; CI 12.4s     |
+| E2E suíte            | **PASS 11/11** (3.2m CI)             | hosted CI `43369752010`; serial `workers=1` evita contenção do pool local                                      |
+| CI baseline final    | **PASS 6m1s**                        | run `43369752010` on `f886b2d`: unit 92+1, PgTAP 58/58, policy 22/18, E2E 11/11                                |
 
 ## 6. Matriz de aceitação (issue #21)
 

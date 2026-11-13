@@ -36,7 +36,7 @@ Result: PASS 22 invariants across 18 tables, including:
 
 6) E2E timeline
 Command: CI=1 node scripts/test-local-e2e.mjs e2e/timeline.spec.ts
-Result: 1 passed (2.0-3.0m local).
+Result: 1 passed (49-53s local; 12.4s hosted CI).
 Journey: create series/season/episode, upload 15 synthetic clips, open
 /app/timeline, reorder scene 1 down, save v1, clean GET, approve, save v2,
 restore v1 as v3, clean GET; plan remains owner-only. Clean GET avoids the
@@ -44,18 +44,18 @@ browser resubmitting the previous POST on reload.
 
 7) Full E2E suite
 Command: CI=1 node scripts/test-local-e2e.mjs
-Result: 11 passed (10.3m locally; 4.9m hosted pre-hardening).
+Result: 11 passed (10.3m locally; 3.2m hosted final).
 Includes owner journey, video 15-clip upload, timeline 15-clip edit/restore,
 anonymous/cross-origin/layout checks.
 
 8) Hosted CI
-Run: 43362722816 (workflow_dispatch, branch feat/dif-v2-wo-004) on 698bb68
-Result: PASS in 7m30s (pre-hardening).
-- format:check/lint/typecheck/unit (88+1)/build/audit deps PASS
-- PgTAP 54/54 PASS
-- E2E 11/11 PASS (timeline 2.2m, video 19.2s)
-A new hosted run is pending for the B1/B2/B3 hardening head; local PgTAP is 58/58
-and local unit is 92+1. No production deploy, merge, paid service or secret.
+Run: 43369752010 (workflow_dispatch, branch feat/dif-v2-wo-004) on f886b2d
+Result: PASS in 6m1s (post B1/B2/B3 hardening).
+- format:check/lint/typecheck/unit (92+1)/build/audit deps PASS
+- PgTAP 58/58 PASS
+- policy 22/18 PASS
+- E2E 11/11 PASS (timeline 12.4s, video 11.0s; suite 3.2m)
+No production deploy, merge, paid service or secret.
 
 9) Design notes
 - Additive migration 20261113090000_v2_wo004_edit_plans.sql.

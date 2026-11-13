@@ -5,7 +5,7 @@
 - **Work Order:** `DIF-V2-WO-004` · issue #21 · epic #17
 - **Base:** `feat/dif-v2-wo-003` `4d1aa3c` (WO-003 audit APPROVED, merge pending)
 - **Branch:** `feat/dif-v2-wo-004` (stacked; Draft PR #49)
-- **Status:** implementation, unit/PgTAP/E2E and hosted CI **PASS** before hardening; after the B1/B2/B3 corrections the full suite is green locally and a **hosted re-run/re-audit is pending**. No merge, production deploy, paid service or checkpoint promotion occurred.
+- **Status:** implementation, unit/PgTAP/E2E and hosted CI **PASS** before hardening; after the B1/B2/B3 corrections hosted CI `43369752010` is **PASS** (6m1s) and a **re-audit is pending**. No merge, production deploy, paid service or checkpoint promotion occurred.
 
 | Check                  | Result           | Evidence                                                                                                                                                    |
 | ---------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -14,7 +14,7 @@
 | Domain/schema          | PASS 11          | 120/15×8, 90/150 partial, reorder, trim, crossfade, foreign/double-booked assets, canonical hash                                                            |
 | Unit/format/typecheck  | PASS             | 92 passed + 1 skipped; lint 0; typecheck 0/0; build adapter-node PASS                                                                                       |
 | Policy audit           | PASS             | 22 invariants across 18 tables, including edit plans owner-only/versioned/append-only and server-only writes                                                |
-| E2E                    | PASS local       | timeline 15 clips/reorder/save/approve/restore v1→v3; hosted re-run pending after hardening                                                                 |
+| E2E                    | PASS             | hosted CI `43369752010`: timeline 15 clips/reorder/save/approve/restore v1→v3 in 12.4s; full suite 11/11 (3.2m)                                             |
 | Optimistic concurrency | PASS             | stale/NULL `expected_version` rejected; restore appends v2; history preserved                                                                               |
 | Safety                 | PASS             | no merge, production deploy, paid service, secret or checkpoint promotion                                                                                   |
 
