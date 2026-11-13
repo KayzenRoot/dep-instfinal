@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, stat } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import {
 	buildRenderCommand,
 	RenderCompositionError,
@@ -11,13 +12,12 @@ import type { VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
 
 const execFileAsync = promisify(execFile);
 
-function minimalProcessEnv(): NodeJS.ProcessEnv {
+function minimalProcessEnv(tmpDir: string): NodeJS.ProcessEnv {
 	return {
 		PATH: process.env.PATH ?? '',
 		SystemRoot: process.env.SystemRoot,
-		TEMP: process.env.TEMP,
-		TMP: process.env.TMP,
-		HOME: process.env.HOME,
+		TEMP: tmpDir,
+		TMP: tmpDir,
 	};
 }
 
@@ -66,7 +66,7 @@ export async function probeMedia(
 			timeout: 30_000,
 			maxBuffer: 2 * 1024 * 1024,
 			windowsHide: true,
-			env: minimalProcessEnv(),
+			env: minimalProcessEnv(dirname(path)),
 		},
 	);
 	const parsed = JSON.parse(stdout) as ProbeOutput;
@@ -107,7 +107,7 @@ export async function renderPlanToFile(input: {
 		timeout: input.timeoutMs ?? 600_000,
 		maxBuffer: 4 * 1024 * 1024,
 		windowsHide: true,
-		env: minimalProcessEnv(),
+		env: minimalProcessEnv(dirname(input.outputPath)),
 	});
 	const probed = await probeMedia(input.outputPath, input.ffprobePath);
 	if (probed.codec !== 'h264')
