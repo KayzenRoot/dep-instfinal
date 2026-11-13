@@ -49,7 +49,8 @@ function sleep(ms, signal) {
 function stopChild(child) {
 	if (!child?.pid) return;
 	if (process.platform === 'win32') {
-		spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+		const taskkill = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'taskkill.exe');
+		spawn(taskkill, ['/PID', String(child.pid), '/T', '/F'], {
 			stdio: 'ignore',
 			windowsHide: true,
 		});
