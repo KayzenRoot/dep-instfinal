@@ -84,9 +84,7 @@ export const load: PageServerLoad = async (event) => {
 			selectedEpisode,
 			plan,
 			planStale: Boolean(
-				stored.plan &&
-					plan &&
-					plan.episodeRevisionNumber !== context.episodeRevisionNumber,
+				stored.plan && plan && plan.episodeRevisionNumber !== context.episodeRevisionNumber,
 			),
 			versions: stored.versions,
 			storedPlan: stored.plan

@@ -163,7 +163,10 @@
 
 	{#if data.planStale}
 		<div class="notice warning" role="status">
-			<p>O plano está preso a uma revisão anterior do episódio. Reconstrua para adotar o roteiro atual; os ajustes manuais serão substituídos pelo plano padrão.</p>
+			<p>
+				O plano está preso a uma revisão anterior do episódio. Reconstrua para adotar o roteiro
+				atual; os ajustes manuais serão substituídos pelo plano padrão.
+			</p>
 			<form method="POST" action="?/rebuild">
 				<input type="hidden" name="episodeId" value={data.selectedEpisode.id} />
 				<input type="hidden" name="expectedVersion" value={expectedVersion} />
