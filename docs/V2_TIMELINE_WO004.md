@@ -42,25 +42,25 @@ Migration `supabase/migrations/20261113090000_v2_wo004_edit_plans.sql`:
 
 ## 5. Testes
 
-| Verificação | Resultado | Evidência |
-| --- | --- | --- |
-| Domain/schema | **PASS 7** | `video-edit-plan.test.ts`: 120/90/150, reorder, trim, crossfade, foreign asset, double-booking, canonical hash |
-| PgTAP/RLS | **PASS 54/54** | owner/non-owner plans, append-only versions, optimistic conflict, restore, approve, direct insert denied |
-| Unit total | **PASS 88 + 1 skip** | `npm test` |
-| Lint/typecheck/build | **PASS** | `npm run lint`, `npm run typecheck`, `npm run build` |
-| Policy audit | **PASS 21 invariantes / 18 tabelas** | `npm run audit:policy` |
-| E2E timeline | **PASS local** | `e2e/timeline.spec.ts`: 15 uploads, reorder, save v1, reload, approve, save v2, restore v1→v3, reload |
-| E2E suíte | **PASS 11/11** (serial) | `CI=1 node scripts/test-local-e2e.mjs`; workers=1 due PostgREST pool contention |
+| Verificação          | Resultado                            | Evidência                                                                                                      |
+| -------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Domain/schema        | **PASS 7**                           | `video-edit-plan.test.ts`: 120/90/150, reorder, trim, crossfade, foreign asset, double-booking, canonical hash |
+| PgTAP/RLS            | **PASS 54/54**                       | owner/non-owner plans, append-only versions, optimistic conflict, restore, approve, direct insert denied       |
+| Unit total           | **PASS 88 + 1 skip**                 | `npm test`                                                                                                     |
+| Lint/typecheck/build | **PASS**                             | `npm run lint`, `npm run typecheck`, `npm run build`                                                           |
+| Policy audit         | **PASS 21 invariantes / 18 tabelas** | `npm run audit:policy`                                                                                         |
+| E2E timeline         | **PASS local**                       | `e2e/timeline.spec.ts`: 15 uploads, reorder, save v1, reload, approve, save v2, restore v1→v3, reload          |
+| E2E suíte            | **PASS 11/11** (serial)              | `CI=1 node scripts/test-local-e2e.mjs`; workers=1 due PostgREST pool contention                                |
 
 ## 6. Matriz de aceitação (issue #21)
 
-| Critério | Status | Evidência/limite |
-| --- | --- | --- |
-| Timeline exata 120 s/15×8 s e alternativas 90/150 s com último clipe parcial | **PASS** | domain tests; UI default plan |
-| Reordenar/trim/transições atualizam offsets e durações | **PASS** | domain tests; E2E reorder/save/reload |
-| Versões persistem, restore não apaga histórico, conflito concorrente rejeitado | **PASS** | PgTAP 54/54; E2E restore v1→v3 |
-| Plano inválido (offset negativo, duração excedida, double-booking, asset foreign) retorna erro seguro | **PASS** | Zod + domain tests; RPC shape check |
-| Edição não muda cânone/roteiro; acesso owner-only | **PASS** | tabelas separadas; RLS/RPC owner; nenhum write em episodes/scenes/canon |
+| Critério                                                                                              | Status   | Evidência/limite                                                        |
+| ----------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
+| Timeline exata 120 s/15×8 s e alternativas 90/150 s com último clipe parcial                          | **PASS** | domain tests; UI default plan                                           |
+| Reordenar/trim/transições atualizam offsets e durações                                                | **PASS** | domain tests; E2E reorder/save/reload                                   |
+| Versões persistem, restore não apaga histórico, conflito concorrente rejeitado                        | **PASS** | PgTAP 54/54; E2E restore v1→v3                                          |
+| Plano inválido (offset negativo, duração excedida, double-booking, asset foreign) retorna erro seguro | **PASS** | Zod + domain tests; RPC shape check                                     |
+| Edição não muda cânone/roteiro; acesso owner-only                                                     | **PASS** | tabelas separadas; RLS/RPC owner; nenhum write em episodes/scenes/canon |
 
 ## 7. Riscos e limites
 
