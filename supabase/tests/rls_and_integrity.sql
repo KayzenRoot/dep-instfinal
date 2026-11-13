@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(83);
+select plan(103);
 
 do $$
 declare
@@ -12,7 +12,8 @@ declare
     'media_assets', 'scenes', 'choices', 'polls', 'poll_results', 'canonical_decisions',
     'image_references', 'generation_jobs', 'video_upload_sessions', 'video_assets',
     'video_edit_plans', 'video_edit_plan_versions',
-    'render_jobs', 'render_job_events'
+    'render_jobs', 'render_job_events',
+    'voice_direction_plans', 'narration_takes'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -55,7 +56,7 @@ begin
         or has_table_privilege('authenticated', 'public.video_assets', 'DELETE') then
         raise exception 'authenticated can mutate video_assets outside the server';
       end if;
-    elsif v_table in ('video_edit_plans', 'video_edit_plan_versions', 'render_jobs', 'render_job_events') then
+    elsif v_table in ('video_edit_plans', 'video_edit_plan_versions', 'render_jobs', 'render_job_events', 'voice_direction_plans', 'narration_takes') then
       if v_policy_count <> 1 then raise exception 'edit plan policies must be read-only'; end if;
       if has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
         or has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
@@ -1299,6 +1300,182 @@ select ok(
     and has_table_privilege('service_role', 'public.video_assets', 'SELECT'),
   'render worker has read-only context grants'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select throws_ok(
+  $$insert into public.voice_direction_plans (
+      owner_id, episode_id, current_version, plan
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 1, '{}'::jsonb
+    );$$,
+  '42501',
+  'permission denied for table voice_direction_plans',
+  'owner cannot write voice direction outside the server'
+);
+set local role service_role;
+select lives_ok(
+  $$insert into public.voice_direction_plans (
+      owner_id, episode_id, current_version, plan
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 1, '{"schemaVersion":1}'::jsonb
+    );$$,
+  'service role can store a voice direction plan'
+);
+select lives_ok(
+  $$insert into public.narration_takes (
+      owner_id, episode_id, plan_version, source, bucket, object_key, sha256,
+      byte_size, duration_ms, format, sample_rate, channels, peak_db, rms_db
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 1, 'UPLOAD',
+      'dif-studio-video-private',
+      'narration/11111111-1111-4111-8111-111111111111/e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6/voice.wav',
+      repeat('a', 64), 1024, 3000, 'wav', 22050, 1, -1.5, -17.0
+    );$$,
+  'service role can store a narration take'
+);
+select lives_ok(
+  $$insert into public.narration_takes (
+      id, owner_id, episode_id, plan_version, source, bucket, object_key, sha256,
+      byte_size, duration_ms, format, sample_rate, channels, peak_db, rms_db, true_peak_db, lufs
+    ) values (
+      'a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7',
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 1, 'TTS',
+      'dif-studio-video-private',
+      'narration/11111111-1111-4111-8111-111111111111/e6e6e6e-e6e6-46e6-86e6-e6e6e6e6e6e6/tts.wav',
+      repeat('c', 64), 2048, 3000, 'wav', 48000, 1, -1.5, -17.0, -1.0, -18.0
+    );$$,
+  'service role can store a TTS narration take with true peak'
+);
+select throws_ok(
+  $$update public.voice_direction_plans
+    set current_status = 'APPROVED'
+    where owner_id = '11111111-1111-4111-8111-111111111111'
+      and episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '23514',
+  'narration_take_required',
+  'voice direction cannot be approved without a take'
+);
+select lives_ok(
+  $$update public.voice_direction_plans
+    set plan = '{"schemaVersion":1,"takeId":"a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7"}'::jsonb,
+        current_status = 'APPROVED'
+    where owner_id = '11111111-1111-4111-8111-111111111111'
+      and episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  'voice direction is approved only with a READY take'
+);
+select is(
+  public.claim_render_job('worker-d', 60) ->> 'id',
+  (select id::text from test_render_jobs where name = 'job3'),
+  'worker-d claims the remaining queued job before the narrated job'
+);
+select lives_ok(
+  $$select public.start_render_job(
+      (select id from test_render_jobs where name = 'job3'), 'worker-d'
+    );$$,
+  'worker-d starts the video-only job'
+);
+select lives_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job3'), 'worker-d',
+      '{"schemaVersion":1,"codec":"h264","width":1080,"height":1920,"durationMs":120000,"objectKey":"renders/test3.mp4","sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}'::jsonb
+    );$$,
+  'video-only job completes without an audio manifest'
+);
+insert into test_render_jobs
+select 'job4', public.enqueue_render_job(
+  '11111111-1111-4111-8111-111111111111',
+  'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+  'render-job-004', 50::smallint,
+  'a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7'::uuid
+);
+select is(
+  (select narration_take_id from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job4')),
+  'a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7'::uuid,
+  'render job pins the approved narration take'
+);
+select throws_ok(
+  $$update public.render_jobs
+    set narration_take_id = null
+    where id = (select id from test_render_jobs where name = 'job4');$$,
+  '55000',
+  'render_narration_immutable',
+  'narration take cannot be changed after enqueue'
+);
+select is(
+  public.claim_render_job('worker-e', 60) ->> 'status',
+  'CLAIMED',
+  'worker-e claims the narrated job'
+);
+select lives_ok(
+  $$select public.start_render_job(
+      (select id from test_render_jobs where name = 'job4'), 'worker-e'
+    );$$,
+  'narrated job starts'
+);
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job4'), 'worker-e',
+      '{"schemaVersion":1,"codec":"h264","width":1080,"height":1920,"durationMs":120000,"objectKey":"renders/test4.mp4","sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}'::jsonb
+    );$$,
+  '23514',
+  'render_narration_missing',
+  'narrated job cannot complete without AAC audio'
+);
+select lives_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job4'), 'worker-e',
+      '{"schemaVersion":1,"codec":"h264","width":1080,"height":1920,"durationMs":120000,"objectKey":"renders/test4.mp4","sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","audio":{"codec":"aac","channels":2,"sampleRate":48000,"durationMs":120000,"narrationTakeId":"a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7"}}'::jsonb
+    );$$,
+  'narrated job completes with the pinned AAC audio'
+);
+set local role authenticated;
+select is(
+  (select count(*) from public.voice_direction_plans
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  1::bigint,
+  'owner can read the voice direction plan'
+);
+select is(
+  (select count(*) from public.narration_takes
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  2::bigint,
+  'owner can read the narration takes'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.voice_direction_plans
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  0::bigint,
+  'second owner cannot read the first owner voice direction'
+);
+select is(
+  (select count(*) from public.narration_takes
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  0::bigint,
+  'second owner cannot read the first owner narration take'
+);
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select throws_ok(
+  $$insert into public.narration_takes (
+      owner_id, episode_id, plan_version, source, bucket, object_key, sha256,
+      byte_size, duration_ms, format, sample_rate, channels
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 1, 'UPLOAD',
+      'dif-studio-video-private', 'narration/spoof.wav', repeat('b', 64),
+      1024, 3000, 'wav', 22050, 1
+    );$$,
+  '42501',
+  'permission denied for table narration_takes',
+  'owner cannot insert narration takes directly'
+);
+reset role;
 
 select pass('single-owner RLS, append-only history, revisions, voting, and immutable publication invariants hold');
 select * from finish();

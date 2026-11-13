@@ -1,4 +1,5 @@
 import type { VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
+import { narrationDurationPolicy } from './voice-direction.js';
 
 export class RenderCompositionError extends Error {
 	constructor(
@@ -225,5 +226,97 @@ export function buildRenderCommand(
 		filterGraph,
 		expectedDurationMs: Math.max(...clips.map((clip) => clip.endMs)),
 		inputPaths: clips.map((clip) => inputs[clip.inputIndex]?.path ?? ''),
+	};
+}
+
+export interface NarrationMuxCommand {
+	args: string[];
+	videoPath: string;
+	narrationPath: string;
+	outputPath: string;
+	videoDurationMs: number;
+	narrationDurationMs: number;
+	paddedMs: number;
+	trimmedMs: number;
+}
+
+/**
+ * Second, audio-only encode: the approved video stream is copied bit-for-bit
+ * and the narration is padded/trimmed to the exact video duration. Overflow
+ * beyond the render tolerance is rejected instead of silently losing speech.
+ */
+export function buildNarrationMuxCommand(input: {
+	videoPath: string;
+	narrationPath: string;
+	outputPath: string;
+	videoDurationMs: number;
+	narrationDurationMs: number;
+	volumeDb?: number;
+	toleranceMs?: number;
+}): NarrationMuxCommand {
+	if (!input.videoPath || !input.narrationPath || !input.outputPath)
+		throw new RenderCompositionError('RENDER_MUX_INPUT_INVALID', 'Mux de narração inválido.');
+	if (/(^|[\\/])\.\.([\\/]|$)/.test(input.outputPath))
+		throw new RenderCompositionError('RENDER_OUTPUT_INVALID', 'Caminho de saída inválido.');
+	let policy: ReturnType<typeof narrationDurationPolicy>;
+	try {
+		policy = narrationDurationPolicy(
+			input.narrationDurationMs,
+			input.videoDurationMs,
+			input.toleranceMs,
+		);
+	} catch {
+		throw new RenderCompositionError(
+			'NARRATION_DURATION_INVALID',
+			'Duração da narração ou do vídeo inválida.',
+		);
+	}
+	if (!policy.ok)
+		throw new RenderCompositionError(
+			'NARRATION_OVERFLOW',
+			`A narração excede o vídeo em ${policy.overflowMs} ms.`,
+		);
+	const volume = Math.max(-12, Math.min(6, input.volumeDb ?? 0));
+	const duration = (input.videoDurationMs / 1000).toFixed(3);
+	const filter = `volume=${volume}dB,apad=whole_dur=${duration},atrim=0:${duration}`;
+	return {
+		args: [
+			'-y',
+			'-hide_banner',
+			'-loglevel',
+			'error',
+			'-i',
+			input.videoPath,
+			'-i',
+			input.narrationPath,
+			'-map',
+			'0:v:0',
+			'-map',
+			'1:a:0',
+			'-c:v',
+			'copy',
+			'-af',
+			filter,
+			'-c:a',
+			'aac',
+			'-b:a',
+			'192k',
+			'-ar',
+			'48000',
+			'-ac',
+			'2',
+			'-t',
+			duration,
+			'-movflags',
+			'+faststart',
+			input.outputPath,
+		],
+		videoPath: input.videoPath,
+		narrationPath: input.narrationPath,
+		outputPath: input.outputPath,
+		videoDurationMs: input.videoDurationMs,
+		narrationDurationMs: input.narrationDurationMs,
+		paddedMs: policy.paddedMs,
+		trimmedMs: policy.trimmedMs,
 	};
 }

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "provider": "piper-local",
+  "model": "pt_BR-edresson-low",
+  "modelLicense": "CC BY 4.0",
+  "capability": {
+    "emotion": false,
+    "speed": true,
+    "pause": true,
+    "volume": true,
+    "pronunciationMap": true
+  },
+  "targetRangeMs": [
+    90000,
+    150000
+  ],
+  "withinTarget": false,
+  "totalMs": 10308,
+  "peakDb": -2.2,
+  "rmsDb": -18.6,
+  "truePeakDb": -2.2,
+  "lufs": -17.8,
+  "clipping": false,
+  "byteSize": 989646,
+  "format": "wav",
+  "sampleRate": 48000,
+  "channels": 1,
+  "segmentCount": 3,
+  "segments": [
+    {
+      "index": 0,
+      "emotion": "tension",
+      "speed": 1.15,
+      "intendedWpm": 170,
+      "effectiveWpm": 163.9,
+      "speechMs": 4392,
+      "paddedMs": 4642,
+      "startMs": 0,
+      "endMs": 4642,
+      "truePeakDb": -2.9,
+      "lufs": -18.2
+    },
+    {
+      "index": 1,
+      "emotion": "fear",
+      "speed": 1.1,
+      "intendedWpm": 165,
+      "effectiveWpm": 114,
+      "speechMs": 2632,
+      "paddedMs": 2882,
+      "startMs": 4642,
+      "endMs": 7524,
+      "truePeakDb": -3,
+      "lufs": -19.7
+    },
+    {
+      "index": 2,
+      "emotion": "urgency",
+      "speed": 1.2,
+      "intendedWpm": 180,
+      "effectiveWpm": 167.7,
+      "speechMs": 2504,
+      "paddedMs": 2784,
+      "startMs": 7524,
+      "endMs": 10308,
+      "truePeakDb": -2.2,
+      "lufs": -15.6
+    }
+  ]
+}

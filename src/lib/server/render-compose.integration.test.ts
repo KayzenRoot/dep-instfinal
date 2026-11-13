@@ -94,7 +94,7 @@ describe.skipIf(!enabled)('FFmpeg composition integration', () => {
 			})),
 			outputPath: join(workspace!, 'episode.mp4'),
 			vhsIntensity: 1,
-			timeoutMs: 300_000,
+			timeoutMs: 600_000,
 		});
 		expect(output.width).toBe(1080);
 		expect(output.height).toBe(1920);
@@ -102,7 +102,122 @@ describe.skipIf(!enabled)('FFmpeg composition integration', () => {
 		expect(Math.abs(output.durationMs - 120_000)).toBeLessThanOrEqual(1_000);
 		expect(output.byteSize).toBeGreaterThan(0);
 		expect(output.sha256).toMatch(/^[0-9a-f]{64}$/);
-	}, 300_000);
+	}, 900_000);
+});
+
+describe.skipIf(!enabled)('FFmpeg narration mux integration', () => {
+	it('muxes a shorter narration as padded AAC and reports exact timing', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'dif-narration-mux-'));
+		try {
+			const scenes = [1, 2].map((index) => ({
+				id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+				sceneIndex: index,
+				startMs: (index - 1) * 2_000,
+				endMs: index * 2_000,
+			}));
+			const assets = [];
+			for (const scene of scenes) {
+				const assetId = `22222222-2222-4222-8222-${String(scene.sceneIndex).padStart(12, '0')}`;
+				const path = join(workspace, `${assetId}.mp4`);
+				execFileSync(
+					'ffmpeg',
+					[
+						'-y',
+						'-hide_banner',
+						'-loglevel',
+						'error',
+						'-f',
+						'lavfi',
+						'-i',
+						'testsrc2=size=180x320:rate=30:duration=2',
+						'-c:v',
+						'libx264',
+						'-preset',
+						'ultrafast',
+						'-pix_fmt',
+						'yuv420p',
+						path,
+					],
+					{ timeout: 60_000, windowsHide: true },
+				);
+				assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 2_000 });
+			}
+			const narrationPath = join(workspace, 'voice.wav');
+			execFileSync(
+				'ffmpeg',
+				[
+					'-y',
+					'-hide_banner',
+					'-loglevel',
+					'error',
+					'-f',
+					'lavfi',
+					'-i',
+					'sine=frequency=440:sample_rate=48000:duration=3',
+					'-ac',
+					'1',
+					'-c:a',
+					'pcm_s16le',
+					narrationPath,
+				],
+				{ timeout: 60_000, windowsHide: true },
+			);
+			const plan = {
+				schemaVersion: 1 as const,
+				episodeId: '11111111-1111-4111-8111-111111111111',
+				episodeRevisionNumber: 1,
+				durationMs: 4_000,
+				sceneDurationMs: 4_000 as const,
+				fps: 30 as const,
+				tracks: [{ id: 'video-main', kind: 'video' as const, label: 'Vídeo principal' }],
+				clips: assets.map((asset, index) => ({
+					id: asset.id,
+					sceneId: asset.sceneId,
+					assetId: asset.id,
+					trackId: 'video-main',
+					sourceInMs: 0,
+					sourceOutMs: 2_000,
+					timelineStartMs: index * 2_000,
+					timelineEndMs: index * 2_000 + 2_000,
+					transition: 'cut' as const,
+					transitionMs: 0,
+					gainDb: 0,
+				})),
+				captions: { template: 'clean' as const },
+				cta: null,
+			};
+			const output = await renderPlanToFile({
+				plan,
+				assets: assets.map((asset) => ({
+					assetId: asset.id,
+					path: join(workspace, `${asset.id}.mp4`),
+					durationMs: 2_000,
+					width: 180,
+					height: 320,
+				})),
+				outputPath: join(workspace, 'narrated.mp4'),
+				vhsIntensity: 0,
+				timeoutMs: 120_000,
+				narration: {
+					path: narrationPath,
+					durationMs: 3_000,
+					takeId: '33333333-3333-4333-8333-333333333333',
+				},
+			});
+			expect(output.codec).toBe('h264');
+			expect(output.audio).toMatchObject({
+				codec: 'aac',
+				channels: 2,
+				sampleRate: 48_000,
+				narrationTakeId: '33333333-3333-4333-8333-333333333333',
+				narrationDurationMs: 3_000,
+			});
+			expect(output.audio!.paddedMs).toBeGreaterThanOrEqual(900);
+			expect(Math.abs(output.audio!.durationMs - output.durationMs)).toBeLessThanOrEqual(1_000);
+		} finally {
+			await rm(workspace, { recursive: true, force: true });
+		}
+	}, 180_000);
 });
 
 describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {

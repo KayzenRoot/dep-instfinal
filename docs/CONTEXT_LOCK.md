@@ -201,3 +201,11 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Scope:** FFmpeg cuts/crossfade/VHS composition, 1080x1920 H.264 real artifacts, real worker with hash/plan validation, READY artifact guard and worker grants.
 - **Residuals:** VPS/R2 live smoke, VFR/rotation fixtures, audio/captions/preview, 720p/disk limits and least-privilege worker role remain tracked for later WOs.
 - **Next:** WO-007 (#24) narration; WO-008+ remain gated by their own approvals.
+
+## V2 Context Lock — WO-007 (#24)
+
+- **Base revalidated:** `main` `c0f3cfd` (checkpoint WO-006 promoted). Branch: `feat/dif-v2-wo-007`.
+- **Issue inventory:** WO-001–006 **MERGED/CLOSED/PROMOTED**; WO-007/#24 **IN PROGRESS**; WO-008+ #25–#45 **BLOCKED**.
+- **Delivered locally:** private narration takes (WAV/MP3/M4A) with SHA/loudness/true peak, versioned `VoiceDirectionPlan` by episode revision + narration text hash, deterministic heuristic direction, snapshot restore, owner-only RLS with service-only writes, approval guard requiring a READY take, render-job narration pin/mux (AAC 48 kHz stereo), and optional offline Piper TTS with per-segment regeneration and honest capability metadata.
+- **Tests so far:** PgTAP **103/103**, policy **25 invariants/22 tables**, unit/typecheck/lint PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **110.730 ms / −2,0 dBFS / −18,5 LUFS / 10,6 MB**, timeline E2E with narration upload and render, owner-boundary narration 401 and responsive layout PASS.
+- **Gate:** owner auditory acceptance of two styles, ARM64 TTS benchmark, final local E2E, hosted CI, independent audit and Evidence Bundle/Checkpoint Delta PROPOSED. No merge, deploy, VPS change or promotion. WO-008+ stays blocked.

@@ -1,5 +1,27 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-007` · issue #24 · epic #17 · addendum ENH-12
+- **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`
+- **Status:** implementation and local database/unit/FFmpeg/TTS evidence **PASS**; final E2E, hosted CI, owner auditory acceptance and independent audit **PENDING**; ARM64 benchmark **BLOCKED**. No merge/deploy.
+
+| Check              | Result     | Evidence                                                                                                                                     |
+| ------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Private ingest     | PASS       | WAV/MP3/M4A ≤20 MB, ffprobe, SHA-256, duration/sample rate/channels, RMS/peak/true peak, clipping rejection, private R2 key                  |
+| Direction contract | PASS       | `VoiceDirectionPlan` 6 emotions, speed 0.75–1.25, pauses, volume, WPM, pronunciation map; text SHA; schema/domain tests                      |
+| Versioning         | PASS       | plan versions with snapshots; restore as new DRAFT; takes immutable and never overwritten                                                    |
+| Database/RLS       | PASS       | PgTAP **103/103**; owner-only SELECT, service-only writes; approval requires READY take; render narration FK/immutability                    |
+| Render mux         | PASS       | real 4 s FFmpeg mux test: video copy + AAC 48 kHz stereo, pad to exact duration; overflow >250 ms fails                                      |
+| TTS 120 s          | PASS local | Piper `pt_BR-edresson-low` (CC BY 4.0): 232 words → 110.730 s, −2.0 dBFS true peak, −18.5 LUFS, 10.6 MB, no clipping                         |
+| TTS styles         | PENDING    | neutral 12.570 s / −2.4 dBFS / −19.3 LUFS; tension 10.308 s / −2.2 dBFS / −17.8 LUFS; owner must listen                                      |
+| Unit/integration   | PASS       | voice-direction 5, render composition 8, real mux 1, opt-in Piper 1; lint/typecheck PASS                                                     |
+| Policy             | PASS       | **25 invariants / 22 tables**                                                                                                                |
+| E2E                | PASS local | timeline upload → preview → approve → restore → approve → real worker READY with audio manifest; owner-boundary 401; responsive 360/768/1440 |
+| Limits             | —          | Piper emotion unsupported; ARM64 benchmark blocked; R2 GC, SRT (WO-008), worker least privilege (WO-013/014) pending                         |
+
+**Verdict:** WO-007 is locally implemented with honest capability reporting and a real narrated render. It **cannot be APPROVED** until the owner auditions the two styles and the ARM64 benchmark/independent audit close. No merge, deploy or checkpoint promotion.
+
 ## V2 WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-006` · issue #23 · epic #17

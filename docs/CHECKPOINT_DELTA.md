@@ -1,5 +1,14 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROPOSED
+
+- **Status:** **PROPOSED — EM ANDAMENTO, NÃO APROVADO**; PgTAP, unit, policy, FFmpeg mux e TTS real PASS; E2E final e auditoria independente pendentes; aceitação auditiva do owner pendente; benchmark ARM64 **BLOCKED**. Sem merge, deploy ou promoção.
+- **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`.
+- **Delivered:** upload privado WAV/MP3/M4A com SHA/duração/true peak; `voice_direction_plans` versionado por texto/revisão com snapshots restauráveis; `narration_takes` imutáveis e owner-only; aprovação exige take READY; render fixa `narration_take_id`, baixa áudio privado, valida hash/duração e faz mux AAC 48 kHz estéreo com pad/falha de overflow; TTS Piper offline por segmento com relatório de WPM/LUFS/clipping e regeneração seletiva; UI de narração com preview, seleção, aprovação e histórico.
+- **Tests:** PgTAP **103/103**; policy **25/22**; unit/typecheck/lint PASS; mux FFmpeg real; TTS real opt-in; 232 palavras → **110,730 s**, true peak **−2,0 dBFS**, **−18,5 LUFS**, 10,6 MB, sem clipping; timeline E2E com upload/aprovação/narration mux; owner-boundary 401 e layout responsivo.
+- **Limits:** Piper não altera emoção real (`emotion:false`); emoção é direção e voz importada é o fallback. Benchmark ARM64 e aceitação auditiva humana pendentes. R2 lifecycle/GC, SRT (WO-008) e credencial de menor privilégio (WO-013/014) permanecem residuais.
+- **Gate:** CI hospedado, Evidence Bundle, Checkpoint Delta PROPOSED, auditoria independente e aceitação auditiva do owner. WO-008+ bloqueado.
+
 ## DIF-V2-WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13) — PROMOTED
 
 - **Status:** **PROMOTED**; real composition, integration, PgTAP and real-worker E2E **PASS**; B1–B5/NEW-1/B4-R corrigidos; final independent audit **APPROVED** at `6aee143`; squash-merged at `239f3ba`. No VPS deploy.

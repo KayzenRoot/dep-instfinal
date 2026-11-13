@@ -38,6 +38,14 @@ const renderWorkerGrantsMigration = await readFile(
 	'supabase/migrations/20261113101000_v2_wo006_worker_grants.sql',
 	'utf8',
 );
+const narrationMigration = await readFile(
+	'supabase/migrations/20261113110000_v2_wo007_narration.sql',
+	'utf8',
+);
+const narrationRenderMigration = await readFile(
+	'supabase/migrations/20261113112000_v2_wo007_narration_render.sql',
+	'utf8',
+);
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -67,9 +75,10 @@ const tables = [
 	...videoMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...editPlanMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...renderJobMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...narrationMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['20 owner-scoped public tables', tables.length === 20],
+	['22 owner-scoped public tables', tables.length === 22],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -233,6 +242,27 @@ const checks = [
 			renderWorkerGrantsMigration.includes(
 				'grant select on table public.video_assets to service_role',
 			),
+	],
+	[
+		'narration plans and takes are owner-read, server-written and private',
+		narrationMigration.includes('voice_direction_plans') &&
+			narrationMigration.includes('narration_takes') &&
+			narrationMigration.includes('force row level security') &&
+			narrationMigration.includes('revoke all on table public.voice_direction_plans') &&
+			narrationMigration.includes('revoke all on table public.narration_takes') &&
+			narrationMigration.includes('grant select on table public.voice_direction_plans') &&
+			narrationMigration.includes('grant select on table public.narration_takes') &&
+			narrationMigration.includes('to service_role'),
+	],
+	[
+		'narration approval and render pin a READY take with required AAC audio',
+		narrationRenderMigration.includes('validate_voice_plan_approval') &&
+			narrationRenderMigration.includes('narration_take_required') &&
+			narrationRenderMigration.includes('render_jobs_narration_take_fk') &&
+			narrationRenderMigration.includes('render_narration_immutable') &&
+			narrationRenderMigration.includes('render_narration_missing') &&
+			narrationRenderMigration.includes('narration_take_id') &&
+			narrationRenderMigration.includes('to service_role'),
 	],
 	[
 		'video storage is private, multipart and short-lived signed',

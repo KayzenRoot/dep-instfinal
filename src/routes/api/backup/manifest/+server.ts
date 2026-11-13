@@ -23,6 +23,8 @@ const TABLES = [
 	'video_edit_plan_versions',
 	'render_jobs',
 	'render_job_events',
+	'voice_direction_plans',
+	'narration_takes',
 ] as const;
 
 export const GET: RequestHandler = async (event) => {
@@ -55,6 +57,7 @@ export const GET: RequestHandler = async (event) => {
 			'Restore PostgreSQL into a dedicated selected project, preserving owner UID mappings.',
 			'Reconcile each media asset by cloudinary_asset_id, public_id, version, SHA-256 and associations.',
 			'Image bytes are not part of this manifest; retrieve them only through authorized Cloudinary delivery.',
+			'Video and narration bytes remain private in R2; reconcile video_assets/narration_takes by SHA-256 and object key.',
 		],
 	};
 	return new Response(`${JSON.stringify(manifest, null, 2)}\n`, {
