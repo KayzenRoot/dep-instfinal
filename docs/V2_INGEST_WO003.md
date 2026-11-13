@@ -3,7 +3,7 @@
 **Work Order:** `DIF-V2-WO-003` · issue #20 · epic #17
 **Base:** `main` `b0f78064a2a5902acc98c20efc92648ec540b7e9` (WO-002 merge, 2026-11-12)
 **Branch:** `feat/dif-v2-wo-003`
-**Status:** implementação, testes locais e **aceitação live do R2 PASS** (15 clipes); M4/M9/M11/M12 e a falha de chave de sessão da reauditoria foram corrigidos no branch. Lifecycle automático do R2 está bloqueado pelo escopo do token (AccessDenied) e a validação ffprobe real permanece no worker/WO-005. Evidência aguarda auditoria independente. Checkpoint V2 permanece **PROPOSED — NOT PROMOTED**.
+**Status:** implementação, testes locais e **aceitação live do R2 PASS** (15 clipes); M4/M9/M11/M12, a falha de chave de sessão e a recuperação M4 foram corrigidos. **Auditoria independente final: APPROVED em `c07af6e`**. Lifecycle automático do R2 está bloqueado pelo escopo do token (AccessDenied), a cota M2 tem paginação/check-then-act residual (não bloqueante no escopo single-owner; hardening em WO-013/WO-005) e a validação ffprobe real permanece no worker/WO-005. Checkpoint V2 permanece **PROPOSED — NOT PROMOTED** até aprovação/merge do owner.
 
 ## 1. Objetivo
 
@@ -113,12 +113,14 @@ A primeira auditoria independente (commit `fb6a3c8`) retornou **BLOCKED**; a rea
 - **M6 cache:** URLs assinadas R2 incluem `ResponseCacheControl: private, no-store` e `Content-Disposition: inline`.
 - **M7 drivers:** `memory` e `fixture` só funcionam em `import.meta.env.DEV`; produção retorna 503/sem probe.
 - **M8/M11 RLS:** PgTAP **42/42**; `authenticated` não pode atualizar/deletar `video_assets`, inserir `READY` ou escrever sessões. A promoção a READY usa o service role server-side; READY forjado, hard delete e reescrita de chave são bloqueados no banco. Tombstone/GC fica para WO-005.
-- **M9 service tests:** `video-assets.test.ts` cobre partes/resume, hash errado, recuperação M4, sessão expirada e download não-READY.
+- **M9 service tests:** `video-assets.test.ts` cobre partes/resume, chave adulterada, hash errado, falhas injetadas no M4 (insert e update), sessão expirada e download não-READY.
 - **M12 frame rate/VFR:** probe rejeita taxa fora de 23,976–60 fps, VFR (`avg_frame_rate` vs `r_frame_rate`) e densidade implausível por `nb_frames`; parser ffprobe tem testes com JSON real.
 - **M13 expiração:** `loadSession` e o caminho de idempotência retornam 410; listas/cotas filtram sessões expiradas.
 - **L1/L2:** dev-object exige DEV; `r2Configured` exige endpoint.
 
-**Pendências conhecidas:** lifecycle do bucket (bloqueado por escopo do token), fixtures truncada/zero-byte e concorrência no E2E, paginação/limite atômico de quotas (o servidor usa somas de linhas; o limite de 15 e a cota são check-then-act), poster/GC e ffprobe real no worker (WO-005). A reauditoria do novo head está pendente; o WO-003 não está aprovado e o WO-004+ permanece bloqueado.
+**Auditoria final:** a reauditoria independente do head `c07af6e` retornou **APPROVED**, sem findings bloqueantes. H1 (chave de sessão), B1/M4 (retenção da quarentena até o commit e recuperação após falha) e H1/H2 anteriores foram verificados; M2 (paginação/atômica de quotas) foi classificado como **não bloqueante** no escopo single-owner e fica para WO-013/WO-005. O PR permanece Draft e o merge/promoção exige aprovação explícita do owner.
+
+**Pendências conhecidas (não bloqueantes):** lifecycle do bucket (bloqueado por escopo do token), fixtures truncada/zero-byte e concorrência no E2E, paginação/limite atômico de quotas (somas de linhas; check-then-act), poster/GC e ffprobe real no worker (WO-005). O WO-004+ permanece bloqueado até aprovação formal/merge do WO-003.
 
 **Nota de E2E:** a suíte completa local passou **10/10** no run limpo ([`e2e-full-10of10.txt`](evidence/wo-003/e2e-full-10of10.txt)). Um rerun posterior falhou no journey pré-existente por 500 em `/app` e timeout de 900 s ([`e2e-full-rerun.txt`](evidence/wo-003/e2e-full-rerun.txt)); o teste de vídeo live passou 15/15. O CI hospedado é a autoridade.
 

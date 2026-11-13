@@ -85,3 +85,11 @@ No credentials were printed.
   tampered key in the service before any R2 read/delete.
 - M12: ffprobe parser detects VFR via avg_frame_rate vs r_frame_rate and implausible nb_frames;
   validateProbe rejects VFR and implausible frame density.
+
+12) Final independent audit
+Head audited: c07af6e (docs-only after CI-tested 7f2cc69)
+Verdict: APPROVED — no blocking findings.
+Closed: H1 session key, B1/M4 quarantine retention + recovery, H1/H2 earlier findings.
+Non-blocking: M2 quota pagination/check-then-act (single-owner; WO-013/WO-005), lifecycle
+AccessDenied, tombstone/GC and real ffprobe worker (WO-005), low test/documentation gaps.
+PR #48 remains Draft; merge and checkpoint promotion require explicit owner approval.
