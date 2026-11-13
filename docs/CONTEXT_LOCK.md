@@ -174,5 +174,5 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Critical sources read:** WO-002 benchmark, WO-003 R2/storage, WO-004 edit-plan versions, ADR/SOURCE_PACK, owner-only RLS/RPC patterns, `docs/OPERATIONS.md`.
 - **Issue inventory:** WO-001/#18 and WO-002/#19 **CLOSED**; WO-003/#20 and WO-004/#21 **audit APPROVED, Draft/unmerged**; WO-005/#22 **IN PROGRESS**; WO-006+ #23–#45 **BLOCKED**.
 - **Delivered locally:** `render_jobs`/`render_job_events`; owner SELECT, service-only RPCs; single active job; advisory lock + `SKIP LOCKED`; lease/heartbeat/retry/cancel/reconcile; enqueue idempotency and backpressure; Node ARM64 stub worker; `/api/render-jobs`; timeline render panel.
-- **Tests:** PgTAP **81/81**; unit **95 + 1 skip**; policy **23 invariants/20 tables**; timeline+worker E2E PASS local; lint/typecheck/build PASS.
+- **Tests:** PgTAP **81/81**; unit **95 + 1 skip**; policy **23 invariants/20 tables**; timeline+worker E2E PASS; hosted CI `43383787230` PASS (6m25s); lint/typecheck/build PASS.
 - **Gate:** hosted CI and independent audit pending. No VPS deployment/container/firewall/key, no merge/deploy/promotion. WO-006+ blocked until WO-005 approved and owner authorizes the stacked merge.

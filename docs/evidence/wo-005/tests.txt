@@ -1,5 +1,6 @@
 DIF-V2-WO-005 — motor de jobs, worker stub e recuperação
 Date: 2026-11-13
+Hosted CI: 43383787230 (PASS 6m25s; PgTAP 81/81; unit 95+1; policy 23/20; E2E 11/11)
 Base: feat/dif-v2-wo-004 @ 0860fd3
 Branch: feat/dif-v2-wo-005
 
@@ -43,7 +44,7 @@ Worker logs sanitized JSON; no secrets.
 
 7) Full E2E suite
 Command: CI=1 node scripts/test-local-e2e.mjs
-Result: pending on this head; previous suite 11/11 with workers=1.
+Result: hosted CI 43383787230 PASS; 11/11 in 3.5m (timeline 22.9s, video 12.3s).
 
 8) Limits
 - No VPS deployment, container, firewall or new key.

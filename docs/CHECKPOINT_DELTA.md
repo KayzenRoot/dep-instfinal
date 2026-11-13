@@ -2,7 +2,7 @@
 
 ## DIF-V2-WO-005 — Render job engine, worker stub and recovery (2026-11-13) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP/unit/policy/E2E **PASS locally**; hosted CI and independent audit **pending**. Stacked on WO-003/WO-004. No VPS deploy, container, firewall or checkpoint promotion.
+- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP/unit/policy/E2E **PASS**; hosted CI `43383787230` PASS (6m25s); independent audit **pending**. Stacked on WO-003/WO-004. No VPS deploy, container, firewall or checkpoint promotion.
 - **Base:** `feat/dif-v2-wo-004` `0860fd3`; branch `feat/dif-v2-wo-005`.
 - **Delivered:** `render_jobs`/`render_job_events`; owner SELECT, service-only RPCs; QUEUED→CLAIMED/RUNNING→READY/FAILED/CANCELED; advisory lock/one active job; lease/heartbeat/retry/reconcile; enqueue idempotency/backpressure; Node stub worker; `/api/render-jobs`; timeline render panel.
 - **Tests:** PgTAP **81/81**; unit **95 + 1 skip**; policy **23 invariants/20 tables**; timeline+worker E2E PASS local; lint/typecheck/build PASS.

@@ -3,7 +3,7 @@
 **Work Order:** `DIF-V2-WO-005` · issue #22 · epic #17
 **Base:** `feat/dif-v2-wo-004` `0860fd3` (WO-004 audit-approved, unmerged)
 **Branch:** `feat/dif-v2-wo-005` (stacked)
-**Status:** implementação local, PgTAP e E2E green; **auditoria independente pendente**. Nenhum daemon/worker foi implantado na VPS; o worker entregue é stub local (`WORKER_STUB=1`). Merge/deploy/promoção exigem autorização explícita do owner.
+**Status:** implementação, PgTAP, unit e E2E **PASS**; CI hospedado `43383787230` **PASS** em 6m25s; **auditoria independente pendente**. Nenhum daemon/worker foi implantado na VPS; o worker entregue é stub local (`WORKER_STUB=1`). Merge/deploy/promoção exigem autorização explícita do owner.
 
 ## 1. Objetivo
 
