@@ -1,6 +1,6 @@
 # DIF-V2-WO-007 — Narração pt-BR, voz importada e TTS local
 
-**Status:** implementação em andamento; **não aprovada**, **não merged**, **não deployed**.
+**Status:** implementação, testes e CI hospedada **PASS**; **não aprovada** (auditoria, aceitação auditiva do owner e benchmark ARM64 pendentes), **não merged**, **não deployed**.
 **Base:** `main` @ `c0f3cfd` (checkpoint WO-006).
 **Branch:** `feat/dif-v2-wo-007`.
 **Escopo:** WO-007 (#24) + addendum DIF-V2-ENH-12 (direção de voz).
@@ -27,19 +27,19 @@ Modelo de audição: `pt_BR-edresson-low.onnx` (Piper, CC BY 4.0), checksum SHA-
 
 ## Critérios de aceitação
 
-| Critério                                                                                    | Estado         | Evidência                                                                                                                                                                         |
-| ------------------------------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS local** | E2E `e2e/timeline.spec.ts`: upload WAV 118 s, preview, aprovação e render READY com AAC 48 kHz; áudio preenche os 2 s restantes; timestamps do relatório TTS monotônicos          |
-| TTS local gera narração inteligível pt-BR em episódio sintético, com custo medido           | **PARCIAL**    | 232 palavras → 110.730 ms, true peak −2,0 dBFS, −18,5 LUFS, 10,6 MB, sem clipping; benchmark host x64 registrado; benchmark ARM64 **BLOCKED** sem execução autorizada na VPS      |
-| Qualidade aceita pelo owner                                                                 | **PENDING**    | Amostras `sample-neutral.wav` e `sample-tension.wav`; aceitação auditiva humana ainda não registrada                                                                              |
-| Acentos/pontuação preservados e pausas ajustáveis                                           | **PASS**       | fixtures com `Às`, `três`, `dezessete`, `Alice=Álissi`, `dez=10`; relatório por segmento                                                                                          |
-| Extensão/silêncio não destrói timing                                                        | **PASS**       | `narrationDurationPolicy`: pad de áudio curto, falha acima de 250 ms de overflow; teste unitário e mux real                                                                       |
-| Sem clipping alto ou diferenças ocultas                                                     | **PASS**       | limiter `-2,6 dBFS` típico, threshold de rejeição −0,5 dBFS, true peak/LUFS no take e no relatório                                                                                |
-| Acesso privado e revisão versionada                                                         | **PASS**       | RLS owner-only, service-only writes, PgTAP 103/103, versões com snapshots e restauração                                                                                           |
-| 4 estilos como metadados e 2 diferenças audíveis                                            | **PARCIAL**    | 6 emoções e 4 estilos editoriais modelados; TTS entrega diferenças reais de velocidade/pausa/volume; diferença emocional real depende de voz importada. Audição do owner pendente |
-| Regenerar trecho sem refazer todo vídeo                                                     | **PASS CLI**   | `TTS_SEGMENT_ID` regenera um segmento e recompõe o WAV; render reutiliza o vídeo e refaz apenas o mux                                                                             |
-| Undo/revert e áudio original preservado                                                     | **PASS**       | versões com snapshot e ação `?/restore`; takes nunca são sobrescritos nem deletados                                                                                               |
-| Modo offline/sem TTS íntegro; sem API paga/clonagem                                         | **PASS**       | upload manual e render funcionam sem Piper; nenhuma chamada paga no código                                                                                                        |
+| Critério                                                                                    | Estado       | Evidência                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS CI**  | E2E `e2e/timeline.spec.ts` no CI `43518610642`: upload WAV 118 s, preview, aprovação, restauração, render READY com AAC 48 kHz; áudio preenche os 2 s restantes; timestamps monotônicos |
+| TTS local gera narração inteligível pt-BR em episódio sintético, com custo medido           | **PARCIAL**  | 232 palavras → 110.730 ms, true peak −2,0 dBFS, −18,5 LUFS, 10,6 MB, sem clipping; benchmark host x64 registrado; benchmark ARM64 **BLOCKED** sem execução autorizada na VPS            |
+| Qualidade aceita pelo owner                                                                 | **PENDING**  | Amostras `sample-neutral.wav` e `sample-tension.wav`; aceitação auditiva humana ainda não registrada                                                                                    |
+| Acentos/pontuação preservados e pausas ajustáveis                                           | **PASS**     | fixtures com `Às`, `três`, `dezessete`, `Alice=Álissi`, `dez=10`; relatório por segmento                                                                                                |
+| Extensão/silêncio não destrói timing                                                        | **PASS**     | `narrationDurationPolicy`: piso de 50% de cobertura, pad de áudio curto, falha acima de 250 ms de overflow; teste unitário e mux real                                                   |
+| Sem clipping alto ou diferenças ocultas                                                     | **PASS**     | limiter `-2,6 dBFS` típico, threshold de rejeição −0,5 dBFS, true peak/LUFS no take e no relatório                                                                                      |
+| Acesso privado e revisão versionada                                                         | **PASS**     | RLS owner-only, service-only writes, PgTAP 103/103, versões com snapshots e restauração                                                                                                 |
+| 4 estilos como metadados e 2 diferenças audíveis                                            | **PARCIAL**  | 6 emoções e 4 estilos editoriais modelados; TTS entrega diferenças reais de velocidade/pausa/volume; diferença emocional real depende de voz importada. Audição do owner pendente       |
+| Regenerar trecho sem refazer todo vídeo                                                     | **PASS CLI** | `TTS_SEGMENT_ID` regenera um segmento e recompõe o WAV; render reutiliza o vídeo e refaz apenas o mux                                                                                   |
+| Undo/revert e áudio original preservado                                                     | **PASS**     | versões com snapshot e ação `?/restore`; takes nunca são sobrescritos nem deletados                                                                                                     |
+| Modo offline/sem TTS íntegro; sem API paga/clonagem                                         | **PASS**     | upload manual e render funcionam sem Piper; nenhuma chamada paga no código                                                                                                              |
 
 ## Testes executados
 
@@ -47,11 +47,13 @@ Modelo de audição: `pt_BR-edresson-low.onnx` (Piper, CC BY 4.0), checksum SHA-
 - `npm run audit:policy`: **25 invariantes / 22 tabelas PASS**.
 - `npm run lint`: PASS.
 - `npm run typecheck`: PASS.
-- Vitest unitário/integração: `voice-direction` + `render-composition` + mux FFmpeg real; TTS Piper opt-in real.
-- E2E local (timeline): upload, preview, aprovação, restauração de versão, render real com AAC e READY.
-- E2E owner-boundary: rotas de narração anônimas retornam 401; layout 360/768/1440 sem overflow após correção do seletor.
+- Vitest unitário/integração: **112 passed + 2 skipped**; `voice-direction` + `render-composition` + mux FFmpeg real; TTS Piper opt-in real.
+- CI hospedada `43518610642` em `efea85a`: **SUCCESS** (6m49s); E2E **12/12** em 3,2m; timeline com narração e render READY em **47,9s**; worker real `render_completed`.
+- E2E: upload, preview, aprovação, restauração de versão, recompravação, render real com AAC e READY.
+- E2E owner-boundary: rotas de narração anônimas retornam 401; layout 360/768/1440 sem overflow.
 - TTS 120 s: `docs/evidence/wo-007/tts-full-120-report.json`.
 - Amostras de audição: `docs/evidence/wo-007/tts-neutral-report.json`, `tts-tension-report.json`.
+- Log sanitizado do CI: `docs/evidence/wo-007/ci-efea85a.txt`.
 
 ## Riscos e residuais
 

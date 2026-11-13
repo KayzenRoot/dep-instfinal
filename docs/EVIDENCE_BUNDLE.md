@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-007` · issue #24 · epic #17 · addendum ENH-12
 - **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`
-- **Status:** implementation and local database/unit/FFmpeg/TTS evidence **PASS**; final E2E, hosted CI, owner auditory acceptance and independent audit **PENDING**; ARM64 benchmark **BLOCKED**. No merge/deploy.
+- **Status:** implementation, local database/unit/FFmpeg/TTS evidence and hosted CI **PASS**; owner auditory acceptance and independent audit **PENDING**; ARM64 benchmark **BLOCKED**. No merge/deploy.
 
 | Check              | Result     | Evidence                                                                                                                                     |
 | ------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
