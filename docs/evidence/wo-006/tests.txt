@@ -6,12 +6,12 @@ Branch: feat/dif-v2-wo-006
 
 1) Command builder
 Command: npx vitest run src/lib/domain/render-composition.test.ts
-Result: 3 passed.
-Coverage: 15 clips/120s, xfade 0.5s, missing/short asset, unsafe output path.
+Result: 5 passed.
+Coverage: 15 clips/120s, xfade 0.5s, shuffled source trims, gap rejection, missing/short asset, unsafe output path.
 
 2) FFmpeg integration
 Command: npx vitest run src/lib/server/render-compose.integration.test.ts
-Result: 2 passed (120s cuts + 11.5s crossfade; 77.97s CI combined).
+Result: 2 passed (120s cuts + 7s multi-crossfade with nominal 90s plan; 77.97s CI combined).
 - 15 synthetic 8s 180x320 clips -> 120s 1080x1920 H.264.
 - ffprobe: h264, 30fps, duration 120000ms, width 1080, height 1920.
 - output 39,594,383 bytes; SHA-256 computed.
@@ -32,8 +32,8 @@ Result: 83/83 PASS (hosted CI + stub rejection).
 New assertion: service_role has SELECT on episodes/scenes/video_assets for worker context.
 
 5) Unit/policy/build
-Commands: npm test (100 passed + 1 skipped); npm run lint; npm run typecheck; npm run build; npm run audit:policy
-Result: PASS; policy 23 invariants/20 tables.
+Commands: npm test (103 passed + 1 skipped); npm run lint; npm run typecheck; npm run build; npm run audit:policy
+Result: PASS; policy 23 invariants/20 tables; ffprobe env isolation test.
 
 6) Audit corrections
 - crossfade timebase `settb=1/30` + real crossfade test.

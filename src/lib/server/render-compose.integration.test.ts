@@ -109,11 +109,11 @@ describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {
 	it('renders a crossfade with matching xfade timebases', async () => {
 		const workspace = await mkdtemp(join(tmpdir(), 'dif-crossfade-'));
 		try {
-			const scenes = [1, 2, 3].map((index) => ({
+			const scenes = [1, 2, 3, 4].map((index) => ({
 				id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 				sceneIndex: index,
-				startMs: (index - 1) * 4_000,
-				endMs: index * 4_000,
+				startMs: (index - 1) * 2_000,
+				endMs: index * 2_000,
 			}));
 			const assets = [];
 			for (const scene of scenes) {
@@ -129,7 +129,7 @@ describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {
 						'-f',
 						'lavfi',
 						'-i',
-						'testsrc2=size=180x320:rate=30:duration=4',
+						'testsrc2=size=180x320:rate=30:duration=2',
 						'-c:v',
 						'libx264',
 						'-preset',
@@ -140,26 +140,27 @@ describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {
 					],
 					{ timeout: 60_000, windowsHide: true },
 				);
-				assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 4_000 });
+				assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 2_000 });
 			}
+			const starts = [0, 1_500, 3_000, 5_000];
 			const clips = assets.map((asset, index) => ({
 				id: asset.id,
 				sceneId: asset.sceneId,
 				assetId: asset.id,
 				trackId: 'video-main',
 				sourceInMs: 0,
-				sourceOutMs: 4_000,
-				timelineStartMs: index === 0 ? 0 : index === 1 ? 3_500 : 7_500,
-				timelineEndMs: index === 0 ? 4_000 : index === 1 ? 7_500 : 11_500,
-				transition: (index === 1 ? 'crossfade' : 'cut') as 'cut' | 'crossfade',
-				transitionMs: index === 1 ? 500 : 0,
+				sourceOutMs: 2_000,
+				timelineStartMs: starts[index]!,
+				timelineEndMs: starts[index]! + 2_000,
+				transition: (index === 1 || index === 2 ? 'crossfade' : 'cut') as 'cut' | 'crossfade',
+				transitionMs: index === 1 || index === 2 ? 500 : 0,
 				gainDb: 0,
 			}));
 			const plan = {
 				schemaVersion: 1 as const,
 				episodeId: '11111111-1111-4111-8111-111111111111',
 				episodeRevisionNumber: 1,
-				durationMs: 11_500,
+				durationMs: 90_000,
 				sceneDurationMs: 4_000 as const,
 				fps: 30 as const,
 				tracks: [{ id: 'video-main', kind: 'video' as const, label: 'Vídeo principal' }],
@@ -173,7 +174,7 @@ describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {
 				assets: assets.map((asset) => ({
 					assetId: asset.id,
 					path: join(workspace, `${asset.id}.mp4`),
-					durationMs: 4_000,
+					durationMs: 2_000,
 					width: 180,
 					height: 320,
 				})),
@@ -183,7 +184,7 @@ describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {
 			});
 			expect(output.width).toBe(1080);
 			expect(output.height).toBe(1920);
-			expect(Math.abs(output.durationMs - 11_500)).toBeLessThanOrEqual(1_000);
+			expect(Math.abs(output.durationMs - 7_000)).toBeLessThanOrEqual(1_000);
 		} finally {
 			await rm(workspace, { recursive: true, force: true });
 		}

@@ -60,10 +60,12 @@ O worker não aceita comando, URL ou caminho do usuário; só IDs owner-scoped e
 - **B1 crossfade:** `settb=1/30` após cada `concat`/`xfade`; teste de integração real com crossfade 500 ms e saída de 11,5 s.
 - **B2 READY:** worker passa a operar real por padrão (`WORKER_STUB=1` só explícito); `complete_render_job` rejeita manifesto stub e exige objectKey/SHA-256/1080x1920/H.264/duração.
 - **B3 temporários:** o worker cria o temp do job, passa `WORKER_RENDER_TMPDIR` e remove no `finally`, inclusive após cancelamento/kill.
-- **B4 segredos:** ffmpeg/ffprobe recebem ambiente mínimo, sem service role/R2; paths de mídia continuam allowlisted.
-- **B5 duração:** a validação usa `max(timelineEndMs)` (não a duração nominal), cobrindo crossfades/trims; teste multi-crossfade.
-- **N1/N2/N6/N7:** hash do plano verificado no worker; clips ordenados e somente track de vídeo; `noise` com seed fixa; profile/pix_fmt validados.
+- **B4 segredos:** ffmpeg e ffprobe (incluindo o probe de upload) recebem ambiente mínimo, sem service role/R2/Cloudinary; paths de mídia continuam allowlisted.
+- **B5 duração:** a validação usa `max(timelineEndMs)` (não a duração nominal); teste real com 4 clipes, 2 crossfades e plano nominal de 90 s renderiza 7 s.
+- **N1/N2/N6/N7:** hash do plano verificado no worker; clips ordenados por timeline/somente track de vídeo; gaps rejeitados; `noise` com seed fixa; profile/pix_fmt validados.
 - **N4:** `tsx` movido para dependências de produção do worker.
+- **NEW-1:** `sourceIn` é transportado do clipe ordenado, não de `plan.clips[planIndex]`; teste com array embaralhado.
+- **B4-R:** `FfprobeVideoProbe` também usa ambiente mínimo; teste garante que nenhum segredo é repassado.
 
 ## 6. Limites e riscos
 

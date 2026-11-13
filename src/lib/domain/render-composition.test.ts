@@ -79,3 +79,48 @@ describe('render composition command', () => {
 		);
 	});
 });
+
+describe('render ordering and gaps', () => {
+	it('uses the sorted clip source trims when the stored array is shuffled', () => {
+		const plan = buildDefaultEditPlan(context());
+		const clipped = plan.clips.map((clip, index) => ({
+			...clip,
+			sourceInMs: index * 100,
+			sourceOutMs: index * 100 + 8_000,
+		}));
+		const shuffled = [...clipped].reverse();
+		const command = buildRenderCommand(
+			{ ...plan, clips: shuffled },
+			plan.clips.map((clip) => ({
+				assetId: clip.assetId,
+				path: `/tmp/${clip.assetId}.mp4`,
+				durationMs: 10_000,
+				width: 1080,
+				height: 1920,
+			})),
+			'/tmp/out.mp4',
+		);
+		const trims = [...command.filterGraph.matchAll(/trim=start=([0-9.]+)/g)].map(
+			(match) => match[1],
+		);
+		expect(trims[0]).toBe('0.000');
+		expect(trims[1]).toBe('0.100');
+		expect(trims[14]).toBe('1.400');
+	});
+
+	it('rejects a timeline with a gap instead of silently compressing it', () => {
+		const plan = buildDefaultEditPlan(context());
+		const clips = plan.clips.map((clip, index) =>
+			index === 1
+				? {
+						...clip,
+						timelineStartMs: clip.timelineStartMs + 2_000,
+						timelineEndMs: clip.timelineEndMs + 2_000,
+					}
+				: clip,
+		);
+		expect(() => buildRenderCommand({ ...plan, clips }, inputs(plan), '/tmp/out.mp4')).toThrow(
+			'A timeline tem lacuna ou offset não suportado pelo render.',
+		);
+	});
+});

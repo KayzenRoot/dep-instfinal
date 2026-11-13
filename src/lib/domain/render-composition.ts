@@ -37,6 +37,7 @@ interface NormalizedClip {
 	planIndex: number;
 	inputIndex: number;
 	durationMs: number;
+	sourceInMs: number;
 	startMs: number;
 	endMs: number;
 	transition: 'cut' | 'crossfade';
@@ -90,6 +91,7 @@ function normalizedClips(plan: VideoEditPlan, inputs: RenderAssetInput[]): Norma
 				planIndex,
 				inputIndex: input.index,
 				durationMs,
+				sourceInMs: clip.sourceInMs,
 				startMs: clip.timelineStartMs,
 				endMs: clip.timelineEndMs,
 				transition: clip.transition,
@@ -130,11 +132,23 @@ export function buildRenderCommand(
 		throw new RenderCompositionError('RENDER_PLAN_EMPTY', 'O plano não tem clipes.');
 	if (clips.length > 60)
 		throw new RenderCompositionError('RENDER_PLAN_TOO_LARGE', 'O plano excede 60 clipes.');
+	for (let index = 0; index < clips.length; index += 1) {
+		const clip = clips[index];
+		const previous = clips[index - 1];
+		if (!clip) continue;
+		const expectedStart = previous
+			? previous.endMs - (clip.transition === 'crossfade' ? clip.transitionMs : 0)
+			: 0;
+		if (clip.startMs !== expectedStart)
+			throw new RenderCompositionError(
+				'RENDER_TIMELINE_GAP',
+				'A timeline tem lacuna ou offset não suportado pelo render.',
+			);
+	}
 	const groups = segments(clips);
 	const filters: string[] = [];
 	for (const clip of clips) {
-		const source = plan.clips[clip.planIndex];
-		const sourceIn = ((source?.sourceInMs ?? 0) / 1000).toFixed(3);
+		const sourceIn = (clip.sourceInMs / 1000).toFixed(3);
 		const duration = (clip.durationMs / 1000).toFixed(3);
 		filters.push(
 			`[${clip.inputIndex}:v]trim=start=${sourceIn}:duration=${duration},setpts=PTS-STARTPTS,fps=${fps},scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,format=yuv420p,settb=1/${fps}[v${clip.planIndex}]`,

@@ -5,6 +5,10 @@ import { getAppConfig } from './config.js';
 
 const execFileAsync = promisify(execFile);
 
+export function mediaProcessEnv(): NodeJS.ProcessEnv {
+	return { PATH: process.env.PATH ?? '', SystemRoot: process.env.SystemRoot };
+}
+
 export const VIDEO_DURATION_TOLERANCE_MS = 500;
 export const VIDEO_RATIO_TOLERANCE = 0.01;
 export const VIDEO_MAX_WIDTH = 2160;
@@ -117,7 +121,12 @@ export class FfprobeVideoProbe implements VideoProbe {
 		const { stdout } = await execFileAsync(
 			this.command,
 			['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', path],
-			{ timeout: 15_000, maxBuffer: 2 * 1024 * 1024, windowsHide: true },
+			{
+				timeout: 15_000,
+				maxBuffer: 2 * 1024 * 1024,
+				windowsHide: true,
+				env: mediaProcessEnv(),
+			},
 		);
 		return parseFfprobeOutput(stdout);
 	}
