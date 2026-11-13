@@ -35,15 +35,15 @@ O worker não aceita comando, URL ou caminho do usuário; só IDs owner-scoped e
 
 ## 3. Testes
 
-| Verificação          | Resultado                            | Evidência                                                                                                                            |
-| -------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Command builder      | **PASS 3**                           | 15 clipes/120 s, xfade 0.5 s, asset ausente/curto/path inseguro                                                                      |
-| FFmpeg integration   | **PASS**                             | 15 clipes 180x320 8 s → 120 s 1080x1920 H.264, 39.594.383 bytes, ffprobe ±1 s, SHA-256                                               |
-| E2E real worker      | **PASS local**                       | upload de 15 clipes reais → plano aprovado → worker real via `tsx` → READY com manifesto 1080x1920/h264/120 s; segundo job cancelado |
-| Unit total           | **PASS 99 + 1 skip**                 | `npm test` (inclui integração FFmpeg quando disponível)                                                                              |
-| PgTAP                | **PASS 82/82**                       | + grant de leitura do worker; RLS/queue continuam verdes                                                                             |
-| Policy audit         | **PASS 23 invariantes / 20 tabelas** |                                                                                                                                      |
-| Lint/typecheck/build | **PASS**                             |                                                                                                                                      |
+| Verificação          | Resultado                            | Evidência                                                                                                             |
+| -------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Command builder      | **PASS 5**                           | 15 clipes/120 s, xfade, ordem/trim embaralhados, gap, asset ausente/curto/path inseguro                               |
+| FFmpeg integration   | **PASS 2**                           | 120 s cuts + multi-crossfade 7 s (plano nominal 90 s), 1080x1920 H.264, ffprobe ±1 s                                  |
+| E2E real worker      | **PASS**                             | 15 clipes reais → plano aprovado → worker real via `tsx` → READY 1080x1920/h264/120 s; segundo job cancelado; CI 1.7m |
+| Unit total           | **PASS 103 + 1 skip**                | `npm test` (inclui integração FFmpeg quando disponível)                                                               |
+| PgTAP                | **PASS 83/83**                       | + grant de leitura do worker + rejeição de manifesto stub; RLS/queue verdes                                           |
+| Policy audit         | **PASS 23 invariantes / 20 tabelas** |                                                                                                                       |
+| Lint/typecheck/build | **PASS**                             |                                                                                                                       |
 
 ## 4. Matriz de aceitação (issue #23)
 
@@ -57,7 +57,7 @@ O worker não aceita comando, URL ou caminho do usuário; só IDs owner-scoped e
 
 ## 5. Correções da auditoria
 
-- **B1 crossfade:** `settb=1/30` após cada `concat`/`xfade`; teste de integração real com crossfade 500 ms e saída de 11,5 s.
+- **B1 crossfade:** `settb=1/30` após cada `concat`/`xfade`; teste de integração real com 4 clipes, 2 crossfades e plano nominal de 90 s → 7 s.
 - **B2 READY:** worker passa a operar real por padrão (`WORKER_STUB=1` só explícito); `complete_render_job` rejeita manifesto stub e exige objectKey/SHA-256/1080x1920/H.264/duração.
 - **B3 temporários:** o worker cria o temp do job, passa `WORKER_RENDER_TMPDIR` e remove no `finally`, inclusive após cancelamento/kill.
 - **B4 segredos:** ffmpeg e ffprobe (incluindo o probe de upload) recebem ambiente mínimo, sem service role/R2/Cloudinary; paths de mídia continuam allowlisted.
