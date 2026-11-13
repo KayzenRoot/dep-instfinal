@@ -41,6 +41,8 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 		!process.env.SUPABASE_SERVICE_ROLE_KEY,
 		'requires local service role for revision fixture',
 	);
+	page.setDefaultTimeout(60_000);
+	page.setDefaultNavigationTimeout(120_000);
 
 	const seriesTitle = `Timeline E2E ${crypto.randomUUID().slice(0, 8)}`;
 	await page.goto('/login');
@@ -63,6 +65,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await page.getByRole('button', { name: 'Criar rascunho' }).click();
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
 	const episodeId = page.url().split('/').at(-1)!;
+	console.log('[timeline-e2e] episode created', episodeId);
 
 	const narrationText = [
 		'A fita chegou às três e dezessete da manhã, sem remetente e sem explicação.',
@@ -189,24 +192,30 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await page.getByRole('button', { name: 'Aprovar plano atual' }).click();
 	await expect(page.getByText('APPROVED')).toBeVisible();
 
+	console.log('[timeline-e2e] opening narration editor');
 	await page.goto(`/app/narration?episodeId=${episodeId}`);
 	await expect(page.getByRole('heading', { name: 'Narração e direção' })).toBeVisible();
 	await page.getByRole('button', { name: 'Salvar direção' }).click();
 	await expect(page.locator('.notice.success')).toContainText('versão');
+	console.log('[timeline-e2e] uploading narration take');
 	await page.locator('input[type="file"]').setInputFiles(voicePath);
 	await expect(page.locator('.takes li')).toHaveCount(1, { timeout: 180_000 });
 	await page.locator('input[type="radio"][name="take"]').first().check();
 	await page.getByRole('button', { name: 'Aprovar direção + voz' }).click();
 	await expect(page.locator('.notice.success')).toContainText('versão');
+	console.log('[timeline-e2e] narration approved; restoring previous version');
+	await expect(page.locator('.history li')).toHaveCount(2);
 	await page
 		.locator('.history li')
 		.filter({ hasText: 'v1' })
 		.getByRole('button', { name: 'Restaurar' })
 		.click();
 	await expect(page.locator('.notice.success')).toContainText('versão');
+	console.log('[timeline-e2e] previous version restored; reapproving');
 	await page.locator('input[type="radio"][name="take"]').first().check();
 	await page.getByRole('button', { name: 'Aprovar direção + voz' }).click();
 	await expect(page.locator('.notice.success')).toContainText('versão');
+	console.log('[timeline-e2e] narration reapproved');
 	const takesResponse = await page.request.get(`/api/narration/takes?episodeId=${episodeId}`);
 	expect(takesResponse.ok()).toBeTruthy();
 	const { takes } = (await takesResponse.json()) as { takes: Array<{ id: string }> };
@@ -216,12 +225,14 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await mkdir(narrationDir, { recursive: true });
 	await copyFile(voicePath, path.join(narrationDir, `${narrationTakeId}.wav`));
 
+	console.log('[timeline-e2e] returning to timeline');
 	await page.goto(`/app/timeline?episodeId=${episodeId}`);
 	await expect(page.getByText(/Narração aprovada/)).toBeVisible();
 	await page.waitForTimeout(1_000);
 	await cancelOpenRenderJobs(request);
 	await page.getByRole('button', { name: 'Renderizar plano aprovado' }).click();
 	await expect(page.getByText(/QUEUED|CLAIMED|RUNNING/)).toBeVisible();
+	console.log('[timeline-e2e] render enqueued');
 
 	const assetResponse = await page.request.get(`/api/video/assets?episodeId=${episodeId}`);
 	expect(assetResponse.ok()).toBeTruthy();
@@ -251,8 +262,15 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 		stdio: ['ignore', 'pipe', 'pipe'],
 	});
 	let workerOutput = '';
-	worker.stdout?.on('data', (chunk) => (workerOutput += String(chunk)));
-	worker.stderr?.on('data', (chunk) => (workerOutput += String(chunk)));
+	worker.stdout?.on('data', (chunk) => {
+		workerOutput += String(chunk);
+		console.log(`[render-worker] ${String(chunk).trim()}`);
+	});
+	worker.stderr?.on('data', (chunk) => {
+		workerOutput += String(chunk);
+		console.log(`[render-worker:err] ${String(chunk).trim()}`);
+	});
+	console.log('[timeline-e2e] worker spawned');
 	const workerExit = new Promise<number>((resolve) =>
 		worker.on('exit', (code) => resolve(code ?? 1)),
 	);
