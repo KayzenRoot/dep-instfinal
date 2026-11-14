@@ -1,6 +1,6 @@
 # DIF-V2-WO-007 — Narração pt-BR, voz importada e TTS local
 
-**Status:** implementação, testes e CI hospedada **PASS**; **não aprovada** (auditoria, aceitação auditiva do owner e benchmark ARM64 pendentes), **não merged**, **não deployed**.
+**Status:** implementação, testes, CI, auditoria de código e aceitação auditiva do owner **PASS**; falta apenas o benchmark ARM64 (BLOCKED por autorização de VPS). **Não merged**, **não deployed**.
 **Base:** `main` @ `c0f3cfd` (checkpoint WO-006).
 **Branch:** `feat/dif-v2-wo-007`.
 **Escopo:** WO-007 (#24) + addendum DIF-V2-ENH-12 (direção de voz).
@@ -32,12 +32,12 @@ Modelo de audição: `pt_BR-cadu-medium.onnx` (Piper 1.8+, dataset CC0), SHA-256
 | ------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS CI**  | E2E `e2e/timeline.spec.ts` no CI `43547252585`: upload WAV 118 s, preview, aprovação, restauração, render READY com AAC 48 kHz; áudio preenche os 2 s restantes; duração total no E2E; monotonicidade coberta por teste unitário e relatório |
 | TTS local gera narração inteligível pt-BR em episódio sintético, com custo medido           | **PARCIAL**  | 232 palavras → 94.961 ms, true peak −2,9 dBFS, −19,4 LUFS, 8,7 MB, sem clipping; benchmark host x64 registrado; benchmark ARM64 **BLOCKED** sem execução autorizada na VPS                                                                   |
-| Qualidade aceita pelo owner                                                                 | **PENDING**  | Amostras `sample-neutral.wav` e `sample-tension.wav`; aceitação auditiva humana ainda não registrada                                                                                                                                         |
+| Qualidade aceita pelo owner                                                                 | **PASS**     | Owner: “agora esta muito bom vamos continuar” em 2026-11-14; amostras Cadu `sample-neutral.wav`/`sample-tension.wav` e `docs/evidence/wo-007/owner-acceptance.txt`                                                                           |
 | Acentos/pontuação preservados e pausas ajustáveis                                           | **PASS**     | fixtures com `Às`, `três`, `dezessete`, `Alice=Álissi`, `dez=10`; relatório por segmento                                                                                                                                                     |
 | Extensão/silêncio não destrói timing                                                        | **PASS**     | `narrationDurationPolicy`: piso de 50% de cobertura, pad de áudio curto, falha acima de 250 ms de overflow; teste unitário e mux real                                                                                                        |
 | Sem clipping alto ou diferenças ocultas                                                     | **PASS**     | limiter `0.7` com `level=false` e true peak final ≈ −1,8 dBFS; threshold de rejeição −0,5 dBFS; true peak/LUFS no take e no relatório                                                                                                        |
 | Acesso privado e revisão versionada                                                         | **PASS**     | RLS owner-only, service-only writes, PgTAP 108/108, versões com snapshots e restauração                                                                                                                                                      |
-| 4 estilos como metadados e 2 diferenças audíveis                                            | **PARCIAL**  | 6 emoções e 4 estilos editoriais modelados; TTS entrega diferenças reais de velocidade/pausa/volume; diferença emocional real depende de voz importada. Audição do owner pendente                                                            |
+| 4 estilos como metadados e 2 diferenças audíveis                                            | **PASS**     | 6 emoções e 4 presets modelados; amostras neutral/tension aceitas pelo owner; TTS entrega diferenças reais de velocidade/pausa/volume, sem alegar emoção real                                                                                |
 | Regenerar trecho sem refazer todo vídeo                                                     | **PASS CLI** | `TTS_SEGMENT_ID` regenera um segmento e recompõe o WAV; render reutiliza o vídeo e refaz apenas o mux                                                                                                                                        |
 | Undo/revert e áudio original preservado                                                     | **PASS**     | versões com snapshot e ação `?/restore`; takes nunca são sobrescritos nem deletados                                                                                                                                                          |
 | Modo offline/sem TTS íntegro; sem API paga/clonagem                                         | **PASS**     | upload manual e render funcionam sem Piper; nenhuma chamada paga no código                                                                                                                                                                   |
@@ -59,7 +59,7 @@ Modelo de audição: `pt_BR-cadu-medium.onnx` (Piper 1.8+, dataset CC0), SHA-256
 ## Riscos e residuais
 
 - **Arm64 benchmark BLOCKED:** não houve execução autorizada na VPS Oracle ARM64; o host x64 não substitui a prova ARM64.
-- **Aceitação auditiva PENDING:** o owner precisa ouvir as duas amostras e registrar aprovação/rejeição explícita.
+- **Aceitação auditiva PASS:** owner aceitou as amostras Cadu em 2026-11-14; registro em `docs/evidence/wo-007/owner-acceptance.txt`.
 - **Qualidade emocional:** Piper é plano; não rotular como emocional. A emoção é direção e o fallback é voz importada.
 - **R2 lifecycle/GC:** takes órfãos e versões antigas ainda dependem de operação manual; não há varredura automática nesta WO.
 - **SRT:** os timestamps por segmento estão no relatório, mas a exportação SRT/ASS é WO-008.
@@ -83,4 +83,4 @@ Para regenerar um segmento, mantenha o diretório e defina `TTS_SEGMENT_ID=<uuid
 
 ## Gate
 
-Auditoria independente, CI no head final, Evidence Bundle e Checkpoint Delta PROPOSED. **Sem merge, deploy ou promoção.** Próxima WO permanece bloqueada.
+Auditoria independente de código **APPROVED**; CI final verde; Checkpoint Delta PROPOSED. Falta o benchmark ARM64. **Sem merge, deploy ou promoção.** Próxima WO permanece bloqueada.

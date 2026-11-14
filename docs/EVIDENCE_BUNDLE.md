@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-007` · issue #24 · epic #17 · addendum ENH-12
 - **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`
-- **Status:** implementation, local database/unit/FFmpeg/TTS evidence and hosted CI **PASS**; owner auditory acceptance and independent audit **PENDING**; ARM64 benchmark **BLOCKED**. No merge/deploy.
+- **Status:** implementation, local database/unit/FFmpeg/TTS evidence, hosted CI, code audit and owner auditory acceptance **PASS**; ARM64 benchmark **BLOCKED**. No merge/deploy.
 
 | Check              | Result     | Evidence                                                                                                                                                              |
 | ------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -14,7 +14,7 @@
 | Database/RLS       | PASS       | PgTAP **108/108**; owner-only SELECT, service-only writes; approval requires READY take; render narration FK/immutability                                             |
 | Render mux         | PASS       | real 4 s FFmpeg mux test: video copy + AAC 48 kHz stereo, pad to exact duration after a 50% minimum coverage check; overflow >250 ms fails                            |
 | TTS 120 s          | PASS local | Piper `pt_BR-cadu-medium` (CC0): 232 words → 94.961 s, −2.9 dBFS true peak, −19.4 LUFS, 8.7 MB, no clipping                                                           |
-| TTS styles         | PENDING    | `sample-neutral.wav` 8.842 s / −3.0 dBFS / −20.4 LUFS; `sample-tension.wav` 7.478 s / −2.9 dBFS / −19.4 LUFS; owner must listen                                       |
+| TTS styles         | PASS       | owner accepted Cadu samples on 2026-11-14; `sample-neutral.wav` 8.842 s / −3.0 dBFS / −20.4 LUFS; `sample-tension.wav` 7.478 s / −2.9 dBFS / −19.4 LUFS               |
 | Unit/integration   | PASS       | 116 passed + 2 skipped; narration upload negatives 4, voice-direction 5, render composition 8, real mux 1, opt-in Piper 1; lint/typecheck/build PASS                  |
 | Policy             | PASS       | **25 invariants / 22 tables**                                                                                                                                         |
 | E2E                | PASS CI    | CI `43547252585` @ `4117010`: 12/12 in 3.5m; upload → preview → approve → restore → approve → real worker READY in 34.7s; owner-boundary 401; responsive 360/768/1440 |
