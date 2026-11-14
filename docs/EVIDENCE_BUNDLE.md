@@ -17,7 +17,7 @@
 | TTS styles         | PENDING    | `sample-neutral.wav` 12.602 s / −2.4 dBFS / −18.4 LUFS; `sample-tension.wav` 11.044 s / −2.5 dBFS / −18.1 LUFS; owner must listen                                     |
 | Unit/integration   | PASS       | 116 passed + 2 skipped; narration upload negatives 4, voice-direction 5, render composition 8, real mux 1, opt-in Piper 1; lint/typecheck/build PASS                  |
 | Policy             | PASS       | **25 invariants / 22 tables**                                                                                                                                         |
-| E2E                | PASS CI    | CI `43527026122` @ `3f24176`: 12/12 in 4.2m; upload → preview → approve → restore → approve → real worker READY in 43.4s; owner-boundary 401; responsive 360/768/1440 |
+| E2E                | PASS CI    | CI `43531019608` @ `ca924ab`: 12/12 in 3.3m; upload → preview → approve → restore → approve → real worker READY in 31.9s; owner-boundary 401; responsive 360/768/1440 |
 | Limits             | —          | Piper emotion unsupported; ARM64 blocked; narration R2 live download not exercised; R2 GC, SRT (WO-008), worker least privilege (WO-013/014) pending                  |
 
 **Verdict:** WO-007 is locally implemented with honest capability reporting and a real narrated render. It **cannot be APPROVED** until the owner auditions the two styles and the ARM64 benchmark/independent audit close. No merge, deploy or checkpoint promotion.
