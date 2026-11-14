@@ -215,8 +215,8 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Base revalidated:** `main` `326c576` (checkpoint WO-007 promoted). Branch: `feat/dif-v2-wo-008`.
 - **Issue inventory:** WO-001–007 **MERGED/CLOSED/PROMOTED**; WO-008/#25 **IN PROGRESS**; WO-009+ remain gated.
 - **Delivered locally:** `caption_tracks` versionado por plano e take, RLS owner-only/service-only writes; alinhamento forçado roteiro↔ASR com normalização NFD, DP, descarte de hallucination e timestamps monotonicos; SRT/ASS com estilos/safe zones, largura segura e escape; editor `/app/captions`; import ASR/manual; worker exige take aprovado e queima ASS; CLI Vosk opcional.
-- **Tests:** PgTAP **124/124**; unit **142 + 3 skipped**; real Piper Cadu→Vosk alignment PASS; CLI real `captions:align` PASS; FFmpeg burn-in com frame CJK/emoji e margem horizontal PASS; E2E timeline PASS (2,9m local, 13 cues, manifesto `captions`); build/policy PASS. Três auditorias independentes retornaram H1–H5/H-1/H-2/M-1–M-6/H-A/H-B/M-A; correções aplicadas; novo CI e reauditoria final pendentes.
-- **Gate:** novo CI, Evidence Bundle, Checkpoint Delta PROPOSED, reauditoria independente e autorização de merge. No deploy/VPS change.
+- **Tests:** PgTAP **124/124**; unit **142 + 3 skipped**; real Piper Cadu→Vosk alignment PASS; CLI real `captions:align` PASS; FFmpeg burn-in com frame CJK/emoji e margem horizontal PASS; E2E timeline PASS (2,9m local, 13 cues, manifesto `captions`); build/policy PASS. Três auditorias independentes retornaram H1–H5/H-1/H-2/M-1–M-6/H-A/H-B/M-A; correções aplicadas; CI `43627375872` em `f3bd1f0` SUCCESS; reauditoria final pendente.
+- **Gate:** CI PASS, Evidence Bundle, Checkpoint Delta PROPOSED, reauditoria independente e autorização de merge. No deploy/VPS change.
 
 ### Fingerprints no base `326c576`
 

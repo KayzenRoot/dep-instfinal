@@ -1,6 +1,6 @@
 # DIF-V2-WO-008 — Legendas inteligentes, SRT/ASS e burn-in
 
-**Status:** implementação e CI **PASS**; três auditorias independentes retornaram **CORRECTION REQUIRED**; correções H1–H5, H-1/H-2, M-1–M-6 e H-A/H-B/M-A aplicadas; revalidação local **PASS**; novo CI e reauditoria final pendentes. **Não aprovada**, **não merged**, **não deployed**.
+**Status:** implementação e CI **PASS**; três auditorias independentes retornaram **CORRECTION REQUIRED**; correções H1–H5, H-1/H-2, M-1–M-6 e H-A/H-B/M-A aplicadas; revalidação local e CI final `43627375872` **PASS**; reauditoria final pendente. **Não aprovada**, **não merged**, **não deployed**.
 **Base:** `main` @ `326c576` (checkpoint WO-007 promovido).
 **Branch:** `feat/dif-v2-wo-008`.
 **Escopo:** WO-008 (#25), dependente de WO-006 + WO-007 aprovados.
@@ -49,7 +49,7 @@ O ASR Vosk é opcional e offline. O alinhamento sempre preserva o texto do rotei
 - `npm run audit:policy`: **26 invariantes / 23 tabelas PASS**.
 - Integração real ASR: `caption-asr.integration.test.ts` PASS com Piper Cadu + Vosk e duração real do áudio.
 - CLI real `npm run captions:align` com Piper/Vosk: PASS; gerou `asr-words.json`, `captions.json`, `captions.srt`, `captions.ass` e `report.json` (2 cues, score 0,869; fonte `ASR_FALLBACK` porque o áudio sintético de ~8 s foi alinhado a um episódio de 120 s).
-- CI hospedada `43624013043` em `705233b`: **SUCCESS** (7m41s); unit 137+3, PgTAP 124/124, E2E 12/12 (3,5m), Sonar/Socket/Vercel PASS. Evidência em `docs/evidence/wo-008/ci-705233b.txt`. Runs anteriores `43617826034` e `43618535947` também passaram durante as correções.
+- CI hospedada `43627375872` em `f3bd1f0`: **SUCCESS** (7m46s); unit 142+3, PgTAP 124/124, E2E 12/12 (3,5m), Sonar/Socket/Vercel PASS. Evidência em `docs/evidence/wo-008/ci-f3bd1f0.txt`. Runs anteriores `43617826034` e `43618535947` também passaram durante as correções.
 
 - Unit `captions.test.ts` (25 testes): normalização, alinhamento/hallucination, timestamps fracionários, fantasma, cue curta/sobreposição/merge/drop, monotonicidade de palavras, cauda forçada, CTA, SRT/ASS, safe zone, CJK/emoji/token estreito, token >80 e escape ASS.
 - Integração real opt-in `caption-asr.integration.test.ts`: Piper Cadu → Vosk → alinhamento com duração probeada.

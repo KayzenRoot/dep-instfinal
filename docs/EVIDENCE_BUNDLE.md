@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-008` · issue #25 · epic #17
 - **Base:** `main` `326c576`; branch `feat/dif-v2-wo-008`
-- **Status:** third independent audit corrections (H-A/H-B/M-A plus earlier items) applied; local suites, CLI and CI **PASS**; new hosted CI and final re-audit pending. No merge/deploy.
+- **Status:** third independent audit corrections (H-A/H-B/M-A plus earlier items) applied; local suites, CLI and CI **PASS**; hosted CI PASS at `f3bd1f0`; final re-audit pending. No merge/deploy.
 
 | Check     | Result     | Evidence                                                                                    |
 | --------- | ---------- | ------------------------------------------------------------------------------------------- |
@@ -14,7 +14,7 @@
 | UI/API    | PASS       | `/app/captions`, SRT/ASS owner-only exports, current-take filtering, manual fallback        |
 | E2E       | PASS local | timeline + narration + captions + narrated captioned render; manifest 13 cues (2,9m)        |
 | ASR/CLI   | PASS       | real Piper→Vosk test; documented `captions:align` produced 5 artifacts, 2 cues, score 0,869 |
-| CI        | PASS       | prior run `43624013043`: 137+3, PgTAP 124/124, E2E 12/12; new run pending after H-A/H-B/M-A |
+| CI        | PASS       | run `43627375872` at `f3bd1f0`: 142+3, PgTAP 124/124, E2E 12/12, Sonar/Socket/Vercel        |
 | CTA       | PASS       | no overlap, long window capped at 7 s, insufficient tight window rejected                   |
 | Limits    | —          | Vosk model local; no VPS deploy; human visual/audio QA pending                              |
 
