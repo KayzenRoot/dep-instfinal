@@ -232,6 +232,57 @@ describe('caption normalization and alignment', () => {
 		}
 	});
 
+	it('never drops script tokens when an ASR gap has no time budget', () => {
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [{ index: 0, text: 'A X Y Z B' }],
+			asrWords: [
+				{ word: 'A', startMs: 1_000, endMs: 1_100, confidence: 0.9 },
+				{ word: 'B', startMs: 1_100, endMs: 1_200, confidence: 0.9 },
+			],
+			durationMs: 10_000,
+		});
+		expect(track.cues.map((cue) => cue.text).join(' ')).toContain('X Y Z');
+		expect(captionTrackSchema.safeParse(track).success).toBe(true);
+	});
+
+	it('keeps generated tracks schema-valid across varied timings', () => {
+		let seed = 42;
+		const random = () => {
+			seed = (seed * 1_664_525 + 1_013_904_223) >>> 0;
+			return seed / 0x1_0000_0000;
+		};
+		let generated = 0;
+		for (let round = 0; round < 120; round += 1) {
+			const text = Array.from({ length: 30 }, (_, index) => `w${index}`).join(' ');
+			const durationMs = 12_000 + Math.floor(random() * 60_000);
+			let cursor = 0;
+			const asrWords = text
+				.split(/\s+/)
+				.map((word) => {
+					cursor += Math.floor(random() * 400);
+					const startMs = cursor;
+					cursor += 100 + Math.floor(random() * 300);
+					return { word, startMs, endMs: cursor, confidence: 0.9 };
+				})
+				.filter(() => random() > 0.2);
+			if (asrWords.length < 8) continue;
+			try {
+				const track = buildCaptionTrack({
+					...trackInput(),
+					segments: [{ index: 0, text }],
+					asrWords,
+					durationMs,
+				});
+				expect(captionTrackSchema.safeParse(track).success).toBe(true);
+				generated += 1;
+			} catch (cause) {
+				if (!(cause instanceof CaptionError)) throw cause;
+			}
+		}
+		expect(generated).toBeGreaterThan(20);
+	});
+
 	it('caps a forced alignment with a long unmatched suffix at +1.5 s', () => {
 		const prefix = Array.from({ length: 300 }, (_, index) => `p${index}`).join(' ');
 		const suffix = 'zzzz '.repeat(75).trim();
@@ -343,6 +394,20 @@ describe('caption normalization and alignment', () => {
 		expect(captionTrackSchema.safeParse(track).success).toBe(true);
 		for (const cue of track.cues)
 			for (const word of cue.words) expect(word.text.length).toBeLessThanOrEqual(80);
+
+		const astralWord = `${'a'.repeat(79)}𠀀`;
+		const astralTrack = buildCaptionTrack({
+			...trackInput(),
+			segments: [{ index: 0, text: astralWord }],
+			asrWords: [{ word: astralWord, startMs: 0, endMs: 2_000, confidence: 0.9 }],
+		});
+		expect(captionTrackSchema.safeParse(astralTrack).success).toBe(true);
+		for (const cue of astralTrack.cues) {
+			for (const word of cue.words) {
+				expect(word.text.length).toBeLessThanOrEqual(80);
+				expect(word.text).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/u);
+			}
+		}
 	});
 
 	it('appends CTA cues after the last cue without overlap or overflow', () => {

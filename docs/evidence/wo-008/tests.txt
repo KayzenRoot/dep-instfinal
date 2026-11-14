@@ -22,9 +22,9 @@ npx supabase test db
 
 npm test
   Test Files 21 passed | 3 skipped (24)
-       Tests 142 passed | 3 skipped (145)
+       Tests 144 passed | 3 skipped (147)
   Includes:
-    - caption domain tests (25)
+    - caption domain tests (27)
     - real FFmpeg 120s render
     - real narration mux
     - real ASS burn-in from an apostrophe path + CJK/emoji frame bounds
@@ -75,9 +75,9 @@ audio was aligned to a 120 s fixture episode). See `asr-cli.txt`.
 
 - H-1: short final cues no longer overlap; the previous cue is trimmed/merged or the short cue is dropped explicitly. Word timestamps are integer, monotonic and inside the cue.
 - H-2: caption load/export/page/worker filter the current narration take; approval/generation require approved READY voice; DB enforces JSON/column take match and same-episode take; voice switching rebinds with a new version.
-- M-3/H-A: matched/unmatched word timing is integer, monotonic and clamped to cue/episode bounds; >80-char metadata is clipped.
+- M-3/H-A: matched/unmatched word timing is integer, monotonic and reserves time for every token; zero-budget gaps no longer drop script text. H-A-2 merge requires >=300 ms.
 - M-4/H-B: unmatched tails, including forced alignments, are truncated at exactly `last ASR match + 1.5 s`; truncation downgrades to `ASR_FALLBACK`.
-- M-1/M-2: CJK, emoji and long narrow tokens wrap within 880 px and 42 characters; real frame test covers CJK/emoji.
+- M-1/M-2/M-A: CJK, emoji, ligatures and long narrow tokens wrap within 880 px and 42 characters; word metadata clips by code point (no lone surrogate); frame test covers CJK/emoji.
 - M-5: CTA window is capped at 7 s per cue; an insufficient tight window fails explicitly.
 - M-6: DB trigger and composite FK ensure the narration take belongs to the caption episode.
 - H5: E2E manifest assertions, CTA window tests, real frame safe-area measurement; docs distinguish asserted vs observed cue counts.

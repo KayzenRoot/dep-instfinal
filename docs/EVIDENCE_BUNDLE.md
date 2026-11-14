@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-008` · issue #25 · epic #17
 - **Base:** `main` `326c576`; branch `feat/dif-v2-wo-008`
-- **Status:** third independent audit corrections (H-A/H-B/M-A plus earlier items) applied; local suites, CLI and CI **PASS**; hosted CI PASS at `f3bd1f0`; final re-audit pending. No merge/deploy.
+- **Status:** fourth independent audit corrections (H-A-1/H-A-2/M-A-1 plus earlier items) applied; local suites, CLI and prior CI **PASS**; new hosted CI and final re-audit pending. No merge/deploy.
 
 | Check     | Result     | Evidence                                                                                    |
 | --------- | ---------- | ------------------------------------------------------------------------------------------- |

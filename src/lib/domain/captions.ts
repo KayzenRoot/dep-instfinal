@@ -66,7 +66,7 @@ function characterWidth(character: string): number {
 	if (/\s/u.test(character)) return 0.32;
 	if (/[ilI.,'!|:;]/u.test(character)) return 0.28;
 	if (/[fjrt()\-[\]]/u.test(character)) return 0.36;
-	if (/[MW@%&ÆŒ]/u.test(character)) return 0.92;
+	if (/[MW@%&ÆŒæœ]/u.test(character)) return 0.92;
 	if (/[A-ZÀ-Ý]/u.test(character)) return 0.68;
 	if (/\d/u.test(character)) return 0.6;
 	return 0.55;
@@ -175,27 +175,31 @@ function interpolatedWords(
 	asr: CaptionWord[],
 	matches: Match[],
 	durationMs: number,
-): { token: Token; word: CaptionWord }[] {
+): { words: { token: Token; word: CaptionWord }[]; compressed: boolean } {
 	const byKnown = new Map(matches.map((match) => [match.knownIndex, match]));
 	const result: { token: Token; word: CaptionWord }[] = [];
 	const lastMatchedEnd = matches.length
 		? Math.round(asr[matches[matches.length - 1]!.asrIndex]!.endMs)
 		: 0;
 	let cursor = 0;
+	let compressed = false;
 	for (let index = 0; index < tokens.length; index += 1) {
 		const token = tokens[index]!;
 		const match = byKnown.get(index);
+		const remaining = tokens.length - index;
+		const latestStart = Math.max(0, durationMs - remaining);
 		if (match) {
 			const source = asr[match.asrIndex]!;
-			const startMs = Math.max(cursor, Math.round(source.startMs));
-			const endMs = Math.min(durationMs, Math.max(startMs, Math.round(source.endMs)));
-			if (endMs > startMs) {
-				result.push({
-					token,
-					word: { ...source, text: token.raw, startMs, endMs },
-				});
-				cursor = endMs;
-			}
+			const desiredStart = Math.max(cursor, Math.round(source.startMs));
+			const startMs = Math.min(desiredStart, latestStart);
+			const latestEnd = durationMs - (remaining - 1);
+			const endMs = Math.min(latestEnd, Math.max(startMs + 1, Math.round(source.endMs)));
+			if (startMs !== desiredStart || endMs < Math.round(source.endMs)) compressed = true;
+			result.push({
+				token,
+				word: { ...source, text: token.raw, startMs, endMs },
+			});
+			cursor = endMs;
 			continue;
 		}
 		let nextMatch: Match | undefined;
@@ -214,11 +218,15 @@ function interpolatedWords(
 			lookahead += 1
 		)
 			run.push(tokens[lookahead]!);
+		if (available < run.length) compressed = true;
 		const slot = Math.max(1, Math.floor(available / run.length));
-		for (const candidate of run) {
-			const startMs = cursor;
-			const endMs = Math.min(nextStart, startMs + slot);
-			if (endMs <= startMs) break;
+		for (let offset = 0; offset < run.length; offset += 1) {
+			const candidate = run[offset]!;
+			const wordsLeft = tokens.length - (index + offset);
+			const wordLatestStart = Math.max(0, durationMs - wordsLeft);
+			const startMs = Math.min(cursor, wordLatestStart);
+			const wordLatestEnd = durationMs - (wordsLeft - 1);
+			const endMs = Math.min(wordLatestEnd, startMs + slot);
 			result.push({
 				token: candidate,
 				word: {
@@ -232,7 +240,7 @@ function interpolatedWords(
 		}
 		index += run.length - 1;
 	}
-	return result;
+	return { words: result, compressed };
 }
 
 function splitWordToWidth(word: string, maxWidth: number, maxChars = MAX_LINE_CHARS): string[] {
@@ -283,6 +291,15 @@ function wrapLines(words: CaptionWord[]): string[][] {
 	return lines;
 }
 
+function clipWordText(text: string): string {
+	let result = '';
+	for (const character of text) {
+		if (result.length + character.length > 80) break;
+		result += character;
+	}
+	return result;
+}
+
 function clampCueWords(cue: CaptionCue): CaptionCue {
 	const words: CaptionWord[] = [];
 	let previousEnd = cue.startMs;
@@ -291,7 +308,7 @@ function clampCueWords(cue: CaptionCue): CaptionCue {
 		if (startMs >= cue.endMs) break;
 		const endMs = Math.min(cue.endMs, Math.max(startMs + 1, word.endMs));
 		if (endMs <= startMs) break;
-		words.push({ ...word, text: word.text.slice(0, 80), startMs, endMs });
+		words.push({ ...word, text: clipWordText(word.text), startMs, endMs });
 		previousEnd = endMs;
 	}
 	cue.words = words;
@@ -391,7 +408,8 @@ export function alignScriptToAsr(input: {
 		-1,
 	);
 	const hasUnmatchedTail = lastMatchedKnown < tokens.length - 1;
-	const words = interpolatedWords(tokens, asr, matches, input.durationMs);
+	const interpolated = interpolatedWords(tokens, asr, matches, input.durationMs);
+	const words = interpolated.words;
 	const bySegment = new Map<number, CaptionWord[]>();
 	for (const entry of words) {
 		const list = bySegment.get(entry.token.segmentIndex) ?? [];
@@ -399,7 +417,7 @@ export function alignScriptToAsr(input: {
 		bySegment.set(entry.token.segmentIndex, list);
 	}
 	const cues: CaptionCue[] = [];
-	let incomplete = false;
+	let incomplete = interpolated.compressed;
 	for (const segment of [...input.segments].sort((left, right) => left.index - right.index)) {
 		const segmentWords = bySegment.get(segment.index) ?? [];
 		if (!segmentWords.length) continue;
@@ -425,7 +443,12 @@ export function alignScriptToAsr(input: {
 					cue.startMs = desiredStart;
 				} else {
 					const mergedLines = wrapCueLine(`${previous.text} ${cue.text}`);
-					if (mergedLines.length <= MAX_LINES && cue.endMs - previous.startMs <= MAX_CUE_MS) {
+					const mergedDuration = cue.endMs - previous.startMs;
+					if (
+						mergedLines.length <= MAX_LINES &&
+						mergedDuration >= 300 &&
+						mergedDuration <= MAX_CUE_MS
+					) {
 						previous.text = mergedLines.join('\n');
 						previous.endMs = cue.endMs;
 						previous.words = [...previous.words, ...cue.words];
