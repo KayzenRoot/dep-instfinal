@@ -1,6 +1,6 @@
 # DIF-V2-WO-008 — Legendas inteligentes, SRT/ASS e burn-in
 
-**Status:** implementação, CI pré-auditoria **PASS**; duas auditorias independentes retornaram **CORRECTION REQUIRED**; correções H1–H5 e achados H-1/H-2/M-1–M-6 aplicados; revalidação local e CI `43624013043` **PASS**; reauditoria final pendente. **Não aprovada**, **não merged**, **não deployed**.
+**Status:** implementação e CI **PASS**; três auditorias independentes retornaram **CORRECTION REQUIRED**; correções H1–H5, H-1/H-2, M-1–M-6 e H-A/H-B/M-A aplicadas; revalidação local **PASS**; novo CI e reauditoria final pendentes. **Não aprovada**, **não merged**, **não deployed**.
 **Base:** `main` @ `326c576` (checkpoint WO-007 promovido).
 **Branch:** `feat/dif-v2-wo-008`.
 **Escopo:** WO-008 (#25), dependente de WO-006 + WO-007 aprovados.
@@ -36,13 +36,13 @@ O ASR Vosk é opcional e offline. O alinhamento sempre preserva o texto do rotei
 
 - **H1:** timestamps de palavras/cues arredondados para inteiros e schema validado antes de persistir; cue final curta ganha espaço sem sobrepor o cue anterior (trim/merge) ou é descartada de forma explícita. Timestamps de palavras são monotônicos e ficam dentro do cue.
 - **H2:** `loadCaptionTrack`, exportações, página e worker filtram pelo `narration_take_id`; aprovar/gerar exige voz aprovada e READY; trigger do DB rejeita JSON/coluna divergentes, take de outro episódio e aprovação sem voz aprovada; troca de voz substitui a track com nova versão. O contrato real `caption-align` → `asr-vosk.py` foi corrigido (stdout, sem `--output`) e executado com Piper/Vosk.
-- **H3:** a cauda não correspondida é comprimida e truncada no teto de `última palavra + 1,5 s`; cobertura <80% ou última palavra antes de 40% da duração rebaixa a fonte para `ASR_FALLBACK`.
-- **H4:** quebra por largura estimada (880 px) com classificação CJK/emoji, além do limite de 42 caracteres inclusive para tokens estreitos; ASS re-quebra linhas manuais; `\`, `{}` e controles são neutralizados; o ASS é copiado para diretório de trabalho seguro e referenciado por nome simples, eliminando falhas com apóstrofo/dois-pontos no path.
+- **H3/M-4:** a cauda não correspondida é comprimida com timestamps inteiros e truncada no teto exato de `última palavra + 1,5 s`, inclusive em alinhamentos `FORCED_ALIGNMENT` com sufixo longo; truncamento rebaixa a fonte para `ASR_FALLBACK`; cobertura <80% ou última palavra antes de 40% da duração também rebaixa.
+- **H4/M-1/M-2/M-A:** quebra por largura estimada (880 px) com classificação CJK/emoji/latino largo, além do limite de 42 caracteres inclusive para tokens estreitos; metadados de palavra >80 caracteres são aparados; ASS re-quebra defensivamente linhas manuais, mas o editor rejeita linha acima de 880 px; `\`, `{}` e controles são neutralizados; o ASS é copiado para diretório de trabalho seguro e referenciado por nome simples, eliminando falhas com apóstrofo/dois-pontos no path.
 - **H5:** E2E valida `output_manifest.captions` (`trackId`, `cues > 0`, estilo, safe zone, take, hash); teste CTA cobre não-sobreposição, janela longa limitada e janela curta rejeitada; teste FFmpeg extrai frame real com CJK/emoji e mede a margem horizontal; docs distinguem cues observados de cues assertados.
 
 ## Testes
 
-- `npm test`: **137 passed + 3 skipped**; inclui 120s, mux, burn-in ASS, CTA, largura CJK/emoji e ASR opt-in.
+- `npm test`: **142 passed + 3 skipped**; inclui 120s, mux, burn-in ASS, CTA, largura CJK/emoji e ASR opt-in.
 - `npm run test:db`: **124/124 PASS**.
 - `npm run test:e2e:local -- e2e/timeline.spec.ts`: **1 passed (2,9m)**, com legendas aprovadas, render READY e manifesto observado com 13 cues.
 - `npm run build`: PASS.
@@ -51,7 +51,7 @@ O ASR Vosk é opcional e offline. O alinhamento sempre preserva o texto do rotei
 - CLI real `npm run captions:align` com Piper/Vosk: PASS; gerou `asr-words.json`, `captions.json`, `captions.srt`, `captions.ass` e `report.json` (2 cues, score 0,869; fonte `ASR_FALLBACK` porque o áudio sintético de ~8 s foi alinhado a um episódio de 120 s).
 - CI hospedada `43624013043` em `705233b`: **SUCCESS** (7m41s); unit 137+3, PgTAP 124/124, E2E 12/12 (3,5m), Sonar/Socket/Vercel PASS. Evidência em `docs/evidence/wo-008/ci-705233b.txt`. Runs anteriores `43617826034` e `43618535947` também passaram durante as correções.
 
-- Unit `captions.test.ts` (20 testes): normalização, alinhamento/hallucination, timestamps fracionários, fantasma, cue curta/sobreposição, monotonicidade de palavras, CTA, SRT/ASS, safe zone, CJK/emoji/token estreito e escape ASS.
+- Unit `captions.test.ts` (25 testes): normalização, alinhamento/hallucination, timestamps fracionários, fantasma, cue curta/sobreposição/merge/drop, monotonicidade de palavras, cauda forçada, CTA, SRT/ASS, safe zone, CJK/emoji/token estreito, token >80 e escape ASS.
 - Integração real opt-in `caption-asr.integration.test.ts`: Piper Cadu → Vosk → alinhamento com duração probeada.
 - Integração FFmpeg: burn-in ASS com path contendo apóstrofo, frame real 1080×1920, CJK/emoji e margem horizontal segura.
 - PgTAP: owner-only, service-only, aprovação com cues, vínculo ao plano, vínculo ao take, take do mesmo episódio e voz aprovada.
@@ -60,7 +60,7 @@ O ASR Vosk é opcional e offline. O alinhamento sempre preserva o texto do rotei
 
 ## Riscos e residuais
 
-- ASR Vosk precisa de modelo local; o CI padrão não baixa modelo.
+- ASR Vosk precisa de modelo local; o CI padrão não baixa modelo. O helper aceita WAV PCM 16-bit mono/estéreo e reamostra para 16 kHz na biblioteca padrão.
 - O render atual só queima legenda se houver track aprovado para a versão do plano; planos antigos continuam vídeo-only.
 - O alinhamento por palavra é aproximado quando o ASR erra a palavra; o texto é corrigido, mas o timing pode exigir ajuste humano.
 - SRT/ASS são gerados da DB; não há arquivo persistido em R2.

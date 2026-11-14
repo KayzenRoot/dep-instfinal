@@ -22,9 +22,9 @@ npx supabase test db
 
 npm test
   Test Files 21 passed | 3 skipped (24)
-       Tests 137 passed | 3 skipped (140)
+       Tests 142 passed | 3 skipped (145)
   Includes:
-    - caption domain tests (20)
+    - caption domain tests (25)
     - real FFmpeg 120s render
     - real narration mux
     - real ASS burn-in from an apostrophe path + CJK/emoji frame bounds
@@ -43,7 +43,7 @@ npm run test:e2e:local -- e2e/timeline.spec.ts
   1 passed (2.9m)
 
 Hosted CI run 43624013043 (head 705233b)
-  quality PASS 7m49s; unit 137 passed + 3 skipped; PgTAP 124/124;
+  quality PASS 7m41s; unit 137 passed + 3 skipped; PgTAP 124/124;
   E2E 12/12 in 3.5m; Sonar/Socket/Vercel PASS.
 ```
 
@@ -75,8 +75,8 @@ audio was aligned to a 120 s fixture episode). See `asr-cli.txt`.
 
 - H-1: short final cues no longer overlap; the previous cue is trimmed/merged or the short cue is dropped explicitly. Word timestamps are integer, monotonic and inside the cue.
 - H-2: caption load/export/page/worker filter the current narration take; approval/generation require approved READY voice; DB enforces JSON/column take match and same-episode take; voice switching rebinds with a new version.
-- M-3: matched/unmatched word timing is clamped to episode duration and cue bounds.
-- M-4: unmatched tails are compressed and truncated at `last ASR match + 1.5 s`; low coverage downgrades to `ASR_FALLBACK`.
+- M-3/H-A: matched/unmatched word timing is integer, monotonic and clamped to cue/episode bounds; >80-char metadata is clipped.
+- M-4/H-B: unmatched tails, including forced alignments, are truncated at exactly `last ASR match + 1.5 s`; truncation downgrades to `ASR_FALLBACK`.
 - M-1/M-2: CJK, emoji and long narrow tokens wrap within 880 px and 42 characters; real frame test covers CJK/emoji.
 - M-5: CTA window is capped at 7 s per cue; an insufficient tight window fails explicitly.
 - M-6: DB trigger and composite FK ensure the narration take belongs to the caption episode.

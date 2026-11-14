@@ -66,7 +66,7 @@ function characterWidth(character: string): number {
 	if (/\s/u.test(character)) return 0.32;
 	if (/[ilI.,'!|:;]/u.test(character)) return 0.28;
 	if (/[fjrt()\-[\]]/u.test(character)) return 0.36;
-	if (/[MW@%&]/u.test(character)) return 0.92;
+	if (/[MW@%&ÆŒ]/u.test(character)) return 0.92;
 	if (/[A-ZÀ-Ý]/u.test(character)) return 0.68;
 	if (/\d/u.test(character)) return 0.6;
 	return 0.55;
@@ -214,14 +214,10 @@ function interpolatedWords(
 			lookahead += 1
 		)
 			run.push(tokens[lookahead]!);
-		const totalChars =
-			run.reduce((total, candidate) => total + candidate.normalized.length, 0) || 1;
-		const slot = available / run.length;
+		const slot = Math.max(1, Math.floor(available / run.length));
 		for (const candidate of run) {
-			const length = Math.max(0.4, candidate.normalized.length / totalChars);
-			const wordMs = Math.max(1, Math.min(slot, Math.round(available * length)));
 			const startMs = cursor;
-			const endMs = Math.min(nextStart, Math.max(startMs + 1, startMs + wordMs));
+			const endMs = Math.min(nextStart, startMs + slot);
 			if (endMs <= startMs) break;
 			result.push({
 				token: candidate,
@@ -295,7 +291,7 @@ function clampCueWords(cue: CaptionCue): CaptionCue {
 		if (startMs >= cue.endMs) break;
 		const endMs = Math.min(cue.endMs, Math.max(startMs + 1, word.endMs));
 		if (endMs <= startMs) break;
-		words.push({ ...word, startMs, endMs });
+		words.push({ ...word, text: word.text.slice(0, 80), startMs, endMs });
 		previousEnd = endMs;
 	}
 	cue.words = words;
@@ -390,6 +386,11 @@ export function alignScriptToAsr(input: {
 		: 0;
 	const forced =
 		coverage >= 0.8 && (lastMatchedEnd === 0 || lastMatchedEnd >= input.durationMs * 0.4);
+	const lastMatchedKnown = matches.reduce(
+		(maximum, match) => Math.max(maximum, match.knownIndex),
+		-1,
+	);
+	const hasUnmatchedTail = lastMatchedKnown < tokens.length - 1;
 	const words = interpolatedWords(tokens, asr, matches, input.durationMs);
 	const bySegment = new Map<number, CaptionWord[]>();
 	for (const entry of words) {
@@ -441,7 +442,9 @@ export function alignScriptToAsr(input: {
 			}
 		}
 	}
-	if ((!forced || incomplete) && cues.length) {
+	if ((!forced || incomplete || hasUnmatchedTail) && cues.length) {
+		const beforeCount = cues.length;
+		const beforeEnd = cues.at(-1)?.endMs ?? 0;
 		const cap = Math.min(input.durationMs, lastMatchedEnd + 1_500);
 		const kept = cues.filter((cue) => cue.startMs < cap);
 		const last = kept.at(-1);
@@ -452,6 +455,7 @@ export function alignScriptToAsr(input: {
 				incomplete = true;
 			} else clampCueWords(last);
 		}
+		if (kept.length !== beforeCount || (last && last.endMs < beforeEnd)) incomplete = true;
 		cues.splice(0, cues.length, ...kept);
 	}
 	if (!cues.length)

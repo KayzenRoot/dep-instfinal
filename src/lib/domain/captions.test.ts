@@ -208,8 +208,95 @@ describe('caption normalization and alignment', () => {
 		expect(track.source).toBe('ASR_FALLBACK');
 		const lastMatchedEnd = 100 + 24 * 200 + 190;
 		expect(Math.max(...track.cues.map((cue) => cue.endMs))).toBeLessThanOrEqual(
-			lastMatchedEnd + 1_800,
+			lastMatchedEnd + 1_500,
 		);
+	});
+
+	it('keeps interpolated unmatched words as integers and schema-valid', () => {
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [{ index: 0, text: 'A X Y Z B' }],
+			asrWords: [
+				{ word: 'A', startMs: 1_000, endMs: 1_100, confidence: 0.9 },
+				{ word: 'B', startMs: 2_050, endMs: 2_150, confidence: 0.9 },
+			],
+			durationMs: 10_000,
+		});
+		expect(captionTrackSchema.safeParse(track).success).toBe(true);
+		for (const cue of track.cues) {
+			expect(cue.words.length).toBeGreaterThan(0);
+			for (const word of cue.words) {
+				expect(Number.isInteger(word.startMs)).toBe(true);
+				expect(Number.isInteger(word.endMs)).toBe(true);
+			}
+		}
+	});
+
+	it('caps a forced alignment with a long unmatched suffix at +1.5 s', () => {
+		const prefix = Array.from({ length: 300 }, (_, index) => `p${index}`).join(' ');
+		const suffix = 'zzzz '.repeat(75).trim();
+		const durationMs = 120_000;
+		const prefixWords = prefix.split(/\s+/).map((word, index) => ({
+			word,
+			startMs: 100 + index * 203,
+			endMs: 100 + index * 203 + 190,
+			confidence: 0.95,
+		}));
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [{ index: 0, text: `${prefix} ${suffix}` }],
+			asrWords: prefixWords,
+			durationMs,
+		});
+		const lastMatchedEnd = prefixWords.at(-1)!.endMs;
+		expect(track.source).toBe('ASR_FALLBACK');
+		expect(Math.max(...track.cues.map((cue) => cue.endMs))).toBeLessThanOrEqual(
+			lastMatchedEnd + 1_500,
+		);
+	});
+
+	it('merges a short final cue when there is no room to trim', () => {
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [
+				{ index: 0, text: 'Oi.' },
+				{ index: 1, text: 'Fim.' },
+			],
+			asrWords: [
+				{ word: 'oi', startMs: 11_600, endMs: 11_900, confidence: 0.9 },
+				{ word: 'fim', startMs: 11_950, endMs: 12_000, confidence: 0.9 },
+			],
+			durationMs: 12_000,
+		});
+		expect(track.cues).toHaveLength(1);
+		expect(track.cues[0]!.text).toContain('Oi.');
+		expect(track.cues[0]!.text).toContain('Fim.');
+		expect(captionTrackSchema.safeParse(track).success).toBe(true);
+	});
+
+	it('marks the alignment as fallback when a short final cue cannot fit', () => {
+		const previousText = Array.from(
+			{ length: 12 },
+			(_, index) => `palavraLonga1234567890123${index}`,
+		).join(' ');
+		const words = previousText.split(/\s+/).map((word, index) => ({
+			word,
+			startMs: 11_600 + index * 20,
+			endMs: 11_619 + index * 20,
+			confidence: 0.95,
+		}));
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [
+				{ index: 0, text: previousText },
+				{ index: 1, text: 'Fim.' },
+			],
+			asrWords: [...words, { word: 'fim', startMs: 11_950, endMs: 12_000, confidence: 0.9 }],
+			durationMs: 12_000,
+		});
+		expect(track.source).toBe('ASR_FALLBACK');
+		expect(track.cues.map((cue) => cue.text).join(' ')).not.toContain('Fim.');
+		expect(captionTrackSchema.safeParse(track).success).toBe(true);
 	});
 
 	it('wraps wide glyphs inside the safe area', () => {
@@ -244,6 +331,18 @@ describe('caption normalization and alignment', () => {
 		}
 		for (const line of wrapCtaText('😀'.repeat(20)).join('\n').split('\n'))
 			expect(estimateCaptionWidth(line)).toBeLessThanOrEqual(880);
+	});
+
+	it('keeps word metadata within the 80-character schema limit', () => {
+		const longWord = 'i'.repeat(81);
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [{ index: 0, text: longWord }],
+			asrWords: [{ word: 'i'.repeat(80), startMs: 0, endMs: 2_000, confidence: 0.9 }],
+		});
+		expect(captionTrackSchema.safeParse(track).success).toBe(true);
+		for (const cue of track.cues)
+			for (const word of cue.words) expect(word.text.length).toBeLessThanOrEqual(80);
 	});
 
 	it('appends CTA cues after the last cue without overlap or overflow', () => {

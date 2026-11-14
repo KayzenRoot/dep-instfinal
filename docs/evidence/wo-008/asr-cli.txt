@@ -49,4 +49,5 @@ report.json       747 bytes
 
 The source is `ASR_FALLBACK` because the synthetic audio lasts ~8 s while the
 fixture episode lasts 120 s, which correctly triggers the partial-coverage guard.
-The helper contract is stdout JSON; the caller no longer passes `--output`.
+The helper contract is stdout JSON; the caller no longer passes `--output`. The helper accepts
+16-bit PCM WAV (mono/stereo) and resamples to 16 kHz with the Python standard library.
