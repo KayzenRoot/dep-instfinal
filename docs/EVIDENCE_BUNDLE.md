@@ -1,10 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROPOSED
+## V2 WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-007` · issue #24 · epic #17 · addendum ENH-12
 - **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`
-- **Status:** implementation, local database/unit/FFmpeg/TTS evidence, hosted CI, code audit, owner auditory acceptance and ARM64 benchmark **PASS**. Awaiting explicit merge/promotion authorization. No deploy.
+- **Status:** implementation, hosted CI, code audit, owner auditory acceptance and ARM64 benchmark **PASS**; squash-merged at `326c576` (PR #55); issue #24 closed. Vercel deploy follows `main`.
 
 | Check              | Result     | Evidence                                                                                                                                                              |
 | ------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -20,7 +20,7 @@
 | E2E                | PASS CI    | CI `43590151067` @ `5ac4653`: 12/12 in 3.2m; upload → preview → approve → restore → approve → real worker READY in 31.3s; owner-boundary 401; responsive 360/768/1440 |
 | Limits             | —          | Piper emotion unsupported; ARM64 PASS; narration R2 live download not exercised; R2 GC, SRT (WO-008), worker least privilege (WO-013/014) pending                     |
 
-**Verdict:** WO-007 is implemented with honest capability reporting, a real narrated render, owner-accepted Cadu samples and an ARM64 benchmark PASS. Code audit APPROVED. Awaiting explicit merge/promotion authorization; no deploy.
+**Verdict:** WO-007 is implemented with honest capability reporting, a real narrated render, owner-accepted Cadu samples and an ARM64 benchmark PASS. Code audit APPROVED; owner authorized merge/promotion; checkpoint promoted.
 
 ## V2 WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13) — PROMOTED
 

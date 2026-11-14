@@ -1,13 +1,21 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROPOSED
+## DIF-V2-WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROMOTED
 
-- **Status:** **PROPOSED — IMPLEMENTAÇÃO/CI PASS, NÃO APROVADO**; PgTAP 108/108, unit 116+2 skip, policy, FFmpeg mux, TTS real e E2E 12/12 no CI `43590151067` PASS; auditoria independente de código **APPROVED**, aceitação auditiva do owner **PASS** e benchmark ARM64 **PASS** (2026-11-14). Aguardando autorização explícita de merge/promoção; sem deploy.
+- **Status:** **PROMOTED**; PgTAP 108/108, unit 116+2 skip, policy, FFmpeg mux, TTS real e E2E 12/12 no CI `43590151067` PASS; auditoria independente de código **APPROVED**, aceitação auditiva do owner **PASS** e benchmark ARM64 **PASS** (2026-11-14); squash-merged at `326c576` (PR #55); issue #24 closed. Vercel deploy follows main.
 - **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`.
 - **Delivered:** upload privado WAV/MP3/M4A com SHA/duração/true peak; `voice_direction_plans` versionado por texto/revisão com snapshots restauráveis; `narration_takes` imutáveis e owner-only; aprovação exige take READY; render fixa `narration_take_id`, baixa áudio privado, valida hash/duração e faz mux AAC 48 kHz estéreo com piso de 50% de cobertura, pad e falha de overflow; TTS Piper offline por segmento com relatório de WPM/LUFS/clipping e regeneração seletiva; UI de narração com preview, seleção, aprovação e histórico.
 - **Tests:** PgTAP **108/108**; policy **25/22**; unit **116 + 2 skipped**; typecheck/lint/build PASS; mux FFmpeg real; TTS real opt-in; 232 palavras → **94,552 s**, true peak **−2,8 dBFS**, **−19,5 LUFS**, 8,7 MB, sem clipping; CI `43590151067` **SUCCESS** com E2E **12/12** (timeline narrada READY em 31,3s); owner-boundary 401 e layout responsivo.
 - **Limits:** Piper não altera emoção real (`emotion:false`); emoção é direção e voz importada é o fallback. Aceitação auditiva humana e benchmark ARM64 **PASS**. R2 lifecycle/GC, SRT (WO-008) e credencial de menor privilégio (WO-013/014) permanecem residuais.
-- **Gate:** CI, auditoria de código, aceitação auditiva e benchmark ARM64 PASS. Aguardando autorização explícita de merge/promoção; WO-008+ bloqueado.
+- **Gate:** CI, auditoria de código, aceitação auditiva e benchmark ARM64 PASS; owner authorized merge/promotion on 2026-11-14. WO-008 (#25) is the next planned WO.
+
+## V2 checkpoint promotion — WO-007 (2026-11-14)
+
+- **Owner decision:** explicit “pode fazer e vamos continuar”; PR #55 squash-merged at `326c576`; issue #24 closed.
+- **Audit:** code/security/render APPROVED; owner auditory acceptance and ARM64 benchmark PASS; evidence final aligned.
+- **Scope:** private narration takes, versioned voice direction, immutable takes, render mux AAC 48 kHz, Cadu TTS candidate, timeline/UI.
+- **Residuals:** narration R2 live download not exercised; R2 lifecycle/GC; SRT (WO-008); worker least privilege (WO-013/014); per-segment regeneration is CLI-documented.
+- **Next:** WO-008 (#25) captions/SRT/ASS/burn-in.
 
 ## DIF-V2-WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13) — PROMOTED
 
