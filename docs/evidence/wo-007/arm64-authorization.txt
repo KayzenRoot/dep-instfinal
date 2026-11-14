@@ -1,0 +1,7 @@
+# WO-007 — Owner authorization for the ARM64 benchmark
+
+- Date: 2026-11-14
+- Owner statement: "sim" in response to the request to execute the read-only ARM64 Piper benchmark on the Oracle VPS.
+- Authorized scope: create a temporary Python 3.12 venv and model copy under `/tmp`, generate synthetic samples, measure wall time/CPU/RSS, remove the temporary directory.
+- Explicitly NOT authorized by this message: merge, deploy, checkpoint promotion, service installation, firewall/port change, or persistent VPS changes.
+- Result: `docs/evidence/wo-007/tts-benchmark-arm64.txt`; temporary files removed after the run.

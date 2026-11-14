@@ -1,5 +1,14 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROPOSED
+
+- **Status:** **PROPOSED — IMPLEMENTAÇÃO/CI PASS, NÃO APROVADO**; PgTAP 108/108, unit 116+2 skip, policy, FFmpeg mux, TTS real e E2E 12/12 no CI `43590151067` PASS; auditoria independente de código **APPROVED**, aceitação auditiva do owner **PASS** e benchmark ARM64 **PASS** (2026-11-14). Aguardando autorização explícita de merge/promoção; sem deploy.
+- **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`.
+- **Delivered:** upload privado WAV/MP3/M4A com SHA/duração/true peak; `voice_direction_plans` versionado por texto/revisão com snapshots restauráveis; `narration_takes` imutáveis e owner-only; aprovação exige take READY; render fixa `narration_take_id`, baixa áudio privado, valida hash/duração e faz mux AAC 48 kHz estéreo com piso de 50% de cobertura, pad e falha de overflow; TTS Piper offline por segmento com relatório de WPM/LUFS/clipping e regeneração seletiva; UI de narração com preview, seleção, aprovação e histórico.
+- **Tests:** PgTAP **108/108**; policy **25/22**; unit **116 + 2 skipped**; typecheck/lint/build PASS; mux FFmpeg real; TTS real opt-in; 232 palavras → **94,552 s**, true peak **−2,8 dBFS**, **−19,5 LUFS**, 8,7 MB, sem clipping; CI `43590151067` **SUCCESS** com E2E **12/12** (timeline narrada READY em 31,3s); owner-boundary 401 e layout responsivo.
+- **Limits:** Piper não altera emoção real (`emotion:false`); emoção é direção e voz importada é o fallback. Aceitação auditiva humana e benchmark ARM64 **PASS**. R2 lifecycle/GC, SRT (WO-008) e credencial de menor privilégio (WO-013/014) permanecem residuais.
+- **Gate:** CI, auditoria de código, aceitação auditiva e benchmark ARM64 PASS. Aguardando autorização explícita de merge/promoção; WO-008+ bloqueado.
+
 ## DIF-V2-WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13) — PROMOTED
 
 - **Status:** **PROMOTED**; real composition, integration, PgTAP and real-worker E2E **PASS**; B1–B5/NEW-1/B4-R corrigidos; final independent audit **APPROVED** at `6aee143`; squash-merged at `239f3ba`. No VPS deploy.

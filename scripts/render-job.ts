@@ -12,7 +12,7 @@ import {
 	manifestHash,
 	validateForContext,
 } from '../src/lib/server/video-edit-plans.js';
-import { probeMedia, renderPlanToFile } from '../src/lib/server/render-compose.js';
+import { probeAudioMedia, probeMedia, renderPlanToFile } from '../src/lib/server/render-compose.js';
 
 function required(name: string): string {
 	const value = process.env[name];
@@ -71,17 +71,48 @@ async function main() {
 			throw new Error('render_asset_not_ready');
 		assets.push(asset);
 	}
+	let narration: {
+		id: string;
+		object_key: string;
+		bucket: string;
+		sha256: string;
+		byte_size: number;
+		duration_ms: number;
+	} | null = null;
+	if (job.narration_take_id) {
+		const { data: take, error: takeError } = await admin
+			.from('narration_takes')
+			.select('id,episode_id,object_key,bucket,sha256,byte_size,duration_ms,status')
+			.eq('owner_id', job.owner_id)
+			.eq('id', job.narration_take_id)
+			.maybeSingle();
+		if (
+			takeError ||
+			!take ||
+			take.status !== 'READY' ||
+			take.episode_id !== job.episode_id ||
+			!take.object_key
+		)
+			throw new Error('narration_take_not_ready');
+		narration = {
+			id: take.id,
+			object_key: take.object_key,
+			bucket: take.bucket,
+			sha256: take.sha256,
+			byte_size: Number(take.byte_size),
+			duration_ms: take.duration_ms,
+		};
+	}
 	const providedWork = process.env.WORKER_RENDER_TMPDIR;
 	const work = providedWork ?? (await mkdtemp(join(tmpdir(), `dif-render-${jobId.slice(0, 8)}-`)));
 	const ownsWork = !providedWork;
 	try {
 		const localDir = process.env.WORKER_ASSET_DIR;
+		const localNarrationDir = process.env.WORKER_NARRATION_DIR;
 		const localPaths = new Map<string, string>();
 		let r2: S3Client | null = null;
 		const bucket = process.env.R2_BUCKET;
-		if (localDir) {
-			for (const asset of assets) localPaths.set(asset.id, join(localDir, `${asset.id}.mp4`));
-		} else {
+		if (!localDir || (narration && !localNarrationDir)) {
 			if (!bucket) throw new Error('missing_r2_bucket');
 			r2 = new S3Client({
 				region: 'auto',
@@ -91,9 +122,13 @@ async function main() {
 					secretAccessKey: required('R2_SECRET_ACCESS_KEY'),
 				},
 			});
+		}
+		if (localDir) {
+			for (const asset of assets) localPaths.set(asset.id, join(localDir, `${asset.id}.mp4`));
+		} else {
 			for (const asset of assets) {
 				const destination = join(work, `${asset.id}.mp4`);
-				const object = await r2.send(
+				const object = await r2!.send(
 					new GetObjectCommand({ Bucket: bucket, Key: asset.object_key }),
 				);
 				if (!object.Body) throw new Error('render_asset_download_failed');
@@ -122,13 +157,45 @@ async function main() {
 				height: probe.height,
 			});
 		}
+		let narrationInput;
+		if (narration) {
+			const narrationPath = localNarrationDir
+				? join(localNarrationDir, `${narration.id}.wav`)
+				: join(work, `narration-${narration.id}.wav`);
+			if (!localNarrationDir) {
+				const object = await r2!.send(
+					new GetObjectCommand({ Bucket: bucket, Key: narration.object_key }),
+				);
+				if (!object.Body) throw new Error('narration_download_failed');
+				await pipeline(
+					object.Body as NodeJS.ReadableStream,
+					await import('node:fs').then((fs) => fs.createWriteStream(narrationPath)),
+				);
+			}
+			const audioBytes = await readFile(narrationPath);
+			const audioDigest = createHash('sha256').update(audioBytes).digest('hex');
+			if (narration.sha256 !== audioDigest) throw new Error('narration_hash_mismatch');
+			if (narration.byte_size !== audioBytes.length) throw new Error('narration_size_mismatch');
+			const audioProbe = await probeAudioMedia(narrationPath);
+			if (Math.abs(audioProbe.durationMs - narration.duration_ms) > 500)
+				throw new Error('narration_duration_mismatch');
+			narrationInput = {
+				path: narrationPath,
+				durationMs: audioProbe.durationMs,
+				takeId: narration.id,
+			};
+		}
 		const outputPath = join(work, 'output.mp4');
+		const configuredVhs = Number(process.env.WORKER_VHS_INTENSITY ?? 1);
+		const vhsIntensity: 0 | 1 | 2 | 3 =
+			configuredVhs === 0 || configuredVhs === 2 || configuredVhs === 3 ? configuredVhs : 1;
 		const output = await renderPlanToFile({
 			plan: validated,
 			assets: inputs,
 			outputPath,
-			vhsIntensity: 1,
+			vhsIntensity,
 			timeoutMs: 600_000,
+			narration: narrationInput,
 		});
 		const objectKey = `renders/${job.owner_id}/${job.episode_id}/${job.id}/output.mp4`;
 		const localOutput = process.env.WORKER_LOCAL_OUTPUT_DIR;
@@ -161,6 +228,7 @@ async function main() {
 			container: output.container,
 			byteSize: output.byteSize,
 			sha256: output.sha256,
+			audio: output.audio,
 			completedAt: new Date().toISOString(),
 		};
 		process.stdout.write(`${JSON.stringify(manifest)}\n`);

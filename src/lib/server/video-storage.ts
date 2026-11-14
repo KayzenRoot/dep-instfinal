@@ -10,6 +10,7 @@ import {
 	DeleteObjectCommand,
 	GetObjectCommand,
 	HeadObjectCommand,
+	PutObjectCommand,
 	S3Client,
 	UploadPartCommand,
 } from '@aws-sdk/client-s3';
@@ -60,6 +61,7 @@ export interface VideoStorage {
 	hashObject(key: string): Promise<string>;
 	readPrefix(key: string, length: number): Promise<Buffer>;
 	downloadToFile(key: string, destination: string): Promise<void>;
+	putObject(input: { key: string; body: Buffer; contentType: string }): Promise<StoredObject>;
 	copyToFinal(input: { sourceKey: string; destinationKey: string }): Promise<StoredObject>;
 	signDownload(key: string, expiresInSeconds?: number): Promise<string>;
 	deleteObject(key: string): Promise<void>;
@@ -231,6 +233,23 @@ export class R2VideoStorage implements VideoStorage {
 		await pipeline(result.Body as Readable, createWriteStream(destination));
 	}
 
+	async putObject(input: {
+		key: string;
+		body: Buffer;
+		contentType: string;
+	}): Promise<StoredObject> {
+		await this.client.send(
+			new PutObjectCommand({
+				Bucket: this.bucket,
+				Key: input.key,
+				Body: input.body,
+				ContentType: input.contentType,
+				CacheControl: 'private, no-store',
+			}),
+		);
+		return this.statObject(input.key);
+	}
+
 	async copyToFinal(input: { sourceKey: string; destinationKey: string }): Promise<StoredObject> {
 		await this.client.send(
 			new CopyObjectCommand({
@@ -347,6 +366,15 @@ export class InMemoryVideoStorage implements VideoStorage {
 		if (!object) throw new Error('Object not found.');
 		const { writeFile } = await import('node:fs/promises');
 		await writeFile(destination, object.bytes);
+	}
+
+	async putObject(input: {
+		key: string;
+		body: Buffer;
+		contentType: string;
+	}): Promise<StoredObject> {
+		this.objects.set(input.key, { bytes: input.body, contentType: input.contentType });
+		return this.statObject(input.key);
 	}
 
 	async copyToFinal(input: { sourceKey: string; destinationKey: string }): Promise<StoredObject> {

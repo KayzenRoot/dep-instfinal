@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import { retimeClips, reorderClips, trimClip } from '#lib/domain/video-edit-plan.js';
 	import type { EditPlanClip, VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
@@ -154,6 +155,13 @@
 		} finally {
 			renderBusy = false;
 		}
+	}
+
+	function renderAudioLabel(job: RenderJob): string | null {
+		const audio = job.output_manifest?.audio as
+			{ paddedMs?: number; trimmedMs?: number } | undefined;
+		if (!audio) return null;
+		return `áudio: ${audio.paddedMs ?? 0} ms de pad, ${audio.trimmedMs ?? 0} ms de corte`;
 	}
 
 	async function cancelRender(jobId: string) {
@@ -371,6 +379,19 @@
 			<div>
 				<h2>Render</h2>
 				<p class="meta-label">Fila owner-only, 1 job simultâneo, lease e retry.</p>
+				{#if data.narration?.status === 'APPROVED' && data.narration.takeId}
+					<p class="meta-label narration-ok">
+						Narração aprovada v{data.narration.currentVersion} · take
+						{data.narration.take?.source ?? '—'} · {data.narration.take?.duration_ms ?? 0} ms
+					</p>
+				{:else}
+					<p class="meta-label">
+						Sem narração aprovada: este render será vídeo-only.
+						<a href={resolve(`/app/narration?episodeId=${data.selectedEpisode.id}`)}
+							>Abrir narração</a
+						>
+					</p>
+				{/if}
 			</div>
 			<button class="primary" type="button" onclick={enqueueRender} disabled={!canRender}>
 				Renderizar plano aprovado
@@ -386,6 +407,9 @@
 						<div>
 							<strong>{job.status}</strong>
 							<span>v{job.plan_version} · tentativa {job.attempts}/{job.max_attempts}</span>
+							{#if renderAudioLabel(job)}
+								<span>{renderAudioLabel(job)}</span>
+							{/if}
 							{#if job.error_code}<code>{job.error_code}</code>{/if}
 						</div>
 						{#if ['QUEUED', 'CLAIMED', 'RUNNING'].includes(job.status)}
@@ -485,6 +509,9 @@
 		font-size: 0.72rem;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
+	}
+	.narration-ok {
+		color: var(--accent);
 	}
 	.meta-hash code {
 		word-break: break-all;

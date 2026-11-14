@@ -1,5 +1,27 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-007` · issue #24 · epic #17 · addendum ENH-12
+- **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`
+- **Status:** implementation, local database/unit/FFmpeg/TTS evidence, hosted CI, code audit, owner auditory acceptance and ARM64 benchmark **PASS**. Awaiting explicit merge/promotion authorization. No deploy.
+
+| Check              | Result     | Evidence                                                                                                                                                              |
+| ------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Private ingest     | PASS       | WAV/MP3/M4A ≤20 MB, ffprobe, SHA-256, duration/sample rate/channels, RMS/peak/true peak, clipping rejection, private R2 key                                           |
+| Direction contract | PASS       | `VoiceDirectionPlan` 6 emotions, speed 0.75–1.25, pauses, volume, WPM, pronunciation map; text SHA; schema/domain tests                                               |
+| Versioning         | PASS       | plan versions with snapshots; restore as new DRAFT; takes immutable and never overwritten                                                                             |
+| Database/RLS       | PASS       | PgTAP **108/108**; owner-only SELECT, service-only writes; approval requires READY take; render narration FK/immutability                                             |
+| Render mux         | PASS       | real 4 s FFmpeg mux test: video copy + AAC 48 kHz stereo, pad to exact duration after a 50% minimum coverage check; overflow >250 ms fails                            |
+| TTS 120 s          | PASS local | Piper `pt_BR-cadu-medium` (CC0): 232 words → 94.552 s, −2.8 dBFS true peak, −19.5 LUFS, 8.7 MB, no clipping                                                           |
+| TTS styles         | PASS       | owner accepted Cadu samples on 2026-11-14; `sample-neutral.wav` 8.978 s / −3.0 dBFS / −20.2 LUFS; `sample-tension.wav` 7.350 s / −2.9 dBFS / −19.5 LUFS               |
+| Unit/integration   | PASS       | 116 passed + 2 skipped; narration upload negatives 4, voice-direction 5, render composition 8, real mux 1, opt-in Piper 1; lint/typecheck/build PASS                  |
+| Policy             | PASS       | **25 invariants / 22 tables**                                                                                                                                         |
+| E2E                | PASS CI    | CI `43590151067` @ `5ac4653`: 12/12 in 3.2m; upload → preview → approve → restore → approve → real worker READY in 31.3s; owner-boundary 401; responsive 360/768/1440 |
+| Limits             | —          | Piper emotion unsupported; ARM64 PASS; narration R2 live download not exercised; R2 GC, SRT (WO-008), worker least privilege (WO-013/014) pending                     |
+
+**Verdict:** WO-007 is implemented with honest capability reporting, a real narrated render, owner-accepted Cadu samples and an ARM64 benchmark PASS. Code audit APPROVED. Awaiting explicit merge/promotion authorization; no deploy.
+
 ## V2 WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-006` · issue #23 · epic #17

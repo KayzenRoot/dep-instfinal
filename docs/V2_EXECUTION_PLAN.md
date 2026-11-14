@@ -2,8 +2,8 @@
 
 - **Work Order:** `DIF-V2-WO-001` · issue #18
 - **Epic:** #17 · issues #18–#45
-- **Base atual:** `main` `239f3ba` (após checkpoint WO-006); plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
-- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged**; WO-007 em execução; WO-008+ **BLOCKED**.
+- **Base atual:** `main` `c0f3cfd` (após checkpoint WO-006); plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
+- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged** (`239f3ba`); WO-007 **IN PROGRESS**; WO-008+ **BLOCKED**.
 - **Fonte viva:** os corpos atuais das issues #18–#45 prevalecem sobre este plano.
 
 ## Inventário — 28 WOs e 20 melhorias
@@ -15,8 +15,8 @@
 | WO-003 | #20   | Ingestão segura de clipes e storage privado             | ELEVATED | WO-001; WO-002 GO; contrato de storage                            | COMPLETED (merged `ac55d27`) |
 | WO-004 | #21   | Timeline canônica, alinhamento e versões                | ELEVATED | WO-001; WO-003                                                    | COMPLETED (merged `c6be101`) |
 | WO-005 | #22   | Worker, fila, lease, retry, recuperação                 | ELEVATED | WO-001; WO-003; WO-004                                            | COMPLETED (merged `dc405d8`) |
-| WO-006 | #23   | Composição FFmpeg, cortes, transições, VHS 9:16         | ELEVATED | WO-002; WO-004; WO-005                                            | IN PROGRESS                  |
-| WO-007 | #24   | Narração pt-BR, voz importada e TTS local opcional      | ELEVATED | WO-005; WO-006; adendo emoção                                     | PLANNED                      |
+| WO-006 | #23   | Composição FFmpeg, cortes, transições, VHS 9:16         | ELEVATED | WO-002; WO-004; WO-005                                            | COMPLETED (merged `239f3ba`) |
+| WO-007 | #24   | Narração pt-BR, voz importada e TTS local opcional      | ELEVATED | WO-005; WO-006; adendo emoção                                     | IN PROGRESS                  |
 | WO-008 | #25   | Legendas reais, SRT/ASS e burn-in                       | STANDARD | WO-006; WO-007                                                    | PLANNED                      |
 | WO-009 | #26   | SFX/música licenciados, mix/ducking, soundscape estéreo | STANDARD | WO-006; WO-007; adendo soundscape                                 | PLANNED                      |
 | WO-010 | #27   | Diretor de edição e curva de tensão                     | ELEVATED | WO-004; WO-025 (proposta); adendo tensão                          | PLANNED                      |

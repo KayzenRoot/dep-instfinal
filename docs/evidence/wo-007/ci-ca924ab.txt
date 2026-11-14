@@ -1,0 +1,10 @@
+# WO-007 hosted CI evidence — final run 43531019608
+
+- Head: `ca924ab` (fix/evidence/duplication)
+- Branch: `feat/dif-v2-wo-007`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-14T00:06Z (7m12s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43531019608
+- Checks: quality PASS, SonarCloud PASS, Socket Security PASS, Vercel PASS.
+- Tests: 116 passed + 2 skipped; PgTAP 108/108; E2E 12/12 in 3.3m (narrated timeline READY in 31.9s).
+- This is the final code/test evidence after the independent re-audit corrections.

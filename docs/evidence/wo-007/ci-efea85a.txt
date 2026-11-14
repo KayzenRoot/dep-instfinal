@@ -1,0 +1,44 @@
+# WO-007 hosted CI evidence — run 43518610642
+
+- Head: `efea85a7be67cc8ff41a919aac2347d898ee7545`
+- Branch: `feat/dif-v2-wo-007`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-13T22:28:21Z (6m49s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43518610642
+
+## Sanitized log excerpts
+
+```text
+Run npm run check:baseline: success (1m55s)
+  Test Files  19 passed | 2 skipped (21)
+       Tests  112 passed | 2 skipped (114)
+  build, audit:policy and audit:deps PASS
+
+Run npm run test:db: success
+  PgTAP 103/103 PASS
+
+Run npm run test:e2e:local: success (3.2m)
+  Running 12 tests using 1 worker
+  [timeline-e2e] episode created 0ae78dce-9a2c-48f7-bdd7-1fb2fff3a42d
+  [timeline-e2e] episode narration saved
+  [timeline-e2e] opening narration editor
+  [timeline-e2e] uploading narration take
+  [timeline-e2e] narration approved; restoring previous version
+  [timeline-e2e] previous version restored; reapproving
+  [timeline-e2e] narration reapproved
+  [timeline-e2e] returning to timeline
+  [timeline-e2e] render enqueued
+  [timeline-e2e] worker spawned
+  [render-worker] {"event":"worker_started","stub":false}
+  [render-worker] {"event":"render_started","jobId":"7be7a6c4-7864-46ab-97c3-75ad62b510de","planVersion":4,"stub":false}
+  [render-worker] {"event":"render_completed","jobId":"7be7a6c4-7864-46ab-97c3-75ad62b510de"}
+  ✓ timeline: owner edits a versioned timeline and restores an earlier version (47.9s)
+  ✓ video upload: owner uploads a scene clip to private storage and it survives reload (7.0s)
+  12 passed (3.2m)
+```
+
+## Notes
+
+- The real worker produced a READY narrated artifact with AAC 48 kHz stereo and the pinned take.
+- The initial hosted runs exposed an E2E fixture race: the episode narration was not persisted before opening the narration editor, leaving the plan empty. The fixture now waits for hydration, asserts the textarea value and the save success message before continuing.
+- The local Windows host remains slow for the 120s VHS path; the hosted runner completes the narrated E2E render in 47.9s. VHS filter cost is covered by the integration test; the E2E uses `WORKER_VHS_INTENSITY=0`.

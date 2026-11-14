@@ -201,3 +201,24 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Scope:** FFmpeg cuts/crossfade/VHS composition, 1080x1920 H.264 real artifacts, real worker with hash/plan validation, READY artifact guard and worker grants.
 - **Residuals:** VPS/R2 live smoke, VFR/rotation fixtures, audio/captions/preview, 720p/disk limits and least-privilege worker role remain tracked for later WOs.
 - **Next:** WO-007 (#24) narration; WO-008+ remain gated by their own approvals.
+
+## V2 Context Lock — WO-007 (#24)
+
+- **Base revalidated:** `main` `c0f3cfd` (checkpoint WO-006 promoted). Branch: `feat/dif-v2-wo-007`.
+- **Issue inventory:** WO-001–006 **MERGED/CLOSED/PROMOTED**; WO-007/#24 **IN PROGRESS**; WO-008+ #25–#45 **BLOCKED**.
+- **Delivered locally:** private narration takes (WAV/MP3/M4A) with SHA/loudness/true peak, versioned `VoiceDirectionPlan` by episode revision + narration text hash, deterministic heuristic direction, snapshot restore, owner-only RLS with service-only writes, approval guard requiring a READY take, render-job narration pin/mux (AAC 48 kHz stereo), and optional offline Piper TTS with per-segment regeneration and honest capability metadata.
+- **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
+- **Gate:** owner auditory acceptance **PASS** (2026-11-14), code audit **APPROVED**, hosted CI green, ARM64 benchmark **PASS** (`tts-benchmark-arm64.txt`). Awaiting explicit merge/promotion authorization. No deploy or promotion. WO-008+ stays blocked.
+
+### Fingerprints no base `c0f3cfd`
+
+| Fonte canônica                       | SHA-256                                                            |
+| ------------------------------------ | ------------------------------------------------------------------ |
+| `docs/CHECKPOINT_DELTA.md`           | `405be0dac58d39279c480fbfd4a263077498f87b5fd8186d48e990427f910762` |
+| `docs/SOURCE_PACK.md`                | `ccac8b33f2d83c578f2a0ca3549f03d0c791980acfbedd3f1b06c5ca2257dd1c` |
+| `docs/ADR_V2_PROPOSED.md`            | `923b16392dacd1160ec9ea853ace44adad8e2d6e4749c348d0732eb8a8b5a1c1` |
+| `docs/ADR_V2_002_STORAGE.md`         | `9e39af92e6ea71ad234900c6e7d5d9a2290cc32c393177ad45db9b472510966e` |
+| `docs/V2_EXECUTION_PLAN.md`          | `365902f19bd6504e511d39141eaa86fd6220abc8c39a6858b419831fcb74da06` |
+| `docs/CONTEXT_LOCK.md`               | `60252ee953006886080385007b1b4468732edab4c78fa55aff9b85d27f3b557c` |
+| `src/lib/schemas/video-edit-plan.ts` | `48616e3593ea1373e3de61a9aca10a49999549e4d8e91120272eb67e5ad47832` |
+| `src/lib/schemas/render-jobs.ts`     | `92a477efdc5a4091415aa6c655c9808db2a3c2809d52fb450f76595eba160481` |

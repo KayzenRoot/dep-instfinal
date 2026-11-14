@@ -37,6 +37,12 @@
 			glyph: 'frames',
 		},
 		{
+			path: '/app/narration',
+			href: resolve('/app/narration'),
+			label: 'Narração',
+			glyph: 'archive',
+		},
+		{
 			path: '/app/continuity',
 			href: resolve('/app/continuity'),
 			label: 'Votações e cânone',

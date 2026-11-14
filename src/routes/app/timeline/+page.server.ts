@@ -19,6 +19,7 @@ import {
 	videoEditPlanSchema,
 } from '#lib/schemas/video-edit-plan.js';
 import { EditPlanError } from '#lib/domain/video-edit-plan.js';
+import { loadVoicePlan } from '#lib/server/narration.js';
 
 function messageFor(cause: unknown): { status: number; message: string } {
 	if (cause instanceof VideoEditPlanError) return { status: cause.status, message: cause.message };
@@ -67,6 +68,7 @@ export const load: PageServerLoad = async (event) => {
 			planError: null,
 			planStale: false,
 			renderJobs: [],
+			narration: null,
 		};
 
 	try {
@@ -87,11 +89,50 @@ export const load: PageServerLoad = async (event) => {
 		} catch {
 			renderJobs = [];
 		}
+		let narration: {
+			currentVersion: number;
+			status: 'DRAFT' | 'APPROVED';
+			takeId: string | null;
+			estimatedDurationMs: number;
+			take: { id: string; duration_ms: number; format: string; source: string } | null;
+		} | null = null;
+		try {
+			const voice = await loadVoicePlan(db, owner, selectedEpisode.id);
+			if (voice) {
+				const { data: take } = voice.plan.takeId
+					? await db
+							.from('narration_takes')
+							.select('id,duration_ms,format,source')
+							.eq('owner_id', owner.id)
+							.eq('episode_id', selectedEpisode.id)
+							.eq('id', voice.plan.takeId)
+							.eq('status', 'READY')
+							.maybeSingle()
+					: { data: null };
+				narration = {
+					currentVersion: voice.currentVersion,
+					status: voice.status,
+					takeId: voice.plan.takeId,
+					estimatedDurationMs: voice.estimatedDurationMs,
+					take: take
+						? {
+								id: take.id,
+								duration_ms: take.duration_ms,
+								format: take.format,
+								source: take.source,
+							}
+						: null,
+				};
+			}
+		} catch {
+			narration = null;
+		}
 		return {
 			episodes: episodeList,
 			selectedEpisode,
 			plan,
 			renderJobs,
+			narration,
 			planStale: Boolean(
 				stored.plan && plan && plan.episodeRevisionNumber !== context.episodeRevisionNumber,
 			),
@@ -119,6 +160,7 @@ export const load: PageServerLoad = async (event) => {
 			planError: errorInfo.message,
 			planStale: false,
 			renderJobs: [],
+			narration: null,
 		};
 	}
 };

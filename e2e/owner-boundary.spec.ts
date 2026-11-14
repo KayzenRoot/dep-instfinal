@@ -96,6 +96,21 @@ test('private media endpoint rejects anonymous visitors', async ({ request }) =>
 	}
 });
 
+test('private narration endpoints reject anonymous visitors', async ({ request }) => {
+	for (const path of [
+		'/api/narration/takes?episodeId=11111111-1111-4111-8111-111111111111',
+		'/api/narration/takes/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+	]) {
+		const response = await request.get(path, { maxRedirects: 0 });
+		if (process.env.PUBLIC_SUPABASE_URL && process.env.SUPABASE_OWNER_USER_ID) {
+			expect(response.status()).toBe(401);
+		} else {
+			expect(response.status()).toBe(303);
+			expect(response.headers().location).toBe('/login?setup=required');
+		}
+	}
+});
+
 test('cross-origin mutations are rejected before reaching their handlers', async ({ request }) => {
 	const response = await request.post('/auth/logout', {
 		headers: { origin: 'https://untrusted.invalid' },
@@ -707,6 +722,7 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 		'/app/library',
 		'/app/continuity',
 		'/app/export',
+		'/app/narration',
 		'/app/settings',
 		...(seriesDetail ? [seriesDetail] : []),
 		...(episodeDetail ? [episodeDetail] : []),

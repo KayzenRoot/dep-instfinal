@@ -1,0 +1,55 @@
+# WO-007 — Raw ARM64 benchmark output (sanitized)
+
+Command executed on `ubuntu@<oracle-vps>` (`nexlabs-server`, aarch64) on 2026-11-14:
+
+```bash
+cd /tmp/dif-wo007-bench
+/usr/bin/time -v -o time-<case>.txt \
+  ionice -c3 nice -n 19 venv/bin/python -m piper \
+    -m pt_BR-cadu-medium.onnx -i <text>.txt -f <case>.wav \
+    --length_scale 1.0 --sentence-silence 0.0
+```
+
+Raw measured output:
+
+```text
+OUTPUT short1 rate=22050 frames=194304 duration=8.812s bytes=388652
+	User time (seconds): 2.47
+	System time (seconds): 0.10
+	Percent of CPU this job got: 161%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.59
+	Maximum resident set size (kbytes): 245296
+OUTPUT short2 rate=22050 frames=192256 duration=8.719s bytes=384556
+	User time (seconds): 2.34
+	System time (seconds): 0.07
+	Percent of CPU this job got: 164%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.47
+	Maximum resident set size (kbytes): 239004
+OUTPUT short3 rate=22050 frames=192512 duration=8.731s bytes=385068
+	User time (seconds): 2.35
+	System time (seconds): 0.08
+	Percent of CPU this job got: 165%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.47
+	Maximum resident set size (kbytes): 244052
+OUTPUT full rate=22050 frames=1786112 duration=81.003s bytes=3572268
+	User time (seconds): 16.86
+	System time (seconds): 0.09
+	Percent of CPU this job got: 191%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:08.86
+	Maximum resident set size (kbytes): 281996
+```
+
+ASR check (downloaded `full.wav`; `vosk==0.3.45`, `vosk-model-small-pt-0.3`; command `python asr.py full.wav`):
+
+```text
+arm64-full.wav CONF 0.909 TEXT as três e dizer sete da manhã a fita começou a tocar sozinha no porão alice desceu com uma lanterna encontrou a porta aberta o cheiro de poeiras com de alguma coisa uma humilhei antiga ela reconheceu a própria voz saindo do gravador a gravação dizia que alguém entrar naquela casa depois da meia noite alice olhou para o relé hoje viu que faltavam sete minutos uma sombra passou pela janela e para o atrás dela o alarme soou com uma vez mais ninguém mexeu no painel no fundo da caixa havia cento e quarenta e sete fitas numeradas cadete que trazia o nome de uma pessoa que ainda não tinha nascido alice apertou lei da fita duzentos e três após de escrever o corredor exatamente como ele era naquele instante depois falou sobre o medo que ela sentiria ao abrir a última a porta ela tentou desligar o aparelho mas a tomada já estava fora da parede o gravador continua funcionando por conta própria uma criança começou a cantar do outro lado do vídeo alice correr para a escada e percebeu que o degrau número nove não existia mas no escuro alguém sussurrou nome verdadeiro dela ela acordou no sofá com a fita ainda girando e a porta do porão fechada sobre a mesa havia uma fotografia dela dormindo tirada naquela mesma noite no verso alguém escreveu que a próxima gravação seria a última
+```
+
+Cleanup verification:
+
+```text
+$ ls -d /tmp/dif-wo007-bench
+cleaned
+```
+
+No sudo, system package, service, port, firewall, container or deploy was used outside `/tmp`.

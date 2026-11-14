@@ -35,12 +35,14 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	page,
 	request,
 }) => {
-	test.setTimeout(900_000);
+	test.setTimeout(1_500_000);
 	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
 	test.skip(
 		!process.env.SUPABASE_SERVICE_ROLE_KEY,
 		'requires local service role for revision fixture',
 	);
+	page.setDefaultTimeout(60_000);
+	page.setDefaultNavigationTimeout(120_000);
 
 	const seriesTitle = `Timeline E2E ${crypto.randomUUID().slice(0, 8)}`;
 	await page.goto('/login');
@@ -63,6 +65,27 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await page.getByRole('button', { name: 'Criar rascunho' }).click();
 	await expect(page).toHaveURL(/\/app\/episodes\/[0-9a-f-]+$/);
 	const episodeId = page.url().split('/').at(-1)!;
+	console.log('[timeline-e2e] episode created', episodeId);
+
+	const narrationText = [
+		'A fita chegou às três e dezessete da manhã, sem remetente e sem explicação.',
+		'Alice reconheceu a própria voz antes mesmo de apertar o play.',
+		'Uma sombra atravessou o corredor e parou diante da porta trancada.',
+		'Então ela descobriu que a gravação fora feita três dias depois daquele instante.',
+		'O alarme tocou duas vezes e o silêncio voltou mais pesado do que antes.',
+		'No fundo do porão, cento e quarenta e sete fitas esperavam pelo mesmo nome.',
+		'A voz sussurrou que ninguém deveria abrir a caixa azul.',
+		'Mesmo assim, Alice abriu.',
+	].join(' ');
+	await page.waitForLoadState('networkidle');
+	const narrationField = page.getByLabel('Narração completa · português brasileiro');
+	await narrationField.fill(narrationText);
+	await page.waitForTimeout(500);
+	await expect(narrationField).toHaveValue(narrationText);
+	await page.getByRole('button', { name: 'Salvar roteiro e revisar timeline' }).click();
+	await expect(page.locator('p.form-success[role="status"]')).toBeVisible();
+	await page.waitForLoadState('networkidle');
+	console.log('[timeline-e2e] episode narration saved');
 
 	const renderRoot = await mkdtemp(path.join(tmpdir(), 'dif-e2e-render-'));
 	const fixtures: string[] = [];
@@ -93,6 +116,26 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 		);
 		fixtures.push(fixture);
 	}
+	const voicePath = path.join(renderRoot, 'narration.wav');
+	execFileSync(
+		'ffmpeg',
+		[
+			'-y',
+			'-hide_banner',
+			'-loglevel',
+			'error',
+			'-f',
+			'lavfi',
+			'-i',
+			'sine=frequency=300:sample_rate=48000:duration=118',
+			'-ac',
+			'1',
+			'-c:a',
+			'pcm_s16le',
+			voicePath,
+		],
+		{ stdio: 'ignore', timeout: 60_000, windowsHide: true },
+	);
 
 	await page.goto(`/app/video?episodeId=${episodeId}`);
 	await page.getByLabel('Arquivos de vídeo').setInputFiles(fixtures);
@@ -154,10 +197,53 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 
 	await page.getByRole('button', { name: 'Aprovar plano atual' }).click();
 	await expect(page.getByText('APPROVED')).toBeVisible();
+
+	console.log('[timeline-e2e] opening narration editor');
+	await page.goto(`/app/narration?episodeId=${episodeId}`);
+	await expect(page.getByRole('heading', { name: 'Narração e direção' })).toBeVisible();
+	await page.getByRole('button', { name: 'Salvar direção' }).click();
+	await expect(page.locator('.notice.success')).toContainText('versão');
+	console.log('[timeline-e2e] uploading narration take');
+	await page.locator('input[type="file"]').setInputFiles(voicePath);
+	await expect(page.locator('.takes li')).toHaveCount(1, { timeout: 180_000 });
+	const preview = page.locator('.takes audio').first();
+	await expect(preview).toHaveAttribute('src', /\/api\/narration\/takes\//);
+	const previewUrl = await preview.getAttribute('src');
+	const previewResponse = await page.request.get(previewUrl!, { maxRedirects: 0 });
+	expect([200, 302]).toContain(previewResponse.status());
+	await page.locator('input[type="radio"][name="take"]').first().check();
+	await page.getByRole('button', { name: 'Aprovar direção + voz' }).click();
+	await expect(page.locator('.notice.success')).toContainText('versão');
+	console.log('[timeline-e2e] narration approved; restoring previous version');
+	await expect(page.locator('.history li')).toHaveCount(2);
+	await page
+		.locator('.history li')
+		.filter({ hasText: 'v1' })
+		.getByRole('button', { name: 'Restaurar' })
+		.click();
+	await expect(page.locator('.notice.success')).toContainText('versão');
+	console.log('[timeline-e2e] previous version restored; reapproving');
+	await page.locator('input[type="radio"][name="take"]').first().check();
+	await page.getByRole('button', { name: 'Aprovar direção + voz' }).click();
+	await expect(page.locator('.notice.success')).toContainText('versão');
+	console.log('[timeline-e2e] narration reapproved');
+	const takesResponse = await page.request.get(`/api/narration/takes?episodeId=${episodeId}`);
+	expect(takesResponse.ok()).toBeTruthy();
+	const { takes } = (await takesResponse.json()) as { takes: Array<{ id: string }> };
+	expect(takes).toHaveLength(1);
+	const narrationTakeId = takes[0]!.id;
+	const narrationDir = path.join(renderRoot, 'narration');
+	await mkdir(narrationDir, { recursive: true });
+	await copyFile(voicePath, path.join(narrationDir, `${narrationTakeId}.wav`));
+
+	console.log('[timeline-e2e] returning to timeline');
+	await page.goto(`/app/timeline?episodeId=${episodeId}`);
+	await expect(page.getByText(/Narração aprovada/)).toBeVisible();
 	await page.waitForTimeout(1_000);
 	await cancelOpenRenderJobs(request);
 	await page.getByRole('button', { name: 'Renderizar plano aprovado' }).click();
 	await expect(page.getByText(/QUEUED|CLAIMED|RUNNING/)).toBeVisible();
+	console.log('[timeline-e2e] render enqueued');
 
 	const assetResponse = await page.request.get(`/api/video/assets?episodeId=${episodeId}`);
 	expect(assetResponse.ok()).toBeTruthy();
@@ -175,6 +261,9 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 			WORKER_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY!,
 			WORKER_STUB: '0',
 			WORKER_ASSET_DIR: assetDir,
+			WORKER_NARRATION_DIR: narrationDir,
+			// The 15-clip E2E exercises queue/worker/mux; VHS filter cost is covered by FFmpeg integration.
+			WORKER_VHS_INTENSITY: '0',
 			WORKER_LOCAL_OUTPUT_DIR: path.join(renderRoot, 'out'),
 			WORKER_MAX_JOBS: '1',
 			WORKER_POLL_MS: '250',
@@ -184,12 +273,30 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 		stdio: ['ignore', 'pipe', 'pipe'],
 	});
 	let workerOutput = '';
-	worker.stdout?.on('data', (chunk) => (workerOutput += String(chunk)));
-	worker.stderr?.on('data', (chunk) => (workerOutput += String(chunk)));
+	worker.stdout?.on('data', (chunk) => {
+		workerOutput += String(chunk);
+		console.log(`[render-worker] ${String(chunk).trim()}`);
+	});
+	worker.stderr?.on('data', (chunk) => {
+		workerOutput += String(chunk);
+		console.log(`[render-worker:err] ${String(chunk).trim()}`);
+	});
+	console.log('[timeline-e2e] worker spawned');
 	const workerExit = new Promise<number>((resolve) =>
 		worker.on('exit', (code) => resolve(code ?? 1)),
 	);
-	await expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 300_000 });
+	try {
+		await Promise.race([
+			expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 600_000 }),
+			workerExit.then((code) => {
+				if (code !== 0) throw new Error(`worker exited ${code}\n${workerOutput}`);
+			}),
+		]);
+		await expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 15_000 });
+	} catch (cause) {
+		console.error(`worker output:\n${workerOutput}`);
+		throw cause;
+	}
 	const exitCode = await workerExit;
 	expect(exitCode, workerOutput).toBe(0);
 	const jobsResponse = await page.request.get(`/api/render-jobs?episodeId=${episodeId}`);
@@ -197,12 +304,34 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	const { jobs } = (await jobsResponse.json()) as {
 		jobs: Array<{
 			status: string;
-			output_manifest: { width: number; height: number; codec: string; durationMs: number };
+			narration_take_id: string | null;
+			output_manifest: {
+				width: number;
+				height: number;
+				codec: string;
+				durationMs: number;
+				audio: {
+					codec: string;
+					channels: number;
+					sampleRate: number;
+					durationMs: number;
+					narrationTakeId: string;
+					paddedMs: number;
+				} | null;
+			};
 		}>;
 	};
 	expect(jobs[0]?.status).toBe('READY');
+	expect(jobs[0]?.narration_take_id).toBe(narrationTakeId);
 	expect(jobs[0]?.output_manifest).toMatchObject({ width: 1080, height: 1920, codec: 'h264' });
 	expect(Math.abs(jobs[0]!.output_manifest.durationMs - 120_000)).toBeLessThanOrEqual(1_000);
+	expect(jobs[0]?.output_manifest.audio).toMatchObject({
+		codec: 'aac',
+		channels: 2,
+		sampleRate: 48_000,
+		narrationTakeId,
+	});
+	expect(jobs[0]?.output_manifest.audio?.paddedMs).toBeGreaterThanOrEqual(1_000);
 
 	await page.waitForTimeout(1_000);
 	await page.getByRole('button', { name: 'Renderizar plano aprovado' }).click();

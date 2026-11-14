@@ -58,6 +58,15 @@ Limits and security:
 - For durable public access, create a named Cloudflare Tunnel with a Cloudflare-managed domain, place Cloudflare Access in front of it, and set exact Supabase redirect URLs. That durable setup was not provisioned.
 - This is not a production release, merge, or checkpoint promotion; `main` remains untouched.
 
+## Narração e TTS local (WO-007)
+
+- O upload manual de WAV/MP3/M4A é o caminho garantido; o TTS Piper é opcional e roda fora da Vercel.
+- Configure `PIPER_PYTHON` (Piper 1.8+, recomendado) ou `PIPER_BIN` (binário legado), `PIPER_MODEL`, `PIPER_VOICE` e `PIPER_MODEL_LICENSE`. O Cadu medium exige Piper 1.5+ (validado com 1.8) e licença CC0; o Edresson low (CC BY 4.0) é mantido apenas como alternativa. Baixe apenas modelos com licença verificada e registre o SHA-256 do arquivo ONNX.
+- Gere a direção no `/app/narration`, salve a versão e exporte o plano para um arquivo local. Rode `npm run tts:local` com `TTS_PLAN_FILE` e `TTS_OUTPUT_DIR`; o comando grava um WAV por segmento, `narration.wav` e `report.json` com duração, WPM efetivo, pico, true peak, LUFS e clipping.
+- Para regenerar um único trecho, mantenha o diretório e defina `TTS_SEGMENT_ID=<uuid>`. Para enviar o take privado, defina `TTS_UPLOAD=1`, `TTS_PLAN_VERSION`, credenciais service role e R2; o episódio vem de `episodeId` no plano. O upload público é proibido.
+- Piper não altera emoção real. O relatório declara `emotion:false`; direção emocional é metadado e a voz importada é o fallback honesto. Não descreva uma voz plana como emocional.
+- Faça a aceitação auditiva humana em pelo menos dois estilos antes de marcar uma direção como aprovada para produção.
+
 ## Production checklist (future only)
 
 Production hosting is not provisioned by this Work Order. Before a separate deployment authorization, select a Node host, configure TLS and strict trusted-proxy behavior, secure env secrets, set exact Supabase redirect URLs, test owner auth/RLS and Cloudinary authenticated delivery, review backups, and run the release Evidence Bundle. Do not deploy from this branch automatically.

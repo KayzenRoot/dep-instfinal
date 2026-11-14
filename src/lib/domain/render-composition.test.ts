@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { buildSceneTimeline } from './timeline.js';
 import { buildDefaultEditPlan, retimeClips, type EditPlanContext } from './video-edit-plan.js';
-import { buildRenderCommand, RenderCompositionError } from './render-composition.js';
+import {
+	buildNarrationMuxCommand,
+	buildRenderCommand,
+	RenderCompositionError,
+} from './render-composition.js';
 
 function context(): EditPlanContext {
 	const scenes = buildSceneTimeline(120_000, 8_000).map((scene) => ({
@@ -77,6 +81,82 @@ describe('render composition command', () => {
 		expect(() => buildRenderCommand(plan, inputs(plan), '/tmp/../out.mp4')).toThrow(
 			RenderCompositionError,
 		);
+	});
+});
+
+describe('narration mux command', () => {
+	it('copies video, pads audio to the exact duration and reports timing', () => {
+		const command = buildNarrationMuxCommand({
+			videoPath: '/tmp/output.mp4',
+			narrationPath: '/tmp/voice.wav',
+			outputPath: '/tmp/final.mp4',
+			videoDurationMs: 120_000,
+			narrationDurationMs: 100_000,
+			volumeDb: -1.5,
+		});
+		expect(command.paddedMs).toBe(20_000);
+		expect(command.trimmedMs).toBe(0);
+		expect(command.args).toContain('copy');
+		expect(command.args).toContain('aac');
+		expect(command.args).toContain('48000');
+		expect(command.args).toContain('2');
+		expect(command.args).toContain('120.000');
+		expect(command.args.filter((value) => value === '-i')).toHaveLength(2);
+		const af = command.args[command.args.indexOf('-af') + 1];
+		expect(af).toContain('volume=-1.5dB');
+		expect(af).toContain('apad=whole_dur=120.000');
+		expect(af).toContain('atrim=0:120.000');
+	});
+
+	it('allows tolerance-level overflow but rejects hidden speech loss', () => {
+		expect(
+			buildNarrationMuxCommand({
+				videoPath: '/tmp/output.mp4',
+				narrationPath: '/tmp/voice.wav',
+				outputPath: '/tmp/final.mp4',
+				videoDurationMs: 120_000,
+				narrationDurationMs: 120_200,
+			}).trimmedMs,
+		).toBe(200);
+		expect(() =>
+			buildNarrationMuxCommand({
+				videoPath: '/tmp/output.mp4',
+				narrationPath: '/tmp/voice.wav',
+				outputPath: '/tmp/final.mp4',
+				videoDurationMs: 120_000,
+				narrationDurationMs: 121_000,
+			}),
+		).toThrow('A narração excede o vídeo em 750 ms.');
+		expect(() =>
+			buildNarrationMuxCommand({
+				videoPath: '/tmp/output.mp4',
+				narrationPath: '/tmp/voice.wav',
+				outputPath: '/tmp/final.mp4',
+				videoDurationMs: 120_000,
+				narrationDurationMs: 10_000,
+			}),
+		).toThrow('A narração cobre menos da metade do vídeo');
+	});
+
+	it('rejects unsafe paths and invalid durations', () => {
+		expect(() =>
+			buildNarrationMuxCommand({
+				videoPath: '/tmp/output.mp4',
+				narrationPath: '/tmp/voice.wav',
+				outputPath: '/tmp/../final.mp4',
+				videoDurationMs: 120_000,
+				narrationDurationMs: 100_000,
+			}),
+		).toThrow(RenderCompositionError);
+		expect(() =>
+			buildNarrationMuxCommand({
+				videoPath: '/tmp/output.mp4',
+				narrationPath: '/tmp/voice.wav',
+				outputPath: '/tmp/final.mp4',
+				videoDurationMs: 120_000,
+				narrationDurationMs: 0,
+			}),
+		).toThrow('Duração da narração ou do vídeo inválida.');
 	});
 });
 

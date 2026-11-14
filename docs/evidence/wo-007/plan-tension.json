@@ -1,0 +1,47 @@
+{
+	"schemaVersion": 1,
+	"episodeId": "e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6",
+	"episodeRevisionNumber": 1,
+	"takeId": null,
+	"generatedBy": "heuristic",
+	"modelId": null,
+	"narrationTextSha256": null,
+	"segments": [
+		{
+			"id": "dddddddd-4444-4ddd-8ddd-dddddddddddd",
+			"sceneId": null,
+			"text": "Às três e dezessete da manhã, a fita começou a tocar sozinha.",
+			"emotion": "tension",
+			"speed": 1.15,
+			"pauseBeforeMs": 100,
+			"pauseAfterMs": 150,
+			"volumeDb": 0,
+			"intendedWpm": 170,
+			"pronunciation": ""
+		},
+		{
+			"id": "eeeeeeee-5555-4eee-8eee-eeeeeeeeeeee",
+			"sceneId": null,
+			"text": "Alice reconheceu a própria voz.",
+			"emotion": "fear",
+			"speed": 1.1,
+			"pauseBeforeMs": 100,
+			"pauseAfterMs": 150,
+			"volumeDb": 0,
+			"intendedWpm": 165,
+			"pronunciation": "Alice=Álissi"
+		},
+		{
+			"id": "ffffffff-6666-4fff-8fff-ffffffffffff",
+			"sceneId": null,
+			"text": "Então a porta do porão se abriu.",
+			"emotion": "urgency",
+			"speed": 1.2,
+			"pauseBeforeMs": 80,
+			"pauseAfterMs": 200,
+			"volumeDb": 1,
+			"intendedWpm": 180,
+			"pronunciation": ""
+		}
+	]
+}

@@ -1,0 +1,44 @@
+# WO-007 hosted CI evidence — run 43527026122 (final corrections)
+
+- Head: `3f24176f6a90f3fb05c34739cacdff4b0ac42c9b`
+- Branch: `feat/dif-v2-wo-007`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-13T23:34Z (8m27s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43527026122
+- Docs head `7320528`: CI `43528292599` **SUCCESS** (docs-only, 2026-11-13T23:44Z).
+
+## Sanitized log excerpts
+
+```text
+Run npm run check:baseline: success
+  Test Files  20 passed | 2 skipped (22)
+       Tests  116 passed | 2 skipped (118)
+  build, audit:policy and audit:deps PASS
+
+Run npm run test:db: success
+  Files=1, Tests=108, 1 wallclock secs, Result PASS
+
+Run npm run test:e2e:local: success (4.2m)
+  Running 12 tests using 1 worker
+  [timeline-e2e] episode created 1f06fb1e-2b6c-4d26-83ad-18e318ca0c85
+  [timeline-e2e] episode narration saved
+  [timeline-e2e] opening narration editor
+  [timeline-e2e] uploading narration take
+  [timeline-e2e] narration approved; restoring previous version
+  [timeline-e2e] previous version restored; reapproving
+  [timeline-e2e] narration reapproved
+  [timeline-e2e] returning to timeline
+  [timeline-e2e] render enqueued
+  [timeline-e2e] worker spawned
+  [render-worker] {"event":"render_completed","jobId":"beaf478f-e781-475a-ba71-89ed846cd798"}
+  12 passed (4.2m)
+```
+
+## What this run covers beyond the first green run
+
+- `narration_takes` has no UPDATE/DELETE grant for `service_role`; PgTAP 108/108 includes the permission and audio-manifest guards.
+- READY rejects mono/44.1 kHz and audio/video duration mismatch in SQL, not only in the worker.
+- Upload rejects damaged, silent, clipped, oversized, wrong-extension and <1 s audio (four new Vitest cases).
+- E2E checks the preview route (`/api/narration/takes/:id`) and the final muxed audio is non-silent (volumedetect in integration).
+- TTS report now records the model SHA-256, WAV SHA-256, per-segment spoken text and timings; both audition WAVs are versioned under `docs/evidence/wo-007`.
+- Editor compares takes A/B and supports plan snapshot restore; Piper timeout is explicit.

@@ -1,0 +1,17 @@
+{
+	"schemaVersion": 1,
+	"scope": "owner Windows x64 host; NOT the ARM64 worker",
+	"platform": "Microsoft Windows 10.0.26200",
+	"architecture": "X64",
+	"processorCount": 8,
+	"elapsedMs": 12390,
+	"incrementalPeakMemoryBytes": 531435520,
+	"incrementalCpuSeconds": 7,
+	"arm64Benchmark": "PASS: see tts-benchmark-arm64.txt (Oracle 2 vCPU, RTF 0.109 full script, 282 MB RSS)",
+	"model": "pt_BR-cadu-medium",
+	"modelSha256": "d5a662e3f606d5a49dd29ba9ce90c304ae45dd9543f8b0c773bcb0de282499de",
+	"modelLicense": "CC0",
+	"ttsOutputMs": 8978,
+	"note": "sample-neutral plan; Piper 1.8 Python package; Cadu medium",
+	"hostBenchmarkNote": "Historical x64 numbers from an earlier run of the same 3-sentence text/pipeline; ARM64 result is authoritative."
+}

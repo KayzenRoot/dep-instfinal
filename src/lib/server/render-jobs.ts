@@ -18,6 +18,7 @@ export interface RenderJob {
 	episode_id: string;
 	plan_id: string;
 	plan_version: number;
+	narration_take_id: string | null;
 	status: 'QUEUED' | 'CLAIMED' | 'RUNNING' | 'READY' | 'FAILED' | 'CANCELED';
 	priority: number;
 	attempts: number;
@@ -48,6 +49,17 @@ function mapRpcError(error: { code?: string; message?: string }): RenderJobError
 	if (message.includes('edit_plan_not_found')) {
 		return new RenderJobError(404, 'RENDER_PLAN_NOT_FOUND', 'Plano de edição não encontrado.');
 	}
+	if (
+		message.includes('narration_take_not_ready') ||
+		message.includes('narration_take_not_found') ||
+		message.includes('narration_take_episode_mismatch')
+	) {
+		return new RenderJobError(
+			409,
+			'NARRATION_TAKE_NOT_READY',
+			'A voz aprovada não está pronta para renderizar.',
+		);
+	}
 	if (error.code === '23514') {
 		return new RenderJobError(400, 'RENDER_JOB_INVALID', 'Job de renderização inválido.');
 	}
@@ -67,12 +79,26 @@ export async function enqueueRenderJob(input: {
 			'RENDER_WRITER_UNAVAILABLE',
 			'O worker de render não está configurado.',
 		);
+	let narrationTakeId: string | null = null;
+	const { data: voicePlan, error: voiceError } = await input.adminDb
+		.from('voice_direction_plans')
+		.select('plan,current_status')
+		.eq('owner_id', input.owner.id)
+		.eq('episode_id', input.episodeId)
+		.maybeSingle();
+	if (voiceError)
+		throw new RenderJobError(503, 'RENDER_JOB_FAILED', 'Não foi possível ler a direção de voz.');
+	if (voicePlan?.current_status === 'APPROVED') {
+		const takeId = (voicePlan.plan as { takeId?: unknown } | null)?.takeId;
+		if (typeof takeId === 'string') narrationTakeId = takeId;
+	}
 	const idempotencyKey = input.idempotencyKey ?? `web:${randomUUID()}`;
 	const { data, error } = await input.adminDb.rpc('enqueue_render_job', {
 		p_owner_id: input.owner.id,
 		p_episode_id: input.episodeId,
 		p_idempotency_key: idempotencyKey,
 		p_priority: input.priority ?? 50,
+		p_narration_take_id: narrationTakeId,
 	});
 	if (error) throw mapRpcError(error);
 	if (typeof data !== 'string')
@@ -88,7 +114,7 @@ export async function listRenderJobs(input: {
 	const { data, error } = await input.db
 		.from('render_jobs')
 		.select(
-			'id,owner_id,episode_id,plan_id,plan_version,status,priority,attempts,max_attempts,error_code,output_manifest,created_at,started_at,finished_at',
+			'id,owner_id,episode_id,plan_id,plan_version,narration_take_id,status,priority,attempts,max_attempts,error_code,output_manifest,created_at,started_at,finished_at',
 		)
 		.eq('owner_id', input.owner.id)
 		.eq('episode_id', input.episodeId)
@@ -107,7 +133,7 @@ export async function getRenderJob(input: {
 	const { data, error } = await input.db
 		.from('render_jobs')
 		.select(
-			'id,owner_id,episode_id,plan_id,plan_version,status,priority,attempts,max_attempts,error_code,output_manifest,created_at,started_at,finished_at',
+			'id,owner_id,episode_id,plan_id,plan_version,narration_take_id,status,priority,attempts,max_attempts,error_code,output_manifest,created_at,started_at,finished_at',
 		)
 		.eq('owner_id', input.owner.id)
 		.eq('id', input.jobId)
