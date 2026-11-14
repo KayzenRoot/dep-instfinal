@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -22,7 +22,6 @@ describe.skipIf(!enabled)('real ASR caption alignment', () => {
 		workspace = await mkdtemp(join(tmpdir(), 'dif-asr-caption-'));
 		const source = join(workspace, 'source.txt');
 		const audio = join(workspace, 'voice.wav');
-		const asr = join(workspace, 'asr.json');
 		const text =
 			'Às três e dezessete da manhã, a fita começou a tocar sozinha. Alice reconheceu a própria voz.';
 		const { writeFile } = await import('node:fs/promises');
@@ -36,20 +35,18 @@ describe.skipIf(!enabled)('real ASR caption alignment', () => {
 			timeout: 180_000,
 			stdio: ['pipe', 'ignore', 'ignore'],
 		});
-		execFileSync(
+		const stdout = execFileSync(
 			process.env.VOSK_PYTHON!,
 			[
 				join(process.cwd(), 'scripts', 'asr-vosk.py'),
 				'--input',
 				audio,
-				'--output',
-				asr,
 				'--model',
 				process.env.VOSK_MODEL!,
 			],
-			{ timeout: 300_000, stdio: 'ignore' },
+			{ timeout: 300_000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
 		);
-		const parsed = JSON.parse(await readFile(asr, 'utf8')) as {
+		const parsed = JSON.parse(stdout) as {
 			words: Array<{ word: string; startMs: number; endMs: number; confidence: number }>;
 		};
 		const aligned = alignScriptToAsr({
