@@ -1,0 +1,13 @@
+# WO-008 hosted CI evidence — run 43629972250
+
+- Head: `1a83105` (`fix(wo-008): retain tokens, validate merges and clip surrogate-safe words`)
+- Branch: `feat/dif-v2-wo-008`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-14T19:11Z (7m50s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43629972250
+- Checks: quality PASS, SonarCloud PASS, Socket PASS, Vercel Preview PASS.
+- Baseline: format, lint, typecheck, build and policy audit **26 invariants / 23 tables** PASS.
+- Tests: **144 passed + 3 skipped**; PgTAP **124/124**; E2E **12/12** in 4.3 min.
+- Covers zero-budget token retention, merge-duration validation, surrogate-safe word clipping, fuzz schema checks and all earlier audit corrections.
+- Independent fourth audit verdict on this code: **APPROVED WITH RESIDUALS** (docs/evidence finalization only).
+- No merge/deploy/promotion performed.

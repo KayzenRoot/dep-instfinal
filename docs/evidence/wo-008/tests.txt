@@ -3,7 +3,7 @@
 Date: 2026-11-14
 Branch: `feat/dif-v2-wo-008`
 Base: `main` `326c576`
-Scope: second audit corrections H-1/H-2/M-1–M-6.
+Scope: fourth audit corrections H-A-1/H-A-2/M-A-1 plus prior items.
 
 ## Commands and results
 
@@ -42,9 +42,9 @@ npm run test:e2e:local -- e2e/timeline.spec.ts
   [render-worker] render_completed
   1 passed (2.9m)
 
-Hosted CI run 43627375872 (head f3bd1f0)
-  quality PASS 7m46s; unit 142 passed + 3 skipped; PgTAP 124/124;
-  E2E 12/12 in 3.5m; Sonar/Socket/Vercel PASS.
+Hosted CI run 43629972250 (head 1a83105)
+  quality PASS 7m50s; unit 144 passed + 3 skipped; PgTAP 124/124;
+  E2E 12/12 in 4.3m; Sonar/Socket/Vercel PASS.
 ```
 
 The E2E asserts `output_manifest.captions.cues > 0`, a real track id, style
@@ -81,6 +81,7 @@ audio was aligned to a 120 s fixture episode). See `asr-cli.txt`.
 - M-5: CTA window is capped at 7 s per cue; an insufficient tight window fails explicitly.
 - M-6: DB trigger and composite FK ensure the narration take belongs to the caption episode.
 - H5: E2E manifest assertions, CTA window tests, real frame safe-area measurement; docs distinguish asserted vs observed cue counts.
+- H-A-1/H-A-2/M-A-1: zero-budget gaps retain every script token; merge requires >=300 ms; word metadata clips by code point; deterministic fuzz validates schema.
 
 ## Notes
 
