@@ -1,0 +1,12 @@
+# WO-008 hosted CI evidence — run 43624013043
+
+- Head: `705233b` (`fix(wo-008): mark dropped short tail cues as fallback`)
+- Branch: `feat/dif-v2-wo-008`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-14T18:06Z (7m41s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43624013043
+- Checks: quality PASS, SonarCloud PASS, Socket PASS, Vercel Preview PASS.
+- Baseline: format, lint, typecheck, build and policy audit **26 invariants / 23 tables** PASS.
+- Tests: **137 passed + 3 skipped**; PgTAP **124/124**; E2E **12/12** in 3.5 min.
+- Covers all second-audit corrections, manual-cue stale-word handling and incomplete-tail fallback.
+- No merge/deploy/promotion performed.
