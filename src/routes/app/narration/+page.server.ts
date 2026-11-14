@@ -2,7 +2,7 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { ownerDatabase, readFormText } from '#lib/server/authorized.js';
 import { createSupabaseAdminClient } from '#lib/server/supabase.js';
-import { firstRelation } from '#lib/server/relations.js';
+import { loadOwnerEpisodeOptions } from '#lib/server/episode-options.js';
 import {
 	heuristicVoicePlan,
 	listNarrationTakes,
@@ -33,19 +33,7 @@ function parseVoicePlanForm(
 
 export const load: PageServerLoad = async (event) => {
 	const { db, owner } = ownerDatabase(event);
-	const { data: episodes, error } = await db
-		.from('episodes')
-		.select('id,episode_number,title,status,seasons(title,series(title))')
-		.eq('owner_id', owner.id)
-		.order('updated_at', { ascending: false });
-	if (error) throw new Error('Não foi possível carregar os episódios.');
-	const episodeList = (episodes ?? []).map((episode) => {
-		const season = firstRelation(episode.seasons);
-		return {
-			...episode,
-			seasons: season ? { ...season, series: firstRelation(season.series) } : null,
-		};
-	});
+	const episodeList = await loadOwnerEpisodeOptions(db, owner);
 	const requestedId = event.url.searchParams.get('episodeId');
 	const selectedEpisode =
 		episodeList.find((episode) => episode.id === requestedId) ?? episodeList[0] ?? null;

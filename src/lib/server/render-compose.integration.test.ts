@@ -46,6 +46,53 @@ function createSyntheticClip(directory: string, assetId: string, seconds: number
 	return path;
 }
 
+function twoClipPlan(workspace: string) {
+	const scenes = [1, 2].map((index) => ({
+		id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+		sceneIndex: index,
+		startMs: (index - 1) * 2_000,
+		endMs: index * 2_000,
+	}));
+	const assets = [];
+	for (const scene of scenes) {
+		const assetId = `22222222-2222-4222-8222-${String(scene.sceneIndex).padStart(12, '0')}`;
+		createSyntheticClip(workspace, assetId, 2);
+		assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 2_000 });
+	}
+	const plan = {
+		schemaVersion: 1 as const,
+		episodeId: '11111111-1111-4111-8111-111111111111',
+		episodeRevisionNumber: 1,
+		durationMs: 4_000,
+		sceneDurationMs: 4_000 as const,
+		fps: 30 as const,
+		tracks: [{ id: 'video-main', kind: 'video' as const, label: 'Vídeo principal' }],
+		clips: assets.map((asset, index) => ({
+			id: asset.id,
+			sceneId: asset.sceneId,
+			assetId: asset.id,
+			trackId: 'video-main',
+			sourceInMs: 0,
+			sourceOutMs: 2_000,
+			timelineStartMs: index * 2_000,
+			timelineEndMs: index * 2_000 + 2_000,
+			transition: 'cut' as const,
+			transitionMs: 0,
+			gainDb: 0,
+		})),
+		captions: { template: 'clean' as const },
+		cta: null,
+	};
+	const inputs = assets.map((asset) => ({
+		assetId: asset.id,
+		path: join(workspace, `${asset.id}.mp4`),
+		durationMs: 2_000,
+		width: 180,
+		height: 320,
+	}));
+	return { plan, inputs };
+}
+
 const enabled = hasFfmpeg();
 let workspace: string | null = null;
 
@@ -116,18 +163,7 @@ describe.skipIf(!enabled)('FFmpeg narration mux integration', () => {
 	it('muxes a shorter narration as padded AAC and reports exact timing', async () => {
 		const workspace = await mkdtemp(join(tmpdir(), 'dif-narration-mux-'));
 		try {
-			const scenes = [1, 2].map((index) => ({
-				id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
-				sceneIndex: index,
-				startMs: (index - 1) * 2_000,
-				endMs: index * 2_000,
-			}));
-			const assets = [];
-			for (const scene of scenes) {
-				const assetId = `22222222-2222-4222-8222-${String(scene.sceneIndex).padStart(12, '0')}`;
-				createSyntheticClip(workspace!, assetId, 2);
-				assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 2_000 });
-			}
+			const { plan, inputs } = twoClipPlan(workspace);
 			const narrationPath = join(workspace, 'voice.wav');
 			execFileSync(
 				'ffmpeg',
@@ -148,39 +184,9 @@ describe.skipIf(!enabled)('FFmpeg narration mux integration', () => {
 				],
 				{ timeout: 60_000, windowsHide: true },
 			);
-			const plan = {
-				schemaVersion: 1 as const,
-				episodeId: '11111111-1111-4111-8111-111111111111',
-				episodeRevisionNumber: 1,
-				durationMs: 4_000,
-				sceneDurationMs: 4_000 as const,
-				fps: 30 as const,
-				tracks: [{ id: 'video-main', kind: 'video' as const, label: 'Vídeo principal' }],
-				clips: assets.map((asset, index) => ({
-					id: asset.id,
-					sceneId: asset.sceneId,
-					assetId: asset.id,
-					trackId: 'video-main',
-					sourceInMs: 0,
-					sourceOutMs: 2_000,
-					timelineStartMs: index * 2_000,
-					timelineEndMs: index * 2_000 + 2_000,
-					transition: 'cut' as const,
-					transitionMs: 0,
-					gainDb: 0,
-				})),
-				captions: { template: 'clean' as const },
-				cta: null,
-			};
 			const output = await renderPlanToFile({
 				plan,
-				assets: assets.map((asset) => ({
-					assetId: asset.id,
-					path: join(workspace, `${asset.id}.mp4`),
-					durationMs: 2_000,
-					width: 180,
-					height: 320,
-				})),
+				assets: inputs,
 				outputPath: join(workspace, 'narrated.mp4'),
 				vhsIntensity: 0,
 				timeoutMs: 120_000,
@@ -218,42 +224,7 @@ describe.skipIf(!enabled)('FFmpeg caption burn-in integration', () => {
 	it('burns an ASS caption track into a 9:16 render', async () => {
 		const workspace = await mkdtemp(join(tmpdir(), 'dif-caption-burn-'));
 		try {
-			const scenes = [1, 2].map((index) => ({
-				id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
-				sceneIndex: index,
-				startMs: (index - 1) * 2_000,
-				endMs: index * 2_000,
-			}));
-			const assets = [];
-			for (const scene of scenes) {
-				const assetId = `22222222-2222-4222-8222-${String(scene.sceneIndex).padStart(12, '0')}`;
-				createSyntheticClip(workspace, assetId, 2);
-				assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 2_000 });
-			}
-			const plan = {
-				schemaVersion: 1 as const,
-				episodeId: '11111111-1111-4111-8111-111111111111',
-				episodeRevisionNumber: 1,
-				durationMs: 4_000,
-				sceneDurationMs: 4_000 as const,
-				fps: 30 as const,
-				tracks: [{ id: 'video-main', kind: 'video' as const, label: 'Vídeo principal' }],
-				clips: assets.map((asset, index) => ({
-					id: asset.id,
-					sceneId: asset.sceneId,
-					assetId: asset.id,
-					trackId: 'video-main',
-					sourceInMs: 0,
-					sourceOutMs: 2_000,
-					timelineStartMs: index * 2_000,
-					timelineEndMs: index * 2_000 + 2_000,
-					transition: 'cut' as const,
-					transitionMs: 0,
-					gainDb: 0,
-				})),
-				captions: { template: 'clean' as const },
-				cta: null,
-			};
+			const { plan, inputs } = twoClipPlan(workspace);
 			const track = captionTrackSchema.parse({
 				schemaVersion: 1,
 				episodeId: plan.episodeId,
@@ -277,13 +248,7 @@ describe.skipIf(!enabled)('FFmpeg caption burn-in integration', () => {
 			await writeFile(assPath, buildCaptionAss(track), 'utf8');
 			const output = await renderPlanToFile({
 				plan,
-				assets: assets.map((asset) => ({
-					assetId: asset.id,
-					path: join(workspace, `${asset.id}.mp4`),
-					durationMs: 2_000,
-					width: 180,
-					height: 320,
-				})),
+				assets: inputs,
 				outputPath: join(workspace, 'captioned.mp4'),
 				vhsIntensity: 0,
 				timeoutMs: 120_000,
