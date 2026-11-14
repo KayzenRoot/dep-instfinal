@@ -162,6 +162,7 @@ export async function renderPlanToFile(input: {
 	ffmpegPath?: string;
 	ffprobePath?: string;
 	vhsIntensity?: 0 | 1 | 2 | 3;
+	captionAssPath?: string;
 	timeoutMs?: number;
 	narration?: NarrationRenderInput;
 }): Promise<RenderOutput> {
@@ -169,6 +170,7 @@ export async function renderPlanToFile(input: {
 	const command = buildRenderCommand(input.plan, input.assets, videoPath, {
 		ffmpegPath: input.ffmpegPath,
 		vhsIntensity: input.vhsIntensity,
+		captionAssPath: input.captionAssPath,
 	});
 	await execFileAsync(input.ffmpegPath ?? 'ffmpeg', ['-nostdin', ...command.args], {
 		timeout: input.timeoutMs ?? 600_000,

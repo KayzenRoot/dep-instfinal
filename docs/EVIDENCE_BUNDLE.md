@@ -1,5 +1,20 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-008` · issue #25 · epic #17
+- **Base:** `main` `326c576`; branch `feat/dif-v2-wo-008`
+- **Status:** implementation in progress; tests/CI/audit pending. No merge/deploy.
+
+| Check     | Result     | Evidence                                                                            |
+| --------- | ---------- | ----------------------------------------------------------------------------------- |
+| Alignment | PASS       | script/ASR DP, hallucination drop, monotonic cues; real Piper→Vosk integration      |
+| SRT/ASS   | PASS       | exporters and safe-zone styles; real FFmpeg burn-in test                            |
+| Database  | PASS       | `caption_tracks` owner-only, service-only writes, approval guard; PgTAP **117/117** |
+| UI/API    | PASS       | `/app/captions`, SRT/ASS owner-only exports, manual fallback; E2E                   |
+| E2E       | PASS local | timeline + narration + captions + narrated captioned render (4,1m)                  |
+| Limits    | —          | Vosk model local; no VPS deploy; human visual/audio QA pending                      |
+
 ## V2 WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-007` · issue #24 · epic #17 · addendum ENH-12

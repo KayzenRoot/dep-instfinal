@@ -1,0 +1,43 @@
+# WO-008 — local verification evidence
+
+Date: 2026-11-14
+Branch: `feat/dif-v2-wo-008`
+Base: `main` `326c576`
+
+## Commands and results
+
+```text
+npx supabase test db
+  Files=1, Tests=117, Result: PASS
+
+npm test
+  Test Files 21 passed | 3 skipped (24)
+       Tests 124 passed | 3 skipped (127)
+  Includes:
+    - caption domain tests (7)
+    - real FFmpeg 120s render
+    - real narration mux
+    - real ASS burn-in
+    - real Piper Cadu → Vosk alignment (opt-in)
+
+npm run build
+  adapter-node build PASS
+
+npm run audit:policy
+  Checked 26 policy invariants across 23 tables. PASS
+
+npm run test:e2e:local -- e2e/timeline.spec.ts
+  [timeline-e2e] aligning captions from synthetic ASR words
+  [timeline-e2e] captions approved; returning to timeline
+  [render-worker] render_completed
+  1 passed (4.1m)
+```
+
+The E2E asserted the READY manifest contains captions with a real track id, 8 cues, style `clean` and safe zone `tiktok`; SRT and ASS endpoints returned valid payloads.
+
+## Notes
+
+- ASR words in E2E are synthetic but follow the exact script tokens; the real ASR integration test is separate and opt-in.
+- The caption track's text comes from the narration plan, not from raw ASR output.
+- Burn-in uses FFmpeg `ass=filename=...` after the video composition and before VHS.
+- No paid API, GPU, public media, deployment or VPS change was used.

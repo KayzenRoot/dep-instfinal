@@ -100,6 +100,8 @@ test('private narration endpoints reject anonymous visitors', async ({ request }
 	for (const path of [
 		'/api/narration/takes?episodeId=11111111-1111-4111-8111-111111111111',
 		'/api/narration/takes/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+		'/api/captions/11111111-1111-4111-8111-111111111111/srt',
+		'/api/captions/11111111-1111-4111-8111-111111111111/ass',
 	]) {
 		const response = await request.get(path, { maxRedirects: 0 });
 		if (process.env.PUBLIC_SUPABASE_URL && process.env.SUPABASE_OWNER_USER_ID) {
@@ -697,7 +699,7 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 });
 
 test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async ({ page }) => {
-	test.setTimeout(180_000);
+	test.setTimeout(360_000);
 	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
 	const screenshotDirectory = path.join(process.cwd(), 'test-results', 'screenshots');
 	await mkdir(screenshotDirectory, { recursive: true });
@@ -723,6 +725,7 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 		'/app/continuity',
 		'/app/export',
 		'/app/narration',
+		'/app/captions',
 		'/app/settings',
 		...(seriesDetail ? [seriesDetail] : []),
 		...(episodeDetail ? [episodeDetail] : []),

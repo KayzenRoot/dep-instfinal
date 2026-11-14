@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -7,6 +7,8 @@ import { buildSceneTimeline } from '#lib/domain/timeline.js';
 import { buildDefaultEditPlan } from '#lib/domain/video-edit-plan.js';
 import { buildRenderCommand } from '#lib/domain/render-composition.js';
 import { renderPlanToFile } from './render-compose.js';
+import { buildCaptionAss } from '#lib/domain/captions.js';
+import { captionTrackSchema } from '#lib/schemas/captions.js';
 
 function hasFfmpeg(): boolean {
 	try {
@@ -206,6 +208,89 @@ describe.skipIf(!enabled)('FFmpeg narration mux integration', () => {
 			const meanVolume = /mean_volume:\s*(-?[0-9.]+) dB/.exec(loudness.stderr);
 			expect(meanVolume).not.toBeNull();
 			expect(Number(meanVolume![1])).toBeGreaterThan(-60);
+		} finally {
+			await rm(workspace, { recursive: true, force: true });
+		}
+	}, 180_000);
+});
+
+describe.skipIf(!enabled)('FFmpeg caption burn-in integration', () => {
+	it('burns an ASS caption track into a 9:16 render', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'dif-caption-burn-'));
+		try {
+			const scenes = [1, 2].map((index) => ({
+				id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+				sceneIndex: index,
+				startMs: (index - 1) * 2_000,
+				endMs: index * 2_000,
+			}));
+			const assets = [];
+			for (const scene of scenes) {
+				const assetId = `22222222-2222-4222-8222-${String(scene.sceneIndex).padStart(12, '0')}`;
+				createSyntheticClip(workspace, assetId, 2);
+				assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 2_000 });
+			}
+			const plan = {
+				schemaVersion: 1 as const,
+				episodeId: '11111111-1111-4111-8111-111111111111',
+				episodeRevisionNumber: 1,
+				durationMs: 4_000,
+				sceneDurationMs: 4_000 as const,
+				fps: 30 as const,
+				tracks: [{ id: 'video-main', kind: 'video' as const, label: 'Vídeo principal' }],
+				clips: assets.map((asset, index) => ({
+					id: asset.id,
+					sceneId: asset.sceneId,
+					assetId: asset.id,
+					trackId: 'video-main',
+					sourceInMs: 0,
+					sourceOutMs: 2_000,
+					timelineStartMs: index * 2_000,
+					timelineEndMs: index * 2_000 + 2_000,
+					transition: 'cut' as const,
+					transitionMs: 0,
+					gainDb: 0,
+				})),
+				captions: { template: 'clean' as const },
+				cta: null,
+			};
+			const track = captionTrackSchema.parse({
+				schemaVersion: 1,
+				episodeId: plan.episodeId,
+				planId: '33333333-3333-4333-8333-333333333333',
+				planVersion: 1,
+				narrationTakeId: null,
+				style: 'clean',
+				safeZone: 'tiktok',
+				source: 'MANUAL',
+				cues: [
+					{
+						id: '44444444-4444-4444-8444-444444444444',
+						startMs: 200,
+						endMs: 2_500,
+						text: 'A fita chegou. Alice ouviu a voz.',
+						words: [],
+					},
+				],
+			});
+			const assPath = join(workspace, 'captions.ass');
+			await writeFile(assPath, buildCaptionAss(track), 'utf8');
+			const output = await renderPlanToFile({
+				plan,
+				assets: assets.map((asset) => ({
+					assetId: asset.id,
+					path: join(workspace, `${asset.id}.mp4`),
+					durationMs: 2_000,
+					width: 180,
+					height: 320,
+				})),
+				outputPath: join(workspace, 'captioned.mp4'),
+				vhsIntensity: 0,
+				timeoutMs: 120_000,
+				captionAssPath: assPath,
+			});
+			expect(output.codec).toBe('h264');
+			expect(Math.abs(output.durationMs - 4_000)).toBeLessThanOrEqual(1_000);
 		} finally {
 			await rm(workspace, { recursive: true, force: true });
 		}

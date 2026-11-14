@@ -172,7 +172,12 @@ async function runJob(job) {
 		} catch {
 			// A lost lease or canceled job is already reconciled by the queue.
 		}
-		log('render_failed', { jobId: job.id, code, heartbeatError: Boolean(heartbeatError) });
+		log('render_failed', {
+			jobId: job.id,
+			code,
+			message: message.slice(0, 200),
+			heartbeatError: Boolean(heartbeatError),
+		});
 	} finally {
 		clearInterval(heartbeat);
 		if (activeChild) stopChild(activeChild);

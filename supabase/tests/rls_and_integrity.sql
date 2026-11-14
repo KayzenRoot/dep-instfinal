@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(108);
+select plan(117);
 
 do $$
 declare
@@ -1514,6 +1514,91 @@ select throws_ok(
   '42501',
   'permission denied for table narration_takes',
   'owner cannot insert narration takes directly'
+);
+select throws_ok(
+  $$insert into public.caption_tracks (
+      owner_id, episode_id, edit_plan_id, plan_version, narration_take_id,
+      current_version, track
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      (select id from public.video_edit_plans where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+      2, 'a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7', 1,
+      '{"schemaVersion":1,"planVersion":2,"cues":[]}'::jsonb
+    );$$,
+  '42501',
+  'permission denied for table caption_tracks',
+  'owner cannot insert caption tracks directly'
+);
+set local role service_role;
+select lives_ok(
+  $$insert into public.caption_tracks (
+      owner_id, episode_id, edit_plan_id, plan_version, narration_take_id,
+      current_version, current_status, track, versions
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      (select id from public.video_edit_plans where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+      2, 'a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7', 1, 'DRAFT',
+      '{"schemaVersion":1,"planVersion":2,"cues":[{"id":"b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8","startMs":500,"endMs":2500,"text":"A fita chegou.","words":[]}]}'::jsonb,
+      '[]'::jsonb
+    );$$,
+  'service role can store a caption track'
+);
+set local role authenticated;
+select is(
+  (select count(*) from public.caption_tracks
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  1::bigint,
+  'owner can read the caption track'
+);
+select throws_ok(
+  $$update public.caption_tracks
+    set current_version = 2
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '42501',
+  'permission denied for table caption_tracks',
+  'owner cannot update caption tracks directly'
+);
+select throws_ok(
+  $$delete from public.caption_tracks
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '42501',
+  'permission denied for table caption_tracks',
+  'owner cannot delete caption tracks directly'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.caption_tracks
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  0::bigint,
+  'second owner cannot read the caption track'
+);
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+set local role service_role;
+select throws_ok(
+  $$update public.caption_tracks
+    set current_status = 'APPROVED',
+        track = '{"schemaVersion":1,"planVersion":2,"cues":[]}'::jsonb
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '23514',
+  'caption_cues_required',
+  'caption approval requires cues'
+);
+select lives_ok(
+  $$update public.caption_tracks
+    set current_status = 'APPROVED',
+        track = '{"schemaVersion":1,"planVersion":2,"cues":[{"id":"b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8","startMs":500,"endMs":2500,"text":"A fita chegou.","words":[]}]}'::jsonb
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  'caption track can be approved with cues'
+);
+select throws_ok(
+  $$update public.caption_tracks
+    set track = '{"schemaVersion":1,"planVersion":3,"cues":[{"id":"b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8","startMs":500,"endMs":2500,"text":"A fita chegou.","words":[]}]}'::jsonb
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '23514',
+  'caption_plan_version_mismatch',
+  'caption track is bound to the plan version'
 );
 reset role;
 

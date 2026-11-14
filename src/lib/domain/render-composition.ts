@@ -25,6 +25,7 @@ export interface RenderCompositionOptions {
 	width?: 1080;
 	height?: 1920;
 	vhsIntensity?: 0 | 1 | 2 | 3;
+	captionAssPath?: string;
 }
 
 export interface RenderCommand {
@@ -184,6 +185,14 @@ export function buildRenderCommand(
 			`[${current}][${next}]xfade=transition=fade:duration=${duration}:offset=${offset},settb=1/${fps}[${label}]`,
 		);
 		current = label;
+	}
+	if (options.captionAssPath) {
+		const captionPath = options.captionAssPath
+			.replace(/\\/g, '/')
+			.replace(/:/g, '\\:')
+			.replace(/'/g, "\\'");
+		filters.push(`[${current}]ass=filename='${captionPath}'[captioned]`);
+		current = 'captioned';
 	}
 	if (vhs > 0) {
 		const noise = 4 + vhs * 4;

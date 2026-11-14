@@ -210,6 +210,25 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner authorized merge/promotion on 2026-11-14; PR #55 squash-merged at `326c576`; issue #24 closed; checkpoint **PROMOTED**. WO-008 (#25) is next.
 
+## V2 Context Lock — WO-008 (#25)
+
+- **Base revalidated:** `main` `326c576` (checkpoint WO-007 promoted). Branch: `feat/dif-v2-wo-008`.
+- **Issue inventory:** WO-001–007 **MERGED/CLOSED/PROMOTED**; WO-008/#25 **IN PROGRESS**; WO-009+ remain gated.
+- **Delivered locally:** `caption_tracks` versionado por plano, RLS owner-only/service-only writes; alinhamento forçado roteiro↔ASR com normalização NFD, DP, descarte de hallucination e timestamps monotonicos; SRT/ASS com estilos/safe zones; editor `/app/captions`; import ASR/manual; worker gera ASS e queima no render; CLI Vosk opcional.
+- **Tests:** PgTAP **117/117**; unit **124 + 3 skipped**; real Piper Cadu→Vosk alignment PASS; FFmpeg burn-in PASS; E2E timeline PASS (4,1m); build/policy PASS. CI/audit pendentes.
+- **Gate:** all local/CI tests, Evidence Bundle, Checkpoint Delta PROPOSED, independent audit and owner merge authorization. No deploy/VPS change.
+
+### Fingerprints no base `326c576`
+
+| Fonte canônica                       | SHA-256                                                            |
+| ------------------------------------ | ------------------------------------------------------------------ |
+| `docs/CHECKPOINT_DELTA.md`           | `0ce65279d405dd1b62ce552ca4357c44c7ae44888331c59d72171e2a8ea5704e` |
+| `docs/SOURCE_PACK.md`                | `ccac8b33f2d83c578f2a0ca3549f03d0c791980acfbedd3f1b06c5ca2257dd1c` |
+| `docs/ADR_V2_002_STORAGE.md`         | `9e39af92e6ea71ad234900c6e7d5d9a2290cc32c393177ad45db9b472510966e` |
+| `docs/V2_EXECUTION_PLAN.md`          | `b5917955d0d89e1699e4b685d879e35c20f454f207da12b77e9a72715ed78fc2` |
+| `docs/CONTEXT_LOCK.md`               | `563e015ff9e28abef3d4774d4000c6bb8582ac63386ffa1236208a53a1d89d3f` |
+| `src/lib/schemas/video-edit-plan.ts` | `48616e3593ea1373e3de61a9aca10a49999549e4d8e91120272eb67e5ad47832` |
+
 ### Fingerprints no base `c0f3cfd`
 
 | Fonte canônica                       | SHA-256                                                            |
