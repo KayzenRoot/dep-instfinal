@@ -1,0 +1,10 @@
+# WO-007 hosted CI evidence — run 43590151067 (final evidence head)
+
+- Head: `5ac4653dfe32c2814cd51edf351846a56ffb60c1`
+- Branch: `feat/dif-v2-wo-007`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-14T11:35Z (7m6s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43590151067
+- Checks: quality PASS, SonarCloud PASS, Socket Security PASS, Vercel PASS.
+- Tests: 116 passed + 2 skipped; PgTAP 108/108; E2E 12/12 in 3.2m; narrated timeline READY in 31.3s.
+- This is the final code/test/evidence head after owner acceptance and the ARM64 benchmark.

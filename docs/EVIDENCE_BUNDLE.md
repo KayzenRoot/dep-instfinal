@@ -17,8 +17,8 @@
 | TTS styles         | PASS       | owner accepted Cadu samples on 2026-11-14; `sample-neutral.wav` 8.978 s / −3.0 dBFS / −20.2 LUFS; `sample-tension.wav` 7.350 s / −2.9 dBFS / −19.5 LUFS               |
 | Unit/integration   | PASS       | 116 passed + 2 skipped; narration upload negatives 4, voice-direction 5, render composition 8, real mux 1, opt-in Piper 1; lint/typecheck/build PASS                  |
 | Policy             | PASS       | **25 invariants / 22 tables**                                                                                                                                         |
-| E2E                | PASS CI    | CI `43547252585` @ `4117010`: 12/12 in 3.5m; upload → preview → approve → restore → approve → real worker READY in 34.7s; owner-boundary 401; responsive 360/768/1440 |
-| Limits             | —          | Piper emotion unsupported; ARM64 blocked; narration R2 live download not exercised; R2 GC, SRT (WO-008), worker least privilege (WO-013/014) pending                  |
+| E2E                | PASS CI    | CI `43590151067` @ `5ac4653`: 12/12 in 3.2m; upload → preview → approve → restore → approve → real worker READY in 31.3s; owner-boundary 401; responsive 360/768/1440 |
+| Limits             | —          | Piper emotion unsupported; ARM64 PASS; narration R2 live download not exercised; R2 GC, SRT (WO-008), worker least privilege (WO-013/014) pending                     |
 
 **Verdict:** WO-007 is implemented with honest capability reporting, a real narrated render, owner-accepted Cadu samples and an ARM64 benchmark PASS. Code audit APPROVED. Awaiting explicit merge/promotion authorization; no deploy.
 

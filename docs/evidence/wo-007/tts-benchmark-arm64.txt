@@ -5,7 +5,7 @@
 - Authorization: `docs/evidence/wo-007/arm64-authorization.txt` (owner: "sim"); scope limited to `/tmp`
 - Raw output: `docs/evidence/wo-007/tts-benchmark-arm64-raw.txt`
 - Plans: `docs/evidence/wo-007/plan-neutral.json`, `plan-full-120.json`
-- ASR: `tts-full-120-arm64.wav` (downloaded) transcribed locally with Vosk small pt; full transcript excerpt in the raw file
+- ASR: `tts-benchmark-full-raw.wav` (downloaded) transcribed locally with `vosk-model-small-pt-0.3`; full transcript in the raw file. This is raw Piper output (22.05 kHz, true peak +0.2 dBFS, no limiter) and is NOT publishable/master audio
 - Runtime: `uv venv --python 3.12` in `/tmp`, `piper-tts==1.8.0`, ONNX Runtime 1.32.0
 - Model: `pt_BR-cadu-medium` (22.05 kHz, CC0), SHA-256 `d5a662e3f606d5a49dd29ba9ce90c304ae45dd9543f8b0c773bcb0de282499de`
 - Scheduling: `ionice -c3 nice -n 19`, 1 process at a time

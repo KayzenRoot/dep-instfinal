@@ -30,12 +30,12 @@ Modelo de audição: `pt_BR-cadu-medium.onnx` (Piper 1.8+, dataset CC0), SHA-256
 
 | Critério                                                                                    | Estado       | Evidência                                                                                                                                                                                                                                    |
 | ------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS CI**  | E2E `e2e/timeline.spec.ts` no CI `43547252585`: upload WAV 118 s, preview, aprovação, restauração, render READY com AAC 48 kHz; áudio preenche os 2 s restantes; duração total no E2E; monotonicidade coberta por teste unitário e relatório |
+| Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS CI**  | E2E `e2e/timeline.spec.ts` no CI `43590151067`: upload WAV 118 s, preview, aprovação, restauração, render READY com AAC 48 kHz; áudio preenche os 2 s restantes; duração total no E2E; monotonicidade coberta por teste unitário e relatório |
 | TTS local gera narração inteligível pt-BR em episódio sintético, com custo medido           | **PASS**     | 232 palavras → 94.552 s, true peak −2,8 dBFS, −19,5 LUFS, 8,7 MB; ARM64: 81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS, ASR 0,909; owner aceitou as amostras Cadu                                                                           |
 | Qualidade aceita pelo owner                                                                 | **PASS**     | Owner: “agora esta muito bom vamos continuar” em 2026-11-14; amostras Cadu `sample-neutral.wav`/`sample-tension.wav` e `docs/evidence/wo-007/owner-acceptance.txt`                                                                           |
 | Acentos/pontuação preservados e pausas ajustáveis                                           | **PASS**     | fixtures com `Às`, `três`, `dezessete`, `Alice=Álissi`, `dez=10`; relatório por segmento                                                                                                                                                     |
 | Extensão/silêncio não destrói timing                                                        | **PASS**     | `narrationDurationPolicy`: piso de 50% de cobertura, pad de áudio curto, falha acima de 250 ms de overflow; teste unitário e mux real                                                                                                        |
-| Sem clipping alto ou diferenças ocultas                                                     | **PASS**     | limiter `0.7` com `level=false` e true peak final ≈ −1,8 dBFS; threshold de rejeição −0,5 dBFS; true peak/LUFS no take e no relatório                                                                                                        |
+| Sem clipping alto ou diferenças ocultas                                                     | **PASS**     | limiter `0.7` com `level=false`; true peak final −2,8 dBFS no full e −3,0/−2,9 nas amostras; threshold de rejeição −0,5 dBFS; true peak/LUFS no take e no relatório                                                                          |
 | Acesso privado e revisão versionada                                                         | **PASS**     | RLS owner-only, service-only writes, PgTAP 108/108, versões com snapshots e restauração                                                                                                                                                      |
 | 4 estilos como metadados e 2 diferenças audíveis                                            | **PASS**     | 6 emoções e 4 presets modelados; amostras neutral/tension aceitas pelo owner; TTS entrega diferenças reais de velocidade/pausa/volume, sem alegar emoção real                                                                                |
 | Regenerar trecho sem refazer todo vídeo                                                     | **PASS CLI** | `TTS_SEGMENT_ID` regenera um segmento e recompõe o WAV; render reutiliza o vídeo e refaz apenas o mux                                                                                                                                        |
@@ -49,12 +49,12 @@ Modelo de audição: `pt_BR-cadu-medium.onnx` (Piper 1.8+, dataset CC0), SHA-256
 - `npm run lint`: PASS.
 - `npm run typecheck`: PASS.
 - Vitest unitário/integração: **116 passed + 2 skipped**; `voice-direction` + `render-composition` + mux FFmpeg real; TTS Piper opt-in real.
-- CI hospedada `43547252585` em `4117010`: **SUCCESS** (8m11s); E2E **12/12** em 3,5m; timeline com narração e render READY em **34,7s**; worker real `render_completed`.
+- CI hospedada `43590151067` em `5ac4653`: **SUCCESS** (7m6s); E2E **12/12** em 3,2m; timeline com narração e render READY em **31,3s**; worker real `render_completed`.
 - E2E: upload, preview, aprovação, restauração de versão, recompravação, render real com AAC e READY.
 - E2E owner-boundary: rotas de narração anônimas retornam 401; layout 360/768/1440 sem overflow.
 - TTS 120 s: `docs/evidence/wo-007/tts-full-120-report.json`.
 - Amostras de audição: `docs/evidence/wo-007/sample-neutral.wav`, `sample-tension.wav` e relatórios `tts-neutral-report.json`/`tts-tension-report.json`.
-- Log sanitizado do CI: `docs/evidence/wo-007/ci-4117010.txt`.
+- Log sanitizado do CI: `docs/evidence/wo-007/ci-5ac4653.txt`.
 
 ## Riscos e residuais
 

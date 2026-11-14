@@ -1,6 +1,6 @@
 # WO-007 — Raw ARM64 benchmark output (sanitized)
 
-Command executed on `ubuntu@129.153.213.19` (`nexlabs-server`, aarch64) on 2026-11-14:
+Command executed on `ubuntu@<oracle-vps>` (`nexlabs-server`, aarch64) on 2026-11-14:
 
 ```bash
 cd /tmp/dif-wo007-bench
@@ -39,10 +39,10 @@ OUTPUT full rate=22050 frames=1786112 duration=81.003s bytes=3572268
 	Maximum resident set size (kbytes): 281996
 ```
 
-ASR check (downloaded `full.wav`, local Vosk small pt):
+ASR check (downloaded `full.wav`; `vosk==0.3.45`, `vosk-model-small-pt-0.3`; command `python asr.py full.wav`):
 
 ```text
-arm64-full.wav CONF 0.909 TEXT as três e dizer sete da manhã a fita começou a tocar sozinha no porão alice desceu com uma lanterna encontrou a porta aberta ... [transcrição contínua das 232 palavras, incluindo "alice reconheceu a própria voz saindo do gravador", "cento e quarenta e sete fitas numeradas", "a porta do porão fechada"]
+arm64-full.wav CONF 0.909 TEXT as três e dizer sete da manhã a fita começou a tocar sozinha no porão alice desceu com uma lanterna encontrou a porta aberta o cheiro de poeiras com de alguma coisa uma humilhei antiga ela reconheceu a própria voz saindo do gravador a gravação dizia que alguém entrar naquela casa depois da meia noite alice olhou para o relé hoje viu que faltavam sete minutos uma sombra passou pela janela e para o atrás dela o alarme soou com uma vez mais ninguém mexeu no painel no fundo da caixa havia cento e quarenta e sete fitas numeradas cadete que trazia o nome de uma pessoa que ainda não tinha nascido alice apertou lei da fita duzentos e três após de escrever o corredor exatamente como ele era naquele instante depois falou sobre o medo que ela sentiria ao abrir a última a porta ela tentou desligar o aparelho mas a tomada já estava fora da parede o gravador continua funcionando por conta própria uma criança começou a cantar do outro lado do vídeo alice correr para a escada e percebeu que o degrau número nove não existia mas no escuro alguém sussurrou nome verdadeiro dela ela acordou no sofá com a fita ainda girando e a porta do porão fechada sobre a mesa havia uma fotografia dela dormindo tirada naquela mesma noite no verso alguém escreveu que a próxima gravação seria a última
 ```
 
 Cleanup verification:

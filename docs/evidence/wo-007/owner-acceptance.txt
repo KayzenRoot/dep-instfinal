@@ -2,9 +2,10 @@
 
 - Date: 2026-11-14
 - Owner statement (verbatim, sanitized context): "agora esta muito bom vamos continuar"
-- Scope: auditory acceptance of the two versioned samples generated with `pt_BR-cadu-medium` (Piper 1.8, CC0):
-  - `docs/evidence/wo-007/sample-neutral.wav` — 8.842 s, true peak −3.0 dBFS, −20.4 LUFS, SHA-256 `8580d7907386ee1233406ec18701db9b7fce9a472404808c2ea4f43a71b134f3`
-  - `docs/evidence/wo-007/sample-tension.wav` — 7.478 s, true peak −2.9 dBFS, −19.4 LUFS, SHA-256 `800d0b3f3f33e0f17cefd2ae77e3bd00f9c529bcb0ee752ae02db8c81ae06c09`
+- Scope: auditory acceptance of the exact Cadu renders the owner heard, preserved byte-for-byte:
+  - `docs/evidence/wo-007/owner-heard-sample-neutral.wav` — 8.842 s, true peak −3.0 dBFS, −20.4 LUFS, SHA-256 `8580d7907386ee1233406ec18701db9b7fce9a472404808c2ea4f43a71b134f3`
+  - `docs/evidence/wo-007/owner-heard-sample-tension.wav` — 7.478 s, true peak −2.9 dBFS, −19.4 LUFS, SHA-256 `800d0b3f3f33e0f17cefd2ae77e3bd00f9c529bcb0ee752ae02db8c81ae06c09`
+- The canonical `sample-neutral.wav`/`sample-tension.wav` were regenerated from the identical model, plan and text for the final report (8.978 s/`55f87e2d…` and 7.350 s/`e8871c4d…`). Piper is nondeterministic in timing; the voice and text are the same, and the owner-heard bytes remain versioned for audit.
 - Model SHA-256: `d5a662e3f606d5a49dd29ba9ce90c304ae45dd9543f8b0c773bcb0de282499de`
 - Local ASR cross-check (Vosk small pt): confidence ~0.94 on both samples; transcript recognizes "Alice reconheceu a própria voz… a porta do porão se abriu".
 - Interpretation: the owner accepted the TTS candidate's quality for WO-007. This does **not** authorize merge, deploy or checkpoint promotion. The ARM64 benchmark was authorized separately on the same date (`arm64-authorization.txt`).
