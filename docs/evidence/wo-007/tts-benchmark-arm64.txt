@@ -1,0 +1,31 @@
+# WO-007 — Piper ARM64 benchmark (read-only, /tmp)
+
+- Date: 2026-11-14
+- Host: Oracle VPS `nexlabs-server`, aarch64, ARM Neoverse-N1, 2 vCPU, 11,924 MB RAM
+- Authorization: `docs/evidence/wo-007/arm64-authorization.txt` (owner: "sim"); scope limited to `/tmp`
+- Raw output: `docs/evidence/wo-007/tts-benchmark-arm64-raw.txt`
+- Plans: `docs/evidence/wo-007/plan-neutral.json`, `plan-full-120.json`
+- ASR: `tts-full-120-arm64.wav` (downloaded) transcribed locally with Vosk small pt; full transcript excerpt in the raw file
+- Runtime: `uv venv --python 3.12` in `/tmp`, `piper-tts==1.8.0`, ONNX Runtime 1.32.0
+- Model: `pt_BR-cadu-medium` (22.05 kHz, CC0), SHA-256 `d5a662e3f606d5a49dd29ba9ce90c304ae45dd9543f8b0c773bcb0de282499de`
+- Scheduling: `ionice -c3 nice -n 19`, 1 process at a time
+- Command: `python -m piper -m pt_BR-cadu-medium.onnx -i <text> -f <wav> --length_scale 1.0 --sentence-silence 0.0`
+- Cleanup: `/tmp/dif-wo007-bench` and `/tmp/dif-wo007-uv.log` removed; no sudo, service, port, firewall, container, package installation outside `/tmp`, or deploy.
+
+## Results
+
+| Case | Audio | Wall time | RTF | Max RSS | CPU |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| short 1 (3 sentences) | 8.812 s | 1.59 s | 0.180 | 245,296 KB | 161% |
+| short 2 | 8.719 s | 1.47 s | 0.169 | 239,004 KB | 164% |
+| short 3 | 8.731 s | 1.47 s | 0.168 | 244,052 KB | 165% |
+| full 120 s script (232 words) | 81.003 s | 8.86 s | 0.109 | 281,996 KB | 191% |
+
+- The full run used 16.86 s user + 0.09 s system, 191% CPU (effectively both vCPU), so concurrency remains **1**.
+- `uv` may have used its normal user cache outside `/tmp`; no service, config, package or file was installed persistently. The benchmark itself and model copy were removed.
+- Full output was downloaded and transcribed locally with Vosk small pt: confidence **0.909**, recognizing the 232-word horror script end-to-end.
+- Host x64 comparison for the same short text: ~12.39 s and ~531 MB incremental peak, but that includes Python startup + Piper + the full ffmpeg trim/pause/concat pipeline, so it is **not** an apples-to-apples comparison. The valid conclusion is the absolute ARM64 result: 81 s of audio in 8.86 s with 282 MB RSS.
+
+## Decision
+
+**GO** for optional local TTS on the ARM64 worker with concurrency 1. The measured cost is far below the FFmpeg render budget; no GPU/paid API is needed. The TTS remains optional: the manual voice upload and the Piper CLI fallback are unchanged.

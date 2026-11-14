@@ -7,10 +7,10 @@
 	"elapsedMs": 12390,
 	"incrementalPeakMemoryBytes": 531435520,
 	"incrementalCpuSeconds": 7,
-	"arm64Benchmark": "BLOCKED: no authorized ARM64 VPS execution in WO-007",
+	"arm64Benchmark": "PASS: see tts-benchmark-arm64.txt (Oracle 2 vCPU, RTF 0.109 full script, 282 MB RSS)",
 	"model": "pt_BR-cadu-medium",
 	"modelSha256": "d5a662e3f606d5a49dd29ba9ce90c304ae45dd9543f8b0c773bcb0de282499de",
 	"modelLicense": "CC0",
-	"ttsOutputMs": 8842,
+	"ttsOutputMs": 8978,
 	"note": "sample-neutral plan; Piper 1.8 Python package; Cadu medium"
 }

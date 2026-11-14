@@ -8,7 +8,7 @@
 import { createHash } from 'node:crypto';
 import { execFile, spawn } from 'node:child_process';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { createClient } from '@supabase/supabase-js';
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
@@ -102,7 +102,7 @@ async function synthesize(text: string, output: string, lengthScale: number): Pr
 			child.stdin?.end(python ? undefined : `${text}\n`);
 		});
 	} finally {
-		await rm(textFile, { force: true });
+		await rm(textFile, { force: true }).catch(() => undefined);
 	}
 }
 
@@ -319,7 +319,8 @@ async function main() {
 				padded,
 			]);
 			const measured = await measure(padded);
-			if (measured.durationMs <= 0) throw new Error('tts_segment_empty');
+			if (!Number.isFinite(measured.durationMs) || measured.durationMs <= 0)
+				throw new Error('tts_segment_empty');
 			if (
 				(measured.truePeakDb !== null && measured.truePeakDb > -0.5) ||
 				(measured.peakDb !== null && measured.peakDb > -0.5)
@@ -405,7 +406,7 @@ async function main() {
 			narrationTextHash(plan.segments.map((segment) => segment.text).join(' ')),
 		provider: 'piper-local',
 		model: piperVoice,
-		modelPath,
+		modelPath: basename(modelPath),
 		modelSha256,
 		modelLicense: license,
 		capability: {
@@ -428,11 +429,12 @@ async function main() {
 		format: 'wav',
 		sampleRate: SAMPLE_RATE,
 		channels: 1,
-		narrationFile: narrationPath,
+		narrationFile: basename(narrationPath),
+		segmentCount: generated.length,
 		segments: generated.map((segment) => ({
 			id: segment.id,
 			index: segment.index,
-			file: segment.file,
+			file: basename(segment.file),
 			textForTts: segment.textForTts,
 			emotion: segment.emotion,
 			speed: segment.speed,

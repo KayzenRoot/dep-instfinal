@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-007` · issue #24 · epic #17 · addendum ENH-12
 - **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`
-- **Status:** implementation, local database/unit/FFmpeg/TTS evidence, hosted CI, code audit and owner auditory acceptance **PASS**; ARM64 benchmark **BLOCKED**. No merge/deploy.
+- **Status:** implementation, local database/unit/FFmpeg/TTS evidence, hosted CI, code audit, owner auditory acceptance and ARM64 benchmark **PASS**. Awaiting explicit merge/promotion authorization. No deploy.
 
 | Check              | Result     | Evidence                                                                                                                                                              |
 | ------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -13,14 +13,14 @@
 | Versioning         | PASS       | plan versions with snapshots; restore as new DRAFT; takes immutable and never overwritten                                                                             |
 | Database/RLS       | PASS       | PgTAP **108/108**; owner-only SELECT, service-only writes; approval requires READY take; render narration FK/immutability                                             |
 | Render mux         | PASS       | real 4 s FFmpeg mux test: video copy + AAC 48 kHz stereo, pad to exact duration after a 50% minimum coverage check; overflow >250 ms fails                            |
-| TTS 120 s          | PASS local | Piper `pt_BR-cadu-medium` (CC0): 232 words → 94.961 s, −2.9 dBFS true peak, −19.4 LUFS, 8.7 MB, no clipping                                                           |
-| TTS styles         | PASS       | owner accepted Cadu samples on 2026-11-14; `sample-neutral.wav` 8.842 s / −3.0 dBFS / −20.4 LUFS; `sample-tension.wav` 7.478 s / −2.9 dBFS / −19.4 LUFS               |
+| TTS 120 s          | PASS local | Piper `pt_BR-cadu-medium` (CC0): 232 words → 94.552 s, −2.8 dBFS true peak, −19.5 LUFS, 8.7 MB, no clipping                                                           |
+| TTS styles         | PASS       | owner accepted Cadu samples on 2026-11-14; `sample-neutral.wav` 8.978 s / −3.0 dBFS / −20.2 LUFS; `sample-tension.wav` 7.350 s / −2.9 dBFS / −19.5 LUFS               |
 | Unit/integration   | PASS       | 116 passed + 2 skipped; narration upload negatives 4, voice-direction 5, render composition 8, real mux 1, opt-in Piper 1; lint/typecheck/build PASS                  |
 | Policy             | PASS       | **25 invariants / 22 tables**                                                                                                                                         |
 | E2E                | PASS CI    | CI `43547252585` @ `4117010`: 12/12 in 3.5m; upload → preview → approve → restore → approve → real worker READY in 34.7s; owner-boundary 401; responsive 360/768/1440 |
 | Limits             | —          | Piper emotion unsupported; ARM64 blocked; narration R2 live download not exercised; R2 GC, SRT (WO-008), worker least privilege (WO-013/014) pending                  |
 
-**Verdict:** WO-007 is locally implemented with honest capability reporting and a real narrated render. It **cannot be APPROVED** until the owner auditions the two styles and the ARM64 benchmark/independent audit close. No merge, deploy or checkpoint promotion.
+**Verdict:** WO-007 is implemented with honest capability reporting, a real narrated render, owner-accepted Cadu samples and an ARM64 benchmark PASS. Code audit APPROVED. Awaiting explicit merge/promotion authorization; no deploy.
 
 ## V2 WO-006 — FFmpeg composition, transitions and VHS 9:16 (2026-11-13) — PROMOTED
 

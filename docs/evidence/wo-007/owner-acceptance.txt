@@ -7,5 +7,5 @@
   - `docs/evidence/wo-007/sample-tension.wav` — 7.478 s, true peak −2.9 dBFS, −19.4 LUFS, SHA-256 `800d0b3f3f33e0f17cefd2ae77e3bd00f9c529bcb0ee752ae02db8c81ae06c09`
 - Model SHA-256: `d5a662e3f606d5a49dd29ba9ce90c304ae45dd9543f8b0c773bcb0de282499de`
 - Local ASR cross-check (Vosk small pt): confidence ~0.94 on both samples; transcript recognizes "Alice reconheceu a própria voz… a porta do porão se abriu".
-- Interpretation: the owner accepted the TTS candidate's quality for WO-007. This does **not** authorize merge, deploy, checkpoint promotion or the ARM64 benchmark.
-- Remaining WO-007 gate: ARM64 TTS benchmark is still BLOCKED without explicit VPS authorization. The per-segment regeneration remains CLI-documented; the fallback manual voice path remains available.
+- Interpretation: the owner accepted the TTS candidate's quality for WO-007. This does **not** authorize merge, deploy or checkpoint promotion. The ARM64 benchmark was authorized separately on the same date (`arm64-authorization.txt`).
+- Remaining WO-007 gate: merge/promotion requires explicit owner authorization. The per-segment regeneration remains CLI-documented; the fallback manual voice path remains available.

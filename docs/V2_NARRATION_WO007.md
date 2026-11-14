@@ -1,6 +1,6 @@
 # DIF-V2-WO-007 — Narração pt-BR, voz importada e TTS local
 
-**Status:** implementação, testes, CI, auditoria de código e aceitação auditiva do owner **PASS**; falta apenas o benchmark ARM64 (BLOCKED por autorização de VPS). **Não merged**, **não deployed**.
+**Status:** implementação, testes, CI, auditoria de código, aceitação auditiva do owner e benchmark ARM64 **PASS**. Aguardando apenas autorização explícita de merge/promoção. **Não merged**, **não deployed**.
 **Base:** `main` @ `c0f3cfd` (checkpoint WO-006).
 **Branch:** `feat/dif-v2-wo-007`.
 **Escopo:** WO-007 (#24) + addendum DIF-V2-ENH-12 (direção de voz).
@@ -24,14 +24,14 @@
 
 Piper **não** altera emoção real. O relatório declara `emotion: false`; emoção permanece metadado de direção/legenda e o motor aplica somente velocidade, volume e pausas. A voz importada é o fallback honesto. Nenhum áudio de terceiro é clonado, nenhuma API paga é chamada e nenhum modelo sem licença é usado.
 
-Modelo de audição: `pt_BR-cadu-medium.onnx` (Piper 1.8+, dataset CC0), SHA-256 `d5a662e3f606d5a49dd29ba9ce90c304ae45dd9543f8b0c773bcb0de282499de`. Amostras versionadas: `docs/evidence/wo-007/sample-neutral.wav` (`8580d7907386ee1233406ec18701db9b7fce9a472404808c2ea4f43a71b134f3`, 8.842 s) e `sample-tension.wav` (`800d0b3f3f33e0f17cefd2ae77e3bd00f9c529bcb0ee752ae02db8c81ae06c09`, 7.478 s).
+Modelo de audição: `pt_BR-cadu-medium.onnx` (Piper 1.8+, dataset CC0), SHA-256 `d5a662e3f606d5a49dd29ba9ce90c304ae45dd9543f8b0c773bcb0de282499de`. Amostras versionadas: `docs/evidence/wo-007/sample-neutral.wav` (`55f87e2d296ecf5eabced845b27708e32fbc39b7f88535b75bed8980d6ee1c04`, 8.978 s) e `sample-tension.wav` (`e8871c4d1846d8053f4672b91b759f31747d4a60a42c2b3ace79456af6921439`, 7.350 s).
 
 ## Critérios de aceitação
 
 | Critério                                                                                    | Estado       | Evidência                                                                                                                                                                                                                                    |
 | ------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS CI**  | E2E `e2e/timeline.spec.ts` no CI `43547252585`: upload WAV 118 s, preview, aprovação, restauração, render READY com AAC 48 kHz; áudio preenche os 2 s restantes; duração total no E2E; monotonicidade coberta por teste unitário e relatório |
-| TTS local gera narração inteligível pt-BR em episódio sintético, com custo medido           | **PARCIAL**  | 232 palavras → 94.961 ms, true peak −2,9 dBFS, −19,4 LUFS, 8,7 MB, sem clipping; benchmark host x64 registrado; benchmark ARM64 **BLOCKED** sem execução autorizada na VPS                                                                   |
+| TTS local gera narração inteligível pt-BR em episódio sintético, com custo medido           | **PASS**     | 232 palavras → 94.552 s, true peak −2,8 dBFS, −19,5 LUFS, 8,7 MB; ARM64: 81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS, ASR 0,909; owner aceitou as amostras Cadu                                                                           |
 | Qualidade aceita pelo owner                                                                 | **PASS**     | Owner: “agora esta muito bom vamos continuar” em 2026-11-14; amostras Cadu `sample-neutral.wav`/`sample-tension.wav` e `docs/evidence/wo-007/owner-acceptance.txt`                                                                           |
 | Acentos/pontuação preservados e pausas ajustáveis                                           | **PASS**     | fixtures com `Às`, `três`, `dezessete`, `Alice=Álissi`, `dez=10`; relatório por segmento                                                                                                                                                     |
 | Extensão/silêncio não destrói timing                                                        | **PASS**     | `narrationDurationPolicy`: piso de 50% de cobertura, pad de áudio curto, falha acima de 250 ms de overflow; teste unitário e mux real                                                                                                        |
@@ -58,7 +58,7 @@ Modelo de audição: `pt_BR-cadu-medium.onnx` (Piper 1.8+, dataset CC0), SHA-256
 
 ## Riscos e residuais
 
-- **Arm64 benchmark BLOCKED:** não houve execução autorizada na VPS Oracle ARM64; o host x64 não substitui a prova ARM64.
+- **Arm64 benchmark PASS:** Oracle Neoverse-N1, 2 vCPU, 81 s de áudio em 8,86 s (RTF 0,109), 282 MB RSS, 191% CPU; ASR 0,909; temporários removidos.
 - **Aceitação auditiva PASS:** owner aceitou as amostras Cadu em 2026-11-14; registro em `docs/evidence/wo-007/owner-acceptance.txt`.
 - **Qualidade emocional:** Piper é plano; não rotular como emocional. A emoção é direção e o fallback é voz importada.
 - **R2 lifecycle/GC:** takes órfãos e versões antigas ainda dependem de operação manual; não há varredura automática nesta WO.
@@ -83,4 +83,4 @@ Para regenerar um segmento, mantenha o diretório e defina `TTS_SEGMENT_ID=<uuid
 
 ## Gate
 
-Auditoria independente de código **APPROVED**; CI final verde; Checkpoint Delta PROPOSED. Falta o benchmark ARM64. **Sem merge, deploy ou promoção.** Próxima WO permanece bloqueada.
+Auditoria independente de código **APPROVED**; CI final verde; aceitação auditiva e benchmark ARM64 PASS; Checkpoint Delta PROPOSED. **Aguardando autorização explícita de merge/promoção.** Próxima WO permanece bloqueada.
