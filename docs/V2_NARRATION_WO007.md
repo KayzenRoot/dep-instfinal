@@ -24,14 +24,14 @@
 
 Piper **não** altera emoção real. O relatório declara `emotion: false`; emoção permanece metadado de direção/legenda e o motor aplica somente velocidade, volume e pausas. A voz importada é o fallback honesto. Nenhum áudio de terceiro é clonado, nenhuma API paga é chamada e nenhum modelo sem licença é usado.
 
-Modelo de audição: `pt_BR-edresson-low.onnx` (Piper, CC BY 4.0), SHA-256 `de4cecee38b30bb1a6378a337af605d59f0c377df702c6a6752870db8991cd84`. Amostras versionadas: `docs/evidence/wo-007/sample-neutral.wav` (`ed79357c9e583214fd4ff8274ca4fa67fdd402ca94f2ede1f11ced8a0b3c982a`, 12.602 s) e `sample-tension.wav` (`cf9e141d0f595cb05ab946997de1839efc588c10ca38dd2d52338bf282610c3d`, 11.044 s). `pt_BR-faber-medium` falha neste runtime Windows e não é usado.
+Modelo de audição: `pt_BR-cadu-medium.onnx` (Piper 1.8+, dataset CC0), SHA-256 `d5a662e3f606d5a49dd29ba9ce90c304ae45dd9543f8b0c773bcb0de282499de`. Amostras versionadas: `docs/evidence/wo-007/sample-neutral.wav` (`8580d7907386ee1233406ec18701db9b7fce9a472404808c2ea4f43a71b134f3`, 8.842 s) e `sample-tension.wav` (`800d0b3f3f33e0f17cefd2ae77e3bd00f9c529bcb0ee752ae02db8c81ae06c09`, 7.478 s).
 
 ## Critérios de aceitação
 
 | Critério                                                                                    | Estado       | Evidência                                                                                                                                                                                                                                    |
 | ------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS CI**  | E2E `e2e/timeline.spec.ts` no CI `43531019608`: upload WAV 118 s, preview, aprovação, restauração, render READY com AAC 48 kHz; áudio preenche os 2 s restantes; duração total no E2E; monotonicidade coberta por teste unitário e relatório |
-| TTS local gera narração inteligível pt-BR em episódio sintético, com custo medido           | **PARCIAL**  | 232 palavras → 111.882 ms, true peak −1,8 dBFS, −18,1 LUFS, 10,2 MB, sem clipping; benchmark host x64 registrado; benchmark ARM64 **BLOCKED** sem execução autorizada na VPS                                                                 |
+| TTS local gera narração inteligível pt-BR em episódio sintético, com custo medido           | **PARCIAL**  | 232 palavras → 94.961 ms, true peak −2,9 dBFS, −19,4 LUFS, 8,7 MB, sem clipping; benchmark host x64 registrado; benchmark ARM64 **BLOCKED** sem execução autorizada na VPS                                                                   |
 | Qualidade aceita pelo owner                                                                 | **PENDING**  | Amostras `sample-neutral.wav` e `sample-tension.wav`; aceitação auditiva humana ainda não registrada                                                                                                                                         |
 | Acentos/pontuação preservados e pausas ajustáveis                                           | **PASS**     | fixtures com `Às`, `três`, `dezessete`, `Alice=Álissi`, `dez=10`; relatório por segmento                                                                                                                                                     |
 | Extensão/silêncio não destrói timing                                                        | **PASS**     | `narrationDurationPolicy`: piso de 50% de cobertura, pad de áudio curto, falha acima de 250 ms de overflow; teste unitário e mux real                                                                                                        |
@@ -70,11 +70,10 @@ Modelo de audição: `pt_BR-edresson-low.onnx` (Piper, CC BY 4.0), SHA-256 `de4c
 ## Comandos de operação
 
 ```powershell
-$env:PIPER_BIN='C:/caminho/piper.exe'
-$env:PIPER_MODEL='C:/caminho/pt_BR-edresson-low.onnx'
-$env:PIPER_ESPEAK_DATA='C:/caminho/espeak-ng-data'
-$env:PIPER_VOICE='pt_BR-edresson-low'
-$env:PIPER_MODEL_LICENSE='CC BY 4.0'
+$env:PIPER_PYTHON='C:/caminho/venv/Scripts/python.exe'  # Piper 1.8+
+$env:PIPER_MODEL='C:/caminho/pt_BR-cadu-medium.onnx'
+$env:PIPER_VOICE='pt_BR-cadu-medium'
+$env:PIPER_MODEL_LICENSE='CC0'
 $env:TTS_PLAN_FILE='C:/caminho/plan.json'
 $env:TTS_OUTPUT_DIR='C:/caminho/saida'
 npm run tts:local

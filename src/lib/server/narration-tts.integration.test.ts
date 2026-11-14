@@ -4,7 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
-const enabled = Boolean(process.env.PIPER_BIN && process.env.PIPER_MODEL);
+const enabled = Boolean(
+	(process.env.PIPER_BIN || process.env.PIPER_PYTHON) && process.env.PIPER_MODEL,
+);
 let workspace: string | null = null;
 
 afterAll(async () => {

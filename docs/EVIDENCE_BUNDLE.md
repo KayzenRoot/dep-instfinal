@@ -13,8 +13,8 @@
 | Versioning         | PASS       | plan versions with snapshots; restore as new DRAFT; takes immutable and never overwritten                                                                             |
 | Database/RLS       | PASS       | PgTAP **108/108**; owner-only SELECT, service-only writes; approval requires READY take; render narration FK/immutability                                             |
 | Render mux         | PASS       | real 4 s FFmpeg mux test: video copy + AAC 48 kHz stereo, pad to exact duration after a 50% minimum coverage check; overflow >250 ms fails                            |
-| TTS 120 s          | PASS local | Piper `pt_BR-edresson-low` (CC BY 4.0): 232 words → 111.882 s, −1.8 dBFS true peak, −18.1 LUFS, 10.2 MB, no clipping                                                  |
-| TTS styles         | PENDING    | `sample-neutral.wav` 12.602 s / −2.4 dBFS / −18.4 LUFS; `sample-tension.wav` 11.044 s / −2.5 dBFS / −18.1 LUFS; owner must listen                                     |
+| TTS 120 s          | PASS local | Piper `pt_BR-cadu-medium` (CC0): 232 words → 94.961 s, −2.9 dBFS true peak, −19.4 LUFS, 8.7 MB, no clipping                                                           |
+| TTS styles         | PENDING    | `sample-neutral.wav` 8.842 s / −3.0 dBFS / −20.4 LUFS; `sample-tension.wav` 7.478 s / −2.9 dBFS / −19.4 LUFS; owner must listen                                       |
 | Unit/integration   | PASS       | 116 passed + 2 skipped; narration upload negatives 4, voice-direction 5, render composition 8, real mux 1, opt-in Piper 1; lint/typecheck/build PASS                  |
 | Policy             | PASS       | **25 invariants / 22 tables**                                                                                                                                         |
 | E2E                | PASS CI    | CI `43531019608` @ `ca924ab`: 12/12 in 3.3m; upload → preview → approve → restore → approve → real worker READY in 31.9s; owner-boundary 401; responsive 360/768/1440 |

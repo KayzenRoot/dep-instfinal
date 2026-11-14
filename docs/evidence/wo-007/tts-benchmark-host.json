@@ -4,12 +4,13 @@
 	"platform": "Microsoft Windows 10.0.26200",
 	"architecture": "X64",
 	"processorCount": 8,
-	"elapsedMs": 23811,
-	"incrementalPeakMemoryBytes": 645992448,
-	"incrementalCpuSeconds": 18,
+	"elapsedMs": 12390,
+	"incrementalPeakMemoryBytes": 531435520,
+	"incrementalCpuSeconds": 7,
 	"arm64Benchmark": "BLOCKED: no authorized ARM64 VPS execution in WO-007",
-	"model": "pt_BR-edresson-low",
-	"modelSha256": "de4cecee38b30bb1a6378a337af605d59f0c377df702c6a6752870db8991cd84",
-	"modelLicense": "CC BY 4.0",
-	"ttsOutputMs": 111882
+	"model": "pt_BR-cadu-medium",
+	"modelSha256": "d5a662e3f606d5a49dd29ba9ce90c304ae45dd9543f8b0c773bcb0de282499de",
+	"modelLicense": "CC0",
+	"ttsOutputMs": 8842,
+	"note": "sample-neutral plan; Piper 1.8 Python package; Cadu medium"
 }

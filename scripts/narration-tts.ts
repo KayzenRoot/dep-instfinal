@@ -44,41 +44,66 @@ function segmentFileName(index: number, id: string): string {
 }
 
 async function synthesize(text: string, output: string, lengthScale: number): Promise<void> {
-	const piper = required('PIPER_BIN');
+	const python = process.env.PIPER_PYTHON?.trim();
+	const piper = python ?? required('PIPER_BIN');
 	const model = required('PIPER_MODEL');
-	const args = ['-m', model, '-f', output, '--length_scale', lengthScale.toFixed(3)];
-	if (process.env.PIPER_ESPEAK_DATA) args.push('--espeak_data', process.env.PIPER_ESPEAK_DATA);
+	const textFile = `${output}.txt`;
+	let args: string[];
+	if (python) {
+		await writeFile(textFile, `${text}\n`, 'utf8');
+		args = [
+			'-m',
+			'piper',
+			'-m',
+			model,
+			'-i',
+			textFile,
+			'-f',
+			output,
+			'--length_scale',
+			lengthScale.toFixed(3),
+			'--sentence-silence',
+			'0.0',
+		];
+	} else {
+		args = ['-m', model, '-f', output, '--length_scale', lengthScale.toFixed(3)];
+		if (process.env.PIPER_ESPEAK_DATA) args.push('--espeak_data', process.env.PIPER_ESPEAK_DATA);
+	}
 	const requestedTimeout = Number(process.env.TTS_TIMEOUT_MS ?? 120_000);
 	const timeoutMs = Number.isFinite(requestedTimeout)
 		? Math.max(5_000, Math.min(600_000, requestedTimeout))
 		: 120_000;
-	await new Promise<void>((resolvePromise, reject) => {
-		const child = spawn(piper, args, {
-			stdio: ['pipe', 'ignore', 'pipe'],
-			windowsHide: true,
-			env: minimalEnv(),
+	try {
+		await new Promise<void>((resolvePromise, reject) => {
+			const child = spawn(piper, args, {
+				stdio: ['pipe', 'ignore', 'pipe'],
+				windowsHide: true,
+				env: minimalEnv(),
+			});
+			let stderr = '';
+			let settled = false;
+			const finish = (cause?: Error) => {
+				if (settled) return;
+				settled = true;
+				clearTimeout(timer);
+				if (cause) reject(cause);
+				else resolvePromise();
+			};
+			const timer = setTimeout(() => {
+				child.kill();
+				finish(new Error('piper_timeout'));
+			}, timeoutMs);
+			child.stderr?.on('data', (chunk) => (stderr += String(chunk)));
+			child.on('error', (cause) => finish(cause));
+			child.on('exit', (code) => {
+				if (code === 0) finish();
+				else finish(new Error(`piper_exit_${code ?? 1}:${stderr.slice(0, 200)}`));
+			});
+			child.stdin?.end(python ? undefined : `${text}\n`);
 		});
-		let stderr = '';
-		let settled = false;
-		const finish = (cause?: Error) => {
-			if (settled) return;
-			settled = true;
-			clearTimeout(timer);
-			if (cause) reject(cause);
-			else resolvePromise();
-		};
-		const timer = setTimeout(() => {
-			child.kill();
-			finish(new Error('piper_timeout'));
-		}, timeoutMs);
-		child.stderr?.on('data', (chunk) => (stderr += String(chunk)));
-		child.on('error', (cause) => finish(cause));
-		child.on('exit', (code) => {
-			if (code === 0) finish();
-			else finish(new Error(`piper_exit_${code ?? 1}:${stderr.slice(0, 200)}`));
-		});
-		child.stdin?.end(`${text}\n`);
-	});
+	} finally {
+		await rm(textFile, { force: true });
+	}
 }
 
 async function runFfmpeg(args: string[], timeout = 120_000): Promise<string> {
@@ -277,6 +302,10 @@ async function main() {
 				raw,
 				'-af',
 				[
+					'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.02',
+					'areverse',
+					'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.02',
+					'areverse',
 					`volume=${gain}dB`,
 					'alimiter=limit=0.7:level=false',
 					`adelay=${segment.pauseBeforeMs}:all=1`,

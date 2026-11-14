@@ -5,7 +5,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$baseline = Get-Process -Name node, piper, ffmpeg -ErrorAction SilentlyContinue
+$baseline = Get-Process -Name node, piper, python, ffmpeg -ErrorAction SilentlyContinue
 $baselineMemory = ($baseline | Measure-Object WorkingSet64 -Sum).Sum
 $baselineCpu = ($baseline | Measure-Object CPU -Sum).Sum
 $started = Get-Date
@@ -22,7 +22,7 @@ try {
   $peakMemory = 0
   $peakCpu = 0
   while (-not $process.HasExited) {
-    $running = Get-Process -Name node, piper, ffmpeg -ErrorAction SilentlyContinue
+    $running = Get-Process -Name node, piper, python, ffmpeg -ErrorAction SilentlyContinue
     if ($running) {
       $memory = ($running | Measure-Object WorkingSet64 -Sum).Sum
       $cpu = ($running | Measure-Object CPU -Sum).Sum
