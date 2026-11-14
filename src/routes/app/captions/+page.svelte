@@ -33,7 +33,12 @@
 		if (!track) return;
 		track = {
 			...track,
-			cues: track.cues.map((cue, position) => (position === index ? { ...cue, ...patch } : cue)),
+			cues: track.cues.map((cue, position) => {
+				if (position !== index) return cue;
+				const next = { ...cue, ...patch };
+				if (patch.startMs !== undefined || patch.endMs !== undefined) next.words = [];
+				return next;
+			}),
 		};
 	}
 
