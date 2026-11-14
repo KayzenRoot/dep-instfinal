@@ -2,10 +2,10 @@
 
 ## DIF-V2-WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROPOSED
 
-- **Status:** **PROPOSED — IMPLEMENTAÇÃO/CI PASS, NÃO APROVADO**; PgTAP 108/108, unit 116+2 skip, policy, FFmpeg mux, TTS real e E2E 12/12 no CI `43531019608` PASS; auditoria independente e aceitação auditiva do owner pendentes; benchmark ARM64 **BLOCKED**. Sem merge, deploy ou promoção.
+- **Status:** **PROPOSED — IMPLEMENTAÇÃO/CI PASS, NÃO APROVADO**; PgTAP 108/108, unit 116+2 skip, policy, FFmpeg mux, TTS real e E2E 12/12 no CI `43547252585` PASS; auditoria independente e aceitação auditiva do owner pendentes; benchmark ARM64 **BLOCKED**. Sem merge, deploy ou promoção.
 - **Base:** `main` `c0f3cfd`; branch `feat/dif-v2-wo-007`.
 - **Delivered:** upload privado WAV/MP3/M4A com SHA/duração/true peak; `voice_direction_plans` versionado por texto/revisão com snapshots restauráveis; `narration_takes` imutáveis e owner-only; aprovação exige take READY; render fixa `narration_take_id`, baixa áudio privado, valida hash/duração e faz mux AAC 48 kHz estéreo com piso de 50% de cobertura, pad e falha de overflow; TTS Piper offline por segmento com relatório de WPM/LUFS/clipping e regeneração seletiva; UI de narração com preview, seleção, aprovação e histórico.
-- **Tests:** PgTAP **108/108**; policy **25/22**; unit **116 + 2 skipped**; typecheck/lint/build PASS; mux FFmpeg real; TTS real opt-in; 232 palavras → **94,961 s**, true peak **−2,9 dBFS**, **−19,4 LUFS**, 8,7 MB, sem clipping; CI `43531019608` **SUCCESS** com E2E **12/12** (timeline narrada READY em 31,9s); owner-boundary 401 e layout responsivo.
+- **Tests:** PgTAP **108/108**; policy **25/22**; unit **116 + 2 skipped**; typecheck/lint/build PASS; mux FFmpeg real; TTS real opt-in; 232 palavras → **94,961 s**, true peak **−2,9 dBFS**, **−19,4 LUFS**, 8,7 MB, sem clipping; CI `43547252585` **SUCCESS** com E2E **12/12** (timeline narrada READY em 34,7s); owner-boundary 401 e layout responsivo.
 - **Limits:** Piper não altera emoção real (`emotion:false`); emoção é direção e voz importada é o fallback. Benchmark ARM64 e aceitação auditiva humana pendentes. R2 lifecycle/GC, SRT (WO-008) e credencial de menor privilégio (WO-013/014) permanecem residuais.
 - **Gate:** CI hospedado, Evidence Bundle, Checkpoint Delta PROPOSED, auditoria independente e aceitação auditiva do owner. WO-008+ bloqueado.
 

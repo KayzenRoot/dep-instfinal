@@ -30,7 +30,7 @@ Modelo de audição: `pt_BR-cadu-medium.onnx` (Piper 1.8+, dataset CC0), SHA-256
 
 | Critério                                                                                    | Estado       | Evidência                                                                                                                                                                                                                                    |
 | ------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS CI**  | E2E `e2e/timeline.spec.ts` no CI `43531019608`: upload WAV 118 s, preview, aprovação, restauração, render READY com AAC 48 kHz; áudio preenche os 2 s restantes; duração total no E2E; monotonicidade coberta por teste unitário e relatório |
+| Owner carrega voz importada, reproduz preview e renderiza num plano com timestamps corretos | **PASS CI**  | E2E `e2e/timeline.spec.ts` no CI `43547252585`: upload WAV 118 s, preview, aprovação, restauração, render READY com AAC 48 kHz; áudio preenche os 2 s restantes; duração total no E2E; monotonicidade coberta por teste unitário e relatório |
 | TTS local gera narração inteligível pt-BR em episódio sintético, com custo medido           | **PARCIAL**  | 232 palavras → 94.961 ms, true peak −2,9 dBFS, −19,4 LUFS, 8,7 MB, sem clipping; benchmark host x64 registrado; benchmark ARM64 **BLOCKED** sem execução autorizada na VPS                                                                   |
 | Qualidade aceita pelo owner                                                                 | **PENDING**  | Amostras `sample-neutral.wav` e `sample-tension.wav`; aceitação auditiva humana ainda não registrada                                                                                                                                         |
 | Acentos/pontuação preservados e pausas ajustáveis                                           | **PASS**     | fixtures com `Às`, `três`, `dezessete`, `Alice=Álissi`, `dez=10`; relatório por segmento                                                                                                                                                     |
@@ -49,12 +49,12 @@ Modelo de audição: `pt_BR-cadu-medium.onnx` (Piper 1.8+, dataset CC0), SHA-256
 - `npm run lint`: PASS.
 - `npm run typecheck`: PASS.
 - Vitest unitário/integração: **116 passed + 2 skipped**; `voice-direction` + `render-composition` + mux FFmpeg real; TTS Piper opt-in real.
-- CI hospedada `43531019608` em `ca924ab`: **SUCCESS** (7m12s); E2E **12/12** em 3,3m; timeline com narração e render READY em **31,9s**; worker real `render_completed`.
+- CI hospedada `43547252585` em `4117010`: **SUCCESS** (8m11s); E2E **12/12** em 3,5m; timeline com narração e render READY em **34,7s**; worker real `render_completed`.
 - E2E: upload, preview, aprovação, restauração de versão, recompravação, render real com AAC e READY.
 - E2E owner-boundary: rotas de narração anônimas retornam 401; layout 360/768/1440 sem overflow.
 - TTS 120 s: `docs/evidence/wo-007/tts-full-120-report.json`.
 - Amostras de audição: `docs/evidence/wo-007/sample-neutral.wav`, `sample-tension.wav` e relatórios `tts-neutral-report.json`/`tts-tension-report.json`.
-- Log sanitizado do CI: `docs/evidence/wo-007/ci-ca924ab.txt`.
+- Log sanitizado do CI: `docs/evidence/wo-007/ci-4117010.txt`.
 
 ## Riscos e residuais
 

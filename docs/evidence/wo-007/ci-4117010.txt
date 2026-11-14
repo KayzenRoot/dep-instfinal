@@ -1,0 +1,11 @@
+# WO-007 hosted CI evidence — final run 43547252585 (Cadu TTS)
+
+- Head: `4117010c185e71866c43355ed30f44f1506cb8fc`
+- Branch: `feat/dif-v2-wo-007`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-14T02:44Z (8m11s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43547252585
+- Checks: quality PASS, SonarCloud PASS, Socket Security PASS, Vercel PASS.
+- Tests: 116 passed + 2 skipped; PgTAP 108/108; E2E 12/12 in 3.5m; narrated timeline READY in 34.7s.
+- TTS candidate changed to `pt_BR-cadu-medium` (CC0) on Piper 1.8 after the owner rejected the Edresson samples as laggy/unintelligible. Cadu samples pass local ASR at ~0.94 confidence.
+- This is the final code/test evidence after the TTS quality correction.
