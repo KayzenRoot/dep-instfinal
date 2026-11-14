@@ -1,0 +1,12 @@
+# WO-008 hosted CI evidence — run 43617826034
+
+- Head: `7f479b42142b59177dcb700f8ce04f6bd43bfb3d`
+- Branch: `feat/dif-v2-wo-008`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-14T16:57Z (7m2s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43617826034
+- Checks: quality PASS, SonarCloud PASS, Socket PASS, Vercel Preview PASS.
+- Baseline: lint, typecheck, build and policy audit **26 invariants / 23 tables** PASS.
+- Tests: **132 passed + 3 skipped**; PgTAP **122/122**; E2E **12/12** in 3.3 min.
+- E2E timeline: captions approved, narrated/captioned render READY; manifest asserted with captions track, 13 cues, style, safe zone, narration take and SHA-256.
+- This run covers audit corrections H1–H5 (integer timestamps, approved-take binding, ghost-tail/fallback, safe-width/ASS escaping, E2E manifest/frame/CTA evidence).

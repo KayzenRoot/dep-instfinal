@@ -41,6 +41,10 @@ npm run test:e2e:local -- e2e/timeline.spec.ts
   [timeline-e2e] captions approved; returning to timeline
   [render-worker] render_completed
   1 passed (12.1m)
+
+Hosted CI run 43617826034 (head 7f479b4)
+  quality PASS 7m2s; unit 132 passed + 3 skipped; PgTAP 122/122;
+  E2E 12/12 in 3.3m; Sonar/Socket/Vercel PASS.
 ```
 
 The E2E asserted the READY manifest contains captions with a real track id, 13 cues, style `clean`, safe zone `tiktok`, the current narration take id and a SHA-256; SRT and ASS endpoints returned valid payloads. The local render manifest recorded:

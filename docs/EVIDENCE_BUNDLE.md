@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-008` · issue #25 · epic #17
 - **Base:** `main` `326c576`; branch `feat/dif-v2-wo-008`
-- **Status:** implementation, audit corrections H1–H5 and local revalidation **PASS**; new hosted CI and independent re-audit pending. No merge/deploy.
+- **Status:** implementation, audit corrections H1–H5, local revalidation and hosted CI **PASS** at `7f479b4`; independent re-audit pending. No merge/deploy.
 
 | Check     | Result     | Evidence                                                                                    |
 | --------- | ---------- | ------------------------------------------------------------------------------------------- |
@@ -13,6 +13,7 @@
 | Database  | PASS       | `caption_tracks` plan+take bound, approval requires approved READY voice; PgTAP **122/122** |
 | UI/API    | PASS       | `/app/captions`, SRT/ASS owner-only exports, current-take filtering, manual fallback        |
 | E2E       | PASS local | timeline + narration + captions + narrated captioned render; manifest 13 cues (12,1m)       |
+| CI        | PASS       | run `43617826034` at `7f479b4`: 132+3, PgTAP 122/122, E2E 12/12, Sonar/Socket/Vercel        |
 | CTA       | PASS       | pure CTA append test: no overlap, inside window, width-safe                                 |
 | Limits    | —          | Vosk model local; no VPS deploy; human visual/audio QA pending                              |
 

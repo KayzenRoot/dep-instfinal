@@ -48,7 +48,7 @@ O ASR Vosk é opcional e offline. O alinhamento sempre preserva o texto do rotei
 - `npm run build`: PASS.
 - `npm run audit:policy`: **26 invariantes / 23 tabelas PASS**.
 - Integração real ASR: `caption-asr.integration.test.ts` PASS com Piper Cadu + Vosk.
-- CI hospedada anterior `43608151136` em `64d8999`: **SUCCESS** (8m54s); Sonar PASS; E2E 12/12 em 4,3m. Evidência em `docs/evidence/wo-008/ci-64d8999.txt`. O CI do commit de correções será registrado em novo arquivo de evidência.
+- CI hospedada `43617826034` em `7f479b4`: **SUCCESS** (7m2s); unit 132+3, PgTAP 122/122, E2E 12/12 (3,3m), Sonar/Socket/Vercel PASS. Evidência em `docs/evidence/wo-008/ci-7f479b4.txt`. O run anterior `43608151136` em `64d8999` também passou antes das correções.
 
 - Unit `captions.test.ts` (15 testes): normalização, alinhamento/hallucination, timestamps fracionários, fantasma, cue curta, linhas largas, CTA, SRT/ASS, safe zone e escape ASS.
 - Integração real opt-in `caption-asr.integration.test.ts`: Piper Cadu → Vosk → alinhamento.
