@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile, stat, unlink } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { copyFile, mkdtemp, readFile, rm, stat, unlink } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import {
 	buildNarrationMuxCommand,
 	buildRenderCommand,
@@ -166,104 +167,118 @@ export async function renderPlanToFile(input: {
 	timeoutMs?: number;
 	narration?: NarrationRenderInput;
 }): Promise<RenderOutput> {
-	const videoPath = input.narration ? `${input.outputPath}.video.mp4` : input.outputPath;
-	const command = buildRenderCommand(input.plan, input.assets, videoPath, {
-		ffmpegPath: input.ffmpegPath,
-		vhsIntensity: input.vhsIntensity,
-		captionAssPath: input.captionAssPath,
-	});
-	await execFileAsync(input.ffmpegPath ?? 'ffmpeg', ['-nostdin', ...command.args], {
-		timeout: input.timeoutMs ?? 600_000,
-		maxBuffer: 4 * 1024 * 1024,
-		windowsHide: true,
-		env: minimalProcessEnv(dirname(input.outputPath)),
-	});
-	let mux = null as ReturnType<typeof buildNarrationMuxCommand> | null;
-	if (input.narration) {
-		try {
-			mux = buildNarrationMuxCommand({
-				videoPath,
-				narrationPath: input.narration.path,
-				outputPath: input.outputPath,
-				videoDurationMs: command.expectedDurationMs,
-				narrationDurationMs: input.narration.durationMs,
-				volumeDb: input.narration.volumeDb,
-			});
-			await execFileAsync(input.ffmpegPath ?? 'ffmpeg', ['-nostdin', ...mux.args], {
-				timeout: input.timeoutMs ?? 600_000,
-				maxBuffer: 4 * 1024 * 1024,
-				windowsHide: true,
-				env: minimalProcessEnv(dirname(input.outputPath)),
-			});
-		} finally {
-			await unlink(videoPath).catch(() => undefined);
-		}
+	const absoluteOutput = resolve(input.outputPath);
+	const assets = input.assets.map((asset) => ({ ...asset, path: resolve(asset.path) }));
+	const videoPath = input.narration ? `${absoluteOutput}.video.mp4` : absoluteOutput;
+	let captionDir: string | null = null;
+	let captionAssFile: string | undefined;
+	if (input.captionAssPath) {
+		captionDir = await mkdtemp(join(tmpdir(), 'dif-caption-ass-'));
+		captionAssFile = 'captions.ass';
+		await copyFile(input.captionAssPath, join(captionDir, captionAssFile));
 	}
-	const probed = await probeMedia(input.outputPath, input.ffprobePath);
-	if (probed.codec !== 'h264')
-		throw new RenderCompositionError('RENDER_OUTPUT_CODEC', 'O render não produziu H.264.');
-	if (!probed.profile || !/^(High|Main|Baseline|Constrained Baseline)/.test(probed.profile))
-		throw new RenderCompositionError('RENDER_OUTPUT_PROFILE', 'Perfil H.264 do render inválido.');
-	if (probed.pixFmt !== 'yuv420p')
-		throw new RenderCompositionError(
-			'RENDER_OUTPUT_PIX_FMT',
-			'Pixel format do render não é yuv420p.',
-		);
-	if (probed.width !== 1080 || probed.height !== 1920)
-		throw new RenderCompositionError('RENDER_OUTPUT_GEOMETRY', 'O render não está em 1080x1920.');
-	if (
-		!Number.isFinite(probed.durationMs) ||
-		Math.abs(probed.durationMs - command.expectedDurationMs) > 1_000
-	)
-		throw new RenderCompositionError(
-			'RENDER_OUTPUT_DURATION',
-			`Duração do render fora de ±1s (${probed.durationMs} vs ${command.expectedDurationMs}).`,
-		);
-	if (probed.fps < 29 || probed.fps > 31)
-		throw new RenderCompositionError('RENDER_OUTPUT_FPS', 'FPS do render não é 30.');
-	let renderedAudio: RenderedAudio | null = null;
-	if (mux && input.narration) {
+	try {
+		const command = buildRenderCommand(input.plan, assets, videoPath, {
+			ffmpegPath: input.ffmpegPath,
+			vhsIntensity: input.vhsIntensity,
+			captionAssFile,
+		});
+		await execFileAsync(input.ffmpegPath ?? 'ffmpeg', ['-nostdin', ...command.args], {
+			timeout: input.timeoutMs ?? 600_000,
+			maxBuffer: 4 * 1024 * 1024,
+			windowsHide: true,
+			cwd: captionDir ?? undefined,
+			env: minimalProcessEnv(dirname(absoluteOutput)),
+		});
+		let mux = null as ReturnType<typeof buildNarrationMuxCommand> | null;
+		if (input.narration) {
+			try {
+				mux = buildNarrationMuxCommand({
+					videoPath,
+					narrationPath: resolve(input.narration.path),
+					outputPath: absoluteOutput,
+					videoDurationMs: command.expectedDurationMs,
+					narrationDurationMs: input.narration.durationMs,
+					volumeDb: input.narration.volumeDb,
+				});
+				await execFileAsync(input.ffmpegPath ?? 'ffmpeg', ['-nostdin', ...mux.args], {
+					timeout: input.timeoutMs ?? 600_000,
+					maxBuffer: 4 * 1024 * 1024,
+					windowsHide: true,
+					env: minimalProcessEnv(dirname(absoluteOutput)),
+				});
+			} finally {
+				await unlink(videoPath).catch(() => undefined);
+			}
+		}
+		const probed = await probeMedia(absoluteOutput, input.ffprobePath);
+		if (probed.codec !== 'h264')
+			throw new RenderCompositionError('RENDER_OUTPUT_CODEC', 'O render não produziu H.264.');
+		if (!probed.profile || !/^(High|Main|Baseline|Constrained Baseline)/.test(probed.profile))
+			throw new RenderCompositionError('RENDER_OUTPUT_PROFILE', 'Perfil H.264 do render inválido.');
+		if (probed.pixFmt !== 'yuv420p')
+			throw new RenderCompositionError(
+				'RENDER_OUTPUT_PIX_FMT',
+				'Pixel format do render não é yuv420p.',
+			);
+		if (probed.width !== 1080 || probed.height !== 1920)
+			throw new RenderCompositionError('RENDER_OUTPUT_GEOMETRY', 'O render não está em 1080x1920.');
 		if (
-			!probed.audio ||
-			probed.audio.codec !== 'aac' ||
-			probed.audio.channels !== 2 ||
-			probed.audio.sampleRate !== 48_000
+			!Number.isFinite(probed.durationMs) ||
+			Math.abs(probed.durationMs - command.expectedDurationMs) > 1_000
 		)
 			throw new RenderCompositionError(
-				'NARRATION_OUTPUT_CODEC',
-				'O render não contém AAC 48 kHz estéreo.',
+				'RENDER_OUTPUT_DURATION',
+				`Duração do render fora de ±1s (${probed.durationMs} vs ${command.expectedDurationMs}).`,
 			);
-		if (Math.abs(probed.audio.durationMs - probed.durationMs) > 1_000)
+		if (probed.fps < 29 || probed.fps > 31)
+			throw new RenderCompositionError('RENDER_OUTPUT_FPS', 'FPS do render não é 30.');
+		let renderedAudio: RenderedAudio | null = null;
+		if (mux && input.narration) {
+			if (
+				!probed.audio ||
+				probed.audio.codec !== 'aac' ||
+				probed.audio.channels !== 2 ||
+				probed.audio.sampleRate !== 48_000
+			)
+				throw new RenderCompositionError(
+					'NARRATION_OUTPUT_CODEC',
+					'O render não contém AAC 48 kHz estéreo.',
+				);
+			if (Math.abs(probed.audio.durationMs - probed.durationMs) > 1_000)
+				throw new RenderCompositionError(
+					'NARRATION_OUTPUT_DURATION',
+					'A duração do áudio não acompanha o vídeo.',
+				);
+			renderedAudio = {
+				codec: probed.audio.codec,
+				channels: probed.audio.channels,
+				sampleRate: probed.audio.sampleRate,
+				durationMs: probed.audio.durationMs,
+				narrationTakeId: input.narration.takeId,
+				narrationDurationMs: input.narration.durationMs,
+				paddedMs: mux.paddedMs,
+				trimmedMs: mux.trimmedMs,
+			};
+		} else if (probed.audio) {
 			throw new RenderCompositionError(
-				'NARRATION_OUTPUT_DURATION',
-				'A duração do áudio não acompanha o vídeo.',
+				'RENDER_OUTPUT_UNEXPECTED_AUDIO',
+				'O render sem narração não pode conter áudio.',
 			);
-		renderedAudio = {
-			codec: probed.audio.codec,
-			channels: probed.audio.channels,
-			sampleRate: probed.audio.sampleRate,
-			durationMs: probed.audio.durationMs,
-			narrationTakeId: input.narration.takeId,
-			narrationDurationMs: input.narration.durationMs,
-			paddedMs: mux.paddedMs,
-			trimmedMs: mux.trimmedMs,
+		}
+		const bytes = await readFile(absoluteOutput);
+		return {
+			path: absoluteOutput,
+			durationMs: probed.durationMs,
+			width: probed.width,
+			height: probed.height,
+			codec: probed.codec,
+			container: probed.container,
+			byteSize: (await stat(absoluteOutput)).size,
+			sha256: createHash('sha256').update(bytes).digest('hex'),
+			audio: renderedAudio,
 		};
-	} else if (probed.audio) {
-		throw new RenderCompositionError(
-			'RENDER_OUTPUT_UNEXPECTED_AUDIO',
-			'O render sem narração não pode conter áudio.',
-		);
+	} finally {
+		if (captionDir) await rm(captionDir, { recursive: true, force: true });
 	}
-	const bytes = await readFile(input.outputPath);
-	return {
-		path: input.outputPath,
-		durationMs: probed.durationMs,
-		width: probed.width,
-		height: probed.height,
-		codec: probed.codec,
-		container: probed.container,
-		byteSize: (await stat(input.outputPath)).size,
-		sha256: createHash('sha256').update(bytes).digest('hex'),
-		audio: renderedAudio,
-	};
 }

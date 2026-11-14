@@ -4,16 +4,17 @@
 
 - **Work Order:** `DIF-V2-WO-008` · issue #25 · epic #17
 - **Base:** `main` `326c576`; branch `feat/dif-v2-wo-008`
-- **Status:** implementation in progress; tests/CI/audit pending. No merge/deploy.
+- **Status:** implementation, audit corrections H1–H5 and local revalidation **PASS**; new hosted CI and independent re-audit pending. No merge/deploy.
 
-| Check     | Result     | Evidence                                                                            |
-| --------- | ---------- | ----------------------------------------------------------------------------------- |
-| Alignment | PASS       | script/ASR DP, hallucination drop, monotonic cues; real Piper→Vosk integration      |
-| SRT/ASS   | PASS       | exporters and safe-zone styles; real FFmpeg burn-in test                            |
-| Database  | PASS       | `caption_tracks` owner-only, service-only writes, approval guard; PgTAP **117/117** |
-| UI/API    | PASS       | `/app/captions`, SRT/ASS owner-only exports, manual fallback; E2E                   |
-| E2E       | PASS local | timeline + narration + captions + narrated captioned render (4,1m)                  |
-| Limits    | —          | Vosk model local; no VPS deploy; human visual/audio QA pending                      |
+| Check     | Result     | Evidence                                                                                    |
+| --------- | ---------- | ------------------------------------------------------------------------------------------- |
+| Alignment | PASS       | script/ASR DP, hallucination drop, monotonic integer cues, ghost-tail limit, fallback       |
+| SRT/ASS   | PASS       | width-aware wrapping, ASS escape, safe-zone styles; real frame margin ≥80 px                |
+| Database  | PASS       | `caption_tracks` plan+take bound, approval requires approved READY voice; PgTAP **122/122** |
+| UI/API    | PASS       | `/app/captions`, SRT/ASS owner-only exports, current-take filtering, manual fallback        |
+| E2E       | PASS local | timeline + narration + captions + narrated captioned render; manifest 13 cues (12,1m)       |
+| CTA       | PASS       | pure CTA append test: no overlap, inside window, width-safe                                 |
+| Limits    | —          | Vosk model local; no VPS deploy; human visual/audio QA pending                              |
 
 ## V2 WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROMOTED
 

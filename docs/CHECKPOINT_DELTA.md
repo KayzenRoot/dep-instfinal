@@ -11,11 +11,11 @@
 
 ## DIF-V2-WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROPOSED
 
-- **Status:** **PROPOSED — EM ANDAMENTO, NÃO APROVADO**; alinhamento forçado, SRT/ASS, DB/RLS, UI e burn-in implementados; PgTAP 117/117, unit 124+3, E2E timeline PASS; CI/auditoria pendentes.
+- **Status:** **PROPOSED — EM ANDAMENTO, NÃO APROVADO**; alinhamento forçado, SRT/ASS, DB/RLS, UI e burn-in implementados; auditoria independente retornou **CORRECTION REQUIRED** (H1–H5) e as correções foram aplicadas; PgTAP **122/122**, unit **132+3**, E2E timeline PASS com 13 cues; CI do commit de correções e reauditoria pendentes.
 - **Base:** `main` `326c576`; branch `feat/dif-v2-wo-008`.
-- **Delivered:** `caption_tracks` owner-only/versionado por plano; alinhamento deterministico roteiro↔ASR com descarte de hallucination e timestamps monotonicos; SRT/ASS com safe zones; editor `/app/captions`; import ASR/manual; worker gera ASS e queima no filter graph; CLI Vosk opcional.
+- **Delivered:** `caption_tracks` owner-only/versionado por plano e take de narração; alinhamento deterministico roteiro↔ASR com descarte de hallucination e timestamps monotonicos; SRT/ASS com safe zones, largura segura e escape; editor `/app/captions`; import ASR/manual; worker exige take aprovado e queima ASS; manifesto registra track/take/style/safeZone; CLI Vosk opcional.
 - **Limits:** Vosk/modelo local opcional; sem deploy VPS; revisão visual humana e alignment real multi-voz pendentes.
-- **Gate:** unit/integration/PgTAP/E2E, CI, Evidence Bundle, auditoria independente e autorização de merge.
+- **Gate:** novo CI, Evidence Bundle, Checkpoint Delta PROPOSED, reauditoria independente e autorização de merge.
 
 ## V2 checkpoint promotion — WO-007 (2026-11-14)
 

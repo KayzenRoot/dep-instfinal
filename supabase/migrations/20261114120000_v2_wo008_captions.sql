@@ -52,6 +52,14 @@ language plpgsql
 set search_path = ''
 as $$
 begin
+  if (new.track ->> 'narrationTakeId') is null then
+    if new.narration_take_id is not null then
+      raise exception 'caption_take_mismatch' using errcode = '23514';
+    end if;
+  elsif new.narration_take_id is null
+    or (new.track ->> 'narrationTakeId') <> new.narration_take_id::text then
+    raise exception 'caption_take_mismatch' using errcode = '23514';
+  end if;
   if new.current_status <> 'APPROVED' then return new; end if;
   if jsonb_typeof(new.track -> 'cues') is distinct from 'array'
     or jsonb_array_length(new.track -> 'cues') = 0 then
@@ -60,12 +68,28 @@ begin
   if coalesce(new.track ->> 'planVersion', '') <> new.plan_version::text then
     raise exception 'caption_plan_version_mismatch' using errcode = '23514';
   end if;
+  if new.narration_take_id is null then
+    raise exception 'caption_narration_required' using errcode = '23514';
+  end if;
+  if not exists (
+    select 1
+    from public.narration_takes t
+    join public.voice_direction_plans v
+      on v.owner_id = t.owner_id and v.episode_id = t.episode_id
+    where t.owner_id = new.owner_id
+      and t.id = new.narration_take_id
+      and t.status = 'READY'
+      and v.current_status = 'APPROVED'
+      and v.plan ->> 'takeId' = new.narration_take_id::text
+  ) then
+    raise exception 'caption_voice_not_approved' using errcode = '23514';
+  end if;
   return new;
 end;
 $$;
 
 create trigger validate_caption_track_approval
-  before insert or update of current_status, track, plan_version
+  before insert or update of current_status, track, plan_version, narration_take_id, owner_id, episode_id
   on public.caption_tracks
   for each row execute function public.validate_caption_track_approval();
 
@@ -75,4 +99,4 @@ revoke all on function public.validate_caption_track_approval()
 comment on table public.caption_tracks is
   'Owner-readable, server-written caption cues aligned to a plan version and narration take.';
 comment on function public.validate_caption_track_approval() is
-  'APPROVED caption tracks require non-empty cues for the exact plan version.';
+  'Captions are bound to the exact plan version and narration take; approval requires an approved READY voice.';

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
 	alignScriptToAsr,
+	appendCtaCues,
 	assTime,
 	buildCaptionAss,
 	buildCaptionSrt,
 	buildCaptionTrack,
 	CaptionError,
+	estimateCaptionWidth,
 	normalizeCaptionToken,
 } from './captions.js';
 import { captionTrackSchema } from '#lib/schemas/captions.js';
@@ -96,6 +98,123 @@ describe('caption normalization and alignment', () => {
 			const lines = cue.text.split('\n');
 			expect(lines.length).toBeLessThanOrEqual(2);
 			for (const line of lines) expect(line.length).toBeLessThanOrEqual(42);
+		}
+	});
+
+	it('rounds fractional ASR timestamps before persisting integer milliseconds', () => {
+		const input = trackInput();
+		input.asrWords = input.asrWords.map((word) => ({
+			...word,
+			startMs: word.startMs + 0.4,
+			endMs: word.endMs + 0.6,
+		}));
+		const track = buildCaptionTrack(input);
+		for (const cue of track.cues) {
+			expect(Number.isInteger(cue.startMs)).toBe(true);
+			expect(Number.isInteger(cue.endMs)).toBe(true);
+			for (const word of cue.words) {
+				expect(Number.isInteger(word.startMs)).toBe(true);
+				expect(Number.isInteger(word.endMs)).toBe(true);
+			}
+		}
+		expect(captionTrackSchema.safeParse(track).success).toBe(true);
+	});
+
+	it('does not invent captions past the last matched ASR word', () => {
+		const input = trackInput();
+		input.asrWords = asr('a fita chegou as tres da manha', 500);
+		const track = buildCaptionTrack(input);
+		expect(track.source).toBe('ASR_FALLBACK');
+		const lastEnd = Math.max(...track.cues.map((cue) => cue.endMs));
+		expect(lastEnd).toBeLessThan(6_000);
+	});
+
+	it('extends a short final cue to the 300 ms floor instead of dropping it', () => {
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [{ index: 0, text: 'Fim.' }],
+			asrWords: [{ word: 'fim', startMs: 11_950, endMs: 12_000, confidence: 0.9 }],
+		});
+		expect(track.cues).toHaveLength(1);
+		expect(track.cues[0]!.endMs - track.cues[0]!.startMs).toBe(300);
+		expect(track.cues[0]!.endMs).toBeLessThanOrEqual(12_000);
+	});
+
+	it('wraps wide glyphs inside the safe area', () => {
+		const longWord = 'M'.repeat(60);
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [{ index: 0, text: longWord }],
+			asrWords: [{ word: longWord, startMs: 0, endMs: 2_000, confidence: 0.9 }],
+		});
+		for (const cue of track.cues) {
+			for (const line of cue.text.split('\n')) {
+				expect(line.length).toBeLessThanOrEqual(42);
+				expect(estimateCaptionWidth(line)).toBeLessThanOrEqual(880);
+			}
+		}
+	});
+
+	it('appends CTA cues after the last cue without overlap or overflow', () => {
+		const track = buildCaptionTrack(trackInput());
+		const cues = appendCtaCues({
+			cues: track.cues,
+			text: 'Inscreva-se no canal e ative o sininho para não perder o próximo episódio.',
+			startMs: 8_000,
+			endMs: 11_000,
+			durationMs: 12_000,
+		});
+		expect(cues.length).toBeGreaterThan(track.cues.length);
+		const added = cues.slice(track.cues.length);
+		expect(added[0]!.startMs).toBeGreaterThanOrEqual(track.cues.at(-1)!.endMs);
+		for (const cue of added) {
+			expect(cue.startMs).toBeGreaterThanOrEqual(8_000);
+			expect(cue.endMs).toBeLessThanOrEqual(11_000);
+			expect(cue.endMs - cue.startMs).toBeGreaterThanOrEqual(300);
+			const lines = cue.text.split('\n');
+			expect(lines.length).toBeLessThanOrEqual(2);
+			for (const line of lines) expect(estimateCaptionWidth(line)).toBeLessThanOrEqual(880);
+		}
+		expect(captionTrackSchema.safeParse({ ...track, cues }).success).toBe(true);
+	});
+
+	it('does not append a CTA when its window is already behind the last cue', () => {
+		const track = buildCaptionTrack(trackInput());
+		const cues = appendCtaCues({
+			cues: track.cues,
+			text: 'Inscreva-se.',
+			startMs: 0,
+			endMs: 1_000,
+			durationMs: 12_000,
+		});
+		expect(cues).toHaveLength(track.cues.length);
+	});
+});
+
+describe('caption ASS safety', () => {
+	it('neutralizes ASS control sequences in user text', () => {
+		const track = buildCaptionTrack(trackInput());
+		const ass = buildCaptionAss({
+			...track,
+			style: 'clean',
+			cues: [{ ...track.cues[0]!, text: 'teste \\N {tag}' }],
+		});
+		expect(ass).toContain('\uFF3CN');
+		expect(ass).toContain('\uFF5Btag\uFF5D');
+		expect(ass).not.toContain('\\N {tag}');
+	});
+
+	it('rewraps an over-wide stored cue before writing ASS', () => {
+		const track = buildCaptionTrack(trackInput());
+		const ass = buildCaptionAss({
+			...track,
+			style: 'clean',
+			cues: [{ ...track.cues[0]!, text: 'W'.repeat(42) }],
+		});
+		const dialogue = ass.split('\n').find((line) => line.startsWith('Dialogue:'));
+		expect(dialogue).toBeDefined();
+		for (const line of dialogue!.split(',,0,0,0,,')[1]!.split('\\N')) {
+			expect(estimateCaptionWidth(line)).toBeLessThanOrEqual(880);
 		}
 	});
 });

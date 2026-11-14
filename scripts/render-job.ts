@@ -75,18 +75,23 @@ async function main() {
 	}
 	let caption: { id: string; track: CaptionTrack } | null = null;
 	if (validated.captions.template !== 'none') {
-		const { data: captionRow, error: captionError } = await admin
+		let captionQuery = admin
 			.from('caption_tracks')
 			.select('id,track,current_status')
 			.eq('owner_id', job.owner_id)
 			.eq('episode_id', job.episode_id)
 			.eq('plan_version', job.plan_version)
-			.eq('current_status', 'APPROVED')
-			.maybeSingle();
+			.eq('current_status', 'APPROVED');
+		captionQuery = job.narration_take_id
+			? captionQuery.eq('narration_take_id', job.narration_take_id)
+			: captionQuery.is('narration_take_id', null);
+		const { data: captionRow, error: captionError } = await captionQuery.maybeSingle();
 		if (captionError) throw new Error('caption_track_invalid');
 		if (captionRow) {
 			const parsedCaption = captionTrackSchema.safeParse(captionRow.track);
 			if (!parsedCaption.success) throw new Error('caption_track_invalid');
+			if (parsedCaption.data.narrationTakeId !== job.narration_take_id)
+				throw new Error('caption_take_mismatch');
 			caption = { id: captionRow.id, track: parsedCaption.data };
 		}
 	}
@@ -260,6 +265,7 @@ async function main() {
 						cues: caption.track.cues.length,
 						style: caption.track.style,
 						safeZone: caption.track.safeZone,
+						narrationTakeId: caption.track.narrationTakeId,
 						sha256: createHash('sha256').update(JSON.stringify(caption.track)).digest('hex'),
 					}
 				: null,

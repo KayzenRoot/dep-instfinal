@@ -112,12 +112,24 @@
 		</div>
 		<div><span>Duração</span><strong>{data.context.durationMs} ms</strong></div>
 		<div>
-			<span>Voz</span><strong>{data.context.narrationTakeId ? 'aprovada' : 'ausente'}</strong>
+			<span>Voz</span><strong
+				>{data.context.narrationApproved
+					? 'aprovada'
+					: data.context.narrationTakeId
+						? 'não aprovada'
+						: 'ausente'}</strong
+			>
 		</div>
 		<div>
 			<span>Legenda</span><strong>{data.trackStatus ?? 'NÃO SALVA'} · v{data.trackVersion}</strong>
 		</div>
 	</section>
+
+	{#if !data.context.narrationApproved}
+		<p class="notice error" role="status">
+			Aprove a narração na página de narração antes de gerar ou aprovar legendas.
+		</p>
+	{/if}
 
 	<div class="actions">
 		<a href={resolve('/app/timeline')}>Timeline</a>
@@ -166,7 +178,12 @@
 		<input type="hidden" name="track" value={JSON.stringify(track)} />
 		<label>Nota da versão <input name="changeNote" maxlength="500" /></label>
 		<button type="submit">Salvar legendas</button>
-		<button class="primary" type="submit" formaction="?/approve" disabled={track.cues.length === 0}>
+		<button
+			class="primary"
+			type="submit"
+			formaction="?/approve"
+			disabled={track.cues.length === 0 || !data.context.narrationApproved}
+		>
 			Aprovar legendas
 		</button>
 	</form>
@@ -226,7 +243,9 @@
 			></textarea>
 			<input type="hidden" name="style" value={track.style} />
 			<input type="hidden" name="safeZone" value={track.safeZone} />
-			<button type="submit" disabled={!asrJson.trim()}>Alinhar a partir do ASR</button>
+			<button type="submit" disabled={!asrJson.trim() || !data.context.narrationApproved}>
+				Alinhar a partir do ASR
+			</button>
 		</form>
 		<p class="hint">
 			CLI real: <code>npm run captions:align</code> com <code>CAPTION_EPISODE_ID</code>,

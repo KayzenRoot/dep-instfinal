@@ -34,6 +34,24 @@ interface Token {
 const MAX_LINE_CHARS = 42;
 const MAX_LINES = 2;
 const MAX_CUE_MS = 7_000;
+const CAPTION_FONT_SIZE = 58;
+const CAPTION_SAFE_WIDTH = 880;
+
+function characterWidth(character: string): number {
+	if (/\s/u.test(character)) return 0.32;
+	if (/[ilI.,'!|:;]/u.test(character)) return 0.28;
+	if (/[fjrt()\-[\]]/u.test(character)) return 0.36;
+	if (/[MW@%&]/u.test(character)) return 0.92;
+	if (/[A-ZÀ-Ý]/u.test(character)) return 0.68;
+	if (/\d/u.test(character)) return 0.6;
+	return 0.55;
+}
+
+export function estimateCaptionWidth(text: string, fontSize = CAPTION_FONT_SIZE): number {
+	let width = 0;
+	for (const character of text) width += characterWidth(character);
+	return width * fontSize;
+}
 
 export function normalizeCaptionToken(value: string): string {
 	return value
@@ -135,14 +153,17 @@ function interpolatedWords(
 ): { token: Token; word: CaptionWord }[] {
 	const byKnown = new Map(matches.map((match) => [match.knownIndex, match]));
 	const result: { token: Token; word: CaptionWord }[] = [];
+	const lastMatchedEnd = matches.length
+		? Math.round(asr[matches[matches.length - 1]!.asrIndex]!.endMs)
+		: 0;
 	let cursor = 0;
 	for (let index = 0; index < tokens.length; index += 1) {
 		const token = tokens[index]!;
 		const match = byKnown.get(index);
 		if (match) {
 			const source = asr[match.asrIndex]!;
-			const startMs = Math.max(cursor, source.startMs);
-			const endMs = Math.max(startMs + 60, source.endMs);
+			const startMs = Math.max(cursor, Math.round(source.startMs));
+			const endMs = Math.max(startMs + 60, Math.round(source.endMs));
 			result.push({
 				token,
 				word: { ...source, text: token.raw, startMs, endMs },
@@ -155,7 +176,9 @@ function interpolatedWords(
 			nextMatch = byKnown.get(lookahead);
 			if (nextMatch) break;
 		}
-		const nextStart = nextMatch ? asr[nextMatch.asrIndex]!.startMs : durationMs;
+		const nextStart = nextMatch
+			? Math.round(asr[nextMatch.asrIndex]!.startMs)
+			: Math.min(durationMs, Math.max(cursor + 120, lastMatchedEnd + 1_500));
 		const available = Math.max(100, nextStart - cursor);
 		const run = [];
 		for (
@@ -169,7 +192,7 @@ function interpolatedWords(
 		const slot = available / run.length;
 		for (const candidate of run) {
 			const length = Math.max(0.4, candidate.normalized.length / totalChars);
-			const wordMs = Math.max(120, Math.min(slot, available * length));
+			const wordMs = Math.max(120, Math.min(slot, Math.round(available * length)));
 			const startMs = Math.min(cursor, durationMs - 120);
 			const endMs = Math.min(durationMs, Math.max(startMs + 120, startMs + wordMs));
 			result.push({
@@ -188,21 +211,47 @@ function interpolatedWords(
 	return result;
 }
 
+function splitWordToWidth(word: string, maxWidth: number): string[] {
+	const pieces: string[] = [];
+	let current = '';
+	for (const character of word) {
+		const next = `${current}${character}`;
+		if (current && estimateCaptionWidth(next) > maxWidth) {
+			pieces.push(current);
+			current = character;
+		} else {
+			current = next;
+		}
+	}
+	if (current) pieces.push(current);
+	return pieces.length ? pieces : [word];
+}
+
 function wrapLines(words: CaptionWord[]): string[][] {
 	const lines: string[][] = [];
 	let current: string[] = [];
 	let length = 0;
+	let width = 0;
 	for (const word of words) {
-		const pieces = word.text.match(new RegExp(`.{1,${MAX_LINE_CHARS}}`, 'gu')) ?? [word.text];
+		const pieces = splitWordToWidth(word.text, CAPTION_SAFE_WIDTH);
 		for (const piece of pieces) {
+			const pieceWidth = estimateCaptionWidth(piece);
 			const addition = current.length ? 1 + piece.length : piece.length;
-			if (current.length && length + addition > MAX_LINE_CHARS) {
+			const widthAddition = current.length
+				? width + estimateCaptionWidth(' ') + pieceWidth
+				: pieceWidth;
+			if (
+				current.length &&
+				(length + addition > MAX_LINE_CHARS || widthAddition > CAPTION_SAFE_WIDTH)
+			) {
 				lines.push(current);
 				current = [piece];
 				length = piece.length;
+				width = pieceWidth;
 			} else {
 				current.push(piece);
 				length += addition;
+				width = widthAddition;
 			}
 		}
 	}
@@ -290,6 +339,10 @@ export function alignScriptToAsr(input: {
 	const matchedScore = matches.reduce((total, match) => total + match.score, 0);
 	const alignmentScore =
 		Math.min(1, matches.length / tokens.length) * (matchedScore / (matches.length || 1));
+	const coverage = matches.length / tokens.length;
+	const lastMatchedEnd = matches.length
+		? Math.round(asr[matches[matches.length - 1]!.asrIndex]!.endMs)
+		: 0;
 	const words = interpolatedWords(tokens, asr, matches, input.durationMs);
 	const bySegment = new Map<number, CaptionWord[]>();
 	for (const entry of words) {
@@ -311,6 +364,9 @@ export function alignScriptToAsr(input: {
 			if (previous && cue.startMs < previous.endMs) cue.startMs = previous.endMs;
 			if (cue.endMs - cue.startMs > MAX_CUE_MS) cue.endMs = cue.startMs + MAX_CUE_MS;
 			if (cue.endMs > input.durationMs) cue.endMs = input.durationMs;
+			if (cue.endMs - cue.startMs < 300) {
+				cue.startMs = Math.max(0, cue.endMs - 300);
+			}
 			if (cue.endMs - cue.startMs >= 300 && cue.text.trim()) cues.push(cue);
 		}
 	}
@@ -321,7 +377,10 @@ export function alignScriptToAsr(input: {
 	return {
 		cues,
 		alignmentScore: Number.isFinite(alignmentScore) ? alignmentScore : 0,
-		source: matches.length / tokens.length >= 0.5 ? 'FORCED_ALIGNMENT' : 'ASR_FALLBACK',
+		source:
+			coverage >= 0.8 && (lastMatchedEnd === 0 || lastMatchedEnd >= input.durationMs * 0.4)
+				? 'FORCED_ALIGNMENT'
+				: 'ASR_FALLBACK',
 		scriptSha256,
 	};
 }
@@ -381,7 +440,7 @@ export function assTime(milliseconds: number): string {
 }
 
 function escapeAssLine(line: string): string {
-	return line.replace(/\\/g, '\\\\').replace(/{/g, '\\{').replace(/}/g, '\\}');
+	return line.replace(/\\/gu, '\uFF3C').replace(/\{/gu, '\uFF5B').replace(/\}/gu, '\uFF5D');
 }
 
 function assStyle(style: CaptionStyle, safeZone: CaptionTrack['safeZone']): string {
@@ -393,13 +452,61 @@ function assStyle(style: CaptionStyle, safeZone: CaptionTrack['safeZone']): stri
 	return `Style: Default,DejaVu Sans,58,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,1,2,90,90,${marginV},1`;
 }
 
+function wrapCueLine(line: string): string[] {
+	const words = line
+		.trim()
+		.split(/\s+/u)
+		.filter(Boolean)
+		.map((text) => ({ text, startMs: 0, endMs: 0, confidence: null }));
+	return wrapLines(words).map((parts) => parts.join(' '));
+}
+
+export function wrapCtaText(text: string): string[] {
+	const words = text
+		.trim()
+		.split(/\s+/u)
+		.filter(Boolean)
+		.map((value) => ({ text: value, startMs: 0, endMs: 0, confidence: null }));
+	const lines = wrapLines(words).map((parts) => parts.join(' '));
+	const chunks: string[] = [];
+	for (let index = 0; index < lines.length; index += MAX_LINES)
+		chunks.push(lines.slice(index, index + MAX_LINES).join('\n'));
+	return chunks;
+}
+
+export function appendCtaCues(input: {
+	cues: CaptionCue[];
+	text: string;
+	startMs: number;
+	endMs: number;
+	durationMs: number;
+}): CaptionCue[] {
+	const previous = input.cues.at(-1);
+	const startMs = Math.max(previous?.endMs ?? input.startMs, input.startMs);
+	const endMs = Math.min(input.durationMs, input.endMs);
+	if (startMs >= endMs || endMs - startMs < 300) return input.cues;
+	const chunks = wrapCtaText(input.text);
+	if (!chunks.length) return input.cues;
+	const cues = [...input.cues];
+	const slot = Math.max(300, Math.floor((endMs - startMs) / chunks.length));
+	let cursor = startMs;
+	for (const [index, text] of chunks.entries()) {
+		const cueStart = Math.max(cursor, startMs + index * slot);
+		const cueEnd = Math.min(endMs, cueStart + slot);
+		if (cueEnd - cueStart < 300) break;
+		cues.push({ id: crypto.randomUUID(), startMs: cueStart, endMs: cueEnd, text, words: [] });
+		cursor = cueEnd;
+	}
+	return cues;
+}
+
 export function buildCaptionAss(track: CaptionTrack): string {
 	const lines = [
 		'[Script Info]',
 		'ScriptType: v4.00+',
 		'PlayResX: 1080',
 		'PlayResY: 1920',
-		'WrapStyle: 2',
+		'WrapStyle: 0',
 		'ScaledBorderAndShadow: yes',
 		'',
 		'[V4+ Styles]',
@@ -410,7 +517,7 @@ export function buildCaptionAss(track: CaptionTrack): string {
 		'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
 	];
 	for (const cue of track.cues) {
-		const cueLines = cue.text.split('\n');
+		const cueLines = cue.text.split('\n').flatMap(wrapCueLine);
 		let text = cueLines.map(escapeAssLine).join('\\N');
 		if (track.style === 'highlight') {
 			const [first, ...rest] = text.split('\\N');

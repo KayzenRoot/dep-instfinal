@@ -80,7 +80,13 @@ export const load: PageServerLoad = async (event) => {
 		};
 	try {
 		const context = await loadCaptionContext(db, owner, selectedEpisode.id);
-		const stored = await loadCaptionTrack(db, owner, selectedEpisode.id, context.planVersion);
+		const stored = await loadCaptionTrack(
+			db,
+			owner,
+			selectedEpisode.id,
+			context.planVersion,
+			context.narrationTakeId,
+		);
 		const track =
 			stored?.track ??
 			captionTrackSchema.parse({
@@ -107,6 +113,7 @@ export const load: PageServerLoad = async (event) => {
 				planStatus: context.planStatus,
 				durationMs: context.durationMs,
 				narrationTakeId: context.narrationTakeId,
+				narrationApproved: context.narrationApproved,
 				episodeRevisionNumber: context.episodeRevisionNumber,
 			},
 			track,

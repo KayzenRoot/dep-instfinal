@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -20,7 +20,12 @@ function hasFfmpeg(): boolean {
 	}
 }
 
-function createSyntheticClip(directory: string, assetId: string, seconds: number): string {
+function createSyntheticClip(
+	directory: string,
+	assetId: string,
+	seconds: number,
+	source = 'testsrc2=size=180x320:rate=30',
+): string {
 	const path = join(directory, `${assetId}.mp4`);
 	execFileSync(
 		'ffmpeg',
@@ -32,7 +37,7 @@ function createSyntheticClip(directory: string, assetId: string, seconds: number
 			'-f',
 			'lavfi',
 			'-i',
-			`testsrc2=size=180x320:rate=30:duration=${seconds}`,
+			`${source}:duration=${seconds}`,
 			'-c:v',
 			'libx264',
 			'-preset',
@@ -46,7 +51,7 @@ function createSyntheticClip(directory: string, assetId: string, seconds: number
 	return path;
 }
 
-function twoClipPlan(workspace: string) {
+function twoClipPlan(workspace: string, source = 'testsrc2=size=180x320:rate=30') {
 	const scenes = [1, 2].map((index) => ({
 		id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 		sceneIndex: index,
@@ -56,7 +61,7 @@ function twoClipPlan(workspace: string) {
 	const assets = [];
 	for (const scene of scenes) {
 		const assetId = `22222222-2222-4222-8222-${String(scene.sceneIndex).padStart(12, '0')}`;
-		createSyntheticClip(workspace, assetId, 2);
+		createSyntheticClip(workspace, assetId, 2, source);
 		assets.push({ id: assetId, sceneId: scene.id, assetVersion: 1, durationMs: 2_000 });
 	}
 	const plan = {
@@ -221,10 +226,12 @@ describe.skipIf(!enabled)('FFmpeg narration mux integration', () => {
 });
 
 describe.skipIf(!enabled)('FFmpeg caption burn-in integration', () => {
-	it('burns an ASS caption track into a 9:16 render', async () => {
+	it('burns ASS from an apostrophe path inside the horizontal safe area', async () => {
 		const workspace = await mkdtemp(join(tmpdir(), 'dif-caption-burn-'));
 		try {
-			const { plan, inputs } = twoClipPlan(workspace);
+			const captionDir = join(workspace, "cap'test");
+			await mkdir(captionDir);
+			const { plan, inputs } = twoClipPlan(workspace, 'color=c=black:s=180x320:r=30');
 			const track = captionTrackSchema.parse({
 				schemaVersion: 1,
 				episodeId: plan.episodeId,
@@ -238,13 +245,13 @@ describe.skipIf(!enabled)('FFmpeg caption burn-in integration', () => {
 					{
 						id: '44444444-4444-4444-8444-444444444444',
 						startMs: 200,
-						endMs: 2_500,
-						text: 'A fita chegou. Alice ouviu a voz.',
+						endMs: 3_500,
+						text: 'W'.repeat(42),
 						words: [],
 					},
 				],
 			});
-			const assPath = join(workspace, 'captions.ass');
+			const assPath = join(captionDir, 'captions.ass');
 			await writeFile(assPath, buildCaptionAss(track), 'utf8');
 			const output = await renderPlanToFile({
 				plan,
@@ -256,6 +263,45 @@ describe.skipIf(!enabled)('FFmpeg caption burn-in integration', () => {
 			});
 			expect(output.codec).toBe('h264');
 			expect(Math.abs(output.durationMs - 4_000)).toBeLessThanOrEqual(1_000);
+			const framePath = join(workspace, 'frame.rgb');
+			execFileSync(
+				'ffmpeg',
+				[
+					'-y',
+					'-hide_banner',
+					'-loglevel',
+					'error',
+					'-ss',
+					'1.5',
+					'-i',
+					output.path,
+					'-frames:v',
+					'1',
+					'-pix_fmt',
+					'rgb24',
+					'-f',
+					'rawvideo',
+					framePath,
+				],
+				{ timeout: 60_000, windowsHide: true },
+			);
+			const frame = await readFile(framePath);
+			let minX = 1080;
+			let maxX = -1;
+			let count = 0;
+			for (let y = 1_200; y < 1_920; y += 1) {
+				for (let x = 0; x < 1_080; x += 1) {
+					const offset = (y * 1_080 + x) * 3;
+					if (frame[offset]! > 140 && frame[offset + 1]! > 140 && frame[offset + 2]! > 140) {
+						minX = Math.min(minX, x);
+						maxX = Math.max(maxX, x);
+						count += 1;
+					}
+				}
+			}
+			expect(count).toBeGreaterThan(500);
+			expect(minX).toBeGreaterThanOrEqual(80);
+			expect(maxX).toBeLessThanOrEqual(1_000);
 		} finally {
 			await rm(workspace, { recursive: true, force: true });
 		}

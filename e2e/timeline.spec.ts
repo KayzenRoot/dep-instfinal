@@ -331,6 +331,14 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 				height: number;
 				codec: string;
 				durationMs: number;
+				captions: {
+					trackId: string;
+					cues: number;
+					style: string;
+					safeZone: string;
+					narrationTakeId: string | null;
+					sha256: string;
+				} | null;
 				audio: {
 					codec: string;
 					channels: number;
@@ -346,6 +354,15 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	expect(jobs[0]?.narration_take_id).toBe(narrationTakeId);
 	expect(jobs[0]?.output_manifest).toMatchObject({ width: 1080, height: 1920, codec: 'h264' });
 	expect(Math.abs(jobs[0]!.output_manifest.durationMs - 120_000)).toBeLessThanOrEqual(1_000);
+	const manifestCaptions = jobs[0]?.output_manifest.captions;
+	expect(manifestCaptions).toMatchObject({
+		style: 'clean',
+		safeZone: 'tiktok',
+		narrationTakeId,
+	});
+	expect(manifestCaptions?.trackId).toMatch(/^[0-9a-f-]{36}$/);
+	expect(manifestCaptions?.cues).toBeGreaterThan(0);
+	expect(manifestCaptions?.sha256).toMatch(/^[0-9a-f]{64}$/);
 	expect(jobs[0]?.output_manifest.audio).toMatchObject({
 		codec: 'aac',
 		channels: 2,

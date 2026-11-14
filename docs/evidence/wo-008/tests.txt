@@ -3,21 +3,31 @@
 Date: 2026-11-14
 Branch: `feat/dif-v2-wo-008`
 Base: `main` `326c576`
+Scope: post-audit corrections H1–H5.
 
 ## Commands and results
 
 ```text
+npm run lint
+  PASS (eslint --max-warnings=0)
+
+npm run check
+  PASS (svelte-check: 0 errors, 0 warnings)
+
+npx supabase db reset --local
+  all migrations applied, including 20261114120000_v2_wo008_captions.sql
+
 npx supabase test db
-  Files=1, Tests=117, Result: PASS
+  Files=1, Tests=122, Result: PASS
 
 npm test
   Test Files 21 passed | 3 skipped (24)
-       Tests 124 passed | 3 skipped (127)
+       Tests 132 passed | 3 skipped (135)
   Includes:
-    - caption domain tests (7)
+    - caption domain tests (15)
     - real FFmpeg 120s render
     - real narration mux
-    - real ASS burn-in
+    - real ASS burn-in from an apostrophe path + frame safe-area bounds
     - real Piper Cadu → Vosk alignment (opt-in)
 
 npm run build
@@ -30,14 +40,33 @@ npm run test:e2e:local -- e2e/timeline.spec.ts
   [timeline-e2e] aligning captions from synthetic ASR words
   [timeline-e2e] captions approved; returning to timeline
   [render-worker] render_completed
-  1 passed (4.1m)
+  1 passed (12.1m)
 ```
 
-The E2E asserted the READY manifest contains captions with a real track id, 8 cues, style `clean` and safe zone `tiktok`; SRT and ASS endpoints returned valid payloads.
+The E2E asserted the READY manifest contains captions with a real track id, 13 cues, style `clean`, safe zone `tiktok`, the current narration take id and a SHA-256; SRT and ASS endpoints returned valid payloads. The local render manifest recorded:
+
+```json
+{
+  "cues": 13,
+  "style": "clean",
+  "safeZone": "tiktok",
+  "trackId": "d88f43ab-0858-41b2-9fa0-4ee30d128a0f",
+  "narrationTakeId": "f4456a45-4ccb-4cb5-a1e3-44409bb190ea",
+  "sha256": "6e6d1f6dfe11c372b43d94b8d5d4c7d3ca0322215f082accdfd1aacce1265bc6"
+}
+```
+
+## Audit corrections covered
+
+- H1: fractional ASR timestamps are rounded and validated before persistence; short cues are extended to 300 ms.
+- H2: caption load/export/page/worker filter the current narration take; approval/generation require an approved READY voice; DB trigger rejects take mismatches and unapproved voices.
+- H3: ghost-tail capped at 1.5 s after the last ASR match; low coverage downgrades to `ASR_FALLBACK`.
+- H4: width-aware wrapping (880 px), ASS re-wrapping, control-sequence neutralization and safe ASS working directory for apostrophe paths.
+- H5: E2E manifest assertions, CTA overlap/window unit test and real frame safe-area measurement.
 
 ## Notes
 
 - ASR words in E2E are synthetic but follow the exact script tokens; the real ASR integration test is separate and opt-in.
 - The caption track's text comes from the narration plan, not from raw ASR output.
-- Burn-in uses FFmpeg `ass=filename=...` after the video composition and before VHS.
+- Burn-in uses FFmpeg `ass=filename=captions.ass` from a dedicated safe working directory, after video composition and before VHS.
 - No paid API, GPU, public media, deployment or VPS change was used.

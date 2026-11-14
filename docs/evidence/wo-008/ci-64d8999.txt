@@ -1,0 +1,10 @@
+# WO-008 hosted CI evidence — run 43608151136
+
+- Head: `64d89990da79398e1d3096619de0870f2fc0a51d`
+- Branch: `feat/dif-v2-wo-008`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-14T15:13Z (8m54s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43608151136
+- Checks: quality PASS, SonarCloud PASS (security rating 1), Socket PASS, Vercel PASS.
+- Tests: **124 passed + 3 skipped**; PgTAP **117/117**; E2E **12/12** in 4,3 min; narrated/captioned timeline READY.
+- Sonar fixed temp/path/command findings in `scripts/asr-vosk.py` by using the Python standard library and stdout JSON.

@@ -214,9 +214,9 @@ Revalidate before any external action if `main` changes; the feature branch is r
 
 - **Base revalidated:** `main` `326c576` (checkpoint WO-007 promoted). Branch: `feat/dif-v2-wo-008`.
 - **Issue inventory:** WO-001–007 **MERGED/CLOSED/PROMOTED**; WO-008/#25 **IN PROGRESS**; WO-009+ remain gated.
-- **Delivered locally:** `caption_tracks` versionado por plano, RLS owner-only/service-only writes; alinhamento forçado roteiro↔ASR com normalização NFD, DP, descarte de hallucination e timestamps monotonicos; SRT/ASS com estilos/safe zones; editor `/app/captions`; import ASR/manual; worker gera ASS e queima no render; CLI Vosk opcional.
-- **Tests:** PgTAP **117/117**; unit **124 + 3 skipped**; real Piper Cadu→Vosk alignment PASS; FFmpeg burn-in PASS; E2E timeline PASS (4,1m); build/policy PASS. CI/audit pendentes.
-- **Gate:** all local/CI tests, Evidence Bundle, Checkpoint Delta PROPOSED, independent audit and owner merge authorization. No deploy/VPS change.
+- **Delivered locally:** `caption_tracks` versionado por plano e take, RLS owner-only/service-only writes; alinhamento forçado roteiro↔ASR com normalização NFD, DP, descarte de hallucination e timestamps monotonicos; SRT/ASS com estilos/safe zones, largura segura e escape; editor `/app/captions`; import ASR/manual; worker exige take aprovado e queima ASS; CLI Vosk opcional.
+- **Tests:** PgTAP **122/122**; unit **132 + 3 skipped**; real Piper Cadu→Vosk alignment PASS; FFmpeg burn-in com frame/margem horizontal PASS; E2E timeline PASS (12,1m, 13 cues, manifesto `captions`); build/policy PASS. Auditoria independente retornou H1–H5; correções aplicadas; novo CI e reauditoria pendentes.
+- **Gate:** novo CI, Evidence Bundle, Checkpoint Delta PROPOSED, reauditoria independente e autorização de merge. No deploy/VPS change.
 
 ### Fingerprints no base `326c576`
 
