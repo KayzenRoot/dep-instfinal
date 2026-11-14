@@ -41,6 +41,10 @@ npm run test:e2e:local -- e2e/timeline.spec.ts
   [timeline-e2e] captions approved; returning to timeline
   [render-worker] render_completed
   1 passed (2.9m)
+
+Hosted CI run 43623019673 (head b104adf)
+  quality PASS 7m49s; unit 137 passed + 3 skipped; PgTAP 124/124;
+  E2E 12/12 in 3.5m; Sonar/Socket/Vercel PASS.
 ```
 
 The E2E asserts `output_manifest.captions.cues > 0`, a real track id, style
