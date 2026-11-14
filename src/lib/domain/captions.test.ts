@@ -9,6 +9,7 @@ import {
 	CaptionError,
 	estimateCaptionWidth,
 	normalizeCaptionToken,
+	wrapCtaText,
 } from './captions.js';
 import { captionTrackSchema } from '#lib/schemas/captions.js';
 
@@ -140,6 +141,77 @@ describe('caption normalization and alignment', () => {
 		expect(track.cues[0]!.endMs).toBeLessThanOrEqual(12_000);
 	});
 
+	it('makes room for a short final cue without overlapping the previous cue', () => {
+		const previousText = Array.from({ length: 36 }, (_, index) => `palavra${index}`).join(' ');
+		const previousWords = asr(previousText, 500, 300).map((word, index) =>
+			index === 35 ? { ...word, endMs: 11_800 } : word,
+		);
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [
+				{ index: 0, text: previousText },
+				{ index: 1, text: 'Fim.' },
+			],
+			asrWords: [
+				...previousWords,
+				{ word: 'fim', startMs: 11_950, endMs: 12_000, confidence: 0.9 },
+			],
+			durationMs: 12_000,
+		});
+		expect(captionTrackSchema.safeParse(track).success).toBe(true);
+		for (let index = 1; index < track.cues.length; index += 1)
+			expect(track.cues[index]!.startMs).toBeGreaterThanOrEqual(track.cues[index - 1]!.endMs);
+		const last = track.cues.at(-1)!;
+		expect(last.text).toContain('Fim.');
+		expect(last.endMs - last.startMs).toBeGreaterThanOrEqual(300);
+	});
+
+	it('keeps word timestamps monotonic and inside their cue', () => {
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [{ index: 0, text: 'A fita chegou.' }],
+			asrWords: [
+				{ word: 'a', startMs: 11_800, endMs: 11_900, confidence: 0.9 },
+				{ word: 'fita', startMs: 11_880, endMs: 12_000, confidence: 0.9 },
+				{ word: 'chegou', startMs: 12_000, endMs: 12_400, confidence: 0.9 },
+			],
+		});
+		expect(captionTrackSchema.safeParse(track).success).toBe(true);
+		for (const cue of track.cues) {
+			for (const word of cue.words) {
+				expect(word.startMs).toBeGreaterThanOrEqual(cue.startMs);
+				expect(word.endMs).toBeLessThanOrEqual(cue.endMs);
+				expect(word.endMs).toBeGreaterThan(word.startMs);
+			}
+			for (let index = 1; index < cue.words.length; index += 1)
+				expect(cue.words[index]!.startMs).toBeGreaterThanOrEqual(cue.words[index - 1]!.endMs);
+		}
+	});
+
+	it('compresses a long unmatched tail instead of emitting ghost captions', () => {
+		const script = Array.from({ length: 100 }, (_, index) => `token${index}`).join(' ');
+		const matched = Array.from({ length: 25 }, (_, index) => `token${index}`).join(' ');
+		const time = (index: number) => ({
+			startMs: 100 + index * 200,
+			endMs: 100 + index * 200 + 190,
+		});
+		const track = buildCaptionTrack({
+			...trackInput(),
+			segments: [{ index: 0, text: script }],
+			asrWords: matched.split(/\s+/).map((word, index) => ({
+				word,
+				...time(index),
+				confidence: 0.95,
+			})),
+			durationMs: 30_000,
+		});
+		expect(track.source).toBe('ASR_FALLBACK');
+		const lastMatchedEnd = 100 + 24 * 200 + 190;
+		expect(Math.max(...track.cues.map((cue) => cue.endMs))).toBeLessThanOrEqual(
+			lastMatchedEnd + 1_800,
+		);
+	});
+
 	it('wraps wide glyphs inside the safe area', () => {
 		const longWord = 'M'.repeat(60);
 		const track = buildCaptionTrack({
@@ -153,6 +225,25 @@ describe('caption normalization and alignment', () => {
 				expect(estimateCaptionWidth(line)).toBeLessThanOrEqual(880);
 			}
 		}
+	});
+
+	it('wraps CJK, emoji and long narrow tokens safely', () => {
+		for (const text of ['漢'.repeat(27), 'i'.repeat(80)]) {
+			const track = buildCaptionTrack({
+				...trackInput(),
+				segments: [{ index: 0, text }],
+				asrWords: [{ word: text, startMs: 0, endMs: 2_000, confidence: 0.9 }],
+			});
+			expect(captionTrackSchema.safeParse(track).success).toBe(true);
+			for (const cue of track.cues) {
+				for (const line of cue.text.split('\n')) {
+					expect(line.length).toBeLessThanOrEqual(42);
+					expect(estimateCaptionWidth(line)).toBeLessThanOrEqual(880);
+				}
+			}
+		}
+		for (const line of wrapCtaText('😀'.repeat(20)).join('\n').split('\n'))
+			expect(estimateCaptionWidth(line)).toBeLessThanOrEqual(880);
 	});
 
 	it('appends CTA cues after the last cue without overlap or overflow', () => {
@@ -188,6 +279,27 @@ describe('caption normalization and alignment', () => {
 			durationMs: 12_000,
 		});
 		expect(cues).toHaveLength(track.cues.length);
+	});
+
+	it('caps a long CTA window and rejects an insufficient tight window', () => {
+		const longWindow = appendCtaCues({
+			cues: [],
+			text: 'Inscreva-se no canal.',
+			startMs: 2_000,
+			endMs: 12_000,
+			durationMs: 12_000,
+		});
+		const added = longWindow.at(-1)!;
+		expect(added.endMs - added.startMs).toBeLessThanOrEqual(7_000);
+		expect(() =>
+			appendCtaCues({
+				cues: [],
+				text: Array.from({ length: 40 }, (_, index) => `palavra${index}`).join(' '),
+				startMs: 7_000,
+				endMs: 7_500,
+				durationMs: 12_000,
+			}),
+		).toThrow(CaptionError);
 	});
 });
 

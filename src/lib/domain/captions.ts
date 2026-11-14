@@ -37,7 +37,32 @@ const MAX_CUE_MS = 7_000;
 const CAPTION_FONT_SIZE = 58;
 const CAPTION_SAFE_WIDTH = 880;
 
+function isEmoji(code: number): boolean {
+	return (
+		(code >= 0x1f300 && code <= 0x1faff) ||
+		(code >= 0x2600 && code <= 0x27bf) ||
+		(code >= 0x1f000 && code <= 0x1f2ff)
+	);
+}
+
+function isWide(code: number): boolean {
+	return (
+		(code >= 0x1100 && code <= 0x115f) ||
+		(code >= 0x2e80 && code <= 0xa4cf) ||
+		(code >= 0xac00 && code <= 0xd7a3) ||
+		(code >= 0xf900 && code <= 0xfaff) ||
+		(code >= 0xfe30 && code <= 0xfe4f) ||
+		(code >= 0xff00 && code <= 0xff60) ||
+		(code >= 0xffe0 && code <= 0xffe6) ||
+		(code >= 0x20000 && code <= 0x3fffd)
+	);
+}
+
 function characterWidth(character: string): number {
+	const code = character.codePointAt(0) ?? 0;
+	if (code === 0xfe0f || code === 0x200d) return 0;
+	if (isEmoji(code)) return 1.1;
+	if (isWide(code)) return 1;
 	if (/\s/u.test(character)) return 0.32;
 	if (/[ilI.,'!|:;]/u.test(character)) return 0.28;
 	if (/[fjrt()\-[\]]/u.test(character)) return 0.36;
@@ -163,12 +188,14 @@ function interpolatedWords(
 		if (match) {
 			const source = asr[match.asrIndex]!;
 			const startMs = Math.max(cursor, Math.round(source.startMs));
-			const endMs = Math.max(startMs + 60, Math.round(source.endMs));
-			result.push({
-				token,
-				word: { ...source, text: token.raw, startMs, endMs },
-			});
-			cursor = endMs;
+			const endMs = Math.min(durationMs, Math.max(startMs, Math.round(source.endMs)));
+			if (endMs > startMs) {
+				result.push({
+					token,
+					word: { ...source, text: token.raw, startMs, endMs },
+				});
+				cursor = endMs;
+			}
 			continue;
 		}
 		let nextMatch: Match | undefined;
@@ -177,9 +204,9 @@ function interpolatedWords(
 			if (nextMatch) break;
 		}
 		const nextStart = nextMatch
-			? Math.round(asr[nextMatch.asrIndex]!.startMs)
-			: Math.min(durationMs, Math.max(cursor + 120, lastMatchedEnd + 1_500));
-		const available = Math.max(100, nextStart - cursor);
+			? Math.max(cursor, Math.round(asr[nextMatch.asrIndex]!.startMs))
+			: Math.min(durationMs, Math.max(cursor, lastMatchedEnd + 1_500));
+		const available = Math.max(0, nextStart - cursor);
 		const run = [];
 		for (
 			let lookahead = index;
@@ -192,9 +219,10 @@ function interpolatedWords(
 		const slot = available / run.length;
 		for (const candidate of run) {
 			const length = Math.max(0.4, candidate.normalized.length / totalChars);
-			const wordMs = Math.max(120, Math.min(slot, Math.round(available * length)));
-			const startMs = Math.min(cursor, durationMs - 120);
-			const endMs = Math.min(durationMs, Math.max(startMs + 120, startMs + wordMs));
+			const wordMs = Math.max(1, Math.min(slot, Math.round(available * length)));
+			const startMs = cursor;
+			const endMs = Math.min(nextStart, Math.max(startMs + 1, startMs + wordMs));
+			if (endMs <= startMs) break;
 			result.push({
 				token: candidate,
 				word: {
@@ -211,12 +239,12 @@ function interpolatedWords(
 	return result;
 }
 
-function splitWordToWidth(word: string, maxWidth: number): string[] {
+function splitWordToWidth(word: string, maxWidth: number, maxChars = MAX_LINE_CHARS): string[] {
 	const pieces: string[] = [];
 	let current = '';
 	for (const character of word) {
 		const next = `${current}${character}`;
-		if (current && estimateCaptionWidth(next) > maxWidth) {
+		if (current && (estimateCaptionWidth(next) > maxWidth || current.length >= maxChars)) {
 			pieces.push(current);
 			current = character;
 		} else {
@@ -259,6 +287,21 @@ function wrapLines(words: CaptionWord[]): string[][] {
 	return lines;
 }
 
+function clampCueWords(cue: CaptionCue): CaptionCue {
+	const words: CaptionWord[] = [];
+	let previousEnd = cue.startMs;
+	for (const word of cue.words) {
+		const startMs = Math.max(previousEnd, cue.startMs, Math.min(word.startMs, cue.endMs - 1));
+		if (startMs >= cue.endMs) break;
+		const endMs = Math.min(cue.endMs, Math.max(startMs + 1, word.endMs));
+		if (endMs <= startMs) break;
+		words.push({ ...word, startMs, endMs });
+		previousEnd = endMs;
+	}
+	cue.words = words;
+	return cue;
+}
+
 function splitIntoCaptionCues(words: CaptionWord[], nextStartMs: number): CaptionCue[] {
 	const lines = wrapLines(words);
 	const chunks: string[][][] = [];
@@ -275,13 +318,13 @@ function splitIntoCaptionCues(words: CaptionWord[], nextStartMs: number): Captio
 		const startMs = words[0]!.startMs;
 		const endMs = Math.min(nextStartMs, Math.max(words.at(-1)!.endMs, startMs + 300));
 		return [
-			{
+			clampCueWords({
 				id: crypto.randomUUID(),
 				startMs,
 				endMs,
 				text: chunks[0]?.map((line) => line.join(' ')).join('\n') ?? '',
 				words,
-			},
+			}),
 		];
 	}
 	const perChunk = Math.ceil(words.length / chunks.length);
@@ -292,13 +335,15 @@ function splitIntoCaptionCues(words: CaptionWord[], nextStartMs: number): Captio
 		const previous = result.at(-1);
 		const startMs = Math.max(previous?.endMs ?? 0, chunkWords[0]!.startMs);
 		const endMs = Math.max(startMs + 300, chunkWords.at(-1)!.endMs);
-		result.push({
-			id: crypto.randomUUID(),
-			startMs,
-			endMs,
-			text: chunks[index]!.map((line) => line.join(' ')).join('\n'),
-			words: chunkWords,
-		});
+		result.push(
+			clampCueWords({
+				id: crypto.randomUUID(),
+				startMs,
+				endMs,
+				text: chunks[index]!.map((line) => line.join(' ')).join('\n'),
+				words: chunkWords,
+			}),
+		);
 	}
 	return result;
 }
@@ -343,6 +388,8 @@ export function alignScriptToAsr(input: {
 	const lastMatchedEnd = matches.length
 		? Math.round(asr[matches[matches.length - 1]!.asrIndex]!.endMs)
 		: 0;
+	const forced =
+		coverage >= 0.8 && (lastMatchedEnd === 0 || lastMatchedEnd >= input.durationMs * 0.4);
 	const words = interpolatedWords(tokens, asr, matches, input.durationMs);
 	const bySegment = new Map<number, CaptionWord[]>();
 	for (const entry of words) {
@@ -365,10 +412,42 @@ export function alignScriptToAsr(input: {
 			if (cue.endMs - cue.startMs > MAX_CUE_MS) cue.endMs = cue.startMs + MAX_CUE_MS;
 			if (cue.endMs > input.durationMs) cue.endMs = input.durationMs;
 			if (cue.endMs - cue.startMs < 300) {
-				cue.startMs = Math.max(0, cue.endMs - 300);
+				const desiredStart = Math.max(0, cue.endMs - 300);
+				if (!previous) {
+					cue.startMs = desiredStart;
+				} else if (desiredStart >= previous.endMs) {
+					cue.startMs = desiredStart;
+				} else if (desiredStart - previous.startMs >= 300) {
+					previous.endMs = desiredStart;
+					clampCueWords(previous);
+					cue.startMs = desiredStart;
+				} else {
+					const mergedLines = wrapCueLine(`${previous.text} ${cue.text}`);
+					if (mergedLines.length <= MAX_LINES && cue.endMs - previous.startMs <= MAX_CUE_MS) {
+						previous.text = mergedLines.join('\n');
+						previous.endMs = cue.endMs;
+						previous.words = [...previous.words, ...cue.words];
+						clampCueWords(previous);
+					}
+					continue;
+				}
 			}
-			if (cue.endMs - cue.startMs >= 300 && cue.text.trim()) cues.push(cue);
+			if (cue.endMs - cue.startMs >= 300 && cue.text.trim()) {
+				clampCueWords(cue);
+				cues.push(cue);
+			}
 		}
+	}
+	if (!forced && cues.length) {
+		const cap = Math.min(input.durationMs, lastMatchedEnd + 1_500);
+		const kept = cues.filter((cue) => cue.startMs < cap);
+		const last = kept.at(-1);
+		if (last) {
+			last.endMs = Math.min(last.endMs, cap);
+			if (last.endMs - last.startMs < 300) kept.pop();
+			else clampCueWords(last);
+		}
+		cues.splice(0, cues.length, ...kept);
 	}
 	if (!cues.length)
 		throw new CaptionError('CAPTION_ALIGNMENT_EMPTY', 'Nenhuma legenda alinhada foi gerada.');
@@ -377,10 +456,7 @@ export function alignScriptToAsr(input: {
 	return {
 		cues,
 		alignmentScore: Number.isFinite(alignmentScore) ? alignmentScore : 0,
-		source:
-			coverage >= 0.8 && (lastMatchedEnd === 0 || lastMatchedEnd >= input.durationMs * 0.4)
-				? 'FORCED_ALIGNMENT'
-				: 'ASR_FALLBACK',
+		source: forced ? 'FORCED_ALIGNMENT' : 'ASR_FALLBACK',
 		scriptSha256,
 	};
 }
@@ -424,7 +500,8 @@ export function buildCaptionSrt(cues: CaptionCue[]): string {
 		cues
 			.map((cue) => {
 				index += 1;
-				return `${index}\n${formatSrtTime(cue.startMs)} --> ${formatSrtTime(cue.endMs)}\n${cue.text.trim()}`;
+				const text = cue.text.replace(/\p{Cc}/gu, '').trim();
+				return `${index}\n${formatSrtTime(cue.startMs)} --> ${formatSrtTime(cue.endMs)}\n${text}`;
 			})
 			.join('\n\n') + (index ? '\n' : '')
 	);
@@ -440,7 +517,11 @@ export function assTime(milliseconds: number): string {
 }
 
 function escapeAssLine(line: string): string {
-	return line.replace(/\\/gu, '\uFF3C').replace(/\{/gu, '\uFF5B').replace(/\}/gu, '\uFF5D');
+	return line
+		.replace(/\p{Cc}/gu, '')
+		.replace(/\\/gu, '\uFF3C')
+		.replace(/\{/gu, '\uFF5B')
+		.replace(/\}/gu, '\uFF5D');
 }
 
 function assStyle(style: CaptionStyle, safeZone: CaptionTrack['safeZone']): string {
@@ -487,8 +568,13 @@ export function appendCtaCues(input: {
 	if (startMs >= endMs || endMs - startMs < 300) return input.cues;
 	const chunks = wrapCtaText(input.text);
 	if (!chunks.length) return input.cues;
+	if (endMs - startMs < chunks.length * 300)
+		throw new CaptionError(
+			'CAPTION_CTA_WINDOW_TOO_SHORT',
+			'A janela da CTA não comporta todos os cues de 300 ms.',
+		);
 	const cues = [...input.cues];
-	const slot = Math.max(300, Math.floor((endMs - startMs) / chunks.length));
+	const slot = Math.max(300, Math.min(MAX_CUE_MS, Math.floor((endMs - startMs) / chunks.length)));
 	let cursor = startMs;
 	for (const [index, text] of chunks.entries()) {
 		const cueStart = Math.max(cursor, startMs + index * slot);

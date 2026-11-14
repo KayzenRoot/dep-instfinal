@@ -49,13 +49,21 @@ describe.skipIf(!enabled)('real ASR caption alignment', () => {
 		const parsed = JSON.parse(stdout) as {
 			words: Array<{ word: string; startMs: number; endMs: number; confidence: number }>;
 		};
+		const durationSeconds = Number(
+			execFileSync(
+				'ffprobe',
+				['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', audio],
+				{ timeout: 30_000, encoding: 'utf8' },
+			).trim(),
+		);
+		const durationMs = Math.ceil(durationSeconds * 1_000) + 500;
 		const aligned = alignScriptToAsr({
 			segments: [
 				{ index: 0, text: 'Às três e dezessete da manhã, a fita começou a tocar sozinha.' },
 				{ index: 1, text: 'Alice reconheceu a própria voz.' },
 			],
 			asrWords: parsed.words,
-			durationMs: 20_000,
+			durationMs,
 		});
 		expect(parsed.words.length).toBeGreaterThan(8);
 		expect(aligned.source).toBe('FORCED_ALIGNMENT');

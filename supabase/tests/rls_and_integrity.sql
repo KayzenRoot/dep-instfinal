@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(122);
+select plan(124);
 
 do $$
 declare
@@ -1351,6 +1351,20 @@ select lives_ok(
     );$$,
   'service role can store a TTS narration take with true peak'
 );
+select lives_ok(
+  $$insert into public.narration_takes (
+      id, owner_id, episode_id, plan_version, source, bucket, object_key, sha256,
+      byte_size, duration_ms, format, sample_rate, channels
+    ) values (
+      'd1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1',
+      '11111111-1111-4111-8111-111111111111',
+      '13131313-1313-4131-8131-131313131313', 1, 'TTS',
+      'dif-studio-video-private',
+      'narration/11111111-1111-4111-8111-111111111111/13131313-1313-4131-8131-131313131313/other.wav',
+      repeat('e', 64), 1024, 3000, 'wav', 48000, 1
+    );$$,
+  'service role can store a take for another episode'
+);
 select throws_ok(
   $$update public.narration_takes
     set duration_ms = 9000
@@ -1607,6 +1621,15 @@ select throws_ok(
   '23514',
   'caption_take_mismatch',
   'caption track JSON is bound to the narration take column'
+);
+select throws_ok(
+  $$update public.caption_tracks
+    set narration_take_id = 'd1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1',
+        track = '{"schemaVersion":1,"planVersion":2,"narrationTakeId":"d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1","cues":[{"id":"b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8","startMs":500,"endMs":2500,"text":"A fita chegou.","words":[]}]}'::jsonb
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '23514',
+  'caption_take_mismatch',
+  'caption narration take must belong to the same episode'
 );
 select lives_ok(
   $$update public.voice_direction_plans

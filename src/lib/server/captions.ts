@@ -439,13 +439,19 @@ export async function generateCaptionTrack(input: {
 		audioSha256: context.audioSha256,
 	});
 	if (context.plan.cta?.enabled && context.plan.cta.text) {
-		track.cues = appendCtaCues({
-			cues: track.cues,
-			text: context.plan.cta.text,
-			startMs: context.plan.cta.startMs,
-			endMs: context.plan.cta.endMs,
-			durationMs: context.durationMs,
-		});
+		try {
+			track.cues = appendCtaCues({
+				cues: track.cues,
+				text: context.plan.cta.text,
+				startMs: context.plan.cta.startMs,
+				endMs: context.plan.cta.endMs,
+				durationMs: context.durationMs,
+			});
+		} catch (cause) {
+			if (cause instanceof CaptionError)
+				throw new CaptionServiceError(400, cause.code, cause.message);
+			throw cause;
+		}
 	}
 	const validated = captionTrackSchema.safeParse(track);
 	if (!validated.success)

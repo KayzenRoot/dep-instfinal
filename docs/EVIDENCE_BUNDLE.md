@@ -4,18 +4,18 @@
 
 - **Work Order:** `DIF-V2-WO-008` · issue #25 · epic #17
 - **Base:** `main` `326c576`; branch `feat/dif-v2-wo-008`
-- **Status:** implementation, audit corrections H1–H5, local revalidation and hosted CI **PASS** at `7f479b4`; independent re-audit pending. No merge/deploy.
+- **Status:** second independent audit corrections (H-1/H-2/M-1–M-6) applied; local suites and CLI **PASS**; new hosted CI and final re-audit pending. No merge/deploy.
 
-| Check     | Result     | Evidence                                                                                    |
-| --------- | ---------- | ------------------------------------------------------------------------------------------- |
-| Alignment | PASS       | script/ASR DP, hallucination drop, monotonic integer cues, ghost-tail limit, fallback       |
-| SRT/ASS   | PASS       | width-aware wrapping, ASS escape, safe-zone styles; real frame margin ≥80 px                |
-| Database  | PASS       | `caption_tracks` plan+take bound, approval requires approved READY voice; PgTAP **122/122** |
-| UI/API    | PASS       | `/app/captions`, SRT/ASS owner-only exports, current-take filtering, manual fallback        |
-| E2E       | PASS local | timeline + narration + captions + narrated captioned render; manifest 13 cues (12,1m)       |
-| CI        | PASS       | run `43617826034` at `7f479b4`: 132+3, PgTAP 122/122, E2E 12/12, Sonar/Socket/Vercel        |
-| CTA       | PASS       | pure CTA append test: no overlap, inside window, width-safe                                 |
-| Limits    | —          | Vosk model local; no VPS deploy; human visual/audio QA pending                              |
+| Check     | Result     | Evidence                                                                                     |
+| --------- | ---------- | -------------------------------------------------------------------------------------------- |
+| Alignment | PASS       | integer monotonic words, no overlap on short tail, ghost-tail truncation, fallback guard      |
+| SRT/ASS   | PASS       | CJK/emoji/narrow width wrapping, ASS escape, real frame margin ≥80 px                         |
+| Database  | PASS       | plan+take+episode binding, approval requires approved READY voice; PgTAP **124/124**          |
+| UI/API    | PASS       | `/app/captions`, SRT/ASS owner-only exports, current-take filtering, manual fallback          |
+| E2E       | PASS local | timeline + narration + captions + narrated captioned render; manifest 13 cues (2,9m)          |
+| ASR/CLI   | PASS       | real Piper→Vosk test; documented `captions:align` produced 5 artifacts, 2 cues, score 0,869    |
+| CTA       | PASS       | no overlap, long window capped at 7 s, insufficient tight window rejected                     |
+| Limits    | —          | Vosk model local; no VPS deploy; human visual/audio QA pending                               |
 
 ## V2 WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROMOTED
 

@@ -246,7 +246,7 @@ describe.skipIf(!enabled)('FFmpeg caption burn-in integration', () => {
 						id: '44444444-4444-4444-8444-444444444444',
 						startMs: 200,
 						endMs: 3_500,
-						text: 'W'.repeat(42),
+						text: `${'漢'.repeat(27)}\n${'😀'.repeat(20)}`,
 						words: [],
 					},
 				],

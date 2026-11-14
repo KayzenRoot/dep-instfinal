@@ -28,6 +28,14 @@ create table public.caption_tracks (
 create index caption_tracks_by_episode
   on public.caption_tracks (owner_id, episode_id, updated_at desc);
 
+alter table public.narration_takes
+  add constraint narration_takes_owner_episode_id_key unique (owner_id, episode_id, id);
+
+alter table public.caption_tracks
+  add constraint caption_tracks_take_episode_fkey
+  foreign key (owner_id, episode_id, narration_take_id)
+  references public.narration_takes (owner_id, episode_id, id) on delete restrict;
+
 alter table public.caption_tracks enable row level security;
 alter table public.caption_tracks force row level security;
 
@@ -60,6 +68,15 @@ begin
     or (new.track ->> 'narrationTakeId') <> new.narration_take_id::text then
     raise exception 'caption_take_mismatch' using errcode = '23514';
   end if;
+  if new.narration_take_id is not null and not exists (
+    select 1
+    from public.narration_takes t
+    where t.owner_id = new.owner_id
+      and t.id = new.narration_take_id
+      and t.episode_id = new.episode_id
+  ) then
+    raise exception 'caption_take_mismatch' using errcode = '23514';
+  end if;
   if new.current_status <> 'APPROVED' then return new; end if;
   if jsonb_typeof(new.track -> 'cues') is distinct from 'array'
     or jsonb_array_length(new.track -> 'cues') = 0 then
@@ -78,6 +95,7 @@ begin
       on v.owner_id = t.owner_id and v.episode_id = t.episode_id
     where t.owner_id = new.owner_id
       and t.id = new.narration_take_id
+      and t.episode_id = new.episode_id
       and t.status = 'READY'
       and v.current_status = 'APPROVED'
       and v.plan ->> 'takeId' = new.narration_take_id::text

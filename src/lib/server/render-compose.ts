@@ -175,7 +175,12 @@ export async function renderPlanToFile(input: {
 	if (input.captionAssPath) {
 		captionDir = await mkdtemp(join(tmpdir(), 'dif-caption-ass-'));
 		captionAssFile = 'captions.ass';
-		await copyFile(input.captionAssPath, join(captionDir, captionAssFile));
+		try {
+			await copyFile(input.captionAssPath, join(captionDir, captionAssFile));
+		} catch (cause) {
+			await rm(captionDir, { recursive: true, force: true });
+			throw cause;
+		}
 	}
 	try {
 		const command = buildRenderCommand(input.plan, assets, videoPath, {

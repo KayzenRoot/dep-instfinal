@@ -3,7 +3,7 @@
 Date: 2026-11-14
 Branch: `feat/dif-v2-wo-008`
 Base: `main` `326c576`
-Scope: post-audit corrections H1–H5.
+Scope: second audit corrections H-1/H-2/M-1–M-6.
 
 ## Commands and results
 
@@ -18,17 +18,17 @@ npx supabase db reset --local
   all migrations applied, including 20261114120000_v2_wo008_captions.sql
 
 npx supabase test db
-  Files=1, Tests=122, Result: PASS
+  Files=1, Tests=124, Result: PASS
 
 npm test
   Test Files 21 passed | 3 skipped (24)
-       Tests 132 passed | 3 skipped (135)
+       Tests 137 passed | 3 skipped (140)
   Includes:
-    - caption domain tests (15)
+    - caption domain tests (20)
     - real FFmpeg 120s render
     - real narration mux
-    - real ASS burn-in from an apostrophe path + frame safe-area bounds
-    - real Piper Cadu → Vosk alignment (opt-in)
+    - real ASS burn-in from an apostrophe path + CJK/emoji frame bounds
+    - real Piper Cadu → Vosk alignment (opt-in, run separately)
 
 npm run build
   adapter-node build PASS
@@ -40,37 +40,47 @@ npm run test:e2e:local -- e2e/timeline.spec.ts
   [timeline-e2e] aligning captions from synthetic ASR words
   [timeline-e2e] captions approved; returning to timeline
   [render-worker] render_completed
-  1 passed (12.1m)
-
-Hosted CI run 43617826034 (head 7f479b4)
-  quality PASS 7m2s; unit 132 passed + 3 skipped; PgTAP 122/122;
-  E2E 12/12 in 3.3m; Sonar/Socket/Vercel PASS.
+  1 passed (2.9m)
 ```
 
-The E2E asserted the READY manifest contains captions with a real track id, 13 cues, style `clean`, safe zone `tiktok`, the current narration take id and a SHA-256; SRT and ASS endpoints returned valid payloads. The local render manifest recorded:
+The E2E asserts `output_manifest.captions.cues > 0`, a real track id, style
+`clean`, safe zone `tiktok`, the current narration take id and a SHA-256. The
+latest local manifest **observed** 13 cues:
 
 ```json
 {
   "cues": 13,
   "style": "clean",
   "safeZone": "tiktok",
-  "trackId": "d88f43ab-0858-41b2-9fa0-4ee30d128a0f",
-  "narrationTakeId": "f4456a45-4ccb-4cb5-a1e3-44409bb190ea",
-  "sha256": "6e6d1f6dfe11c372b43d94b8d5d4c7d3ca0322215f082accdfd1aacce1265bc6"
+  "trackId": "581e6a76-7700-44a8-82c2-8910bbcab33a",
+  "narrationTakeId": "d643e0b8-f3ef-4814-904b-5f932fe01ede",
+  "sha256": "982b40bb8e8409ae50b9d5a86ddb78d81fc9dc84bc4e279f11820b20d72c14f6"
 }
 ```
 
+## Real ASR and CLI
+
+The opt-in test `caption-asr.integration.test.ts` passed with Piper Cadu and the
+real Vosk model, using the probed audio duration. The documented
+`npm run captions:align` was also executed end-to-end with a local fixture; it
+wrote `asr-words.json`, `captions.json`, `captions.srt`, `captions.ass` and
+`report.json` (2 cues, score 0,869, `ASR_FALLBACK` because ~8 s of synthetic
+audio was aligned to a 120 s fixture episode). See `asr-cli.txt`.
+
 ## Audit corrections covered
 
-- H1: fractional ASR timestamps are rounded and validated before persistence; short cues are extended to 300 ms.
-- H2: caption load/export/page/worker filter the current narration take; approval/generation require an approved READY voice; DB trigger rejects take mismatches and unapproved voices.
-- H3: ghost-tail capped at 1.5 s after the last ASR match; low coverage downgrades to `ASR_FALLBACK`.
-- H4: width-aware wrapping (880 px), ASS re-wrapping, control-sequence neutralization and safe ASS working directory for apostrophe paths.
-- H5: E2E manifest assertions, CTA overlap/window unit test and real frame safe-area measurement.
+- H-1: short final cues no longer overlap; the previous cue is trimmed/merged or the short cue is dropped explicitly. Word timestamps are integer, monotonic and inside the cue.
+- H-2: caption load/export/page/worker filter the current narration take; approval/generation require approved READY voice; DB enforces JSON/column take match and same-episode take; voice switching rebinds with a new version.
+- M-3: matched/unmatched word timing is clamped to episode duration and cue bounds.
+- M-4: unmatched tails are compressed and truncated at `last ASR match + 1.5 s`; low coverage downgrades to `ASR_FALLBACK`.
+- M-1/M-2: CJK, emoji and long narrow tokens wrap within 880 px and 42 characters; real frame test covers CJK/emoji.
+- M-5: CTA window is capped at 7 s per cue; an insufficient tight window fails explicitly.
+- M-6: DB trigger and composite FK ensure the narration take belongs to the caption episode.
+- H5: E2E manifest assertions, CTA window tests, real frame safe-area measurement; docs distinguish asserted vs observed cue counts.
 
 ## Notes
 
-- ASR words in E2E are synthetic but follow the exact script tokens; the real ASR integration test is separate and opt-in.
+- ASR words in E2E are synthetic but follow the exact script tokens; the real ASR test is separate.
 - The caption track's text comes from the narration plan, not from raw ASR output.
 - Burn-in uses FFmpeg `ass=filename=captions.ass` from a dedicated safe working directory, after video composition and before VHS.
 - No paid API, GPU, public media, deployment or VPS change was used.

@@ -1,0 +1,52 @@
+# WO-008 — real ASR and documented CLI evidence
+
+Date: 2026-11-14
+Environment: local Supabase, Piper `pt_BR-cadu-medium`, Vosk `vosk-model-small-pt-0.3`.
+
+## Opt-in integration test
+
+Command (env abbreviated to names):
+
+```text
+VOSK_MODEL=... VOSK_PYTHON=... PIPER_MODEL=... PIPER_PYTHON=... \
+  npx vitest run src/lib/server/caption-asr.integration.test.ts
+
+1 passed (8,1 s)
+```
+
+The test synthesizes a two-sentence pt-BR script with Piper, transcribes it with the
+real Vosk helper via stdout, probes the audio duration with ffprobe, and aligns the
+known script. Result: `FORCED_ALIGNMENT`, score > 0,5, > 8 ASR words, final text
+contains “Alice reconheceu”.
+
+## Documented CLI contract
+
+Command: `npm run captions:align` with `CAPTION_EPISODE_ID`, `CAPTION_OUTPUT_DIR`,
+`CAPTION_AUDIO_FILE`, `VOSK_MODEL` and `VOSK_PYTHON`. A local fixture episode was
+seeded for this run only; no media was uploaded and `CAPTION_UPLOAD` was unset.
+
+Result: exit 0, report:
+
+```json
+{
+  "source": "ASR_FALLBACK",
+  "alignmentScore": 0.8689,
+  "cues": 2,
+  "style": "clean",
+  "safeZone": "tiktok"
+}
+```
+
+Files written by the CLI:
+
+```text
+asr-words.json   2025 bytes
+captions.json    3115 bytes
+captions.srt      164 bytes
+captions.ass      760 bytes
+report.json       747 bytes
+```
+
+The source is `ASR_FALLBACK` because the synthetic audio lasts ~8 s while the
+fixture episode lasts 120 s, which correctly triggers the partial-coverage guard.
+The helper contract is stdout JSON; the caller no longer passes `--output`.

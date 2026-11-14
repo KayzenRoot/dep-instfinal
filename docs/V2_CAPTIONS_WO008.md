@@ -1,6 +1,6 @@
 # DIF-V2-WO-008 — Legendas inteligentes, SRT/ASS e burn-in
 
-**Status:** implementação e CI pré-auditoria **PASS**; auditoria independente retornou **CORRECTION REQUIRED** (H1–H5); correções aplicadas e revalidação local **PASS**; novo CI e reauditoria pendentes. **Não aprovada**, **não merged**, **não deployed**.
+**Status:** implementação, CI pré-auditoria **PASS**; duas auditorias independentes retornaram **CORRECTION REQUIRED**; correções H1–H5 e achados H-1/H-2/M-1–M-6 aplicados; revalidação local **PASS**; novo CI e reauditoria pendentes. **Não aprovada**, **não merged**, **não deployed**.
 **Base:** `main` @ `326c576` (checkpoint WO-007 promovido).
 **Branch:** `feat/dif-v2-wo-008`.
 **Escopo:** WO-008 (#25), dependente de WO-006 + WO-007 aprovados.
@@ -26,34 +26,35 @@ O ASR Vosk é opcional e offline. O alinhamento sempre preserva o texto do rotei
 
 | Critério                                                                     | Estado         | Evidência                                                                                         |
 | ---------------------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------- |
-| Voz real + roteiro pt-BR geram legendas alinhadas/editáveis                  | **PASS local** | integração real Piper Cadu + Vosk (score >0,5); E2E timeline com 13 cues                          |
+| Voz real + roteiro pt-BR geram legendas alinhadas/editáveis                  | **PASS local** | integração real Piper Cadu + Vosk (score >0,5); CLI real gerou 5 artefatos; E2E observou 13 cues  |
 | Trocar texto/timing persiste e atualiza preview/render sem mexer na narração | **PASS local** | `caption_tracks` versionado + snapshot; editor; worker lê track aprovado do take atual            |
-| SRT parseável, ASS válido e burn-in dentro da tela                           | **PASS local** | unit SRT/ASS/CTA; FFmpeg burn-in com frame real e margem horizontal ≥80 px; manifest `captions`   |
+| SRT parseável, ASS válido e burn-in dentro da tela                           | **PASS local** | unit SRT/ASS/CTA; FFmpeg burn-in com frame real CJK/emoji e margem horizontal ≥80 px              |
 | Falha ASR/ARM64 não quebra edição; fallback manual                           | **PASS**       | editor manual independente do Vosk; erros explícitos; `ASR_FALLBACK` quando a cobertura é parcial |
-| Legendas/áudio privados, sem conteúdo em logs                                | **PASS**       | RLS owner-only, service-only writes, APIs privadas, guarda de take/voz aprovada                   |
+| Legendas/áudio privados, sem conteúdo em logs                                | **PASS**       | RLS owner-only, service-only writes, APIs privadas, guarda de take/voz/episódio                   |
 
-## Correções pós-auditoria (H1–H5)
+## Correções pós-auditoria
 
-- **H1 — timestamps:** timestamps de palavras/cues arredondados para inteiros e schema validado antes de persistir; cues curtas são estendidas até 300 ms em vez de descartadas.
-- **H2 — take atual:** `loadCaptionTrack`, exportações, página e worker filtram pelo `narration_take_id`; aprovar/gerar exige voz aprovada e READY; trigger do DB rejeita JSON/coluna divergentes e aprovação sem voz aprovada.
-- **H3 — fantasma/fallback:** o último cue termina no máximo 1,5 s após a última palavra ASR; cobertura <80% ou última palavra antes de 40% da duração rebaixa a fonte para `ASR_FALLBACK`.
-- **H4 — safe area/escape:** quebra por largura estimada (880 px) além do limite de 42 caracteres; ASS re-quebra qualquer linha manual; `\` e `{}` são neutralizados; o ASS é copiado para diretório de trabalho seguro e referenciado por nome simples, eliminando falhas com apóstrofo/dois-pontos no path.
-- **H5 — evidência:** E2E valida `output_manifest.captions` (`trackId`, `cues`, estilo, safe zone, take, hash); teste CTA cobre não-sobreposição/janela; teste FFmpeg extrai frame real e mede a margem horizontal; docs corrigidas para 13 cues.
+- **H1:** timestamps de palavras/cues arredondados para inteiros e schema validado antes de persistir; cue final curta ganha espaço sem sobrepor o cue anterior (trim/merge) ou é descartada de forma explícita. Timestamps de palavras são monotônicos e ficam dentro do cue.
+- **H2:** `loadCaptionTrack`, exportações, página e worker filtram pelo `narration_take_id`; aprovar/gerar exige voz aprovada e READY; trigger do DB rejeita JSON/coluna divergentes, take de outro episódio e aprovação sem voz aprovada; troca de voz substitui a track com nova versão. O contrato real `caption-align` → `asr-vosk.py` foi corrigido (stdout, sem `--output`) e executado com Piper/Vosk.
+- **H3:** a cauda não correspondida é comprimida e truncada no teto de `última palavra + 1,5 s`; cobertura <80% ou última palavra antes de 40% da duração rebaixa a fonte para `ASR_FALLBACK`.
+- **H4:** quebra por largura estimada (880 px) com classificação CJK/emoji, além do limite de 42 caracteres inclusive para tokens estreitos; ASS re-quebra linhas manuais; `\`, `{}` e controles são neutralizados; o ASS é copiado para diretório de trabalho seguro e referenciado por nome simples, eliminando falhas com apóstrofo/dois-pontos no path.
+- **H5:** E2E valida `output_manifest.captions` (`trackId`, `cues > 0`, estilo, safe zone, take, hash); teste CTA cobre não-sobreposição, janela longa limitada e janela curta rejeitada; teste FFmpeg extrai frame real com CJK/emoji e mede a margem horizontal; docs distinguem cues observados de cues assertados.
 
 ## Testes
 
-- `npm test`: **132 passed + 3 skipped**; inclui 120s, mux, burn-in ASS, CTA e ASR opt-in.
-- `npm run test:db`: **122/122 PASS**.
-- `npm run test:e2e:local -- e2e/timeline.spec.ts`: **1 passed (12,1m)**, com legendas aprovadas, render READY e manifesto com 13 cues.
+- `npm test`: **137 passed + 3 skipped**; inclui 120s, mux, burn-in ASS, CTA, largura CJK/emoji e ASR opt-in.
+- `npm run test:db`: **124/124 PASS**.
+- `npm run test:e2e:local -- e2e/timeline.spec.ts`: **1 passed (2,9m)**, com legendas aprovadas, render READY e manifesto observado com 13 cues.
 - `npm run build`: PASS.
 - `npm run audit:policy`: **26 invariantes / 23 tabelas PASS**.
-- Integração real ASR: `caption-asr.integration.test.ts` PASS com Piper Cadu + Vosk.
-- CI hospedada `43617826034` em `7f479b4`: **SUCCESS** (7m2s); unit 132+3, PgTAP 122/122, E2E 12/12 (3,3m), Sonar/Socket/Vercel PASS. Evidência em `docs/evidence/wo-008/ci-7f479b4.txt`. O run anterior `43608151136` em `64d8999` também passou antes das correções.
+- Integração real ASR: `caption-asr.integration.test.ts` PASS com Piper Cadu + Vosk e duração real do áudio.
+- CLI real `npm run captions:align` com Piper/Vosk: PASS; gerou `asr-words.json`, `captions.json`, `captions.srt`, `captions.ass` e `report.json` (2 cues, score 0,869; fonte `ASR_FALLBACK` porque o áudio sintético de ~8 s foi alinhado a um episódio de 120 s).
+- CI hospedada `43617826034` em `7f479b4`: **SUCCESS** (7m2s); unit 132+3, PgTAP 122/122, E2E 12/12 (3,3m), Sonar/Socket/Vercel PASS. Evidência em `docs/evidence/wo-008/ci-7f479b4.txt`. O CI do commit final será registrado em novo arquivo.
 
-- Unit `captions.test.ts` (15 testes): normalização, alinhamento/hallucination, timestamps fracionários, fantasma, cue curta, linhas largas, CTA, SRT/ASS, safe zone e escape ASS.
-- Integração real opt-in `caption-asr.integration.test.ts`: Piper Cadu → Vosk → alinhamento.
-- Integração FFmpeg: burn-in ASS com path contendo apóstrofo, frame real 1080×1920 e margem horizontal segura.
-- PgTAP: owner-only, service-only, aprovação com cues, vínculo ao plano, vínculo ao take e voz aprovada.
+- Unit `captions.test.ts` (20 testes): normalização, alinhamento/hallucination, timestamps fracionários, fantasma, cue curta/sobreposição, monotonicidade de palavras, CTA, SRT/ASS, safe zone, CJK/emoji/token estreito e escape ASS.
+- Integração real opt-in `caption-asr.integration.test.ts`: Piper Cadu → Vosk → alinhamento com duração probeada.
+- Integração FFmpeg: burn-in ASS com path contendo apóstrofo, frame real 1080×1920, CJK/emoji e margem horizontal segura.
+- PgTAP: owner-only, service-only, aprovação com cues, vínculo ao plano, vínculo ao take, take do mesmo episódio e voz aprovada.
 - E2E: timeline + narração + legendas + render narrado/queimado; manifesto `captions` com track/take/hash/style/safeZone.
 - Policy audit e backup manifest.
 

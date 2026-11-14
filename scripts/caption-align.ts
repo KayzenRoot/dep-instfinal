@@ -10,6 +10,7 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { createClient, type User } from '@supabase/supabase-js';
 import {
+	appendCtaCues,
 	buildCaptionAss,
 	buildCaptionSrt,
 	buildCaptionTrack,
@@ -63,7 +64,7 @@ function parseAsrWords(raw: unknown): AsrWordInput[] {
 		.filter((entry): entry is AsrWordInput => entry !== null);
 }
 
-async function resolveAsrWords(): Promise<AsrWordInput[]> {
+async function resolveAsrWords(outputDir: string): Promise<AsrWordInput[]> {
 	const asrFile = process.env.CAPTION_ASR_FILE?.trim();
 	if (asrFile) return parseAsrWords(JSON.parse(await readFile(asrFile, 'utf8')));
 	const audioFile = process.env.CAPTION_AUDIO_FILE?.trim();
@@ -73,13 +74,18 @@ async function resolveAsrWords(): Promise<AsrWordInput[]> {
 		throw new Error(
 			'missing_caption_asr_source: set CAPTION_ASR_FILE or CAPTION_AUDIO_FILE + VOSK_MODEL',
 		);
-	const output = resolve(process.env.CAPTION_OUTPUT_DIR ?? '.', 'asr-words.json');
-	await execFileAsync(
+	const { stdout } = await execFileAsync(
 		python,
-		[resolve('scripts/asr-vosk.py'), '--input', audioFile, '--output', output, '--model', model],
+		[resolve('scripts/asr-vosk.py'), '--input', audioFile, '--model', model],
 		{ timeout: 600_000, maxBuffer: 4 * 1024 * 1024, windowsHide: true },
 	);
-	return parseAsrWords(JSON.parse(await readFile(output, 'utf8')));
+	const payload = JSON.parse(stdout);
+	await writeFile(
+		join(outputDir, 'asr-words.json'),
+		`${JSON.stringify(payload, null, 2)}\n`,
+		'utf8',
+	);
+	return parseAsrWords(payload);
 }
 
 async function main() {
@@ -103,7 +109,11 @@ async function main() {
 	const context = await loadCaptionContext(admin, owner, episodeId, requestedVersion);
 	if (!context.narrationTakeId)
 		throw new Error('caption_narration_take_required: aprove uma voz antes de alinhar legendas');
-	const words = await resolveAsrWords();
+	if (!context.narrationApproved)
+		throw new Error('caption_voice_not_approved: aprove a narração antes de alinhar legendas');
+	const outputDir = resolve(required('CAPTION_OUTPUT_DIR'));
+	await mkdir(outputDir, { recursive: true });
+	const words = await resolveAsrWords(outputDir);
 	const style = (process.env.CAPTION_STYLE ?? 'clean') as CaptionStyle;
 	const safeZone = (process.env.CAPTION_SAFE_ZONE ?? 'tiktok') as CaptionTrack['safeZone'];
 	const track = buildCaptionTrack({
@@ -118,8 +128,15 @@ async function main() {
 		safeZone,
 		audioSha256: context.audioSha256,
 	});
-	const outputDir = resolve(required('CAPTION_OUTPUT_DIR'));
-	await mkdir(outputDir, { recursive: true });
+	if (context.plan.cta?.enabled && context.plan.cta.text) {
+		track.cues = appendCtaCues({
+			cues: track.cues,
+			text: context.plan.cta.text,
+			startMs: context.plan.cta.startMs,
+			endMs: context.plan.cta.endMs,
+			durationMs: context.durationMs,
+		});
+	}
 	const srt = buildCaptionSrt(track.cues);
 	const ass = buildCaptionAss(track);
 	const validated = captionTrackSchema.parse(track);

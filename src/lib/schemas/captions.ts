@@ -29,6 +29,28 @@ export const captionCueSchema = z
 			context.addIssue({ code: 'custom', path: ['endMs'], message: 'Cue curta demais.' });
 		if (cue.endMs - cue.startMs > 8_000)
 			context.addIssue({ code: 'custom', path: ['endMs'], message: 'Cue longa demais.' });
+		let previousWordEnd = -1;
+		for (const [index, word] of cue.words.entries()) {
+			if (word.endMs <= word.startMs)
+				context.addIssue({
+					code: 'custom',
+					path: ['words', index, 'endMs'],
+					message: 'Palavra termina antes de começar.',
+				});
+			if (word.startMs < cue.startMs || word.endMs > cue.endMs)
+				context.addIssue({
+					code: 'custom',
+					path: ['words', index],
+					message: 'Palavra fora dos limites do cue.',
+				});
+			if (word.startMs < previousWordEnd)
+				context.addIssue({
+					code: 'custom',
+					path: ['words', index, 'startMs'],
+					message: 'Palavras fora de ordem.',
+				});
+			previousWordEnd = word.endMs;
+		}
 	});
 
 export const captionStyleSchema = z.enum(['clean', 'vhs', 'highlight']);
