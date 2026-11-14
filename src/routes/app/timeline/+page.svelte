@@ -3,11 +3,15 @@
 	import type { PageData } from './$types';
 	import { retimeClips, reorderClips, trimClip } from '#lib/domain/video-edit-plan.js';
 	import type { EditPlanClip, VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
+	import type { EditPlanAudioEvent } from '#lib/schemas/audio-library.js';
+	import { buildSuspenseAudioTemplate } from '#lib/domain/audio-template.js';
 	import type { RenderJob } from '#lib/server/render-jobs.js';
 
 	let { data, form }: { data: PageData; form: { success?: boolean; message?: string } | null } =
 		$props();
 	let clips = $state<EditPlanClip[]>([]);
+	let audioEvents = $state<EditPlanAudioEvent[]>([]);
+	let masterGainDb = $state(0);
 	let editError = $state<string | null>(null);
 	let editorKey = $state('');
 	let changeNote = $state('');
@@ -21,6 +25,8 @@
 		if (key === editorKey) return;
 		editorKey = key;
 		clips = data.plan ? data.plan.clips.map((clip) => ({ ...clip })) : [];
+		audioEvents = data.plan?.audio?.events?.map((event) => ({ ...event })) ?? [];
+		masterGainDb = data.plan?.audio?.masterGainDb ?? 0;
 		editError = null;
 	});
 
@@ -52,7 +58,146 @@
 	const canRender = $derived(
 		data.storedPlan?.currentStatus === 'APPROVED' && !data.planStale && !renderBusy,
 	);
-	const planForSave = $derived<VideoEditPlan | null>(data.plan ? { ...data.plan, clips } : null);
+	const planForSave = $derived<VideoEditPlan | null>(
+		data.plan
+			? {
+					...data.plan,
+					clips,
+					audio: { masterGainDb, events: audioEvents },
+				}
+			: null,
+	);
+	const exportableAudio = $derived(
+		(data.audioAssets ?? []).filter(
+			(asset) =>
+				asset.licenseStatus === 'VERIFIED' && asset.commercialAllowed && asset.socialAllowed,
+		),
+	);
+	const audioAssetById = $derived(
+		new Map((data.audioAssets ?? []).map((asset) => [asset.id, asset])),
+	);
+
+	async function previewAudioEvent(event: EditPlanAudioEvent, spatial: boolean) {
+		const asset = audioAssetById.get(event.assetId);
+		if (!asset) return;
+		try {
+			const response = await fetch(`/api/audio/${asset.id}`);
+			if (!response.ok) throw new Error('preview');
+			const context = new AudioContext();
+			const buffer = await context.decodeAudioData(await response.arrayBuffer());
+			const source = context.createBufferSource();
+			source.buffer = buffer;
+			source.loop = event.loop;
+			const gain = context.createGain();
+			const start = context.currentTime;
+			gain.gain.setValueAtTime(0.0001, start);
+			gain.gain.exponentialRampToValueAtTime(
+				Math.max(0.0001, Math.pow(10, event.gainDb / 20)),
+				start + Math.max(0.01, event.fadeInMs / 1000),
+			);
+			source.connect(gain);
+			const panner = context.createStereoPanner();
+			panner.pan.value = event.pan;
+			if (!spatial) {
+				gain.connect(panner);
+				panner.connect(context.destination);
+			} else {
+				const filter = context.createBiquadFilter();
+				filter.type = 'lowpass';
+				filter.frequency.value = event.spatialPreset === 'radio' ? 2800 : 4200;
+				const delay = context.createDelay(0.3);
+				delay.delayTime.value = 0.035;
+				const feedback = context.createGain();
+				feedback.gain.value = 0.16;
+				gain.connect(filter);
+				filter.connect(panner);
+				panner.connect(context.destination);
+				panner.connect(delay);
+				delay.connect(feedback);
+				feedback.connect(delay);
+				delay.connect(context.destination);
+			}
+			source.start(start);
+			source.stop(start + event.durationMs / 1000);
+			setTimeout(() => void context.close(), event.durationMs + 300);
+		} catch {
+			editError = 'Não foi possível reproduzir a prévia deste áudio.';
+		}
+	}
+
+	function addAudioEvent() {
+		const asset = exportableAudio[0];
+		if (!asset) return;
+		const durationMs = Math.min(5_000, asset.durationMs);
+		audioEvents = [
+			...audioEvents,
+			{
+				id: crypto.randomUUID(),
+				assetId: asset.id,
+				kind: asset.kind,
+				startMs: 0,
+				durationMs,
+				sourceInMs: 0,
+				gainDb: asset.kind === 'MUSIC' ? -18 : -6,
+				fadeInMs: 300,
+				fadeOutMs: 300,
+				pan: 0,
+				loop: asset.kind === 'AMBIENCE',
+				ducking: asset.kind !== 'SFX',
+				spatialPreset: 'none',
+				spatialMode: 'stereo_pan',
+			},
+		];
+	}
+
+	function changeAudioAsset(index: number, assetId: string) {
+		const asset = audioAssetById.get(assetId);
+		if (!asset) return;
+		audioEvents = audioEvents.map((event, position) =>
+			position === index
+				? {
+						...event,
+						assetId,
+						kind: asset.kind,
+						durationMs: Math.min(event.durationMs, asset.durationMs),
+						ducking: asset.kind !== 'SFX',
+						spatialPreset: 'none',
+						spatialMode: 'stereo_pan',
+					}
+				: event,
+		);
+	}
+
+	function updateAudioEvent(index: number, patch: Partial<EditPlanAudioEvent>) {
+		audioEvents = audioEvents.map((event, position) => {
+			if (position !== index) return event;
+			const next = { ...event, ...patch };
+			if (patch.assetId !== undefined) return next;
+			if (patch.spatialPreset !== undefined) {
+				next.spatialMode = patch.spatialPreset === 'none' ? 'stereo_pan' : 'binaural_simulated';
+			}
+			return next;
+		});
+	}
+
+	function removeAudioEvent(index: number) {
+		audioEvents = audioEvents.filter((_, position) => position !== index);
+	}
+
+	function applySuspenseTemplate() {
+		if (!data.plan) return;
+		try {
+			const template = buildSuspenseAudioTemplate({
+				durationMs: data.plan.durationMs,
+				assets: data.audioAssets ?? [],
+			});
+			audioEvents = template.events;
+			masterGainDb = template.masterGainDb;
+			editError = null;
+		} catch (cause) {
+			editError = cause instanceof Error ? cause.message : 'Template de áudio indisponível.';
+		}
+	}
 
 	function apply(next: EditPlanClip[], errorCode = 'Timeline inválida.') {
 		try {
@@ -354,6 +499,194 @@
 				</li>
 			{/each}
 		</ol>
+
+		<section class="audio-editor" aria-label="Trilha e efeitos">
+			<div class="audio-head">
+				<div>
+					<h2>Trilha e efeitos</h2>
+					<p class="meta-label">
+						Narração prioritária; música/ambiência com ducking; SFX limitados. Biblioteca
+						licenciada:
+						<a href={resolve('/app/audio')}>gerenciar áudio</a>
+					</p>
+				</div>
+				<div class="audio-head-actions">
+					<button type="button" onclick={applySuspenseTemplate}>Template suspense 120 s</button>
+					<label
+						>Ganho master (dB)
+						<input
+							type="number"
+							min="-12"
+							max="6"
+							step="0.5"
+							value={masterGainDb}
+							oninput={(event) => (masterGainDb = Number(event.currentTarget.value))}
+						/>
+					</label>
+				</div>
+			</div>
+			{#if !exportableAudio.length}
+				<p class="notice warning">
+					Nenhum áudio com licença verificada e direitos comercial/social. Importe na
+					<a href={resolve('/app/audio')}>biblioteca de áudio</a> antes de adicionar eventos.
+				</p>
+			{:else}
+				<button type="button" onclick={addAudioEvent}>Adicionar evento de áudio</button>
+			{/if}
+			{#if audioEvents.length}
+				<ol class="audio-list">
+					{#each audioEvents as event, index (event.id)}
+						{@const asset = audioAssetById.get(event.assetId)}
+						<li>
+							<header>
+								<strong>Evento {index + 1}</strong>
+								<span class="meta-label">{event.kind}</span>
+								<button type="button" class="link" onclick={() => removeAudioEvent(index)}>
+									Remover
+								</button>
+							</header>
+							<div class="audio-grid">
+								<label
+									>Áudio
+									<select
+										value={event.assetId}
+										onchange={(changeEvent) =>
+											changeAudioAsset(index, changeEvent.currentTarget.value)}
+									>
+										{#each exportableAudio as audioAsset (audioAsset.id)}
+											<option value={audioAsset.id}>{audioAsset.title}</option>
+										{/each}
+									</select>
+								</label>
+								<label
+									>Início (ms)
+									<input
+										type="number"
+										min="0"
+										max={data.plan.durationMs - 100}
+										value={event.startMs}
+										oninput={(changeEvent) =>
+											updateAudioEvent(index, {
+												startMs: Math.max(0, Number(changeEvent.currentTarget.value)),
+											})}
+									/>
+								</label>
+								<label
+									>Duração (ms)
+									<input
+										type="number"
+										min="100"
+										max={data.plan.durationMs}
+										value={event.durationMs}
+										oninput={(changeEvent) =>
+											updateAudioEvent(index, {
+												durationMs: Math.max(100, Number(changeEvent.currentTarget.value)),
+											})}
+									/>
+								</label>
+								<label
+									>Ganho (dB)
+									<input
+										type="number"
+										min="-60"
+										max="12"
+										step="0.5"
+										value={event.gainDb}
+										oninput={(changeEvent) =>
+											updateAudioEvent(index, { gainDb: Number(changeEvent.currentTarget.value) })}
+									/>
+								</label>
+								<label
+									>Fade in (ms)
+									<input
+										type="number"
+										min="0"
+										max="10000"
+										value={event.fadeInMs}
+										oninput={(changeEvent) =>
+											updateAudioEvent(index, {
+												fadeInMs: Math.max(0, Number(changeEvent.currentTarget.value)),
+											})}
+									/>
+								</label>
+								<label
+									>Fade out (ms)
+									<input
+										type="number"
+										min="0"
+										max="10000"
+										value={event.fadeOutMs}
+										oninput={(changeEvent) =>
+											updateAudioEvent(index, {
+												fadeOutMs: Math.max(0, Number(changeEvent.currentTarget.value)),
+											})}
+									/>
+								</label>
+								<label
+									>Pan <span class="meta-label">{event.pan.toFixed(2)}</span>
+									<input
+										type="range"
+										min="-1"
+										max="1"
+										step="0.05"
+										value={event.pan}
+										oninput={(changeEvent) =>
+											updateAudioEvent(index, { pan: Number(changeEvent.currentTarget.value) })}
+									/>
+								</label>
+								<label
+									>Preset espacial
+									<select
+										value={event.spatialPreset}
+										onchange={(changeEvent) =>
+											updateAudioEvent(index, {
+												spatialPreset: changeEvent.currentTarget
+													.value as EditPlanAudioEvent['spatialPreset'],
+											})}
+									>
+										<option value="none">Nenhum</option>
+										<option value="corridor">Corredor estreito</option>
+										<option value="radio">Rádio distante</option>
+										<option value="steps-behind">Passos atrás</option>
+										<option value="whisper-side">Sussurro lateral</option>
+									</select>
+								</label>
+								<label class="check"
+									><input
+										type="checkbox"
+										checked={event.loop}
+										onchange={(changeEvent) =>
+											updateAudioEvent(index, { loop: changeEvent.currentTarget.checked })}
+									/> Loop</label
+								>
+								<label class="check"
+									><input
+										type="checkbox"
+										checked={event.ducking}
+										onchange={(changeEvent) =>
+											updateAudioEvent(index, { ducking: changeEvent.currentTarget.checked })}
+									/> Ducking sob a voz</label
+								>
+							</div>
+							<div class="preview-row">
+								<span class="meta-label">
+									{asset
+										? `${asset.durationMs} ms · ${asset.licenseName} · ${event.spatialMode}`
+										: 'Áudio indisponível'}
+								</span>
+								<button type="button" onclick={() => void previewAudioEvent(event, false)}>
+									A · normal
+								</button>
+								<button type="button" onclick={() => void previewAudioEvent(event, true)}>
+									B · soundscape
+								</button>
+								<span class="meta-label">prévia simulada; melhor em fones, sem 3D nativo</span>
+							</div>
+						</li>
+					{/each}
+				</ol>
+			{/if}
+		</section>
 	</form>
 
 	<section class="plan-actions" aria-label="Ações do plano">
@@ -659,6 +992,91 @@
 	}
 	.render-list code {
 		color: var(--muted);
+	}
+	.audio-editor {
+		display: grid;
+		gap: 0.75rem;
+		margin-block-start: 1.5rem;
+		border-block-start: 1px solid var(--line);
+		padding-block-start: 1rem;
+	}
+	.audio-head {
+		display: flex;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 1rem;
+		align-items: end;
+	}
+	.audio-head input {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 0.4rem;
+		color: var(--ink);
+		padding: 0.55rem 0.7rem;
+	}
+	.audio-head-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+		align-items: end;
+	}
+	.audio-list {
+		display: grid;
+		gap: 0.75rem;
+		list-style: none;
+		padding: 0;
+	}
+	.audio-list li {
+		display: grid;
+		gap: 0.6rem;
+		border: 1px solid var(--line);
+		border-radius: 0.75rem;
+		padding: 0.85rem;
+		background: var(--surface);
+	}
+	.audio-list header {
+		display: flex;
+		justify-content: space-between;
+		gap: 0.75rem;
+		align-items: center;
+	}
+	.audio-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+		gap: 0.6rem;
+		align-items: end;
+	}
+	.audio-grid label {
+		display: grid;
+		gap: 0.25rem;
+		color: var(--muted);
+		font-size: 0.78rem;
+	}
+	.audio-grid input,
+	.audio-grid select {
+		background: var(--surface-strong, #191919);
+		border: 1px solid var(--line);
+		border-radius: 0.4rem;
+		color: var(--ink);
+		padding: 0.45rem 0.55rem;
+	}
+	.audio-grid .check {
+		display: flex;
+		flex-direction: row;
+		gap: 0.4rem;
+		align-items: center;
+	}
+	.preview-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+		align-items: center;
+	}
+	button.link {
+		background: none;
+		border: 0;
+		color: var(--accent);
+		padding: 0;
 	}
 	@media (max-width: 640px) {
 		.clip-card header,

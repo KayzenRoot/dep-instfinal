@@ -8,6 +8,8 @@ import {
 	type EditPlanContext,
 } from '#lib/domain/video-edit-plan.js';
 import { videoEditPlanSchema, type VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
+import { loadAudioAssets } from './audio-library.js';
+import { assertAudioEventsUsable, AudioEventError } from '#lib/domain/audio-events.js';
 
 export class VideoEditPlanError extends Error {
 	constructor(
@@ -228,6 +230,25 @@ export async function saveVideoEditPlan(input: {
 }): Promise<number> {
 	const context = await loadEditPlanContext(input.db, input.owner, input.episodeId);
 	const plan = validateForContext(input.plan, context);
+	const events = plan.audio?.events ?? [];
+	if (events.length) {
+		const assets = await loadAudioAssets(
+			input.db,
+			input.owner.id,
+			events.map((event) => event.assetId),
+		);
+		try {
+			assertAudioEventsUsable(events, assets);
+		} catch (cause) {
+			if (cause instanceof AudioEventError)
+				throw new VideoEditPlanError(
+					cause.code.includes('LICENSE') ? 409 : 400,
+					cause.code,
+					cause.message,
+				);
+			throw cause;
+		}
+	}
 	if (!input.adminDb)
 		throw new VideoEditPlanError(
 			503,

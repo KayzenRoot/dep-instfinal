@@ -26,6 +26,7 @@ const TABLES = [
 	'voice_direction_plans',
 	'narration_takes',
 	'caption_tracks',
+	'audio_assets',
 ] as const;
 
 export const GET: RequestHandler = async (event) => {

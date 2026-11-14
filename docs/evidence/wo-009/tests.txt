@@ -1,0 +1,57 @@
+# WO-009 — local verification evidence
+
+Date: 2026-11-14
+Branch: `feat/dif-v2-wo-009`
+Base: `main` `7d6af5e`
+Scope: licensed SFX/music library, audio events, mix/ducking and simulated stereo soundscape.
+
+## Commands and results
+
+```text
+npm run lint
+  PASS (eslint --max-warnings=0)
+
+npm run check
+  PASS (svelte-check: 0 errors, 0 warnings)
+
+npx supabase db reset --local
+  all migrations applied, including 20261114130000_v2_wo009_audio.sql
+
+npx supabase test db
+  Files=1, Tests=131, Result: PASS
+
+npx vitest run
+  Test Files 23 passed | 3 skipped (26)
+       Tests 156 passed | 3 skipped (159)
+  Includes:
+    - audio library/licence/event/template tests (8)
+    - audio ingestion tests (3)
+    - real FFmpeg mix: narration + ducked music + SFX + loudness/true peak + mono downmix
+    - second render and instrumental (no narration) mix
+
+npm run build
+  adapter-node build PASS
+
+npm run audit:policy
+  Checked 27 policy invariants across 24 tables. PASS
+
+npm run test:e2e:local -- e2e/audio-library.spec.ts
+  1 passed (26.1s): five categories imported with CC0 metadata and filtered
+
+npm run test:e2e:local -- e2e/timeline.spec.ts
+  1 passed (2.5m): full timeline/narration/captions/render journey still READY
+```
+
+## FFmpeg mix measurements
+
+- Narration + music + SFX: AAC 48 kHz stereo, `loudnorm -16 LUFS`, true peak ≤ −0,8 dBTP, ducking measured as a lower music/voice band ratio, mono downmix audible.
+- 120 s local benchmark (x64, 3-track mix, 1080×1920 video stream copy):
+  - wall **11.6 s**, user **15.3 s**, system **1.0 s**, max RSS **124,708 KiB**.
+  - ARM64 mixer benchmark and human headphone/speaker listening remain pending.
+
+## Notes
+
+- The library starts empty; no external/downloaded asset was used.
+- Licences are declared metadata (CC0 fixtures in tests), not a legal opinion.
+- Soundscape is processed stereo (`stereo_pan`/`binaural_simulated`), not native Dolby Atmos or tracked 3D.
+- No paid API, GPU, public media, deployment or VPS change was used.

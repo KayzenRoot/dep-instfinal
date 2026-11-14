@@ -8,6 +8,7 @@ import { buildDefaultEditPlan } from '#lib/domain/video-edit-plan.js';
 import { buildRenderCommand } from '#lib/domain/render-composition.js';
 import { renderPlanToFile } from './render-compose.js';
 import { buildCaptionAss } from '#lib/domain/captions.js';
+import type { AudioMixEvent } from '#lib/domain/render-composition.js';
 import { captionTrackSchema } from '#lib/schemas/captions.js';
 
 function hasFfmpeg(): boolean {
@@ -367,6 +368,189 @@ describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {
 			expect(output.width).toBe(1080);
 			expect(output.height).toBe(1920);
 			expect(Math.abs(output.durationMs - 7_000)).toBeLessThanOrEqual(1_000);
+		} finally {
+			await rm(workspace, { recursive: true, force: true });
+		}
+	}, 180_000);
+});
+
+describe.skipIf(!enabled)('FFmpeg audio mix integration', () => {
+	it('mixes narration, ducked music and SFX with loudness/true-peak safety', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'dif-audio-mix-'));
+		try {
+			const { plan, inputs } = twoClipPlan(workspace);
+			const narrationPath = join(workspace, 'narration.wav');
+			const musicPath = join(workspace, 'music.wav');
+			const sfxPath = join(workspace, 'impact.wav');
+			for (const [path, frequency, seconds] of [
+				[narrationPath, 300, 3],
+				[musicPath, 90, 4],
+				[sfxPath, 1_200, 1],
+			] as const) {
+				execFileSync(
+					'ffmpeg',
+					[
+						'-y',
+						'-hide_banner',
+						'-loglevel',
+						'error',
+						'-f',
+						'lavfi',
+						'-i',
+						`sine=frequency=${frequency}:sample_rate=48000:duration=${seconds}`,
+						'-ac',
+						'1',
+						'-c:a',
+						'pcm_s16le',
+						path,
+					],
+					{ timeout: 60_000, windowsHide: true },
+				);
+			}
+			const events: AudioMixEvent[] = [
+				{
+					id: 'music',
+					path: musicPath,
+					kind: 'MUSIC',
+					startMs: 0,
+					durationMs: 4_000,
+					sourceInMs: 0,
+					gainDb: -18,
+					fadeInMs: 250,
+					fadeOutMs: 350,
+					pan: -0.3,
+					loop: true,
+					ducking: true,
+					spatialPreset: 'none',
+					spatialMode: 'stereo_pan',
+					intensity: 3,
+				},
+				{
+					id: 'impact',
+					path: sfxPath,
+					kind: 'SFX',
+					startMs: 2_000,
+					durationMs: 800,
+					sourceInMs: 0,
+					gainDb: -8,
+					fadeInMs: 50,
+					fadeOutMs: 80,
+					pan: 0.7,
+					loop: false,
+					ducking: false,
+					spatialPreset: 'steps-behind',
+					spatialMode: 'binaural_simulated',
+					intensity: 5,
+				},
+			];
+			const render = (name: string) =>
+				renderPlanToFile({
+					plan,
+					assets: inputs,
+					outputPath: join(workspace, name),
+					vhsIntensity: 0,
+					timeoutMs: 120_000,
+					narration: { path: narrationPath, durationMs: 3_000, takeId: 'narration' },
+					audioEvents: events,
+					masterGainDb: -2,
+				});
+			const first = await render('mix-a.mp4');
+			expect(first.audio).toMatchObject({
+				codec: 'aac',
+				channels: 2,
+				sampleRate: 48_000,
+				eventCount: 2,
+				duckedCount: 1,
+				masterGainDb: -2,
+			});
+			expect(first.audio!.truePeakDb).not.toBeNull();
+			expect(first.audio!.truePeakDb!).toBeLessThanOrEqual(-0.8);
+			expect(first.audio!.lufs).not.toBeNull();
+			expect(first.audio!.lufs!).toBeGreaterThanOrEqual(-20);
+			expect(first.audio!.lufs!).toBeLessThanOrEqual(-12);
+			const noDuck = await renderPlanToFile({
+				plan,
+				assets: inputs,
+				outputPath: join(workspace, 'mix-noduck.mp4'),
+				vhsIntensity: 0,
+				timeoutMs: 120_000,
+				narration: { path: narrationPath, durationMs: 3_000, takeId: 'narration' },
+				audioEvents: events.map((event) =>
+					event.kind === 'MUSIC' ? { ...event, ducking: false } : event,
+				),
+				masterGainDb: -2,
+			});
+			const bandLevel = (file: string, frequency: number) => {
+				const result = spawnSync(
+					'ffmpeg',
+					[
+						'-hide_banner',
+						'-nostdin',
+						'-ss',
+						'0.5',
+						'-t',
+						'2',
+						'-i',
+						file,
+						'-af',
+						`bandpass=f=${frequency}:width_type=h:w=30,volumedetect`,
+						'-f',
+						'null',
+						'-',
+					],
+					{ encoding: 'utf8', windowsHide: true },
+				);
+				const match = /mean_volume:\s*(-?[0-9.]+) dB/.exec(result.stderr);
+				return match ? Number(match[1]) : null;
+			};
+			const duckedMusic = bandLevel(first.path, 90);
+			const openMusic = bandLevel(noDuck.path, 90);
+			const voiceBand = bandLevel(first.path, 300);
+			const openVoiceBand = bandLevel(noDuck.path, 300);
+			expect(duckedMusic).not.toBeNull();
+			expect(openMusic).not.toBeNull();
+			expect(voiceBand).not.toBeNull();
+			expect(duckedMusic! - voiceBand!).toBeLessThan(openMusic! - openVoiceBand! - 2);
+			expect(voiceBand!).toBeGreaterThan(-45);
+			const instrumental = await renderPlanToFile({
+				plan,
+				assets: inputs,
+				outputPath: join(workspace, 'mix-instrumental.mp4'),
+				vhsIntensity: 0,
+				timeoutMs: 120_000,
+				audioEvents: events.map((event) => ({ ...event, ducking: false })),
+				masterGainDb: 0,
+			});
+			expect(instrumental.audio).toMatchObject({
+				eventCount: 2,
+				narrationTakeId: null,
+				channels: 2,
+				sampleRate: 48_000,
+			});
+			const second = await render('mix-b.mp4');
+			expect(Math.abs(second.durationMs - first.durationMs)).toBeLessThanOrEqual(50);
+			expect(second.audio!.lufs!).toBeCloseTo(first.audio!.lufs!, 0);
+
+			const mono = spawnSync(
+				'ffmpeg',
+				[
+					'-hide_banner',
+					'-nostdin',
+					'-i',
+					first.path,
+					'-ac',
+					'1',
+					'-af',
+					'volumedetect',
+					'-f',
+					'null',
+					'-',
+				],
+				{ encoding: 'utf8', windowsHide: true },
+			);
+			const meanVolume = /mean_volume:\s*(-?[0-9.]+) dB/.exec(mono.stderr);
+			expect(meanVolume).not.toBeNull();
+			expect(Number(meanVolume![1])).toBeGreaterThan(-60);
 		} finally {
 			await rm(workspace, { recursive: true, force: true });
 		}

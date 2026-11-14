@@ -20,6 +20,8 @@ import {
 } from '#lib/schemas/video-edit-plan.js';
 import { EditPlanError } from '#lib/domain/video-edit-plan.js';
 import { loadVoicePlan } from '#lib/server/narration.js';
+import { listAudioAssets } from '#lib/server/audio-library.js';
+import type { AudioAsset } from '#lib/schemas/audio-library.js';
 
 function messageFor(cause: unknown): { status: number; message: string } {
 	if (cause instanceof VideoEditPlanError) return { status: cause.status, message: cause.message };
@@ -69,6 +71,7 @@ export const load: PageServerLoad = async (event) => {
 			planStale: false,
 			renderJobs: [],
 			narration: null,
+			audioAssets: [],
 		};
 
 	try {
@@ -127,12 +130,19 @@ export const load: PageServerLoad = async (event) => {
 		} catch {
 			narration = null;
 		}
+		let audioAssets: AudioAsset[] = [];
+		try {
+			audioAssets = await listAudioAssets(db, owner);
+		} catch {
+			audioAssets = [];
+		}
 		return {
 			episodes: episodeList,
 			selectedEpisode,
 			plan,
 			renderJobs,
 			narration,
+			audioAssets,
 			planStale: Boolean(
 				stored.plan && plan && plan.episodeRevisionNumber !== context.episodeRevisionNumber,
 			),
@@ -161,6 +171,7 @@ export const load: PageServerLoad = async (event) => {
 			planStale: false,
 			renderJobs: [],
 			narration: null,
+			audioAssets: [],
 		};
 	}
 };

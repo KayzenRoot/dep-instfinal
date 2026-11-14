@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(124);
+select plan(131);
 
 do $$
 declare
@@ -1656,6 +1656,71 @@ select lives_ok(
     set current_status = 'APPROVED'
     where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
   'voice direction is approved for the final assertion'
+);
+select lives_ok(
+  $$insert into public.audio_assets (
+      id, owner_id, kind, title, author, source, license_name, license_url, attribution,
+      commercial_allowed, social_allowed, license_status, tags, intensity, bucket,
+      object_key, sha256, byte_size, duration_ms, format, sample_rate, channels
+    ) values (
+      'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
+      '11111111-1111-4111-8111-111111111111', 'SFX', 'Impacto sintético', 'DIF Studio',
+      'Fixture local', 'CC0 1.0', 'https://creativecommons.org/publicdomain/zero/1.0/',
+      'DIF Studio, CC0', true, true, 'VERIFIED', array['impacto','susto'], 5,
+      'dif-studio-video-private',
+      'audio/11111111-1111-4111-8111-111111111111/a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1.wav',
+      repeat('f', 64), 1024, 1000, 'wav', 48000, 1
+    );$$,
+  'service role can store a licensed audio asset'
+);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.audio_assets), 1::bigint,
+  'owner can read the licensed audio library'
+);
+select throws_ok(
+  $$insert into public.audio_assets (
+      owner_id, kind, title, author, source, license_name, attribution,
+      commercial_allowed, social_allowed, license_status, tags, intensity, bucket,
+      object_key, sha256, byte_size, duration_ms, format, sample_rate, channels
+    ) values (
+      '11111111-1111-4111-8111-111111111111', 'SFX', 'Spoof', 'DIF', 'x', 'CC0', 'x',
+      true, true, 'VERIFIED', array['porta'], 3, 'dif-studio-video-private',
+      'audio/spoof.wav', repeat('e', 64), 1024, 1000, 'wav', 48000, 1
+    );$$,
+  '42501', 'permission denied for table audio_assets',
+  'owner cannot insert audio assets directly'
+);
+select throws_ok(
+  $$update public.audio_assets set title = 'Spoof' where id = 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1';$$,
+  '42501', 'permission denied for table audio_assets',
+  'owner cannot update audio assets directly'
+);
+select throws_ok(
+  $$delete from public.audio_assets where id = 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1';$$,
+  '42501', 'permission denied for table audio_assets',
+  'owner cannot delete audio assets directly'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.audio_assets), 0::bigint,
+  'second owner cannot read the audio library'
+);
+set local role service_role;
+select throws_ok(
+  $$insert into public.audio_assets (
+      owner_id, kind, title, author, source, license_name, attribution,
+      commercial_allowed, social_allowed, license_status, tags, intensity, bucket,
+      object_key, sha256, byte_size, duration_ms, format, sample_rate, channels
+    ) values (
+      '11111111-1111-4111-8111-111111111111', 'SFX', 'Sem direitos', 'DIF', 'x', 'CC0', 'x',
+      false, true, 'VERIFIED', array['porta'], 3, 'dif-studio-video-private',
+      'audio/no-rights.wav', repeat('d', 64), 1024, 1000, 'wav', 48000, 1
+    );$$,
+  '23514',
+  'new row for relation "audio_assets" violates check constraint "audio_verified_license_requires_rights"',
+  'verified audio requires commercial and social rights'
 );
 reset role;
 

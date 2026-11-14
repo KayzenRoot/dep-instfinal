@@ -9,6 +9,14 @@
 - **Limits:** Piper não altera emoção real (`emotion:false`); emoção é direção e voz importada é o fallback. Aceitação auditiva humana e benchmark ARM64 **PASS**. R2 lifecycle/GC, SRT (WO-008) e credencial de menor privilégio (WO-013/014) permanecem residuais.
 - **Gate:** CI, auditoria de código, aceitação auditiva e benchmark ARM64 PASS; owner authorized merge/promotion on 2026-11-14. WO-008 (#25) is the next planned WO.
 
+## DIF-V2-WO-009 — Biblioteca licenciada, mix/ducking e soundscape (2026-11-14) — PROPOSED
+
+- **Status:** **PROPOSED — EM ANDAMENTO, NÃO APROVADO**; biblioteca `audio_assets`, eventos no EditPlan, UI, template e mixer FFmpeg implementados; licença em três camadas; testes locais em andamento; CI/auditoria pendentes.
+- **Base:** `main` `7d6af5e` (checkpoint WO-008 promovido); branch `feat/dif-v2-wo-009`.
+- **Delivered:** ingestão privada WAV/MP3/M4A/OGG com licença/atribuição/direitos, dedup por SHA; cinco categorias; eventos de áudio versionados no plano; timeline com ganho/fades/pan/loop/ducking/presets espaciais; template suspense 120 s; mixer com narração prioritária, ducking, SFU/SFX, loudnorm/alimiter, AAC 48 kHz estéreo e validação true peak/LUFS; manifesto `audio`/`audioMix`.
+- **Limits:** licença é declaração registrada, não parecer jurídico; soundscape é estéreo simulado, não Atmos/3D nativo; benchmark ARM64 e escuta humana pendentes; R2 live/lifecycle e menor privilégio do worker permanecem WO-013/014.
+- **Gate:** testes, CI, Evidence Bundle, Checkpoint Delta PROPOSED, auditoria independente e autorização explícita de merge/promoção.
+
 ## DIF-V2-WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROMOTED
 
 - **Status:** **PROMOTED**; alinhamento forçado, SRT/ASS, DB/RLS, UI e burn-in implementados; a quarta auditoria independente retornou **APPROVED WITH RESIDUALS** em `1a83105`; PgTAP **124/124**, unit **144+3**, E2E **12/12**; CI do código `43629972250` e do head final `43631376923` PASS; squash-merged at `a633c3a` (PR #56); issue #25 closed. Owner authorized merge/promotion on 2026-11-14.

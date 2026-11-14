@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -13,6 +13,7 @@ import {
 	validateForContext,
 } from '../src/lib/server/video-edit-plans.js';
 import { probeAudioMedia, probeMedia, renderPlanToFile } from '../src/lib/server/render-compose.js';
+import type { AudioMixEvent } from '../src/lib/domain/render-composition.js';
 import { buildCaptionAss } from '../src/lib/domain/captions.js';
 import { captionTrackSchema, type CaptionTrack } from '../src/lib/schemas/captions.js';
 
@@ -127,16 +128,60 @@ async function main() {
 			duration_ms: take.duration_ms,
 		};
 	}
+	const planAudioEvents = validated.audio?.events ?? [];
+	const audioAssets = new Map<
+		string,
+		{
+			id: string;
+			kind: string;
+			bucket: string;
+			object_key: string;
+			sha256: string;
+			byte_size: number;
+			duration_ms: number;
+			intensity: number;
+			license_status: string;
+			commercial_allowed: boolean;
+			social_allowed: boolean;
+		}
+	>();
+	if (planAudioEvents.length) {
+		const { data: audioRows, error: audioError } = await admin
+			.from('audio_assets')
+			.select(
+				'id,kind,bucket,object_key,sha256,byte_size,duration_ms,intensity,license_status,commercial_allowed,social_allowed',
+			)
+			.eq('owner_id', job.owner_id)
+			.in('id', [...new Set(planAudioEvents.map((event) => event.assetId))]);
+		if (audioError) throw new Error('audio_asset_load_failed');
+		for (const row of audioRows ?? []) audioAssets.set(row.id as string, row);
+		for (const event of planAudioEvents) {
+			const asset = audioAssets.get(event.assetId);
+			if (!asset || !asset.object_key) throw new Error('audio_asset_not_ready');
+			if (asset.license_status !== 'VERIFIED' || !asset.commercial_allowed || !asset.social_allowed)
+				throw new Error('audio_license_blocked');
+			if (asset.kind !== event.kind) throw new Error('audio_kind_mismatch');
+			if (event.sourceInMs >= Number(asset.duration_ms))
+				throw new Error('audio_source_out_of_range');
+			if (!event.loop && event.sourceInMs + event.durationMs > Number(asset.duration_ms))
+				throw new Error('audio_source_out_of_range');
+		}
+	}
 	const providedWork = process.env.WORKER_RENDER_TMPDIR;
 	const work = providedWork ?? (await mkdtemp(join(tmpdir(), `dif-render-${jobId.slice(0, 8)}-`)));
 	const ownsWork = !providedWork;
 	try {
 		const localDir = process.env.WORKER_ASSET_DIR;
 		const localNarrationDir = process.env.WORKER_NARRATION_DIR;
+		const localAudioDir = process.env.WORKER_AUDIO_DIR;
 		const localPaths = new Map<string, string>();
 		let r2: S3Client | null = null;
 		const bucket = process.env.R2_BUCKET;
-		if (!localDir || (narration && !localNarrationDir)) {
+		if (
+			!localDir ||
+			(narration && !localNarrationDir) ||
+			(planAudioEvents.length > 0 && !localAudioDir)
+		) {
 			if (!bucket) throw new Error('missing_r2_bucket');
 			r2 = new S3Client({
 				region: 'auto',
@@ -209,6 +254,55 @@ async function main() {
 				takeId: narration.id,
 			};
 		}
+		const audioInputs: AudioMixEvent[] = [];
+		for (const event of planAudioEvents) {
+			const asset = audioAssets.get(event.assetId)!;
+			const extension = /\.([a-z0-9]+)$/i.exec(asset.object_key)?.[1]?.toLowerCase() ?? 'wav';
+			let audioPath: string;
+			if (localAudioDir) {
+				const candidates = [extension, 'wav', 'mp3', 'm4a', 'ogg'].map((candidate) =>
+					join(localAudioDir, `${event.assetId}.${candidate}`),
+				);
+				const found = candidates.find((candidate) => existsSync(candidate));
+				if (!found) throw new Error('audio_asset_missing');
+				audioPath = found;
+			} else {
+				audioPath = join(work, `audio-${event.assetId}.${extension}`);
+				const object = await r2!.send(
+					new GetObjectCommand({ Bucket: bucket, Key: asset.object_key }),
+				);
+				if (!object.Body) throw new Error('audio_asset_download_failed');
+				await pipeline(
+					object.Body as NodeJS.ReadableStream,
+					await import('node:fs').then((fs) => fs.createWriteStream(audioPath)),
+				);
+			}
+			const audioBytes = await readFile(audioPath);
+			const audioDigest = createHash('sha256').update(audioBytes).digest('hex');
+			if (audioDigest !== asset.sha256) throw new Error('audio_asset_hash_mismatch');
+			if (audioBytes.length !== Number(asset.byte_size))
+				throw new Error('audio_asset_size_mismatch');
+			const audioProbe = await probeAudioMedia(audioPath);
+			if (!event.loop && event.sourceInMs + event.durationMs > audioProbe.durationMs + 500)
+				throw new Error('audio_source_out_of_range');
+			audioInputs.push({
+				id: event.id,
+				path: audioPath,
+				kind: event.kind,
+				startMs: event.startMs,
+				durationMs: event.durationMs,
+				sourceInMs: event.sourceInMs,
+				gainDb: event.gainDb,
+				fadeInMs: event.fadeInMs,
+				fadeOutMs: event.fadeOutMs,
+				pan: event.pan,
+				loop: event.loop,
+				ducking: event.ducking,
+				spatialPreset: event.spatialPreset,
+				spatialMode: event.spatialMode,
+				intensity: Number(asset.intensity),
+			});
+		}
 		let captionAssPath: string | undefined;
 		if (caption) {
 			captionAssPath = join(work, 'captions.ass');
@@ -226,6 +320,8 @@ async function main() {
 			timeoutMs: 600_000,
 			captionAssPath,
 			narration: narrationInput,
+			audioEvents: audioInputs,
+			masterGainDb: validated.audio?.masterGainDb,
 		});
 		const objectKey = `renders/${job.owner_id}/${job.episode_id}/${job.id}/output.mp4`;
 		const localOutput = process.env.WORKER_LOCAL_OUTPUT_DIR;
@@ -259,6 +355,17 @@ async function main() {
 			byteSize: output.byteSize,
 			sha256: output.sha256,
 			audio: output.audio,
+			audioMix: planAudioEvents.length
+				? {
+						masterGainDb: validated.audio?.masterGainDb ?? 0,
+						eventCount: planAudioEvents.length,
+						assets: [...audioAssets.values()].map((asset) => ({
+							id: asset.id,
+							kind: asset.kind,
+							licenseStatus: asset.license_status,
+						})),
+					}
+				: null,
 			captions: caption
 				? {
 						trackId: caption.id,

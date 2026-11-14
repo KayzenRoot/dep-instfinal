@@ -210,6 +210,26 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner authorized merge/promotion on 2026-11-14; PR #55 squash-merged at `326c576`; issue #24 closed; checkpoint **PROMOTED**. WO-008 (#25) is next.
 
+## V2 Context Lock — WO-009 (#26)
+
+- **Base revalidated:** `main` `7d6af5e` (checkpoint WO-008 promoted). Branch: `feat/dif-v2-wo-009`.
+- **Issue inventory:** WO-001–008 **MERGED/CLOSED/PROMOTED**; WO-009/#26 **IN PROGRESS**; WO-010+ remain gated.
+- **Delivered locally:** owner-only `audio_assets` with licence provenance and private bytes; five categories; optional versioned `audio` events in `VideoEditPlan`; `/app/audio` import/filter/playback; timeline gain/fades/pan/loop/ducking/spatial presets and 120 s suspense template; FFmpeg mix with narration sidechain, ducking, SFX bus, loudnorm/alimiter and AAC 48 kHz stereo; licence gate in UI/save/worker.
+- **Tests:** unit **156 + 3 skipped**; PgTAP **131/131**; E2E audio library PASS; policy **27 invariants/24 tables**; CI/audit pending.
+- **Gate:** CI, Evidence Bundle, Checkpoint Delta PROPOSED, independent audit and explicit owner merge authorization. No deploy/VPS change.
+
+### Fingerprints no base `7d6af5e`
+
+| Fonte canônica                         | SHA-256                                                            |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| `docs/CHECKPOINT_DELTA.md`             | `d25f32ed6c362231a3c3cf8f764bcc6df96b69ecf881a0a0015e23d38e663a51` |
+| `docs/SOURCE_PACK.md`                  | `ccac8b33f2d83c578f2a0ca3549f03d0c791980acfbedd3f1b06c5ca2257dd1c` |
+| `docs/ADR_V2_002_STORAGE.md`           | `9e39af92e6ea71ad234900c6e7d5d9a2290cc32c393177ad45db9b472510966e` |
+| `docs/V2_EXECUTION_PLAN.md`            | `78c2296f1f1db588a996b2ef20b65d40eafc5304c275221401259ee1aad62497` |
+| `docs/CONTEXT_LOCK.md`                 | `9b4c13594d81c236b73462707a79bf9b303d7d4942d9187837ab3649289736f5` |
+| `src/lib/schemas/video-edit-plan.ts`   | `48616e3593ea1373e3de61a9aca10a49999549e4d8e91120272eb67e5ad47832` |
+| `src/lib/domain/render-composition.ts` | `af073369e36055a9cbc08f7c895c3d49d6be53388b8535ee77d3ce63ede9ce93` |
+
 ## V2 Context Lock — WO-008 (#25)
 
 - **Base revalidated:** `main` `326c576` (checkpoint WO-007 promoted). Branch: `feat/dif-v2-wo-008`.

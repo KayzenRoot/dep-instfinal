@@ -5,12 +5,15 @@ import { copyFile, mkdtemp, readFile, rm, stat, unlink } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
+	buildAudioMixCommand,
 	buildNarrationMuxCommand,
 	buildRenderCommand,
 	RenderCompositionError,
+	type AudioMixEvent,
 	type RenderAssetInput,
 } from '#lib/domain/render-composition.js';
 import type { VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
+import { measureAudioLoudness } from './audio-analysis.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -28,10 +31,16 @@ export interface RenderedAudio {
 	channels: number;
 	sampleRate: number;
 	durationMs: number;
-	narrationTakeId: string;
-	narrationDurationMs: number;
+	narrationTakeId: string | null;
+	narrationDurationMs: number | null;
 	paddedMs: number;
 	trimmedMs: number;
+	eventCount: number;
+	duckedCount: number;
+	spatialModes: Record<string, number>;
+	masterGainDb: number;
+	truePeakDb: number | null;
+	lufs: number | null;
 }
 
 export interface RenderOutput {
@@ -166,10 +175,17 @@ export async function renderPlanToFile(input: {
 	captionAssPath?: string;
 	timeoutMs?: number;
 	narration?: NarrationRenderInput;
+	audioEvents?: AudioMixEvent[];
+	masterGainDb?: number;
 }): Promise<RenderOutput> {
 	const absoluteOutput = resolve(input.outputPath);
 	const assets = input.assets.map((asset) => ({ ...asset, path: resolve(asset.path) }));
-	const videoPath = input.narration ? `${absoluteOutput}.video.mp4` : absoluteOutput;
+	const audioEvents = (input.audioEvents ?? []).map((event) => ({
+		...event,
+		path: resolve(event.path),
+	}));
+	const hasAudio = Boolean(input.narration || audioEvents.length);
+	const videoPath = hasAudio ? `${absoluteOutput}.video.mp4` : absoluteOutput;
 	let captionDir: string | null = null;
 	let captionAssFile: string | undefined;
 	if (input.captionAssPath) {
@@ -196,17 +212,36 @@ export async function renderPlanToFile(input: {
 			env: minimalProcessEnv(dirname(absoluteOutput)),
 		});
 		let mux = null as ReturnType<typeof buildNarrationMuxCommand> | null;
-		if (input.narration) {
+		let mix = null as ReturnType<typeof buildAudioMixCommand> | null;
+		if (audioEvents.length) {
+			mix = buildAudioMixCommand({
+				videoPath,
+				outputPath: absoluteOutput,
+				videoDurationMs: command.expectedDurationMs,
+				narration: input.narration
+					? {
+							path: resolve(input.narration.path),
+							durationMs: input.narration.durationMs,
+							volumeDb: input.narration.volumeDb,
+						}
+					: null,
+				events: audioEvents,
+				masterGainDb: input.masterGainDb,
+			});
+		} else if (input.narration) {
+			mux = buildNarrationMuxCommand({
+				videoPath,
+				narrationPath: resolve(input.narration.path),
+				outputPath: absoluteOutput,
+				videoDurationMs: command.expectedDurationMs,
+				narrationDurationMs: input.narration.durationMs,
+				volumeDb: input.narration.volumeDb,
+			});
+		}
+		const audioCommand = mix ?? mux;
+		if (audioCommand) {
 			try {
-				mux = buildNarrationMuxCommand({
-					videoPath,
-					narrationPath: resolve(input.narration.path),
-					outputPath: absoluteOutput,
-					videoDurationMs: command.expectedDurationMs,
-					narrationDurationMs: input.narration.durationMs,
-					volumeDb: input.narration.volumeDb,
-				});
-				await execFileAsync(input.ffmpegPath ?? 'ffmpeg', ['-nostdin', ...mux.args], {
+				await execFileAsync(input.ffmpegPath ?? 'ffmpeg', ['-nostdin', ...audioCommand.args], {
 					timeout: input.timeoutMs ?? 600_000,
 					maxBuffer: 4 * 1024 * 1024,
 					windowsHide: true,
@@ -239,7 +274,7 @@ export async function renderPlanToFile(input: {
 		if (probed.fps < 29 || probed.fps > 31)
 			throw new RenderCompositionError('RENDER_OUTPUT_FPS', 'FPS do render não é 30.');
 		let renderedAudio: RenderedAudio | null = null;
-		if (mux && input.narration) {
+		if (hasAudio) {
 			if (
 				!probed.audio ||
 				probed.audio.codec !== 'aac' ||
@@ -247,23 +282,46 @@ export async function renderPlanToFile(input: {
 				probed.audio.sampleRate !== 48_000
 			)
 				throw new RenderCompositionError(
-					'NARRATION_OUTPUT_CODEC',
+					'AUDIO_OUTPUT_CODEC',
 					'O render não contém AAC 48 kHz estéreo.',
 				);
 			if (Math.abs(probed.audio.durationMs - probed.durationMs) > 1_000)
 				throw new RenderCompositionError(
-					'NARRATION_OUTPUT_DURATION',
+					'AUDIO_OUTPUT_DURATION',
 					'A duração do áudio não acompanha o vídeo.',
 				);
+			const loudness = mix ? await measureAudioLoudness(absoluteOutput) : null;
+			if (mix) {
+				if (
+					loudness?.truePeakDb === null ||
+					loudness?.truePeakDb === undefined ||
+					loudness.truePeakDb > -0.8
+				)
+					throw new RenderCompositionError(
+						'AUDIO_MIX_TRUE_PEAK',
+						'O mix excede o true peak seguro.',
+					);
+				if (loudness.lufs === null || loudness.lufs < -20 || loudness.lufs > -12)
+					throw new RenderCompositionError(
+						'AUDIO_MIX_LOUDNESS',
+						'O mix está fora da faixa de loudness segura.',
+					);
+			}
 			renderedAudio = {
 				codec: probed.audio.codec,
 				channels: probed.audio.channels,
 				sampleRate: probed.audio.sampleRate,
 				durationMs: probed.audio.durationMs,
-				narrationTakeId: input.narration.takeId,
-				narrationDurationMs: input.narration.durationMs,
-				paddedMs: mux.paddedMs,
-				trimmedMs: mux.trimmedMs,
+				narrationTakeId: input.narration?.takeId ?? null,
+				narrationDurationMs: input.narration?.durationMs ?? null,
+				paddedMs: audioCommand?.paddedMs ?? 0,
+				trimmedMs: audioCommand?.trimmedMs ?? 0,
+				eventCount: mix?.eventCount ?? 0,
+				duckedCount: mix?.duckedCount ?? 0,
+				spatialModes: mix?.spatialModes ?? {},
+				masterGainDb: input.masterGainDb ?? 0,
+				truePeakDb: loudness?.truePeakDb ?? null,
+				lufs: loudness?.lufs ?? null,
 			};
 		} else if (probed.audio) {
 			throw new RenderCompositionError(

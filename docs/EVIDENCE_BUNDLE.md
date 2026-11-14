@@ -1,5 +1,20 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-009 — Biblioteca licenciada, mix/ducking e soundscape (2026-11-14) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-009` · issue #26 · epic #17 · addendum ENH-14
+- **Base:** `main` `7d6af5e`; branch `feat/dif-v2-wo-009`
+- **Status:** implementation and local validation in progress; CI, evidence pack and independent audit pending. No merge/deploy.
+
+| Check      | Result     | Evidence                                                                                  |
+| ---------- | ---------- | ----------------------------------------------------------------------------------------- |
+| Licensing  | PASS local | `audio_assets` RLS/service-only, verified licence gate, dedup, PgTAP 131/131              |
+| Edit plan  | PASS local | optional audio events, versioned with plan/hash, gain/pan/fade/loop/spatial fields        |
+| Mixer      | PASS local | real FFmpeg narração+música+SFX, ducking mensurável, −16 LUFS, true peak ≤ −0,8           |
+| Soundscape | PASS local | presets stereo/binaural_simulated, A/B preview, mono downmix without silence              |
+| UI/E2E     | PASS local | 5 categorias importadas/filtradas; /app/audio responsivo; 401 anônimo                     |
+| Limits     | —          | licence is declared metadata; no Atmos/3D; ARM64 mixer benchmark and human listen pending |
+
 ## V2 WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-008` · issue #25 · epic #17
