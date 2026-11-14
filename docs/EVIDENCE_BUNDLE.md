@@ -1,10 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROPOSED
+## V2 WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-008` · issue #25 · epic #17
 - **Base:** `main` `326c576`; branch `feat/dif-v2-wo-008`
-- **Status:** fourth independent audit **APPROVED WITH RESIDUALS** at `1a83105`; local suites, CLI and CI **PASS**; owner merge/promotion authorization pending. No merge/deploy.
+- **Status:** fourth independent audit **APPROVED WITH RESIDUALS** at `1a83105`; local suites, CLI and CI **PASS**; owner authorized merge/promotion; squash-merged at `a633c3a` (PR #56); issue #25 closed.
 
 | Check     | Result     | Evidence                                                                                    |
 | --------- | ---------- | ------------------------------------------------------------------------------------------- |

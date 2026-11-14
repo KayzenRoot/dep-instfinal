@@ -1,7 +1,7 @@
 # DIF-V2-WO-008 — Legendas inteligentes, SRT/ASS e burn-in
 
-**Status:** implementação e CI **PASS**; quatro auditorias independentes revisaram as correções; a quarta retornou **APPROVED WITH RESIDUALS** em `1a83105`; CI final e revalidação local **PASS**; autorização explícita de merge/promoção pendente. **Não merged**, **não deployed**.
-**Base:** `main` @ `326c576` (checkpoint WO-007 promovido).
+**Status:** **PROMOTED**; implementação e CI **PASS**; quatro auditorias independentes revisaram as correções; a quarta retornou **APPROVED WITH RESIDUALS** em `1a83105`; CI final e revalidação local **PASS**; owner autorizou merge/promoção; squash-merged at `a633c3a` (PR #56); issue #25 closed.
+**Base:** `main` @ `326c576` (checkpoint WO-007 promovido); merge em `a633c3a`.
 **Branch:** `feat/dif-v2-wo-008`.
 **Escopo:** WO-008 (#25), dependente de WO-006 + WO-007 aprovados.
 

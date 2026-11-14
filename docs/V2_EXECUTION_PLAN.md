@@ -2,8 +2,8 @@
 
 - **Work Order:** `DIF-V2-WO-001` · issue #18
 - **Epic:** #17 · issues #18–#45
-- **Base atual:** `main` `326c576` (após checkpoint WO-007); branch WO-008 em execução; plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
-- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged** (`239f3ba`); WO-007 **APPROVED/merged** (`326c576`); WO-008 **IN PROGRESS**.
+- **Base atual:** `main` `a633c3a` (após checkpoint WO-008); WO-009 em execução; plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
+- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged** (`239f3ba`); WO-007 **APPROVED/merged** (`326c576`); WO-008 **APPROVED/merged** (`a633c3a`).
 - **Fonte viva:** os corpos atuais das issues #18–#45 prevalecem sobre este plano.
 
 ## Inventário — 28 WOs e 20 melhorias
@@ -17,8 +17,8 @@
 | WO-005 | #22   | Worker, fila, lease, retry, recuperação                 | ELEVATED | WO-001; WO-003; WO-004                                            | COMPLETED (merged `dc405d8`) |
 | WO-006 | #23   | Composição FFmpeg, cortes, transições, VHS 9:16         | ELEVATED | WO-002; WO-004; WO-005                                            | COMPLETED (merged `239f3ba`) |
 | WO-007 | #24   | Narração pt-BR, voz importada e TTS local opcional      | ELEVATED | WO-005; WO-006; adendo emoção                                     | COMPLETED (merged `326c576`) |
-| WO-008 | #25   | Legendas reais, SRT/ASS e burn-in                       | STANDARD | WO-006; WO-007                                                    | IN PROGRESS                  |
-| WO-009 | #26   | SFX/música licenciados, mix/ducking, soundscape estéreo | STANDARD | WO-006; WO-007; adendo soundscape                                 | PLANNED                      |
+| WO-008 | #25   | Legendas reais, SRT/ASS e burn-in                       | STANDARD | WO-006; WO-007                                                    | COMPLETED (merged `a633c3a`) |
+| WO-009 | #26   | SFX/música licenciados, mix/ducking, soundscape estéreo | STANDARD | WO-006; WO-007; adendo soundscape                                 | IN PROGRESS                  |
 | WO-010 | #27   | Diretor de edição e curva de tensão                     | ELEVATED | WO-004; WO-025 (proposta); adendo tensão                          | PLANNED                      |
 | WO-011 | #28   | Editor/preview e safe zones                             | ELEVATED | WO-006–009; adendo safe zones                                     | PLANNED                      |
 | WO-012 | #29   | Export MP4 H.264/AAC + Quality Inspector                | ELEVATED | WO-005–009; WO-011; adendo QA                                     | PLANNED                      |

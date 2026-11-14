@@ -9,13 +9,21 @@
 - **Limits:** Piper não altera emoção real (`emotion:false`); emoção é direção e voz importada é o fallback. Aceitação auditiva humana e benchmark ARM64 **PASS**. R2 lifecycle/GC, SRT (WO-008) e credencial de menor privilégio (WO-013/014) permanecem residuais.
 - **Gate:** CI, auditoria de código, aceitação auditiva e benchmark ARM64 PASS; owner authorized merge/promotion on 2026-11-14. WO-008 (#25) is the next planned WO.
 
-## DIF-V2-WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROPOSED
+## DIF-V2-WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROMOTED
 
-- **Status:** **PROPOSED — EM ANDAMENTO, NÃO APROVADO**; alinhamento forçado, SRT/ASS, DB/RLS, UI e burn-in implementados; a quarta auditoria independente retornou **APPROVED WITH RESIDUALS** em `1a83105`; PgTAP **124/124**, unit **144+3**, E2E timeline PASS com 13 cues; CI `43629972250` SUCCESS. Autorização de merge/promoção pendente.
+- **Status:** **PROMOTED**; alinhamento forçado, SRT/ASS, DB/RLS, UI e burn-in implementados; a quarta auditoria independente retornou **APPROVED WITH RESIDUALS** em `1a83105`; PgTAP **124/124**, unit **144+3**, E2E **12/12**; CI do código `43629972250` e do head final `43631376923` PASS; squash-merged at `a633c3a` (PR #56); issue #25 closed. Owner authorized merge/promotion on 2026-11-14.
 - **Base:** `main` `326c576`; branch `feat/dif-v2-wo-008`.
 - **Delivered:** `caption_tracks` owner-only/versionado por plano e take de narração; alinhamento deterministico roteiro↔ASR com descarte de hallucination e timestamps monotonicos; SRT/ASS com safe zones, largura segura e escape; editor `/app/captions`; import ASR/manual; worker exige take aprovado e queima ASS; manifesto registra track/take/style/safeZone; CLI Vosk opcional.
 - **Limits:** Vosk/modelo local opcional; sem deploy VPS; revisão visual humana e alignment real multi-voz pendentes.
-- **Gate:** CI PASS, Evidence Bundle, Checkpoint Delta PROPOSED, reauditoria independente e autorização de merge.
+- **Gate:** CI e auditoria independente **APPROVED WITH RESIDUALS** PASS; owner authorized merge/promotion on 2026-11-14. WO-009 (#26) is next.
+
+## V2 checkpoint promotion — WO-008 (2026-11-14)
+
+- **Owner decision:** explicit authorization to merge and continue development without stopping; PR #56 squash-merged at `a633c3a`; issue #25 closed.
+- **Audit:** four independent rounds; final verdict **APPROVED WITH RESIDUALS** at `1a83105`; residuals documented and non-blocking.
+- **Evidence:** unit **144+3**, PgTAP **124/124**, E2E **12/12**, CI `43629972250`/`43631376923` PASS, real Piper/Vosk CLI and FFmpeg frame-safe-area PASS.
+- **Residuals:** lossy `cue.words` metadata, cross-take restore rebind, conservative timing fallback, WAV PCM 16-bit helper, human visual QA.
+- **Next:** WO-009 (#26) SFX/música/mix/ducking/soundscape.
 
 ## V2 checkpoint promotion — WO-007 (2026-11-14)
 

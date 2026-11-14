@@ -213,9 +213,9 @@ Revalidate before any external action if `main` changes; the feature branch is r
 ## V2 Context Lock — WO-008 (#25)
 
 - **Base revalidated:** `main` `326c576` (checkpoint WO-007 promoted). Branch: `feat/dif-v2-wo-008`.
-- **Issue inventory:** WO-001–007 **MERGED/CLOSED/PROMOTED**; WO-008/#25 **IN PROGRESS**; WO-009+ remain gated.
+- **Issue inventory:** WO-001–007 **MERGED/CLOSED/PROMOTED**; WO-008/#25 **MERGED/CLOSED/PROMOTED**; WO-009/#26 is next; WO-010+ remain gated.
 - **Delivered locally:** `caption_tracks` versionado por plano e take, RLS owner-only/service-only writes; alinhamento forçado roteiro↔ASR com normalização NFD, DP, descarte de hallucination e timestamps monotonicos; SRT/ASS com estilos/safe zones, largura segura e escape; editor `/app/captions`; import ASR/manual; worker exige take aprovado e queima ASS; CLI Vosk opcional.
-- **Tests:** PgTAP **124/124**; unit **144 + 3 skipped**; real Piper Cadu→Vosk alignment PASS; CLI real `captions:align` PASS; FFmpeg burn-in com frame CJK/emoji e margem horizontal PASS; E2E timeline PASS (2,9m local, 13 cues, manifesto `captions`); build/policy PASS; CI `43629972250` em `1a83105` SUCCESS (144+3, PgTAP 124/124, E2E 12/12). Quatro auditorias independentes revisaram as correções; a quarta retornou **APPROVED WITH RESIDUALS** em `1a83105`; CI `43629972250` SUCCESS; autorização do owner pendente.
+- **Tests:** PgTAP **124/124**; unit **144 + 3 skipped**; real Piper Cadu→Vosk alignment PASS; CLI real `captions:align` PASS; FFmpeg burn-in com frame CJK/emoji e margem horizontal PASS; E2E timeline PASS (2,9m local, 13 cues, manifesto `captions`); build/policy PASS; CI `43629972250` em `1a83105` SUCCESS (144+3, PgTAP 124/124, E2E 12/12). Quatro auditorias independentes revisaram as correções; a quarta retornou **APPROVED WITH RESIDUALS** em `1a83105`; CI `43629972250`/`43631376923` SUCCESS; owner authorized merge/promotion.
 - **Gate:** CI PASS, Evidence Bundle, Checkpoint Delta PROPOSED, reauditoria independente e autorização de merge. No deploy/VPS change.
 
 ### Fingerprints no base `326c576`
