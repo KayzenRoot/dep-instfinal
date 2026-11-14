@@ -43,6 +43,12 @@
 			glyph: 'archive',
 		},
 		{
+			path: '/app/captions',
+			href: resolve('/app/captions'),
+			label: 'Legendas',
+			glyph: 'book',
+		},
+		{
 			path: '/app/continuity',
 			href: resolve('/app/continuity'),
 			label: 'Votações e cânone',

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
@@ -13,6 +13,8 @@ import {
 	validateForContext,
 } from '../src/lib/server/video-edit-plans.js';
 import { probeAudioMedia, probeMedia, renderPlanToFile } from '../src/lib/server/render-compose.js';
+import { buildCaptionAss } from '../src/lib/domain/captions.js';
+import { captionTrackSchema, type CaptionTrack } from '../src/lib/schemas/captions.js';
 
 function required(name: string): string {
 	const value = process.env[name];
@@ -70,6 +72,28 @@ async function main() {
 		if (assetError || !asset || asset.status !== 'READY' || !asset.object_key)
 			throw new Error('render_asset_not_ready');
 		assets.push(asset);
+	}
+	let caption: { id: string; track: CaptionTrack } | null = null;
+	if (validated.captions.template !== 'none') {
+		let captionQuery = admin
+			.from('caption_tracks')
+			.select('id,track,current_status')
+			.eq('owner_id', job.owner_id)
+			.eq('episode_id', job.episode_id)
+			.eq('plan_version', job.plan_version)
+			.eq('current_status', 'APPROVED');
+		captionQuery = job.narration_take_id
+			? captionQuery.eq('narration_take_id', job.narration_take_id)
+			: captionQuery.is('narration_take_id', null);
+		const { data: captionRow, error: captionError } = await captionQuery.maybeSingle();
+		if (captionError) throw new Error('caption_track_invalid');
+		if (captionRow) {
+			const parsedCaption = captionTrackSchema.safeParse(captionRow.track);
+			if (!parsedCaption.success) throw new Error('caption_track_invalid');
+			if (parsedCaption.data.narrationTakeId !== job.narration_take_id)
+				throw new Error('caption_take_mismatch');
+			caption = { id: captionRow.id, track: parsedCaption.data };
+		}
 	}
 	let narration: {
 		id: string;
@@ -185,6 +209,11 @@ async function main() {
 				takeId: narration.id,
 			};
 		}
+		let captionAssPath: string | undefined;
+		if (caption) {
+			captionAssPath = join(work, 'captions.ass');
+			await writeFile(captionAssPath, buildCaptionAss(caption.track), 'utf8');
+		}
 		const outputPath = join(work, 'output.mp4');
 		const configuredVhs = Number(process.env.WORKER_VHS_INTENSITY ?? 1);
 		const vhsIntensity: 0 | 1 | 2 | 3 =
@@ -195,6 +224,7 @@ async function main() {
 			outputPath,
 			vhsIntensity,
 			timeoutMs: 600_000,
+			captionAssPath,
 			narration: narrationInput,
 		});
 		const objectKey = `renders/${job.owner_id}/${job.episode_id}/${job.id}/output.mp4`;
@@ -229,6 +259,16 @@ async function main() {
 			byteSize: output.byteSize,
 			sha256: output.sha256,
 			audio: output.audio,
+			captions: caption
+				? {
+						trackId: caption.id,
+						cues: caption.track.cues.length,
+						style: caption.track.style,
+						safeZone: caption.track.safeZone,
+						narrationTakeId: caption.track.narrationTakeId,
+						sha256: createHash('sha256').update(JSON.stringify(caption.track)).digest('hex'),
+					}
+				: null,
 			completedAt: new Date().toISOString(),
 		};
 		process.stdout.write(`${JSON.stringify(manifest)}\n`);
@@ -238,6 +278,8 @@ async function main() {
 }
 
 main().catch((cause) => {
-	process.stderr.write(`${safeCode(cause)}\n`);
+	const code = safeCode(cause);
+	const message = cause instanceof Error ? cause.message.slice(0, 240) : '';
+	process.stderr.write(`${code}:${message}\n`);
 	process.exitCode = 1;
 });

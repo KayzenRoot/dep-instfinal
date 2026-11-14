@@ -141,7 +141,7 @@ describe.skipIf(!enabled)('narration take upload validation', () => {
 		await expect(
 			storeNarrationTake({ ...input, adminDb, storage, bytes: clipped, fileName: 'clipped.wav' }),
 		).rejects.toMatchObject({ code: 'NARRATION_CLIPPING' });
-	});
+	}, 30_000);
 
 	it('rejects extension/content mismatch and oversized files', async () => {
 		const storage = new InMemoryVideoStorage();

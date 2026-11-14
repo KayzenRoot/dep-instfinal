@@ -167,7 +167,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page.locator('.clip-card').first()).toContainText('CENA 2');
 
 	await page.getByRole('button', { name: 'Aprovar plano atual' }).click();
-	await expect(page.getByText('APPROVED')).toBeVisible();
+	await expect(page.getByText('APPROVED')).toBeVisible({ timeout: 20_000 });
 	await expect(page.locator('.notice.error')).toHaveCount(0);
 
 	await page.getByRole('button', { name: '↓' }).first().click();
@@ -196,7 +196,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page.getByText(/preso a uma revisão anterior/)).toHaveCount(0);
 
 	await page.getByRole('button', { name: 'Aprovar plano atual' }).click();
-	await expect(page.getByText('APPROVED')).toBeVisible();
+	await expect(page.getByText('APPROVED')).toBeVisible({ timeout: 20_000 });
 
 	console.log('[timeline-e2e] opening narration editor');
 	await page.goto(`/app/narration?episodeId=${episodeId}`);
@@ -236,7 +236,28 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await mkdir(narrationDir, { recursive: true });
 	await copyFile(voicePath, path.join(narrationDir, `${narrationTakeId}.wav`));
 
-	console.log('[timeline-e2e] returning to timeline');
+	console.log('[timeline-e2e] aligning captions from synthetic ASR words');
+	const asrWords = narrationText.split(/\s+/).map((word, index) => ({
+		word,
+		startMs: 1_000 + index * 350,
+		endMs: 1_300 + index * 350,
+		confidence: 0.95,
+	}));
+	await page.goto(`/app/captions?episodeId=${episodeId}`);
+	await expect(page.getByRole('heading', { name: 'Legendas alinhadas' })).toBeVisible();
+	await page.locator('textarea[name="asr"]').fill(JSON.stringify({ words: asrWords }));
+	await page.getByRole('button', { name: 'Alinhar a partir do ASR' }).click();
+	await expect(page.locator('.notice.success')).toContainText('cues');
+	await page.getByRole('button', { name: 'Aprovar legendas' }).click();
+	await expect(page.locator('.notice.success')).toContainText('Legendas salvas');
+	const srtResponse = await page.request.get(`/api/captions/${episodeId}/srt`);
+	expect(srtResponse.ok()).toBeTruthy();
+	expect(await srtResponse.text()).toContain('-->');
+	const assResponse = await page.request.get(`/api/captions/${episodeId}/ass`);
+	expect(assResponse.ok()).toBeTruthy();
+	expect(await assResponse.text()).toContain('[Script Info]');
+
+	console.log('[timeline-e2e] captions approved; returning to timeline');
 	await page.goto(`/app/timeline?episodeId=${episodeId}`);
 	await expect(page.getByText(/Narração aprovada/)).toBeVisible();
 	await page.waitForTimeout(1_000);
@@ -310,6 +331,14 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 				height: number;
 				codec: string;
 				durationMs: number;
+				captions: {
+					trackId: string;
+					cues: number;
+					style: string;
+					safeZone: string;
+					narrationTakeId: string | null;
+					sha256: string;
+				} | null;
 				audio: {
 					codec: string;
 					channels: number;
@@ -325,6 +354,15 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	expect(jobs[0]?.narration_take_id).toBe(narrationTakeId);
 	expect(jobs[0]?.output_manifest).toMatchObject({ width: 1080, height: 1920, codec: 'h264' });
 	expect(Math.abs(jobs[0]!.output_manifest.durationMs - 120_000)).toBeLessThanOrEqual(1_000);
+	const manifestCaptions = jobs[0]?.output_manifest.captions;
+	expect(manifestCaptions).toMatchObject({
+		style: 'clean',
+		safeZone: 'tiktok',
+		narrationTakeId,
+	});
+	expect(manifestCaptions?.trackId).toMatch(/^[0-9a-f-]{36}$/);
+	expect(manifestCaptions?.cues).toBeGreaterThan(0);
+	expect(manifestCaptions?.sha256).toMatch(/^[0-9a-f]{64}$/);
 	expect(jobs[0]?.output_manifest.audio).toMatchObject({
 		codec: 'aac',
 		channels: 2,

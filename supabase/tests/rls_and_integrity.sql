@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(108);
+select plan(124);
 
 do $$
 declare
@@ -1351,6 +1351,20 @@ select lives_ok(
     );$$,
   'service role can store a TTS narration take with true peak'
 );
+select lives_ok(
+  $$insert into public.narration_takes (
+      id, owner_id, episode_id, plan_version, source, bucket, object_key, sha256,
+      byte_size, duration_ms, format, sample_rate, channels
+    ) values (
+      'd1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1',
+      '11111111-1111-4111-8111-111111111111',
+      '13131313-1313-4131-8131-131313131313', 1, 'TTS',
+      'dif-studio-video-private',
+      'narration/11111111-1111-4111-8111-111111111111/13131313-1313-4131-8131-131313131313/other.wav',
+      repeat('e', 64), 1024, 3000, 'wav', 48000, 1
+    );$$,
+  'service role can store a take for another episode'
+);
 select throws_ok(
   $$update public.narration_takes
     set duration_ms = 9000
@@ -1514,6 +1528,134 @@ select throws_ok(
   '42501',
   'permission denied for table narration_takes',
   'owner cannot insert narration takes directly'
+);
+select throws_ok(
+  $$insert into public.caption_tracks (
+      owner_id, episode_id, edit_plan_id, plan_version, narration_take_id,
+      current_version, track
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      (select id from public.video_edit_plans where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+      2, 'a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7', 1,
+      '{"schemaVersion":1,"planVersion":2,"narrationTakeId":"a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7","cues":[]}'::jsonb
+    );$$,
+  '42501',
+  'permission denied for table caption_tracks',
+  'owner cannot insert caption tracks directly'
+);
+set local role service_role;
+select lives_ok(
+  $$insert into public.caption_tracks (
+      owner_id, episode_id, edit_plan_id, plan_version, narration_take_id,
+      current_version, current_status, track, versions
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      (select id from public.video_edit_plans where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+      2, 'a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7', 1, 'DRAFT',
+      '{"schemaVersion":1,"planVersion":2,"narrationTakeId":"a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7","cues":[{"id":"b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8","startMs":500,"endMs":2500,"text":"A fita chegou.","words":[]}]}'::jsonb,
+      '[]'::jsonb
+    );$$,
+  'service role can store a caption track'
+);
+set local role authenticated;
+select is(
+  (select count(*) from public.caption_tracks
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  1::bigint,
+  'owner can read the caption track'
+);
+select throws_ok(
+  $$update public.caption_tracks
+    set current_version = 2
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '42501',
+  'permission denied for table caption_tracks',
+  'owner cannot update caption tracks directly'
+);
+select throws_ok(
+  $$delete from public.caption_tracks
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '42501',
+  'permission denied for table caption_tracks',
+  'owner cannot delete caption tracks directly'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.caption_tracks
+   where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  0::bigint,
+  'second owner cannot read the caption track'
+);
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+set local role service_role;
+select throws_ok(
+  $$update public.caption_tracks
+    set current_status = 'APPROVED',
+        track = '{"schemaVersion":1,"planVersion":2,"narrationTakeId":"a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7","cues":[]}'::jsonb
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '23514',
+  'caption_cues_required',
+  'caption approval requires cues'
+);
+select lives_ok(
+  $$update public.caption_tracks
+    set current_status = 'APPROVED',
+        track = '{"schemaVersion":1,"planVersion":2,"narrationTakeId":"a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7","cues":[{"id":"b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8","startMs":500,"endMs":2500,"text":"A fita chegou.","words":[]}]}'::jsonb
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  'caption track can be approved with cues'
+);
+select throws_ok(
+  $$update public.caption_tracks
+    set track = '{"schemaVersion":1,"planVersion":3,"narrationTakeId":"a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7","cues":[{"id":"b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8","startMs":500,"endMs":2500,"text":"A fita chegou.","words":[]}]}'::jsonb
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '23514',
+  'caption_plan_version_mismatch',
+  'caption track is bound to the plan version'
+);
+select throws_ok(
+  $$update public.caption_tracks
+    set track = '{"schemaVersion":1,"planVersion":2,"narrationTakeId":"c9c9c9c9-c9c9-49c9-89c9-c9c9c9c9c9c9","cues":[{"id":"b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8","startMs":500,"endMs":2500,"text":"A fita chegou.","words":[]}]}'::jsonb
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '23514',
+  'caption_take_mismatch',
+  'caption track JSON is bound to the narration take column'
+);
+select throws_ok(
+  $$update public.caption_tracks
+    set narration_take_id = 'd1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1',
+        track = '{"schemaVersion":1,"planVersion":2,"narrationTakeId":"d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1","cues":[{"id":"b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8","startMs":500,"endMs":2500,"text":"A fita chegou.","words":[]}]}'::jsonb
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '23514',
+  'caption_take_mismatch',
+  'caption narration take must belong to the same episode'
+);
+select lives_ok(
+  $$update public.voice_direction_plans
+    set current_status = 'DRAFT'
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  'voice direction can leave approval for the negative test'
+);
+select lives_ok(
+  $$update public.caption_tracks
+    set current_status = 'DRAFT'
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  'caption track can return to draft'
+);
+select throws_ok(
+  $$update public.caption_tracks
+    set current_status = 'APPROVED'
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  '23514',
+  'caption_voice_not_approved',
+  'caption approval requires the currently approved narration take'
+);
+select lives_ok(
+  $$update public.voice_direction_plans
+    set current_status = 'APPROVED'
+    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6';$$,
+  'voice direction is approved for the final assertion'
 );
 reset role;
 

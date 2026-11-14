@@ -1,0 +1,91 @@
+# WO-008 — local verification evidence
+
+Date: 2026-11-14
+Branch: `feat/dif-v2-wo-008`
+Base: `main` `326c576`
+Scope: fourth audit corrections H-A-1/H-A-2/M-A-1 plus prior items.
+
+## Commands and results
+
+```text
+npm run lint
+  PASS (eslint --max-warnings=0)
+
+npm run check
+  PASS (svelte-check: 0 errors, 0 warnings)
+
+npx supabase db reset --local
+  all migrations applied, including 20261114120000_v2_wo008_captions.sql
+
+npx supabase test db
+  Files=1, Tests=124, Result: PASS
+
+npm test
+  Test Files 21 passed | 3 skipped (24)
+       Tests 144 passed | 3 skipped (147)
+  Includes:
+    - caption domain tests (27)
+    - real FFmpeg 120s render
+    - real narration mux
+    - real ASS burn-in from an apostrophe path + CJK/emoji frame bounds
+    - real Piper Cadu → Vosk alignment (opt-in, run separately)
+
+npm run build
+  adapter-node build PASS
+
+npm run audit:policy
+  Checked 26 policy invariants across 23 tables. PASS
+
+npm run test:e2e:local -- e2e/timeline.spec.ts
+  [timeline-e2e] aligning captions from synthetic ASR words
+  [timeline-e2e] captions approved; returning to timeline
+  [render-worker] render_completed
+  1 passed (2.9m)
+
+Hosted CI run 43629972250 (head 1a83105)
+  quality PASS 7m50s; unit 144 passed + 3 skipped; PgTAP 124/124;
+  E2E 12/12 in 4.3m; Sonar/Socket/Vercel PASS.
+```
+
+The E2E asserts `output_manifest.captions.cues > 0`, a real track id, style
+`clean`, safe zone `tiktok`, the current narration take id and a SHA-256. The
+latest local manifest **observed** 13 cues:
+
+```json
+{
+  "cues": 13,
+  "style": "clean",
+  "safeZone": "tiktok",
+  "trackId": "581e6a76-7700-44a8-82c2-8910bbcab33a",
+  "narrationTakeId": "d643e0b8-f3ef-4814-904b-5f932fe01ede",
+  "sha256": "982b40bb8e8409ae50b9d5a86ddb78d81fc9dc84bc4e279f11820b20d72c14f6"
+}
+```
+
+## Real ASR and CLI
+
+The opt-in test `caption-asr.integration.test.ts` passed with Piper Cadu and the
+real Vosk model, using the probed audio duration. The documented
+`npm run captions:align` was also executed end-to-end with a local fixture; it
+wrote `asr-words.json`, `captions.json`, `captions.srt`, `captions.ass` and
+`report.json` (2 cues, score 0,869, `ASR_FALLBACK` because ~8 s of synthetic
+audio was aligned to a 120 s fixture episode). See `asr-cli.txt`.
+
+## Audit corrections covered
+
+- H-1: short final cues no longer overlap; the previous cue is trimmed/merged or the short cue is dropped explicitly. Word timestamps are integer, monotonic and inside the cue.
+- H-2: caption load/export/page/worker filter the current narration take; approval/generation require approved READY voice; DB enforces JSON/column take match and same-episode take; voice switching rebinds with a new version.
+- M-3/H-A: matched/unmatched word timing is integer, monotonic and reserves time for every token; zero-budget gaps no longer drop script text. H-A-2 merge requires >=300 ms.
+- M-4/H-B: unmatched tails, including forced alignments, are truncated at exactly `last ASR match + 1.5 s`; truncation downgrades to `ASR_FALLBACK`.
+- M-1/M-2/M-A: CJK, emoji, ligatures and long narrow tokens wrap within 880 px and 42 characters; word metadata clips by code point (no lone surrogate); frame test covers CJK/emoji.
+- M-5: CTA window is capped at 7 s per cue; an insufficient tight window fails explicitly.
+- M-6: DB trigger and composite FK ensure the narration take belongs to the caption episode.
+- H5: E2E manifest assertions, CTA window tests, real frame safe-area measurement; docs distinguish asserted vs observed cue counts.
+- H-A-1/H-A-2/M-A-1: zero-budget gaps retain every script token; merge requires >=300 ms; word metadata clips by code point; deterministic fuzz validates schema.
+
+## Notes
+
+- ASR words in E2E are synthetic but follow the exact script tokens; the real ASR test is separate.
+- The caption track's text comes from the narration plan, not from raw ASR output.
+- Burn-in uses FFmpeg `ass=filename=captions.ass` from a dedicated safe working directory, after video composition and before VHS.
+- No paid API, GPU, public media, deployment or VPS change was used.

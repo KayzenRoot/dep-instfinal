@@ -1,0 +1,12 @@
+# WO-008 hosted CI evidence — run 43627375872
+
+- Head: `f3bd1f0` (`fix(wo-008): close third audit findings H-A/H-B/M-A`)
+- Branch: `feat/dif-v2-wo-008`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-14T18:42Z (7m46s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43627375872
+- Checks: quality PASS, SonarCloud PASS, Socket PASS, Vercel Preview PASS.
+- Baseline: format, lint, typecheck, build and policy audit **26 invariants / 23 tables** PASS.
+- Tests: **142 passed + 3 skipped**; PgTAP **124/124**; E2E **12/12** in 3.5 min.
+- Covers integer unmatched timestamps, forced-tail truncation/fallback, >80-char word metadata, merge/drop tests and all earlier audit corrections.
+- No merge/deploy/promotion performed.

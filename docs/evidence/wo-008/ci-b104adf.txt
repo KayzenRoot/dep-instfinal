@@ -1,0 +1,12 @@
+# WO-008 hosted CI evidence — run 43623019673
+
+- Head: `b104adf` (`fix(wo-008): clear stale word timings on manual cue edits`)
+- Branch: `feat/dif-v2-wo-008`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-14T17:55Z (7m49s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43623019673
+- Checks: quality PASS, SonarCloud PASS, Socket PASS, Vercel Preview PASS.
+- Baseline: format, lint, typecheck, build and policy audit **26 invariants / 23 tables** PASS.
+- Tests: **137 passed + 3 skipped**; PgTAP **124/124**; E2E **12/12** in 3.5 min.
+- Covers second audit corrections H-1/H-2/M-1–M-6 and the manual-cue stale-word fix.
+- No merge/deploy/promotion performed.

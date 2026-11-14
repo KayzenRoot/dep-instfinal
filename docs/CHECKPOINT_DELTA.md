@@ -9,6 +9,14 @@
 - **Limits:** Piper não altera emoção real (`emotion:false`); emoção é direção e voz importada é o fallback. Aceitação auditiva humana e benchmark ARM64 **PASS**. R2 lifecycle/GC, SRT (WO-008) e credencial de menor privilégio (WO-013/014) permanecem residuais.
 - **Gate:** CI, auditoria de código, aceitação auditiva e benchmark ARM64 PASS; owner authorized merge/promotion on 2026-11-14. WO-008 (#25) is the next planned WO.
 
+## DIF-V2-WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROPOSED
+
+- **Status:** **PROPOSED — EM ANDAMENTO, NÃO APROVADO**; alinhamento forçado, SRT/ASS, DB/RLS, UI e burn-in implementados; a quarta auditoria independente retornou **APPROVED WITH RESIDUALS** em `1a83105`; PgTAP **124/124**, unit **144+3**, E2E timeline PASS com 13 cues; CI `43629972250` SUCCESS. Autorização de merge/promoção pendente.
+- **Base:** `main` `326c576`; branch `feat/dif-v2-wo-008`.
+- **Delivered:** `caption_tracks` owner-only/versionado por plano e take de narração; alinhamento deterministico roteiro↔ASR com descarte de hallucination e timestamps monotonicos; SRT/ASS com safe zones, largura segura e escape; editor `/app/captions`; import ASR/manual; worker exige take aprovado e queima ASS; manifesto registra track/take/style/safeZone; CLI Vosk opcional.
+- **Limits:** Vosk/modelo local opcional; sem deploy VPS; revisão visual humana e alignment real multi-voz pendentes.
+- **Gate:** CI PASS, Evidence Bundle, Checkpoint Delta PROPOSED, reauditoria independente e autorização de merge.
+
 ## V2 checkpoint promotion — WO-007 (2026-11-14)
 
 - **Owner decision:** explicit “pode fazer e vamos continuar”; PR #55 squash-merged at `326c576`; issue #24 closed.

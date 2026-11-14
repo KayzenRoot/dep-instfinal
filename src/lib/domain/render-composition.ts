@@ -25,6 +25,8 @@ export interface RenderCompositionOptions {
 	width?: 1080;
 	height?: 1920;
 	vhsIntensity?: 0 | 1 | 2 | 3;
+	/** ASS filename relative to the working directory chosen by the renderer. */
+	captionAssFile?: string;
 }
 
 export interface RenderCommand {
@@ -184,6 +186,15 @@ export function buildRenderCommand(
 			`[${current}][${next}]xfade=transition=fade:duration=${duration}:offset=${offset},settb=1/${fps}[${label}]`,
 		);
 		current = label;
+	}
+	if (options.captionAssFile) {
+		if (!/^[A-Za-z0-9._-]+$/.test(options.captionAssFile))
+			throw new RenderCompositionError(
+				'RENDER_CAPTION_PATH_UNSAFE',
+				'O nome do arquivo ASS deve ser simples e relativo.',
+			);
+		filters.push(`[${current}]ass=filename=${options.captionAssFile}[captioned]`);
+		current = 'captioned';
 	}
 	if (vhs > 0) {
 		const noise = 4 + vhs * 4;

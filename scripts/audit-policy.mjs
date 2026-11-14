@@ -46,6 +46,10 @@ const narrationRenderMigration = await readFile(
 	'supabase/migrations/20261113112000_v2_wo007_narration_render.sql',
 	'utf8',
 );
+const captionMigration = await readFile(
+	'supabase/migrations/20261114120000_v2_wo008_captions.sql',
+	'utf8',
+);
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -76,9 +80,10 @@ const tables = [
 	...editPlanMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...renderJobMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...narrationMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...captionMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['22 owner-scoped public tables', tables.length === 22],
+	['23 owner-scoped public tables', tables.length === 23],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -267,6 +272,18 @@ const checks = [
 			narrationRenderMigration.includes("channels')::integer, 0) <> 2") &&
 			narrationRenderMigration.includes("sampleRate')::integer, 0) <> 48000") &&
 			narrationRenderMigration.includes('to service_role'),
+	],
+	[
+		'caption tracks are owner-read, server-written and plan-version bound',
+		captionMigration.includes('caption_tracks') &&
+			captionMigration.includes('force row level security') &&
+			captionMigration.includes('revoke all on table public.caption_tracks') &&
+			captionMigration.includes('grant select on table public.caption_tracks to authenticated') &&
+			captionMigration.includes(
+				'grant select, insert, update, delete on table public.caption_tracks to service_role',
+			) &&
+			captionMigration.includes('caption_plan_version_mismatch') &&
+			captionMigration.includes('caption_cues_required'),
 	],
 	[
 		'video storage is private, multipart and short-lived signed',

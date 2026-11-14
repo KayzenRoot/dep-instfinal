@@ -25,6 +25,7 @@ const TABLES = [
 	'render_job_events',
 	'voice_direction_plans',
 	'narration_takes',
+	'caption_tracks',
 ] as const;
 
 export const GET: RequestHandler = async (event) => {
