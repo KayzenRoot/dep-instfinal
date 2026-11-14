@@ -398,6 +398,7 @@ export function alignScriptToAsr(input: {
 		bySegment.set(entry.token.segmentIndex, list);
 	}
 	const cues: CaptionCue[] = [];
+	let incomplete = false;
 	for (const segment of [...input.segments].sort((left, right) => left.index - right.index)) {
 		const segmentWords = bySegment.get(segment.index) ?? [];
 		if (!segmentWords.length) continue;
@@ -428,6 +429,8 @@ export function alignScriptToAsr(input: {
 						previous.endMs = cue.endMs;
 						previous.words = [...previous.words, ...cue.words];
 						clampCueWords(previous);
+					} else {
+						incomplete = true;
 					}
 					continue;
 				}
@@ -438,14 +441,16 @@ export function alignScriptToAsr(input: {
 			}
 		}
 	}
-	if (!forced && cues.length) {
+	if ((!forced || incomplete) && cues.length) {
 		const cap = Math.min(input.durationMs, lastMatchedEnd + 1_500);
 		const kept = cues.filter((cue) => cue.startMs < cap);
 		const last = kept.at(-1);
 		if (last) {
 			last.endMs = Math.min(last.endMs, cap);
-			if (last.endMs - last.startMs < 300) kept.pop();
-			else clampCueWords(last);
+			if (last.endMs - last.startMs < 300) {
+				kept.pop();
+				incomplete = true;
+			} else clampCueWords(last);
 		}
 		cues.splice(0, cues.length, ...kept);
 	}
@@ -456,7 +461,7 @@ export function alignScriptToAsr(input: {
 	return {
 		cues,
 		alignmentScore: Number.isFinite(alignmentScore) ? alignmentScore : 0,
-		source: forced ? 'FORCED_ALIGNMENT' : 'ASR_FALLBACK',
+		source: forced && !incomplete ? 'FORCED_ALIGNMENT' : 'ASR_FALLBACK',
 		scriptSha256,
 	};
 }
