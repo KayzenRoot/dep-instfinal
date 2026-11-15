@@ -672,6 +672,20 @@
 									/>
 								</label>
 								<label
+									>Distância <span class="meta-label">{event.distance.toFixed(2)}</span>
+									<input
+										type="range"
+										min="0"
+										max="1"
+										step="0.05"
+										value={event.distance}
+										oninput={(changeEvent) =>
+											updateAudioEvent(index, {
+												distance: Number(changeEvent.currentTarget.value),
+											})}
+									/>
+								</label>
+								<label
 									>Preset espacial
 									<select
 										value={event.spatialPreset}
@@ -699,10 +713,11 @@
 								<label class="check"
 									><input
 										type="checkbox"
-										checked={event.ducking}
+										checked={event.kind !== 'SFX' && event.ducking}
+										disabled={event.kind === 'SFX'}
 										onchange={(changeEvent) =>
 											updateAudioEvent(index, { ducking: changeEvent.currentTarget.checked })}
-									/> Ducking sob a voz</label
+									/> Ducking (música/ambiência)</label
 								>
 							</div>
 							<div class="preview-row">

@@ -48,8 +48,9 @@ npm run test:e2e:local -- e2e/owner-boundary.spec.ts -g "authenticated studio pa
 ## FFmpeg mix measurements
 
 - Narration + music + SFX: AAC 48 kHz stereo, `loudnorm -16 LUFS`, true peak ≤ −0,8 dBTP; ducking measured as a lower music/voice band ratio; SFX band level present at its timecode; right/left pan separation; mono downmix within 3 dB of stereo (no severe cancellation).
-- 120 s local benchmark (x64, 3-track mix, 1080×1920 video stream copy):
-  - wall **11.6 s**, user **15.3 s**, system **1.0 s**, max RSS **124,708 KiB**.
+- 120 s local benchmark (x64, 2 events + narration, 1080×1920 video stream copy):
+  - command: `npm run benchmark:audio-mix` (script generates fixtures and prints `-benchmark`).
+  - wall **10.6 s**, user **13.6 s**, system **0.6 s**, max RSS **124,268 KiB**.
   - ARM64 mixer benchmark and human headphone/speaker listening remain pending; synthetic owner samples in `docs/evidence/wo-009/listening/`.
 
 Hosted CI run 43656294117 (head 4138948)

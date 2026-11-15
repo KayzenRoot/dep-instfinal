@@ -95,7 +95,7 @@
 						{asset.sampleRate} Hz · {asset.format}
 					</p>
 					<p class="tags">
-						{#each asset.tags as tag (tag)}<span>{tag}</span>{/each}
+						{#each [...new Set(asset.tags)] as tag (tag)}<span>{tag}</span>{/each}
 					</p>
 					<audio
 						controls

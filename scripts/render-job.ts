@@ -24,6 +24,14 @@ function required(name: string): string {
 }
 
 function safeCode(cause: unknown): string {
+	if (
+		cause &&
+		typeof cause === 'object' &&
+		typeof (cause as { code?: unknown }).code === 'string'
+	) {
+		const code = (cause as { code: string }).code;
+		if (/^[A-Z0-9_]{1,64}$/.test(code)) return code;
+	}
 	if (cause instanceof Error) {
 		const match = /^[A-Z0-9_]{1,64}$/.exec(cause.message);
 		if (match) return match[0];

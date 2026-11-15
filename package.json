@@ -36,6 +36,7 @@
 		"check:baseline": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run audit:policy && npm run audit:deps",
 		"ci:all": "npm run check:baseline && npm run test:db && npm run test:e2e:local",
 		"tts:local": "tsx scripts/narration-tts.ts",
+		"benchmark:audio-mix": "tsx scripts/benchmark-audio-mix.ts",
 		"test:tts": "vitest run src/lib/server/narration-tts.integration.test.ts",
 		"captions:align": "tsx scripts/caption-align.ts"
 	},
