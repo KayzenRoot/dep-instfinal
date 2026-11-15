@@ -4,9 +4,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildAudioMixCommand } from '../src/lib/domain/render-composition.js';
 
+const ffmpegBinary =
+	process.env.FFMPEG_PATH ??
+	(process.platform === 'win32'
+		? join(process.env.LOCALAPPDATA ?? 'C:\\Windows', 'Microsoft', 'WinGet', 'Links', 'ffmpeg.exe')
+		: '/usr/bin/ffmpeg');
+
 function ffmpeg(args: string[]): void {
-	// NOSONAR: benchmark intentionally uses the operator's trusted FFmpeg binary.
-	execFileSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...args], {
+	execFileSync(ffmpegBinary, ['-y', '-hide_banner', '-loglevel', 'error', ...args], {
 		timeout: 300_000,
 		windowsHide: true,
 	});
@@ -113,10 +118,10 @@ try {
 	const started = Date.now();
 	const timeFile = process.env.BENCH_TIME_FILE;
 	const result = timeFile
-		? spawnSync('/usr/bin/time', ['-v', '-o', timeFile, 'ffmpeg', '-nostdin', ...args], {
+		? spawnSync('/usr/bin/time', ['-v', '-o', timeFile, ffmpegBinary, '-nostdin', ...args], {
 				encoding: 'utf8',
 			})
-		: spawnSync('ffmpeg', ['-nostdin', ...args], { encoding: 'utf8' }); // NOSONAR
+		: spawnSync(ffmpegBinary, ['-nostdin', ...args], { encoding: 'utf8' });
 	if (result.status !== 0) throw new Error(result.stderr.slice(0, 2_000));
 	const bench = /bench:\s*utime=([0-9.]+)s\s*stime=([0-9.]+)s\s*rtime=([0-9.]+)s/.exec(
 		result.stderr,
