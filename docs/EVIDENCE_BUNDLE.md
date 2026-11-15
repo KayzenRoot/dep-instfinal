@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-009` · issue #26 · epic #17 · addendum ENH-14
 - **Base:** `main` `7d6af5e`; branch `feat/dif-v2-wo-009`
-- **Status:** implementation and audit corrections applied; local validation PASS; **ENH-14 human listening and ARM64 benchmark pending (STOP)**; CI `43656294117` PASS; ARM64 mix run `43659179231` PASS; only ENH-14 human listening and re-audit pending. No merge/deploy.
+- **Status:** implementation and audit corrections applied; local validation PASS; **ENH-14 human listening and ARM64 benchmark pending (STOP)**; CI `43660937084` PASS; ARM64 mix run `43660937121` PASS; only ENH-14 human listening pending. No merge/deploy.
 
 | Check      | Result     | Evidence                                                                                  |
 | ---------- | ---------- | ----------------------------------------------------------------------------------------- |

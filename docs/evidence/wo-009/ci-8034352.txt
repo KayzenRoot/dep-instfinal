@@ -1,0 +1,13 @@
+# WO-009 hosted CI evidence — run 43660937084
+
+- Head: `8034352`
+- Branch: `feat/dif-v2-wo-009`
+- Workflow: DIF Studio CI (quality) + Audio Mix ARM64 Benchmark
+- Result: **SUCCESS** at 2026-11-15T01:10Z (main CI); ARM64 `43660937121` SUCCESS
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43660937084
+- Checks: quality PASS, SonarCloud PASS, Socket PASS, Vercel Preview PASS, ARM64 benchmark PASS.
+- Baseline: format, lint, typecheck, build, policy **27 invariants / 24 tables** and dependency audit PASS.
+- Tests: **159 passed + 3 skipped**; PgTAP **131/131**; E2E **13/13** in 4.8 min.
+- ARM64 120 s mix: 7.86 s wall, 7.56 s user, 0.24 s system, 166,060 KiB RSS (run 43659179231; subsequent workflows pass).
+- Remaining gate: ENH-14 human headphone/speaker acceptance of `docs/evidence/wo-009/listening/`.
+- No merge/deploy/promotion performed.

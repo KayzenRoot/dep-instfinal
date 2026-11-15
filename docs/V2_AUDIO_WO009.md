@@ -53,7 +53,7 @@ A biblioteca começa vazia; nenhum asset é baixado automaticamente. As licença
 - Integração FFmpeg: mix real com narração + música + SFX, true peak/LUFS, ducking mensurável por banda, segunda renderização e downmix mono.
 - PgTAP **131/131**: RLS/owner-only, service-only, licença verificada e rejeição cross-owner/cross-licença.
 - E2E: importação de cinco categorias/filtros PASS (20,6s); timeline existente 1/1 PASS (2,5m); owner-boundary responsivo `/app/audio` PASS local; `401` do endpoint privado no CI.
-- CI `43656294117` em `4138948`: **SUCCESS** (7m47s), unit 159+3, PgTAP 131/131, E2E 13/13, Sonar/Socket/Vercel PASS. Benchmark local `npm run benchmark:audio-mix`: 10,6 s wall, 13,6 s user, 124,268 KiB RSS; **ARM64** (run 43659179231): 7,86 s wall, 7,56 s user, 166.060 KiB RSS. (ARM64 pendente). Escuta A/B do owner pendente; amostras em `docs/evidence/wo-009/listening/`.
+- CI `43660937084` em `8034352`: **SUCCESS**; unit 159+3, PgTAP 131/131, E2E 13/13 (4,8m), Sonar/Socket/Vercel PASS. Benchmark local `npm run benchmark:audio-mix`: 10,6 s wall, 13,6 s user, 124,268 KiB RSS; **ARM64** (run 43659179231): 7,86 s wall, 7,56 s user, 166.060 KiB RSS. (ARM64 pendente). Escuta A/B do owner pendente; amostras em `docs/evidence/wo-009/listening/`.
 - Pós-auditoria: limite de upload 4 MB + `BODY_SIZE_LIMIT=5M`; política de duração da narração aplicada ao mix; ducking por evento em buses separados; preview A/B aproximado com os mesmos parâmetros; tags deduplicadas; gate de licença em restore/aprovação; master gain no mux narração-only; template com silêncio pré-impacto e distância; medições de pan/timing/mono.
 - CI e auditoria independente serão registrados em `docs/evidence/wo-009/`.
 
