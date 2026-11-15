@@ -26,7 +26,7 @@ create table public.audio_assets (
     and object_key !~ '\\'
   ),
   sha256 text not null check (sha256 ~ '^[0-9a-f]{64}$'),
-  byte_size bigint not null check (byte_size between 1 and 26214400),
+  byte_size bigint not null check (byte_size between 1 and 4194304),
   duration_ms integer not null check (duration_ms between 100 and 600000),
   format text not null check (char_length(btrim(format)) between 1 and 32),
   sample_rate integer not null check (sample_rate between 8000 and 192000),

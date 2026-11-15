@@ -140,6 +140,8 @@ async function main() {
 			byte_size: number;
 			duration_ms: number;
 			intensity: number;
+			license_name: string;
+			attribution: string;
 			license_status: string;
 			commercial_allowed: boolean;
 			social_allowed: boolean;
@@ -149,22 +151,22 @@ async function main() {
 		const { data: audioRows, error: audioError } = await admin
 			.from('audio_assets')
 			.select(
-				'id,kind,bucket,object_key,sha256,byte_size,duration_ms,intensity,license_status,commercial_allowed,social_allowed',
+				'id,kind,bucket,object_key,sha256,byte_size,duration_ms,intensity,license_status,commercial_allowed,social_allowed,license_name,attribution',
 			)
 			.eq('owner_id', job.owner_id)
 			.in('id', [...new Set(planAudioEvents.map((event) => event.assetId))]);
-		if (audioError) throw new Error('audio_asset_load_failed');
+		if (audioError) throw new Error('AUDIO_ASSET_LOAD_FAILED');
 		for (const row of audioRows ?? []) audioAssets.set(row.id as string, row);
 		for (const event of planAudioEvents) {
 			const asset = audioAssets.get(event.assetId);
-			if (!asset || !asset.object_key) throw new Error('audio_asset_not_ready');
+			if (!asset || !asset.object_key) throw new Error('AUDIO_ASSET_NOT_READY');
 			if (asset.license_status !== 'VERIFIED' || !asset.commercial_allowed || !asset.social_allowed)
-				throw new Error('audio_license_blocked');
-			if (asset.kind !== event.kind) throw new Error('audio_kind_mismatch');
+				throw new Error('AUDIO_LICENSE_BLOCKED');
+			if (asset.kind !== event.kind) throw new Error('AUDIO_KIND_MISMATCH');
 			if (event.sourceInMs >= Number(asset.duration_ms))
-				throw new Error('audio_source_out_of_range');
+				throw new Error('AUDIO_SOURCE_OUT_OF_RANGE');
 			if (!event.loop && event.sourceInMs + event.durationMs > Number(asset.duration_ms))
-				throw new Error('audio_source_out_of_range');
+				throw new Error('AUDIO_SOURCE_OUT_OF_RANGE');
 		}
 	}
 	const providedWork = process.env.WORKER_RENDER_TMPDIR;
@@ -264,14 +266,14 @@ async function main() {
 					join(localAudioDir, `${event.assetId}.${candidate}`),
 				);
 				const found = candidates.find((candidate) => existsSync(candidate));
-				if (!found) throw new Error('audio_asset_missing');
+				if (!found) throw new Error('AUDIO_ASSET_MISSING');
 				audioPath = found;
 			} else {
 				audioPath = join(work, `audio-${event.assetId}.${extension}`);
 				const object = await r2!.send(
 					new GetObjectCommand({ Bucket: bucket, Key: asset.object_key }),
 				);
-				if (!object.Body) throw new Error('audio_asset_download_failed');
+				if (!object.Body) throw new Error('AUDIO_ASSET_DOWNLOAD_FAILED');
 				await pipeline(
 					object.Body as NodeJS.ReadableStream,
 					await import('node:fs').then((fs) => fs.createWriteStream(audioPath)),
@@ -279,12 +281,12 @@ async function main() {
 			}
 			const audioBytes = await readFile(audioPath);
 			const audioDigest = createHash('sha256').update(audioBytes).digest('hex');
-			if (audioDigest !== asset.sha256) throw new Error('audio_asset_hash_mismatch');
+			if (audioDigest !== asset.sha256) throw new Error('AUDIO_ASSET_HASH_MISMATCH');
 			if (audioBytes.length !== Number(asset.byte_size))
-				throw new Error('audio_asset_size_mismatch');
+				throw new Error('AUDIO_ASSET_SIZE_MISMATCH');
 			const audioProbe = await probeAudioMedia(audioPath);
 			if (!event.loop && event.sourceInMs + event.durationMs > audioProbe.durationMs + 500)
-				throw new Error('audio_source_out_of_range');
+				throw new Error('AUDIO_SOURCE_OUT_OF_RANGE');
 			audioInputs.push({
 				id: event.id,
 				path: audioPath,
@@ -296,6 +298,7 @@ async function main() {
 				fadeInMs: event.fadeInMs,
 				fadeOutMs: event.fadeOutMs,
 				pan: event.pan,
+				distance: event.distance,
 				loop: event.loop,
 				ducking: event.ducking,
 				spatialPreset: event.spatialPreset,
@@ -363,6 +366,20 @@ async function main() {
 							id: asset.id,
 							kind: asset.kind,
 							licenseStatus: asset.license_status,
+							licenseName: asset.license_name,
+							attribution: asset.attribution,
+						})),
+						events: planAudioEvents.map((event) => ({
+							id: event.id,
+							assetId: event.assetId,
+							kind: event.kind,
+							startMs: event.startMs,
+							durationMs: event.durationMs,
+							gainDb: event.gainDb,
+							pan: event.pan,
+							distance: event.distance,
+							ducking: event.ducking,
+							spatialPreset: event.spatialPreset,
 						})),
 					}
 				: null,

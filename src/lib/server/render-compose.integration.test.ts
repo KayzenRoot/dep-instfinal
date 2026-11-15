@@ -419,6 +419,7 @@ describe.skipIf(!enabled)('FFmpeg audio mix integration', () => {
 					fadeInMs: 250,
 					fadeOutMs: 350,
 					pan: -0.3,
+					distance: 0.5,
 					loop: true,
 					ducking: true,
 					spatialPreset: 'none',
@@ -436,6 +437,7 @@ describe.skipIf(!enabled)('FFmpeg audio mix integration', () => {
 					fadeInMs: 50,
 					fadeOutMs: 80,
 					pan: 0.7,
+					distance: 0.2,
 					loop: false,
 					ducking: false,
 					spatialPreset: 'steps-behind',
@@ -480,20 +482,60 @@ describe.skipIf(!enabled)('FFmpeg audio mix integration', () => {
 				),
 				masterGainDb: -2,
 			});
-			const bandLevel = (file: string, frequency: number) => {
+			const bandLevel = (file: string, frequency: number, start = 0.5, length = 2) => {
+				for (let attempt = 0; attempt < 2; attempt += 1) {
+					const result = spawnSync(
+						'ffmpeg',
+						[
+							'-hide_banner',
+							'-nostdin',
+							'-ss',
+							String(start),
+							'-t',
+							String(length),
+							'-i',
+							file,
+							'-af',
+							`bandpass=f=${frequency}:width_type=h:w=30,volumedetect`,
+							'-f',
+							'null',
+							'-',
+						],
+						{ encoding: 'utf8', windowsHide: true },
+					);
+					const match = /mean_volume:\s*(-?[0-9.]+) dB/.exec(result.stderr);
+					if (match) return Number(match[1]);
+					console.error(
+						'band fail',
+						file,
+						frequency,
+						result.status,
+						result.error?.message,
+						result.stderr.slice(0, 200),
+					);
+				}
+				return null;
+			};
+			const duckedMusic = bandLevel(first.path, 90);
+			const openMusic = bandLevel(noDuck.path, 90);
+			const voiceBand = bandLevel(first.path, 300);
+			const openVoiceBand = bandLevel(noDuck.path, 300);
+			const sfxDuring = bandLevel(first.path, 1_200, 2.05, 0.7);
+			const sfxBefore = bandLevel(first.path, 1_200, 0.2, 0.8);
+			const channelBand = (file: string, channel: 'c0' | 'c1') => {
 				const result = spawnSync(
 					'ffmpeg',
 					[
 						'-hide_banner',
 						'-nostdin',
 						'-ss',
-						'0.5',
+						'2.05',
 						'-t',
-						'2',
+						'0.7',
 						'-i',
 						file,
 						'-af',
-						`bandpass=f=${frequency}:width_type=h:w=30,volumedetect`,
+						`pan=mono|c0=${channel},bandpass=f=1200:width_type=h:w=30,volumedetect`,
 						'-f',
 						'null',
 						'-',
@@ -503,15 +545,13 @@ describe.skipIf(!enabled)('FFmpeg audio mix integration', () => {
 				const match = /mean_volume:\s*(-?[0-9.]+) dB/.exec(result.stderr);
 				return match ? Number(match[1]) : null;
 			};
-			const duckedMusic = bandLevel(first.path, 90);
-			const openMusic = bandLevel(noDuck.path, 90);
-			const voiceBand = bandLevel(first.path, 300);
-			const openVoiceBand = bandLevel(noDuck.path, 300);
 			expect(duckedMusic).not.toBeNull();
 			expect(openMusic).not.toBeNull();
 			expect(voiceBand).not.toBeNull();
 			expect(duckedMusic! - voiceBand!).toBeLessThan(openMusic! - openVoiceBand! - 2);
 			expect(voiceBand!).toBeGreaterThan(-45);
+			expect(sfxDuring! - sfxBefore!).toBeGreaterThanOrEqual(6);
+			expect(channelBand(first.path, 'c1')! - channelBand(first.path, 'c0')!).toBeGreaterThan(2);
 			const instrumental = await renderPlanToFile({
 				plan,
 				assets: inputs,
@@ -531,6 +571,24 @@ describe.skipIf(!enabled)('FFmpeg audio mix integration', () => {
 			expect(Math.abs(second.durationMs - first.durationMs)).toBeLessThanOrEqual(50);
 			expect(second.audio!.lufs!).toBeCloseTo(first.audio!.lufs!, 0);
 
+			const firstMonoPath = join(workspace, 'mix-a-mono.wav');
+			execFileSync(
+				'ffmpeg',
+				[
+					'-y',
+					'-hide_banner',
+					'-loglevel',
+					'error',
+					'-i',
+					first.path,
+					'-ac',
+					'1',
+					'-c:a',
+					'pcm_s16le',
+					firstMonoPath,
+				],
+				{ timeout: 60_000, windowsHide: true },
+			);
 			const mono = spawnSync(
 				'ffmpeg',
 				[
@@ -551,6 +609,11 @@ describe.skipIf(!enabled)('FFmpeg audio mix integration', () => {
 			const meanVolume = /mean_volume:\s*(-?[0-9.]+) dB/.exec(mono.stderr);
 			expect(meanVolume).not.toBeNull();
 			expect(Number(meanVolume![1])).toBeGreaterThan(-60);
+			const stereoBand = bandLevel(first.path, 90);
+			const monoBand = bandLevel(firstMonoPath, 90);
+			expect(stereoBand).not.toBeNull();
+			expect(monoBand).not.toBeNull();
+			expect(Math.abs(stereoBand! - monoBand!)).toBeLessThanOrEqual(3);
 		} finally {
 			await rm(workspace, { recursive: true, force: true });
 		}

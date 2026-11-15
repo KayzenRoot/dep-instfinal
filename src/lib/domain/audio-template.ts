@@ -50,41 +50,64 @@ export function buildSuspenseAudioTemplate(input: {
 		Math.min(input.durationMs - 100, input.impactAtMs ?? Math.max(0, input.durationMs - 15_000)),
 	);
 	const impactDuration = Math.min(2_500, Math.max(100, impact.durationMs));
+	const preImpactEnd = Math.max(0, impactStart - 1_500);
+	const postImpactStart = Math.min(input.durationMs, impactStart + impactDuration);
+	const postImpactDuration = input.durationMs - postImpactStart;
 	const impactFadeIn = Math.min(50, Math.floor(impactDuration / 4));
 	const impactFadeOut = Math.min(400, impactDuration - impactFadeIn);
-	const events: EditPlanAudioEvent[] = [
-		{
+	const events: EditPlanAudioEvent[] = [];
+	if (preImpactEnd >= 100)
+		events.push({
 			id: crypto.randomUUID(),
 			assetId: ambience.id,
 			kind: ambience.kind,
 			startMs: 0,
-			durationMs: input.durationMs,
+			durationMs: preImpactEnd,
 			sourceInMs: 0,
 			gainDb: -24,
-			fadeInMs: 1_500,
-			fadeOutMs: 3_000,
+			fadeInMs: Math.min(1_500, Math.floor(preImpactEnd / 4)),
+			fadeOutMs: Math.min(1_000, preImpactEnd - Math.min(1_500, Math.floor(preImpactEnd / 4))),
 			pan: 0,
+			distance: 0.8,
 			loop: true,
 			ducking: true,
 			spatialPreset: 'corridor',
 			spatialMode: 'binaural_simulated',
-		},
-		{
+		});
+	events.push({
+		id: crypto.randomUUID(),
+		assetId: impact.id,
+		kind: 'SFX',
+		startMs: impactStart,
+		durationMs: impactDuration,
+		sourceInMs: 0,
+		gainDb: -4,
+		fadeInMs: impactFadeIn,
+		fadeOutMs: impactFadeOut,
+		pan: 0,
+		distance: 0.2,
+		loop: false,
+		ducking: false,
+		spatialPreset: 'steps-behind',
+		spatialMode: 'binaural_simulated',
+	});
+	if (postImpactDuration >= 100)
+		events.push({
 			id: crypto.randomUUID(),
-			assetId: impact.id,
-			kind: 'SFX',
-			startMs: impactStart,
-			durationMs: impactDuration,
+			assetId: ambience.id,
+			kind: ambience.kind,
+			startMs: postImpactStart,
+			durationMs: postImpactDuration,
 			sourceInMs: 0,
-			gainDb: -4,
-			fadeInMs: impactFadeIn,
-			fadeOutMs: impactFadeOut,
+			gainDb: -28,
+			fadeInMs: Math.min(1_500, Math.floor(postImpactDuration / 4)),
+			fadeOutMs: Math.min(2_000, postImpactDuration - 100),
 			pan: 0,
-			loop: false,
-			ducking: false,
-			spatialPreset: 'steps-behind',
+			distance: 0.8,
+			loop: true,
+			ducking: true,
+			spatialPreset: 'corridor',
 			spatialMode: 'binaural_simulated',
-		},
-	];
+		});
 	return { masterGainDb: 0, events };
 }

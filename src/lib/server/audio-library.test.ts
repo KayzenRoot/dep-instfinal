@@ -149,6 +149,37 @@ describe.skipIf(!enabled)('audio library ingestion', () => {
 		expect(isAudioExportable(asset)).toBe(false);
 	});
 
+	it('rejects oversized uploads and deduplicates tags', async () => {
+		await expect(
+			storeAudioAsset({
+				adminDb: fakeAdmin(),
+				owner,
+				storage: new InMemoryVideoStorage(),
+				bytes: Buffer.alloc(4 * 1024 * 1024 + 1),
+				fileName: 'large.wav',
+				metadata,
+			}),
+		).rejects.toMatchObject({ code: 'AUDIO_TOO_LARGE' });
+		const deduped = await storeAudioAsset({
+			adminDb: fakeAdmin(),
+			owner,
+			storage: new InMemoryVideoStorage(),
+			bytes: await fixture('dedupe.wav', [
+				'-f',
+				'lavfi',
+				'-i',
+				'sine=frequency=500:sample_rate=48000:duration=1',
+				'-ac',
+				'1',
+				'-c:a',
+				'pcm_s16le',
+			]),
+			fileName: 'dedupe.wav',
+			metadata: { ...metadata, tags: ['porta', 'porta', 'impacto'] },
+		});
+		expect(deduped.tags).toEqual(['porta', 'impacto']);
+	});
+
 	it('rejects invalid metadata, duplicates and format mismatches', async () => {
 		const storage = new InMemoryVideoStorage();
 		const bytes = await fixture('music.wav', [

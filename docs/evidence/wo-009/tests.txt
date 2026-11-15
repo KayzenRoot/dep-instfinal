@@ -22,10 +22,10 @@ npx supabase test db
 
 npx vitest run
   Test Files 23 passed | 3 skipped (26)
-       Tests 156 passed | 3 skipped (159)
+       Tests 159 passed | 3 skipped (162)
   Includes:
-    - audio library/licence/event/template tests (8)
-    - audio ingestion tests (3)
+    - audio library/licence/event/template tests (10)
+    - audio ingestion tests (4)
     - real FFmpeg mix: narration + ducked music + SFX + loudness/true peak + mono downmix
     - second render and instrumental (no narration) mix
 
@@ -36,18 +36,21 @@ npm run audit:policy
   Checked 27 policy invariants across 24 tables. PASS
 
 npm run test:e2e:local -- e2e/audio-library.spec.ts
-  1 passed (26.1s): five categories imported with CC0 metadata and filtered
+  1 passed (21.9s): five categories imported with CC0 metadata, filtered, licence revoked/restored
 
 npm run test:e2e:local -- e2e/timeline.spec.ts
   1 passed (2.5m): full timeline/narration/captions/render journey still READY
+
+npm run test:e2e:local -- e2e/owner-boundary.spec.ts -g "authenticated studio pages fit"
+  1 passed (36.0s): /app/audio responsive at 360/768/1440
 ```
 
 ## FFmpeg mix measurements
 
-- Narration + music + SFX: AAC 48 kHz stereo, `loudnorm -16 LUFS`, true peak ≤ −0,8 dBTP, ducking measured as a lower music/voice band ratio, mono downmix audible.
+- Narration + music + SFX: AAC 48 kHz stereo, `loudnorm -16 LUFS`, true peak ≤ −0,8 dBTP; ducking measured as a lower music/voice band ratio; SFX band level present at its timecode; right/left pan separation; mono downmix within 3 dB of stereo (no severe cancellation).
 - 120 s local benchmark (x64, 3-track mix, 1080×1920 video stream copy):
   - wall **11.6 s**, user **15.3 s**, system **1.0 s**, max RSS **124,708 KiB**.
-  - ARM64 mixer benchmark and human headphone/speaker listening remain pending.
+  - ARM64 mixer benchmark and human headphone/speaker listening remain pending; synthetic owner samples in `docs/evidence/wo-009/listening/`.
 
 ## Notes
 

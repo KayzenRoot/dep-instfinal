@@ -235,7 +235,7 @@ export async function renderPlanToFile(input: {
 				outputPath: absoluteOutput,
 				videoDurationMs: command.expectedDurationMs,
 				narrationDurationMs: input.narration.durationMs,
-				volumeDb: input.narration.volumeDb,
+				volumeDb: (input.narration.volumeDb ?? 0) + (input.masterGainDb ?? 0),
 			});
 		}
 		const audioCommand = mix ?? mux;

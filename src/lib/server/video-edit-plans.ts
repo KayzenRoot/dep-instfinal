@@ -209,6 +209,31 @@ export function manifestHash(plan: VideoEditPlan): string {
 	return createHash('sha256').update(canonicalEditPlanJson(plan)).digest('hex');
 }
 
+async function assertPlanAudioAssets(
+	db: SupabaseClient,
+	ownerId: string,
+	plan: VideoEditPlan,
+): Promise<void> {
+	const events = plan.audio?.events ?? [];
+	if (!events.length) return;
+	const assets = await loadAudioAssets(
+		db,
+		ownerId,
+		events.map((event) => event.assetId),
+	);
+	try {
+		assertAudioEventsUsable(events, assets);
+	} catch (cause) {
+		if (cause instanceof AudioEventError)
+			throw new VideoEditPlanError(
+				cause.code.includes('LICENSE') ? 409 : 400,
+				cause.code,
+				cause.message,
+			);
+		throw cause;
+	}
+}
+
 export function validateForContext(plan: VideoEditPlan, context: EditPlanContext): VideoEditPlan {
 	try {
 		return validateEditPlan(plan, context);
@@ -230,25 +255,7 @@ export async function saveVideoEditPlan(input: {
 }): Promise<number> {
 	const context = await loadEditPlanContext(input.db, input.owner, input.episodeId);
 	const plan = validateForContext(input.plan, context);
-	const events = plan.audio?.events ?? [];
-	if (events.length) {
-		const assets = await loadAudioAssets(
-			input.db,
-			input.owner.id,
-			events.map((event) => event.assetId),
-		);
-		try {
-			assertAudioEventsUsable(events, assets);
-		} catch (cause) {
-			if (cause instanceof AudioEventError)
-				throw new VideoEditPlanError(
-					cause.code.includes('LICENSE') ? 409 : 400,
-					cause.code,
-					cause.message,
-				);
-			throw cause;
-		}
-	}
+	await assertPlanAudioAssets(input.db, input.owner.id, plan);
 	if (!input.adminDb)
 		throw new VideoEditPlanError(
 			503,
@@ -298,6 +305,7 @@ export async function restoreVideoEditPlan(input: {
 	validateForContext(parsedSource.data, context);
 	if (manifestHash(parsedSource.data) !== source.manifest_hash)
 		throw new VideoEditPlanError(409, 'EDIT_PLAN_HASH_MISMATCH', 'O hash da versão não confere.');
+	await assertPlanAudioAssets(input.db, input.owner.id, parsedSource.data);
 	if (!input.adminDb)
 		throw new VideoEditPlanError(
 			503,
@@ -334,6 +342,8 @@ export async function setVideoEditPlanStatus(input: {
 		throw new VideoEditPlanError(404, 'EDIT_PLAN_NOT_FOUND', 'Plano não encontrado.');
 	const context = await loadEditPlanContext(input.db, input.owner, input.episodeId);
 	validateForContext(stored.plan.plan, context);
+	if (input.status === 'APPROVED')
+		await assertPlanAudioAssets(input.db, input.owner.id, stored.plan.plan);
 	if (stored.plan.current_version !== input.expectedVersion)
 		throw new VideoEditPlanError(
 			409,

@@ -90,35 +90,71 @@
 			source.loop = event.loop;
 			const gain = context.createGain();
 			const start = context.currentTime;
+			const duration = event.durationMs / 1000;
+			const baseGain = Math.max(0.0001, Math.pow(10, (event.gainDb + masterGainDb) / 20));
 			gain.gain.setValueAtTime(0.0001, start);
 			gain.gain.exponentialRampToValueAtTime(
-				Math.max(0.0001, Math.pow(10, event.gainDb / 20)),
+				baseGain,
 				start + Math.max(0.01, event.fadeInMs / 1000),
 			);
+			if (event.fadeOutMs > 0) {
+				const fadeStart = Math.max(0.01, duration - event.fadeOutMs / 1000);
+				gain.gain.setValueAtTime(baseGain, start + fadeStart);
+				gain.gain.linearRampToValueAtTime(0.0001, start + duration);
+			}
 			source.connect(gain);
 			const panner = context.createStereoPanner();
 			panner.pan.value = event.pan;
-			if (!spatial) {
-				gain.connect(panner);
-				panner.connect(context.destination);
-			} else {
-				const filter = context.createBiquadFilter();
-				filter.type = 'lowpass';
-				filter.frequency.value = event.spatialPreset === 'radio' ? 2800 : 4200;
-				const delay = context.createDelay(0.3);
-				delay.delayTime.value = 0.035;
-				const feedback = context.createGain();
-				feedback.gain.value = 0.16;
-				gain.connect(filter);
-				filter.connect(panner);
-				panner.connect(context.destination);
-				panner.connect(delay);
-				delay.connect(feedback);
-				feedback.connect(delay);
-				delay.connect(context.destination);
+			let node: AudioNode = gain;
+			if (spatial && event.spatialPreset !== 'none') {
+				const highpass = context.createBiquadFilter();
+				highpass.type = 'highpass';
+				highpass.frequency.value =
+					event.spatialPreset === 'corridor'
+						? 180
+						: event.spatialPreset === 'radio'
+							? 450
+							: event.spatialPreset === 'whisper-side'
+								? 700
+								: 120;
+				const lowpass = context.createBiquadFilter();
+				lowpass.type = 'lowpass';
+				lowpass.frequency.value =
+					event.spatialPreset === 'corridor'
+						? 6000
+						: event.spatialPreset === 'radio'
+							? 3000
+							: event.spatialPreset === 'steps-behind'
+								? 3500
+								: 5000;
+				node.connect(highpass);
+				highpass.connect(lowpass);
+				node = lowpass;
 			}
-			source.start(start);
-			source.stop(start + event.durationMs / 1000);
+			node.connect(panner);
+			panner.connect(context.destination);
+			if (
+				spatial &&
+				(event.spatialPreset !== 'none' || event.spatialMode === 'binaural_simulated')
+			) {
+				const echoDelay = context.createDelay(0.3);
+				echoDelay.delayTime.value =
+					event.spatialPreset === 'steps-behind'
+						? 0.032
+						: event.spatialPreset === 'corridor'
+							? 0.018
+							: event.spatialPreset === 'radio'
+								? 0.012
+								: 0.003 + event.distance * 0.012;
+				const feedback = context.createGain();
+				feedback.gain.value = event.spatialPreset === 'none' ? 0 : 0.16;
+				panner.connect(echoDelay);
+				echoDelay.connect(feedback);
+				feedback.connect(echoDelay);
+				echoDelay.connect(context.destination);
+			}
+			source.start(start, event.loop ? 0 : event.sourceInMs / 1000);
+			source.stop(start + duration);
 			setTimeout(() => void context.close(), event.durationMs + 300);
 		} catch {
 			editError = 'Não foi possível reproduzir a prévia deste áudio.';
@@ -142,6 +178,7 @@
 				fadeInMs: 300,
 				fadeOutMs: 300,
 				pan: 0,
+				distance: 0.5,
 				loop: asset.kind === 'AMBIENCE',
 				ducking: asset.kind !== 'SFX',
 				spatialPreset: 'none',
@@ -680,7 +717,10 @@
 								<button type="button" onclick={() => void previewAudioEvent(event, true)}>
 									B · soundscape
 								</button>
-								<span class="meta-label">prévia simulada; melhor em fones, sem 3D nativo</span>
+								<span class="meta-label"
+									>prévia aproximada a partir dos mesmos parâmetros salvos; o render é a referência
+									e não é 3D nativo</span
+								>
 							</div>
 						</li>
 					{/each}

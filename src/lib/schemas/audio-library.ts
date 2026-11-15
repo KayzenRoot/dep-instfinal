@@ -59,6 +59,13 @@ export const audioAssetMetadataSchema = z
 			});
 	});
 
+export const audioLicenseUpdateSchema = z.object({
+	licenseStatus: audioLicenseStatusSchema,
+	commercialAllowed: z.boolean(),
+	socialAllowed: z.boolean(),
+	attribution: z.string().trim().min(1).max(300),
+});
+
 export const audioAssetSchema = audioAssetMetadataSchema.and(
 	z.object({
 		id: uuid,
@@ -87,6 +94,7 @@ export const editPlanAudioEventSchema = z
 		fadeInMs: z.number().int().min(0).max(10_000).default(0),
 		fadeOutMs: z.number().int().min(0).max(10_000).default(0),
 		pan: z.number().min(-1).max(1).default(0),
+		distance: z.number().min(0).max(1).default(0.5),
 		loop: z.boolean().default(false),
 		ducking: z.boolean().default(true),
 		spatialPreset: audioSpatialPresetSchema.default('none'),
@@ -126,3 +134,5 @@ export type EditPlanAudioEvent = z.infer<typeof editPlanAudioEventSchema>;
 export type EditPlanAudio = z.infer<typeof editPlanAudioSchema>;
 export type AudioSpatialPreset = z.infer<typeof audioSpatialPresetSchema>;
 export type AudioSpatialMode = z.infer<typeof audioSpatialModeSchema>;
+
+export type AudioLicenseUpdate = z.infer<typeof audioLicenseUpdateSchema>;

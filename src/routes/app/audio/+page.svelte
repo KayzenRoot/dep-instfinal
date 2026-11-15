@@ -8,7 +8,13 @@
 		form,
 	}: {
 		data: PageData;
-		form: { success?: boolean; message?: string; assetId?: string; title?: string } | null;
+		form: {
+			success?: boolean;
+			message?: string;
+			assetId?: string;
+			title?: string;
+			licenseUpdated?: boolean;
+		} | null;
 	} = $props();
 
 	const kindLabels = { AMBIENCE: 'Ambiência', MUSIC: 'Música', SFX: 'Efeito' } as const;
@@ -39,7 +45,9 @@
 {#if form?.message}<p class="notice error" role="alert">{form.message}</p>{/if}
 {#if form?.success}
 	<p class="notice success" role="status">
-		“{form.title}” importado. Já pode ser usado na timeline.
+		{form.licenseUpdated
+			? 'Licença atualizada.'
+			: `“${form.title}” importado. Já pode ser usado na timeline.`}
 	</p>
 {/if}
 {#if data.loadError}<p class="notice error" role="alert">{data.loadError}</p>{/if}
@@ -94,6 +102,34 @@
 						preload="none"
 						src={resolve('/api/audio/[assetId]', { assetId: asset.id })}
 					></audio>
+					<form method="POST" action="?/license" class="license-form">
+						<input type="hidden" name="assetId" value={asset.id} />
+						<label
+							>Status
+							<select name="licenseStatus">
+								<option value="UNKNOWN" selected={asset.licenseStatus === 'UNKNOWN'}
+									>Desconhecida</option
+								>
+								<option value="VERIFIED" selected={asset.licenseStatus === 'VERIFIED'}
+									>Verificada</option
+								>
+								<option value="BLOCKED" selected={asset.licenseStatus === 'BLOCKED'}
+									>Bloqueada</option
+								>
+							</select></label
+						>
+						<label class="check"
+							><input type="checkbox" name="commercialAllowed" checked={asset.commercialAllowed} /> Comercial</label
+						>
+						<label class="check"
+							><input type="checkbox" name="socialAllowed" checked={asset.socialAllowed} /> Social</label
+						>
+						<label class="wide"
+							>Atribuição
+							<input name="attribution" maxlength="300" value={asset.attribution} />
+						</label>
+						<button type="submit">Atualizar licença</button>
+					</form>
 				</li>
 			{/each}
 		</ul>
@@ -248,6 +284,29 @@
 	}
 	audio {
 		width: 100%;
+	}
+	.license-form {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+		gap: 0.5rem;
+		align-items: end;
+		border-block-start: 1px solid var(--line);
+		padding-block-start: 0.65rem;
+	}
+	.license-form label {
+		display: grid;
+		gap: 0.2rem;
+		color: var(--muted);
+		font-size: 0.78rem;
+	}
+	.license-form .check {
+		display: flex;
+		flex-direction: row;
+		gap: 0.35rem;
+		align-items: center;
+	}
+	.license-form .wide {
+		grid-column: 1 / -1;
 	}
 	.upload {
 		margin-block-start: 2rem;

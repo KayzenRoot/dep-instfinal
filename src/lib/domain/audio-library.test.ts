@@ -37,6 +37,7 @@ const event = {
 	fadeInMs: 200,
 	fadeOutMs: 300,
 	pan: -0.4,
+	distance: 0.3,
 	loop: false,
 	ducking: true,
 	spatialPreset: 'corridor' as const,
@@ -189,11 +190,11 @@ describe('suspense audio template', () => {
 			durationMs: 120_000,
 			assets: [ambience, impact],
 		});
-		expect(template.events).toHaveLength(2);
+		expect(template.events).toHaveLength(3);
 		expect(template.events[0]).toMatchObject({
 			assetId: ambience.id,
 			startMs: 0,
-			durationMs: 120_000,
+			durationMs: 103_500,
 			loop: true,
 			ducking: true,
 		});
@@ -201,6 +202,10 @@ describe('suspense audio template', () => {
 			assetId: impact.id,
 			startMs: 105_000,
 			kind: 'SFX',
+		});
+		expect(template.events[2]).toMatchObject({
+			assetId: ambience.id,
+			startMs: 106_000,
 		});
 		const impactEvent = template.events[1];
 		expect(impactEvent.fadeInMs + impactEvent.fadeOutMs).toBeLessThanOrEqual(
@@ -236,6 +241,7 @@ describe('audio mix command', () => {
 				fadeInMs: 300,
 				fadeOutMs: 400,
 				pan: 0,
+				distance: 0.5,
 				loop: true,
 				ducking: true,
 				spatialPreset: 'corridor' as const,
@@ -253,6 +259,7 @@ describe('audio mix command', () => {
 				fadeInMs: 100,
 				fadeOutMs: 100,
 				pan: 0.7,
+				distance: 0.2,
 				loop: false,
 				ducking: false,
 				spatialPreset: 'steps-behind' as const,
@@ -276,6 +283,38 @@ describe('audio mix command', () => {
 		expect(command.eventCount).toBe(2);
 		expect(command.duckedCount).toBe(1);
 		expect(command.spatialModes.binaural_simulated).toBe(2);
+	});
+
+	it('rejects narration underflow/overflow when events are present', () => {
+		expect(() =>
+			buildAudioMixCommand({
+				...base,
+				narration: { path: 'C:/work/voice.wav', durationMs: 1_000 },
+			}),
+		).toThrow(RenderCompositionError);
+		expect(() =>
+			buildAudioMixCommand({
+				...base,
+				narration: { path: 'C:/work/voice.wav', durationMs: 10_000 },
+			}),
+		).toThrow(RenderCompositionError);
+	});
+
+	it('routes ducked and unducked music to separate buses', () => {
+		const unduckedMusic = {
+			...base.events[0]!,
+			id: 'music-open',
+			ducking: false,
+			pan: 0.3,
+		};
+		const command = buildAudioMixCommand({
+			...base,
+			events: [base.events[0]!, unduckedMusic, base.events[1]!],
+		});
+		const graph = command.args[command.args.indexOf('-filter_complex') + 1]!;
+		expect(graph).toContain('[duckedbus][duck]sidechaincompress');
+		expect(graph).toContain('[unduckedbus]');
+		expect(command.duckedCount).toBe(1);
 	});
 
 	it('mixes without narration and rejects empty/oversized mixes', () => {

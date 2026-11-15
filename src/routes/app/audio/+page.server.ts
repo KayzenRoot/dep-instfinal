@@ -4,7 +4,12 @@ import { ownerDatabase, readFormText } from '#lib/server/authorized.js';
 import { getAppConfig } from '#lib/server/config.js';
 import { createSupabaseAdminClient } from '#lib/server/supabase.js';
 import { videoBackend } from '#lib/server/video-http.js';
-import { AudioLibraryError, listAudioAssets, storeAudioAsset } from '#lib/server/audio-library.js';
+import {
+	AudioLibraryError,
+	listAudioAssets,
+	storeAudioAsset,
+	updateAudioAssetLicense,
+} from '#lib/server/audio-library.js';
 import { audioKindSchema, type AudioKind } from '#lib/schemas/audio-library.js';
 
 function parseMetadata(form: FormData) {
@@ -19,10 +24,14 @@ function parseMetadata(form: FormData) {
 		commercialAllowed: form.get('commercialAllowed') === 'on',
 		socialAllowed: form.get('socialAllowed') === 'on',
 		licenseStatus: readFormText(form, 'licenseStatus') || 'UNKNOWN',
-		tags: readFormText(form, 'tags')
-			.split(',')
-			.map((tag) => tag.trim())
-			.filter(Boolean),
+		tags: [
+			...new Set(
+				readFormText(form, 'tags')
+					.split(',')
+					.map((tag) => tag.trim())
+					.filter(Boolean),
+			),
+		],
 		intensity: Number.parseInt(readFormText(form, 'intensity') || '3', 10),
 	};
 }
@@ -48,6 +57,29 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
+	license: async (event) => {
+		const { db, owner } = ownerDatabase(event);
+		const form = await event.request.formData();
+		const assetId = readFormText(form, 'assetId');
+		try {
+			await updateAudioAssetLicense({
+				adminDb: createSupabaseAdminClient(),
+				db,
+				owner,
+				assetId,
+				license: {
+					licenseStatus: readFormText(form, 'licenseStatus'),
+					commercialAllowed: form.get('commercialAllowed') === 'on',
+					socialAllowed: form.get('socialAllowed') === 'on',
+					attribution: readFormText(form, 'attribution'),
+				},
+			});
+			return { success: true, licenseUpdated: true };
+		} catch (cause) {
+			if (cause instanceof AudioLibraryError) return fail(cause.status, { message: cause.message });
+			return fail(503, { message: 'Não foi possível atualizar a licença.' });
+		}
+	},
 	upload: async (event) => {
 		const { owner } = ownerDatabase(event);
 		const form = await event.request.formData();

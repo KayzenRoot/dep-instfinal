@@ -7,6 +7,7 @@ import type { VideoStorage } from './video-storage.js';
 import { measureAudioLoudness, probeAudioFile } from './audio-analysis.js';
 import {
 	audioAssetMetadataSchema,
+	audioLicenseUpdateSchema,
 	type AudioAsset,
 	type AudioKind,
 } from '#lib/schemas/audio-library.js';
@@ -137,8 +138,10 @@ export async function storeAudioAsset(input: {
 	const parsedMetadata = audioAssetMetadataSchema.safeParse(input.metadata);
 	if (!parsedMetadata.success)
 		throw new AudioLibraryError(400, 'AUDIO_METADATA_INVALID', 'Metadados de licença inválidos.');
-	if (input.bytes.length < 100 || input.bytes.length > 25 * 1024 * 1024)
-		throw new AudioLibraryError(413, 'AUDIO_TOO_LARGE', 'O áudio excede o limite de 25 MB.');
+	if (input.bytes.length < 100)
+		throw new AudioLibraryError(422, 'AUDIO_TOO_SMALL', 'O áudio é pequeno demais.');
+	if (input.bytes.length > 4 * 1024 * 1024)
+		throw new AudioLibraryError(413, 'AUDIO_TOO_LARGE', 'O áudio excede o limite de 4 MB.');
 	if (!/\.(wav|mp3|m4a|ogg)$/i.test(input.fileName))
 		throw new AudioLibraryError(415, 'AUDIO_FORMAT_INVALID', 'Envie WAV, MP3, M4A ou OGG.');
 	const extension = input.fileName.split('.').at(-1)?.toLowerCase() ?? 'wav';
@@ -231,7 +234,7 @@ export async function storeAudioAsset(input: {
 				commercial_allowed: parsedMetadata.data.commercialAllowed,
 				social_allowed: parsedMetadata.data.socialAllowed,
 				license_status: parsedMetadata.data.licenseStatus,
-				tags: parsedMetadata.data.tags,
+				tags: [...new Set(parsedMetadata.data.tags)],
 				intensity: parsedMetadata.data.intensity,
 				bucket: stored.bucket,
 				object_key: stored.key,
@@ -255,6 +258,63 @@ export async function storeAudioAsset(input: {
 	} finally {
 		await rm(directory, { recursive: true, force: true });
 	}
+}
+
+export async function updateAudioAssetLicense(input: {
+	adminDb: SupabaseClient | null;
+	db: SupabaseClient;
+	owner: User;
+	assetId: string;
+	license: unknown;
+}): Promise<AudioAsset> {
+	if (!input.adminDb)
+		throw new AudioLibraryError(
+			503,
+			'AUDIO_WRITER_UNAVAILABLE',
+			'O writer de áudio não está configurado.',
+		);
+	if (!/^[0-9a-f-]{36}$/i.test(input.assetId))
+		throw new AudioLibraryError(404, 'AUDIO_NOT_FOUND', 'Áudio não encontrado.');
+	const parsed = audioLicenseUpdateSchema.safeParse(input.license);
+	if (!parsed.success)
+		throw new AudioLibraryError(400, 'AUDIO_LICENSE_INVALID', 'Licença inválida.');
+	if (
+		parsed.data.licenseStatus === 'VERIFIED' &&
+		(!parsed.data.commercialAllowed || !parsed.data.socialAllowed)
+	)
+		throw new AudioLibraryError(
+			400,
+			'AUDIO_LICENSE_INVALID',
+			'Licença verificada exige direitos comercial e social.',
+		);
+	const { data: existing, error: loadError } = await input.db
+		.from('audio_assets')
+		.select('id')
+		.eq('owner_id', input.owner.id)
+		.eq('id', input.assetId)
+		.maybeSingle();
+	if (loadError)
+		throw new AudioLibraryError(503, 'AUDIO_LOAD_FAILED', 'Não foi possível carregar o áudio.');
+	if (!existing) throw new AudioLibraryError(404, 'AUDIO_NOT_FOUND', 'Áudio não encontrado.');
+	const { data, error } = await input.adminDb
+		.from('audio_assets')
+		.update({
+			license_status: parsed.data.licenseStatus,
+			commercial_allowed: parsed.data.commercialAllowed,
+			social_allowed: parsed.data.socialAllowed,
+			attribution: parsed.data.attribution,
+		})
+		.eq('owner_id', input.owner.id)
+		.eq('id', input.assetId)
+		.select(AUDIO_COLUMNS)
+		.single();
+	if (error || !data)
+		throw new AudioLibraryError(
+			503,
+			'AUDIO_UPDATE_FAILED',
+			'Não foi possível atualizar a licença.',
+		);
+	return mapRow(data as AudioAssetRow);
 }
 
 export async function getAudioAssetDownload(input: {

@@ -353,6 +353,7 @@ export interface AudioMixEvent {
 	fadeInMs: number;
 	fadeOutMs: number;
 	pan: number;
+	distance: number;
 	loop: boolean;
 	ducking: boolean;
 	spatialPreset: AudioSpatialPreset;
@@ -389,7 +390,7 @@ function spatialFilters(event: AudioMixEvent): string {
 	else if (event.spatialPreset === 'whisper-side')
 		filters.push('highpass=f=700', 'lowpass=f=5000', 'aecho=0.7:0.4:10|18:0.12|0.08');
 	if (event.spatialMode === 'binaural_simulated') {
-		const delay = Math.max(3, Math.round(4 + event.intensity * 2));
+		const delay = Math.max(3, Math.round(3 + event.distance * 12));
 		filters.push(`adelay=0|${delay}`);
 	}
 	return filters.length ? `${filters.join(',')},` : '';
@@ -417,6 +418,27 @@ export function buildAudioMixCommand(input: {
 	if (!input.events.length)
 		throw new RenderCompositionError('RENDER_MIX_EMPTY', 'O mix não tem eventos de áudio.');
 	const duration = (input.videoDurationMs / 1000).toFixed(3);
+	let narrationPolicy: ReturnType<typeof narrationDurationPolicy> | null = null;
+	if (input.narration) {
+		try {
+			narrationPolicy = narrationDurationPolicy(input.narration.durationMs, input.videoDurationMs);
+		} catch {
+			throw new RenderCompositionError(
+				'NARRATION_DURATION_INVALID',
+				'Duração da narração ou do vídeo inválida.',
+			);
+		}
+		if (narrationPolicy.underflowMs > 0)
+			throw new RenderCompositionError(
+				'NARRATION_TOO_SHORT',
+				`A narração cobre menos da metade do vídeo (${narrationPolicy.narrationMs} de ${narrationPolicy.videoMs} ms).`,
+			);
+		if (narrationPolicy.overflowMs > 0)
+			throw new RenderCompositionError(
+				'NARRATION_OVERFLOW',
+				`A narração excede o vídeo em ${narrationPolicy.overflowMs} ms.`,
+			);
+	}
 	const filters: string[] = [];
 	const inputs: string[] = [];
 	let inputIndex = 1;
@@ -430,8 +452,8 @@ export function buildAudioMixCommand(input: {
 		inputs.push(input.narration.path);
 		inputIndex += 1;
 	}
-	const ducked = input.events.filter((event) => event.ducking && event.kind !== 'SFX');
-	const musicBus: string[] = [];
+	const duckedBus: string[] = [];
+	const unduckedBus: string[] = [];
 	const sfxBus: string[] = [];
 	for (const event of input.events) {
 		const index = inputIndex;
@@ -462,7 +484,8 @@ export function buildAudioMixCommand(input: {
 		const label = `a${index}`;
 		filters.push(`[${index}:a]${eventFilters.join(',')}[${label}]`);
 		if (event.kind === 'SFX') sfxBus.push(label);
-		else musicBus.push(label);
+		else if (event.ducking && input.narration) duckedBus.push(label);
+		else unduckedBus.push(label);
 	}
 	const mixBus = (labels: string[], label: string) => {
 		if (labels.length === 1) {
@@ -473,23 +496,26 @@ export function buildAudioMixCommand(input: {
 			);
 		}
 	};
-	let musicLabel: string | null = null;
-	if (musicBus.length) {
-		mixBus(musicBus, 'musicbus');
-		musicLabel = 'musicbus';
-		if (ducked.length && narrationLabel) {
-			filters.push(`[${narrationLabel}]asplit=2[narr][duck]`);
-			narrationLabel = 'narr';
-			filters.push(
-				`[musicbus][duck]sidechaincompress=threshold=0.005:ratio=8:attack=20:release=350:makeup=1[musicduck]`,
-			);
-			musicLabel = 'musicduck';
-		}
+	let duckedLabel: string | null = null;
+	let unduckedLabel: string | null = null;
+	if (duckedBus.length) {
+		mixBus(duckedBus, 'duckedbus');
+		filters.push(`[${narrationLabel ?? 'narrbase'}]asplit=2[narr][duck]`);
+		narrationLabel = 'narr';
+		filters.push(
+			`[duckedbus][duck]sidechaincompress=threshold=0.005:ratio=8:attack=20:release=350:makeup=1[ducked]`,
+		);
+		duckedLabel = 'ducked';
+	}
+	if (unduckedBus.length) {
+		mixBus(unduckedBus, 'unduckedbus');
+		unduckedLabel = 'unduckedbus';
 	}
 	if (sfxBus.length) mixBus(sfxBus, 'sfxbus');
 	const finalInputs = [
 		...(narrationLabel ? [narrationLabel] : []),
-		...(musicLabel ? [musicLabel] : []),
+		...(duckedLabel ? [duckedLabel] : []),
+		...(unduckedLabel ? [unduckedLabel] : []),
 		...(sfxBus.length ? ['sfxbus'] : []),
 	];
 	if (!finalInputs.length)
@@ -543,13 +569,8 @@ export function buildAudioMixCommand(input: {
 	const spatialModes: Record<string, number> = {};
 	for (const event of input.events)
 		spatialModes[event.spatialMode] = (spatialModes[event.spatialMode] ?? 0) + 1;
-	let paddedMs = 0;
-	let trimmedMs = 0;
-	if (input.narration) {
-		const policy = narrationDurationPolicy(input.narration.durationMs, input.videoDurationMs);
-		paddedMs = policy.paddedMs;
-		trimmedMs = policy.trimmedMs;
-	}
+	const paddedMs = narrationPolicy?.paddedMs ?? 0;
+	const trimmedMs = narrationPolicy?.trimmedMs ?? 0;
 	return {
 		args,
 		videoPath: input.videoPath,
@@ -559,7 +580,7 @@ export function buildAudioMixCommand(input: {
 		paddedMs,
 		trimmedMs,
 		eventCount: input.events.length,
-		duckedCount: ducked.length,
+		duckedCount: input.narration ? duckedBus.length : 0,
 		spatialModes,
 	};
 }

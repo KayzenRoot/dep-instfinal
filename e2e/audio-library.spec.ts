@@ -9,11 +9,11 @@ test('owner imports five licensed audio categories and filters the library', asy
 	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
 	const workspace = await mkdtemp(path.join(tmpdir(), 'dif-audio-e2e-'));
 	const definitions = [
-		{ tag: 'porta', kind: 'SFX', title: 'Porta E2E', frequency: 220 },
-		{ tag: 'passos', kind: 'SFX', title: 'Passos E2E', frequency: 300 },
-		{ tag: 'impacto', kind: 'SFX', title: 'Impacto E2E', frequency: 520 },
-		{ tag: 'drone', kind: 'AMBIENCE', title: 'Drone E2E', frequency: 90 },
-		{ tag: 'ambiente', kind: 'MUSIC', title: 'Ambiente E2E', frequency: 160 },
+		{ tag: 'porta', kind: 'SFX', title: 'Porta E2E', frequency: 220, seconds: 1 },
+		{ tag: 'passos', kind: 'SFX', title: 'Passos E2E', frequency: 300, seconds: 1 },
+		{ tag: 'impacto', kind: 'SFX', title: 'Impacto E2E', frequency: 520, seconds: 1 },
+		{ tag: 'drone', kind: 'AMBIENCE', title: 'Drone E2E', frequency: 90, seconds: 10 },
+		{ tag: 'ambiente', kind: 'MUSIC', title: 'Ambiente E2E', frequency: 160, seconds: 1 },
 	] as const;
 	const categories = definitions.map((definition) => ({
 		...definition,
@@ -32,7 +32,7 @@ test('owner imports five licensed audio categories and filters the library', asy
 					'-f',
 					'lavfi',
 					'-i',
-					`sine=frequency=${category.frequency}:sample_rate=48000:duration=1`,
+					`sine=frequency=${category.frequency}:sample_rate=48000:duration=${category.seconds}`,
 					'-ac',
 					'1',
 					'-c:a',
@@ -52,25 +52,56 @@ test('owner imports five licensed audio categories and filters the library', asy
 		await expect(page.getByRole('heading', { name: 'Biblioteca licenciada' })).toBeVisible();
 
 		for (const category of categories) {
-			await page.locator('input[type="file"]').setInputFiles(category.file);
-			await page.getByLabel('Tipo').selectOption(category.kind);
-			await page.getByLabel('Título', { exact: true }).fill(category.title);
-			await page.getByLabel('Autor', { exact: true }).fill('DIF Studio');
-			await page.getByLabel('Origem', { exact: true }).fill('Fixture sintética E2E');
-			await page.getByLabel('Licença', { exact: true }).fill('CC0 1.0');
-			await page
+			const uploadForm = page.locator('.upload-form');
+			await uploadForm.locator('input[type="file"]').setInputFiles(category.file);
+			await uploadForm.getByLabel('Tipo').selectOption(category.kind);
+			await uploadForm.getByLabel('Título', { exact: true }).fill(category.title);
+			await uploadForm.getByLabel('Autor', { exact: true }).fill('DIF Studio');
+			await uploadForm.getByLabel('Origem', { exact: true }).fill('Fixture sintética E2E');
+			await uploadForm.getByLabel('Licença', { exact: true }).fill('CC0 1.0');
+			await uploadForm
 				.getByLabel('URL da licença')
 				.fill('https://creativecommons.org/publicdomain/zero/1.0/');
-			await page.getByLabel('Atribuição').fill('DIF Studio, CC0');
-			await page.getByLabel('Status').selectOption('VERIFIED');
-			await page.getByLabel('Tags separadas por vírgula').fill(category.tag);
-			await page.getByLabel('Permite uso comercial').check();
-			await page.getByLabel('Permite distribuição social').check();
-			await page.getByRole('button', { name: 'Importar com licença' }).click();
+			await uploadForm.getByLabel('Atribuição').fill('DIF Studio, CC0');
+			await uploadForm.getByLabel('Status').selectOption('VERIFIED');
+			await uploadForm.getByLabel('Tags separadas por vírgula').fill(category.tag);
+			await uploadForm.getByLabel('Permite uso comercial').check();
+			await uploadForm.getByLabel('Permite distribuição social').check();
+			await uploadForm.getByRole('button', { name: 'Importar com licença' }).click();
 			await expect(page.locator('.notice.success')).toContainText(category.title);
 			await expect(page.getByRole('heading', { name: category.title })).toBeVisible();
 		}
 
+		const portaCard = page.locator('.asset-list li').filter({ hasText: 'Porta E2E' });
+		await portaCard.getByLabel('Status').selectOption('BLOCKED');
+		await portaCard.getByLabel('Comercial').uncheck();
+		await portaCard.getByLabel('Social').uncheck();
+		await portaCard.getByRole('button', { name: 'Atualizar licença' }).click();
+		await expect(page.locator('.notice.success')).toContainText('Licença atualizada');
+		await expect(
+			page.locator('.asset-list li').filter({ hasText: 'Porta E2E' }).locator('.badge'),
+		).toContainText('Bloqueada');
+		await page
+			.locator('.asset-list li')
+			.filter({ hasText: 'Porta E2E' })
+			.getByLabel('Status')
+			.selectOption('VERIFIED');
+		await page
+			.locator('.asset-list li')
+			.filter({ hasText: 'Porta E2E' })
+			.getByLabel('Comercial')
+			.check();
+		await page
+			.locator('.asset-list li')
+			.filter({ hasText: 'Porta E2E' })
+			.getByLabel('Social')
+			.check();
+		await page
+			.locator('.asset-list li')
+			.filter({ hasText: 'Porta E2E' })
+			.getByRole('button', { name: 'Atualizar licença' })
+			.click();
+		await expect(page.locator('.notice.success')).toContainText('Licença atualizada');
 		await page.getByRole('link', { name: 'porta', exact: true }).click();
 		await expect(page.getByRole('heading', { name: 'Porta E2E' })).toBeVisible();
 		await expect(page.getByRole('heading', { name: 'Passos E2E' })).toHaveCount(0);

@@ -1,6 +1,6 @@
 # DIF-V2-WO-009 — Biblioteca licenciada, mix/ducking e soundscape
 
-**Status:** implementação e testes locais **PASS**; CI final, auditoria independente e autorização do owner pendentes. **Não aprovada**, **não merged**, **não deployed**.
+**Status:** implementação e correções de auditoria aplicadas; testes locais **PASS**; CI final e reauditoria pendentes. **BLOQUEADA no gate ENH-14** (escuta humana e benchmark ARM64 obrigatórios). **Não aprovada**, **não merged**, **não deployed**.
 **Base:** `main` `7d6af5e` (checkpoint WO-008 promovido).
 **Branch:** `feat/dif-v2-wo-009`.
 **Escopo:** WO-009 (#26) + addendum ENH-14 (soundscape estéreo simulado), dependente de WO-006/WO-007.
@@ -8,7 +8,7 @@
 ## Entregue
 
 - `audio_assets` owner-only: SFX/música/ambiência com autor, origem, licença, URL, atribuição, direitos comercial/social, status de licença, tags, intensidade, hash, duração, sample rate, canais, peak/true peak/LUFS e bytes privados no mesmo storage R2.
-- Ingestão privada WAV/MP3/M4A/OGG com ffprobe, limite de 25 MB, detecção de clipping/silêncio, extensão vs formato real, deduplicação por SHA-256 e metadados de licença obrigatórios. Licença `VERIFIED` exige direitos comercial e social; `UNKNOWN`/`BLOCKED` ficam retidas para export.
+- Ingestão privada WAV/MP3/M4A/OGG com ffprobe, limite de 4 MB, detecção de clipping/silêncio, extensão vs formato real, deduplicação por SHA-256 e metadados de licença obrigatórios. Licença `VERIFIED` exige direitos comercial e social; `UNKNOWN`/`BLOCKED` ficam retidas para export.
 - Eventos de áudio no `VideoEditPlan` (versionados junto ao plano): asset, kind, startMs, duração, offset, ganho, fades, pan, loop, ducking, preset espacial (`corridor`, `radio`, `steps-behind`, `whisper-side`) e modo `stereo_pan`/`binaural_simulated`.
 - UI `/app/audio`: filtros por tipo e cinco categorias sugeridas (`porta`, `passos`, `impacto`, `drone`, `ambiente`), importação com licença, playback privado e badges de status.
 - Timeline: editor de eventos, ganho master, controles por track, template de suspense 120 s (ambiência + impacto por timecode), preview A/B normal vs soundscape via Web Audio (simulado, sem alegar 3D nativo).
@@ -37,20 +37,32 @@ A biblioteca começa vazia; nenhum asset é baixado automaticamente. As licença
 - Downmix mono é testado sem silêncio/cancelamento grave.
 - Limitações honestas: não há HRTF/Atmos nativo, não há rastreamento 3D; fones são recomendados no texto da UI.
 
+## Correções pós-auditoria
+
+- Upload limitado a 4 MB com `BODY_SIZE_LIMIT=5M` no adapter-node e `scripts/start.mjs`; E2E inclui arquivo >512 KiB.
+- Política de duração da narração aplicada ao mix (underflow/overflow) e master gain no mux narração-only.
+- Ducking por evento em bus separado; SFX não expõe ducking inerte; `duckedCount` reflete o render.
+- Preview A/B usa fade-out, offset, master gain, pan, distância e filtros/eco aproximados; o render é a referência.
+- Tags deduplicadas; licença editável/revogável na UI; gate de licença também em restore/aprovação.
+- Template com silêncio pré-impacto e distância; evento ganhou `distance`.
+- Testes de timing, pan L/R, mono sem cancelamento severo e benchmark reproduzível local.
+
 ## Testes
 
-- Unit **156 + 3 skipped**: `audio-library.test.ts` (licença/deduplicação/eventos/template), `audio-library.test.ts` server (ingestão), `render-composition` unit (grafo de mix/ducking/limiter).
+- Unit **159 + 3 skipped**: `audio-library.test.ts` (licença/deduplicação/eventos/template), `audio-library.test.ts` server (ingestão), `render-composition` unit (grafo de mix/ducking/limiter).
 - Integração FFmpeg: mix real com narração + música + SFX, true peak/LUFS, ducking mensurável por banda, segunda renderização e downmix mono.
 - PgTAP **131/131**: RLS/owner-only, service-only, licença verificada e rejeição cross-owner/cross-licença.
-- E2E: importação de cinco categorias/filtros PASS (26,1s); timeline existente 1/1 PASS (2,5m); owner-boundary responsivo `/app/audio` PASS local; `401` do endpoint privado no CI.
-- Policy audit: **27 invariantes / 24 tabelas PASS**. Benchmark local 120 s: 11,6 s wall, 15,3 s user, 124,708 KiB RSS (ARM64 pendente).
+- E2E: importação de cinco categorias/filtros PASS (20,6s); timeline existente 1/1 PASS (2,5m); owner-boundary responsivo `/app/audio` PASS local; `401` do endpoint privado no CI.
+- Policy audit: **27 invariantes / 24 tabelas PASS**. Benchmark local 120 s: 11,6 s wall, 15,3 s user, 124,708 KiB RSS (ARM64 pendente). Escuta A/B do owner pendente; amostras em `docs/evidence/wo-009/listening/`.
+- Pós-auditoria: limite de upload 4 MB + `BODY_SIZE_LIMIT=5M`; política de duração da narração aplicada ao mix; ducking por evento em buses separados; preview A/B aproximado com os mesmos parâmetros; tags deduplicadas; gate de licença em restore/aprovação; master gain no mux narração-only; template com silêncio pré-impacto e distância; medições de pan/timing/mono.
 - CI e auditoria independente serão registrados em `docs/evidence/wo-009/`.
 
 ## Riscos e residuais
 
 - Licença é metadado declarado; revisão jurídica humana continua necessária.
 - O helper/ingestão exige WAV PCM 16-bit para o ASR; a biblioteca aceita WAV/MP3/M4A/OGG.
-- Benchmark ARM64 específico do mixer e escuta humana em fones/speaker ainda pendentes; medições locais são indicativas.
+- **STOP ENH-14:** escuta humana em fones/speaker e benchmark ARM64 do mixer ainda pendentes. Amostras sintéticas para o owner em `docs/evidence/wo-009/listening/`; medições locais são indicativas. Sem essa aceitação, WO-009 não pode ser aprovada/promovida.
+- Recuperação de objeto R2 perdido por reenvio do mesmo asset não está exposta na UI; atualização/revogação de licença está disponível.
 - R2 live download/lifecycle/GC e menor privilégio do worker permanecem WO-013/014.
 - O template de suspense é um ponto de partida; não substitui direção sonora humana.
 
