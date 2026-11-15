@@ -52,6 +52,10 @@ npm run test:e2e:local -- e2e/owner-boundary.spec.ts -g "authenticated studio pa
   - wall **11.6 s**, user **15.3 s**, system **1.0 s**, max RSS **124,708 KiB**.
   - ARM64 mixer benchmark and human headphone/speaker listening remain pending; synthetic owner samples in `docs/evidence/wo-009/listening/`.
 
+Hosted CI run 43656294117 (head 4138948)
+  quality PASS 7m47s; unit 159+3; PgTAP 131/131;
+  E2E 13/13 in 3.6m; Sonar/Socket/Vercel PASS.
+
 ## Notes
 
 - The library starts empty; no external/downloaded asset was used.

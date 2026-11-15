@@ -11,7 +11,7 @@
 
 ## DIF-V2-WO-009 — Biblioteca licenciada, mix/ducking e soundscape (2026-11-14) — PROPOSED
 
-- **Status:** **PROPOSED — CORRECTION REQUIRED/ENH-14 BLOCKED**; biblioteca/eventos/UI/mixer implementados e correções H1/H2/M1–M8 aplicadas; testes locais PASS; escuta humana, ARM64, CI e reauditoria pendentes.
+- **Status:** **PROPOSED — CORRECTION REQUIRED/ENH-14 BLOCKED**; biblioteca/eventos/UI/mixer implementados e correções H1/H2/M1–M8 aplicadas; testes locais e CI `43656294117` PASS; escuta humana, ARM64 e reauditoria pendentes.
 - **Base:** `main` `7d6af5e` (checkpoint WO-008 promovido); branch `feat/dif-v2-wo-009`.
 - **Delivered:** ingestão privada WAV/MP3/M4A/OGG com licença/atribuição/direitos, dedup por SHA; cinco categorias; eventos de áudio versionados no plano; timeline com ganho/fades/pan/loop/ducking/presets espaciais; template suspense 120 s; mixer com narração prioritária, ducking, SFU/SFX, loudnorm/alimiter, AAC 48 kHz estéreo e validação true peak/LUFS; manifesto `audio`/`audioMix`.
 - **Limits:** licença é declaração registrada, não parecer jurídico; soundscape é estéreo simulado, não Atmos/3D nativo; benchmark ARM64 e escuta humana pendentes; R2 live/lifecycle e menor privilégio do worker permanecem WO-013/014.

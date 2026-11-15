@@ -1,6 +1,6 @@
 # DIF-V2-WO-009 — Biblioteca licenciada, mix/ducking e soundscape
 
-**Status:** implementação e correções de auditoria aplicadas; testes locais **PASS**; CI final e reauditoria pendentes. **BLOQUEADA no gate ENH-14** (escuta humana e benchmark ARM64 obrigatórios). **Não aprovada**, **não merged**, **não deployed**.
+**Status:** implementação e correções de auditoria aplicadas; testes locais e CI `43656294117` **PASS**; reauditoria e aceitação humana/ARM64 pendentes. **BLOQUEADA no gate ENH-14** (escuta humana e benchmark ARM64 obrigatórios). **Não aprovada**, **não merged**, **não deployed**.
 **Base:** `main` `7d6af5e` (checkpoint WO-008 promovido).
 **Branch:** `feat/dif-v2-wo-009`.
 **Escopo:** WO-009 (#26) + addendum ENH-14 (soundscape estéreo simulado), dependente de WO-006/WO-007.
@@ -53,7 +53,7 @@ A biblioteca começa vazia; nenhum asset é baixado automaticamente. As licença
 - Integração FFmpeg: mix real com narração + música + SFX, true peak/LUFS, ducking mensurável por banda, segunda renderização e downmix mono.
 - PgTAP **131/131**: RLS/owner-only, service-only, licença verificada e rejeição cross-owner/cross-licença.
 - E2E: importação de cinco categorias/filtros PASS (20,6s); timeline existente 1/1 PASS (2,5m); owner-boundary responsivo `/app/audio` PASS local; `401` do endpoint privado no CI.
-- Policy audit: **27 invariantes / 24 tabelas PASS**. Benchmark local 120 s: 11,6 s wall, 15,3 s user, 124,708 KiB RSS (ARM64 pendente). Escuta A/B do owner pendente; amostras em `docs/evidence/wo-009/listening/`.
+- CI `43656294117` em `4138948`: **SUCCESS** (7m47s), unit 159+3, PgTAP 131/131, E2E 13/13, Sonar/Socket/Vercel PASS. Benchmark local 120 s: 11,6 s wall, 15,3 s user, 124,708 KiB RSS (ARM64 pendente). Escuta A/B do owner pendente; amostras em `docs/evidence/wo-009/listening/`.
 - Pós-auditoria: limite de upload 4 MB + `BODY_SIZE_LIMIT=5M`; política de duração da narração aplicada ao mix; ducking por evento em buses separados; preview A/B aproximado com os mesmos parâmetros; tags deduplicadas; gate de licença em restore/aprovação; master gain no mux narração-only; template com silêncio pré-impacto e distância; medições de pan/timing/mono.
 - CI e auditoria independente serão registrados em `docs/evidence/wo-009/`.
 
