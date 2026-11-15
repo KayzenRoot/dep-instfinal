@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildAudioMixCommand } from '../src/lib/domain/render-composition.js';
@@ -110,12 +110,27 @@ try {
 	const args = command.args.map((argument) => (argument === 'error' ? 'info' : argument));
 	args.splice(args.indexOf('-hide_banner') + 1, 0, '-benchmark');
 	const started = Date.now();
-	const result = spawnSync('ffmpeg', ['-nostdin', ...args], { encoding: 'utf8' });
+	const timeFile = process.env.BENCH_TIME_FILE;
+	const result = timeFile
+		? spawnSync('/usr/bin/time', ['-v', '-o', timeFile, 'ffmpeg', '-nostdin', ...args], {
+				encoding: 'utf8',
+			})
+		: spawnSync('ffmpeg', ['-nostdin', ...args], { encoding: 'utf8' });
 	if (result.status !== 0) throw new Error(result.stderr.slice(0, 2_000));
 	const bench = /bench:\s*utime=([0-9.]+)s\s*stime=([0-9.]+)s\s*rtime=([0-9.]+)s/.exec(
 		result.stderr,
 	);
 	const rss = /bench:\s*maxrss=([0-9]+)KiB/.exec(result.stderr);
+	let timeRss: number | null = null;
+	if (timeFile) {
+		try {
+			const timeOutput = await readFile(timeFile, 'utf8');
+			const match = /Maximum resident set size \(kbytes\):\s*([0-9]+)/.exec(timeOutput);
+			timeRss = match ? Number(match[1]) : null;
+		} catch {
+			timeRss = null;
+		}
+	}
 	process.stdout.write(
 		`${JSON.stringify({
 			videoDurationMs: 120_000,
@@ -125,7 +140,7 @@ try {
 			utimeSeconds: bench ? Number(bench[1]) : null,
 			stimeSeconds: bench ? Number(bench[2]) : null,
 			rtimeSeconds: bench ? Number(bench[3]) : null,
-			maxRssKiB: rss ? Number(rss[1]) : null,
+			maxRssKiB: timeRss ?? (rss ? Number(rss[1]) : null),
 		})}\n`,
 	);
 } finally {
