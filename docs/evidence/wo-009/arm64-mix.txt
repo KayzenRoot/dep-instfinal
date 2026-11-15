@@ -1,0 +1,24 @@
+# WO-009 ARM64 audio-mix benchmark
+
+- Runner: GitHub Actions `ubuntu-24.04-arm` (aarch64), public repository
+- Workflow: `Audio Mix ARM64 Benchmark`
+- Run: `43659179231`
+- Head: `5b2b759`
+- Command: `npm run benchmark:audio-mix` with `BENCH_TIME_FILE`
+- Fixture: 120 s 1080×1920 black video, 100 s narration, looped 90 Hz music, 2 s impact, 2 events (one ducked)
+- Result:
+
+```json
+{
+  "videoDurationMs": 120000,
+  "eventCount": 2,
+  "duckedCount": 1,
+  "wallMs": 7862,
+  "utimeSeconds": 7.559,
+  "stimeSeconds": 0.239,
+  "rtimeSeconds": 7.736,
+  "maxRssKiB": 166060
+}
+```
+
+Interpretation: 120 s of mix in 7.86 s wall time, ~7.8 s CPU, 166 MiB peak RSS on ARM64. This is the ENH-14 CPU/RAM measurement; the only remaining ENH-14 gate is human headphone/speaker acceptance of the two listening samples.

@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-009` · issue #26 · epic #17 · addendum ENH-14
 - **Base:** `main` `7d6af5e`; branch `feat/dif-v2-wo-009`
-- **Status:** implementation and audit corrections applied; local validation PASS; **ENH-14 human listening and ARM64 benchmark pending (STOP)**; CI `43656294117` PASS; ENH-14 human/ARM64 and re-audit pending. No merge/deploy.
+- **Status:** implementation and audit corrections applied; local validation PASS; **ENH-14 human listening and ARM64 benchmark pending (STOP)**; CI `43656294117` PASS; ARM64 mix run `43659179231` PASS; only ENH-14 human listening and re-audit pending. No merge/deploy.
 
 | Check      | Result     | Evidence                                                                                  |
 | ---------- | ---------- | ----------------------------------------------------------------------------------------- |
@@ -14,7 +14,7 @@
 | Soundscape | PASS local | presets stereo/binaural_simulated, A/B preview, mono downmix without silence              |
 | UI/E2E     | PASS local | 5 categorias importadas/filtradas; /app/audio responsivo; 401 anônimo                     |
 | CI         | PASS       | run `43656294117` at `4138948`: 159+3, PgTAP 131/131, E2E 13/13, Sonar/Socket/Vercel      |
-| Limits     | —          | licence is declared metadata; no Atmos/3D; ARM64 mixer benchmark and human listen pending |
+| Limits     | —          | licence is declared metadata; no Atmos/3D; ARM64 PASS; human listening pending for ENH-14 |
 
 ## V2 WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROMOTED
 

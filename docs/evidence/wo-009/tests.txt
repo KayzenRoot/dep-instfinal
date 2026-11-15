@@ -51,7 +51,7 @@ npm run test:e2e:local -- e2e/owner-boundary.spec.ts -g "authenticated studio pa
 - 120 s local benchmark (x64, 2 events + narration, 1080×1920 video stream copy):
   - command: `npm run benchmark:audio-mix` (script generates fixtures and prints `-benchmark`).
   - wall **10.6 s**, user **13.6 s**, system **0.6 s**, max RSS **124,268 KiB**.
-  - ARM64 mixer benchmark and human headphone/speaker listening remain pending; synthetic owner samples in `docs/evidence/wo-009/listening/`.
+  - ARM64 mixer benchmark PASS (run 43659179231): 7,86 s wall, 7,56 s user, 166.060 KiB RSS; synthetic owner samples in `docs/evidence/wo-009/listening/`. Human headphone/speaker listening remains pending.
 
 Hosted CI run 43656294117 (head 4138948)
   quality PASS 7m47s; unit 159+3; PgTAP 131/131;
