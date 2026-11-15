@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { buildAudioMixCommand } from '../src/lib/domain/render-composition.js';
 
 function ffmpeg(args: string[]): void {
+	// NOSONAR: benchmark intentionally uses the operator's trusted FFmpeg binary.
 	execFileSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', ...args], {
 		timeout: 300_000,
 		windowsHide: true,
@@ -115,7 +116,7 @@ try {
 		? spawnSync('/usr/bin/time', ['-v', '-o', timeFile, 'ffmpeg', '-nostdin', ...args], {
 				encoding: 'utf8',
 			})
-		: spawnSync('ffmpeg', ['-nostdin', ...args], { encoding: 'utf8' });
+		: spawnSync('ffmpeg', ['-nostdin', ...args], { encoding: 'utf8' }); // NOSONAR
 	if (result.status !== 0) throw new Error(result.stderr.slice(0, 2_000));
 	const bench = /bench:\s*utime=([0-9.]+)s\s*stime=([0-9.]+)s\s*rtime=([0-9.]+)s/.exec(
 		result.stderr,
