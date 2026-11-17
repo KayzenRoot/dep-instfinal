@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { buildSceneTimeline } from './timeline.js';
 import { buildDefaultEditPlan, retimeClips, type EditPlanContext } from './video-edit-plan.js';
 import {
+	buildAudioMixCommand,
 	buildNarrationMuxCommand,
 	buildRenderCommand,
 	RenderCompositionError,
 } from './render-composition.js';
+import type { EditDirectorPlan } from '#lib/schemas/edit-director.js';
+import { directorEventDuration } from './edit-director.js';
 
 function context(): EditPlanContext {
 	const scenes = buildSceneTimeline(120_000, 8_000).map((scene) => ({
@@ -37,6 +40,52 @@ function inputs(plan: ReturnType<typeof buildDefaultEditPlan>) {
 		width: 1080,
 		height: 1920,
 	}));
+}
+
+function directorWith(
+	type: 'VHS_STATIC' | 'SILENCE_BEFORE_REVEAL',
+	startMs: number,
+	durationMs: number,
+): EditDirectorPlan {
+	const eventId = '99999999-9999-4999-8999-999999999999';
+	return {
+		schemaVersion: 1,
+		source: 'OFFLINE',
+		preset: 'custom',
+		seed: 1,
+		reviewStatus: 'APPLIED',
+		generatedAt: '2026-11-17T00:00:00.000Z',
+		points: [
+			{ timeMs: 0, tension: 10 },
+			{ timeMs: 120_000, tension: 95 },
+		],
+		markers: [
+			{
+				timeMs: 0,
+				phase: 'HOOK',
+				label: 'Hook',
+				rationale: 'Abre a história.',
+			},
+		],
+		events: [
+			{
+				id: eventId,
+				type,
+				startMs,
+				durationMs,
+				intensity: 4,
+				reason: 'Teste de render da direção.',
+				assetId: null,
+				cueId: null,
+				status: 'ACCEPTED',
+			},
+		],
+		cta: null,
+		previousCta: null,
+		acceptedEventIds: [eventId],
+		planHash: null,
+		note: '',
+	};
 }
 
 describe('render composition command', () => {
@@ -81,6 +130,65 @@ describe('render composition command', () => {
 		expect(() => buildRenderCommand(plan, inputs(plan), '/tmp/../out.mp4')).toThrow(
 			RenderCompositionError,
 		);
+	});
+});
+
+describe('director render windows', () => {
+	it('applies the VHS color shift only inside accepted VHS_STATIC windows', () => {
+		const plan = buildDefaultEditPlan(context());
+		const director = directorWith('VHS_STATIC', 10_000, 500);
+		const durationMs = directorEventDuration(director, director.events[0]!);
+		const command = buildRenderCommand({ ...plan, director }, inputs(plan), '/tmp/out.mp4');
+		expect(command.filterGraph).toContain(
+			`eq=contrast=1.35:brightness=0.03:saturation=0.45:enable='between(t,10.000,${((10_000 + durationMs) / 1_000).toFixed(3)})'`,
+		);
+	});
+
+	it('duck-mutes music only inside accepted silence windows', () => {
+		const command = buildAudioMixCommand({
+			videoPath: '/tmp/output.mp4',
+			outputPath: '/tmp/final.mp4',
+			videoDurationMs: 120_000,
+			events: [
+				{
+					id: '44444444-4444-4444-8444-444444444444',
+					path: '/tmp/music.wav',
+					kind: 'MUSIC',
+					startMs: 0,
+					durationMs: 120_000,
+					sourceInMs: 0,
+					gainDb: -18,
+					fadeInMs: 0,
+					fadeOutMs: 0,
+					pan: 0,
+					distance: 0,
+					loop: true,
+					ducking: false,
+					spatialPreset: 'none',
+					spatialMode: 'stereo_pan',
+					intensity: 3,
+				},
+			],
+			silenceWindows: [{ startMs: 10_000, durationMs: 1_500 }],
+		});
+		const graph = command.args[command.args.indexOf('-filter_complex') + 1]!;
+		expect(graph).toContain("[unduckedbus]volume=0:enable='between(t,10.000,11.500)'");
+	});
+
+	it('ignores proposed or rejected director windows', () => {
+		const plan = buildDefaultEditPlan(context());
+		const director = directorWith('VHS_STATIC', 10_000, 1_500);
+		const proposed = {
+			...director,
+			acceptedEventIds: [],
+			events: director.events.map((event) => ({ ...event, status: 'PROPOSED' as const })),
+		};
+		const command = buildRenderCommand(
+			{ ...plan, director: proposed },
+			inputs(plan),
+			'/tmp/out.mp4',
+		);
+		expect(command.filterGraph).not.toContain('eq=contrast=1.35');
 	});
 });
 

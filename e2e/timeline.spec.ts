@@ -195,6 +195,60 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page.getByText('v4', { exact: true })).toBeVisible();
 	await expect(page.getByText(/preso a uma revisão anterior/)).toHaveCount(0);
 
+	console.log('[timeline-e2e] generating deterministic director proposal');
+	await page.goto(`/app/director?episodeId=${episodeId}`);
+	await expect(page.getByRole('heading', { name: 'Diretor de edição' })).toBeVisible();
+	await page.getByRole('button', { name: 'Gerar proposta' }).click();
+	await expect(page.getByRole('heading', { name: 'Curva de tensão' })).toBeVisible();
+	await expect(page.getByText(/OFFLINE/)).toBeVisible();
+	const tensionPoints = page.getByLabel('Tensão 0–100');
+	await tensionPoints.nth(0).fill('11');
+	await tensionPoints.nth(0).blur();
+	await tensionPoints.nth(1).fill('33');
+	await tensionPoints.nth(1).blur();
+	await tensionPoints.nth(2).fill('77');
+	await tensionPoints.nth(2).blur();
+	await page.getByLabel('Glitch VHS curto').check();
+	await page.getByLabel('CTA final').check();
+	await page.getByRole('button', { name: 'Aplicar direção selecionada' }).click();
+	await expect(page.locator('.notice.success')).toContainText('Versão');
+	await expect(page.locator('.notice.error')).toHaveCount(0);
+
+	console.log('[timeline-e2e] director persisted after reload');
+	await page.goto(`/app/director?episodeId=${episodeId}`);
+	await expect(page.getByRole('heading', { name: 'Curva de tensão' })).toBeVisible();
+	await expect(page.getByLabel('Tensão 0–100').nth(0)).toHaveValue('11');
+	await expect(page.getByLabel('Tensão 0–100').nth(1)).toHaveValue('33');
+	await expect(page.getByLabel('Tensão 0–100').nth(2)).toHaveValue('77');
+	await expect(page.getByLabel('Glitch VHS curto')).toBeChecked();
+
+	console.log('[timeline-e2e] director persists after a fresh login');
+	await page.context().clearCookies();
+	await page.goto('/login');
+	await page.getByLabel('E-mail do proprietário').fill(process.env.E2E_OWNER_EMAIL!);
+	await page.getByLabel('Senha').fill(process.env.E2E_OWNER_PASSWORD!);
+	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto(`/app/director?episodeId=${episodeId}`);
+	await expect(page.getByRole('heading', { name: 'Curva de tensão' })).toBeVisible();
+	await expect(page.getByLabel('Tensão 0–100').nth(0)).toHaveValue('11');
+	await expect(page.getByLabel('Tensão 0–100').nth(1)).toHaveValue('33');
+	await expect(page.getByLabel('Tensão 0–100').nth(2)).toHaveValue('77');
+
+	console.log('[timeline-e2e] reverting only the director layer');
+	await page.getByRole('button', { name: 'Reverter apenas direção' }).click();
+	await expect(page.locator('.notice.success')).toContainText('Versão');
+	await expect(page.locator('.notice.error')).toHaveCount(0);
+	await page.goto(`/app/director?episodeId=${episodeId}`);
+	await expect(page.getByRole('heading', { name: 'Curva de tensão' })).toHaveCount(0);
+
+	console.log('[timeline-e2e] applying director again for render');
+	await page.getByRole('button', { name: 'Gerar proposta' }).click();
+	await expect(page.getByRole('heading', { name: 'Curva de tensão' })).toBeVisible();
+	await page.getByLabel('Glitch VHS curto').check();
+	await page.getByRole('button', { name: 'Aplicar direção selecionada' }).click();
+	await expect(page.locator('.notice.success')).toContainText('Versão');
+	await page.goto(`/app/timeline?episodeId=${episodeId}`);
 	await page.getByRole('button', { name: 'Aprovar plano atual' }).click();
 	await expect(page.getByText('APPROVED')).toBeVisible({ timeout: 20_000 });
 

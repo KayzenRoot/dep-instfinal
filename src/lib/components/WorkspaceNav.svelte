@@ -37,6 +37,12 @@
 			glyph: 'frames',
 		},
 		{
+			path: '/app/director',
+			href: resolve('/app/director'),
+			label: 'Diretor',
+			glyph: 'branch',
+		},
+		{
 			path: '/app/narration',
 			href: resolve('/app/narration'),
 			label: 'Narração',

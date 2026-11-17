@@ -1,5 +1,26 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-010` · issue #27 · epic #17 · addendum ENH-03
+- **Base:** `main` `faa329a`; branch `feat/dif-v2-wo-010`
+- **Status:** implementação completa; suite unit 175+3, typecheck/lint/policy/build, PgTAP 131/131 e E2E **PASS local**; CI, auditoria independente e aceitação humana **PENDENTES**. Checkpoint apenas **PROPOSED**; sem merge/deploy.
+
+| Check        | Result     | Evidence                                                                                                    |
+| ------------ | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| Planner      | PASS local | `edit-director.test.ts` 10/10: determinismo por seed, 3 presets, 4+ fases, cap de eventos, fallback sem SFX |
+| Schema       | PASS local | pontos monotônicos, glitch ≤700 ms, aceite subset, CTA anterior, IDs únicos                                 |
+| Gemini       | PASS local | `director-ai.test.ts` 3/3: offline sem fetch, JSON/timecode/asset estrangeiro rejeitados, tokens reportados |
+| Apply/revert | PASS local | IDs determinísticos, CTA/áudio restaurados, asset ausente/sem licença falha, ganho de ambiência derivado    |
+| Render       | PASS local | `render-composition.test.ts` 11/11; `eq`/`volume` com `enable='between(t,...)'` aceitos no FFmpeg 9.0.2     |
+| UI           | PASS local | typecheck 0/0 e lint PASS; `/app/director` com curva, edição, eventos, aplicar/reverter, histórico          |
+| Policy       | PASS local | 27 invariantes / 24 tabelas (sem migração)                                                                  |
+| E2E          | PASS local | `timeline.spec.ts` 1/1 em 12,8 min: 3 pontos + relogin, aplicar/reverter, render worker READY               |
+| PgTAP        | PASS local | 131/131; sem migração nova                                                                                  |
+| CI           | PENDENTE   | será registrado após push do PR Draft                                                                       |
+| Auditoria    | PENDENTE   | revisão independente obrigatória antes de merge                                                             |
+| Limites      | —          | timing de cortes e contraste de legendas não são alterados; aceitação visual/auditiva humana pendente       |
+
 ## V2 WO-009 — Biblioteca licenciada, mix/ducking e soundscape (2026-11-14) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-009` · issue #26 · epic #17 · addendum ENH-14

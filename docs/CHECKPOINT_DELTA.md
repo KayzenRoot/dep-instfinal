@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; implementação completa em `feat/dif-v2-wo-010`; unit 175+3, typecheck/lint/policy/build, PgTAP 131/131 e E2E 1/1 PASS local; CI/auditoria/aceitação humana pendentes. Sem merge, deploy ou promoção.
+- **Base:** `main` `faa329a` (checkpoint WO-009 promovido); branch `feat/dif-v2-wo-010`.
+- **Delivered:** `EditDirectorPlan`/`TensionCurve` versionados no plano; planner offline determinístico com presets e seed; provider Gemini opcional com JSON estrito, timeout, allowlist e fallback offline; apply/revert do subplano com restauração de CTA; mapeamento da curva para ganho, pausas e glitch; janelas de render VHS/silêncio; UI `/app/director` com gráfico, edição, motivos e histórico.
+- **Limits:** timing de clipes, narração e legendas é protegido (sem retiming); contraste de legendas e ritmo de cortes não são automatizados; aceitação visual/auditiva dos três presets e revisão independente pendentes.
+- **Gate:** E2E + CI + auditoria independente + autorização explícita do owner antes de merge/promoção. WO-011 (#28) permanece bloqueada até o gate.
+
 ## DIF-V2-WO-007 — Narração pt-BR, voz importada e TTS local (2026-11-13) — PROMOTED
 
 - **Status:** **PROMOTED**; PgTAP 108/108, unit 116+2 skip, policy, FFmpeg mux, TTS real e E2E 12/12 no CI `43590151067` PASS; auditoria independente de código **APPROVED**, aceitação auditiva do owner **PASS** e benchmark ARM64 **PASS** (2026-11-14); squash-merged at `326c576` (PR #55); issue #24 closed. Vercel deploy follows main.
