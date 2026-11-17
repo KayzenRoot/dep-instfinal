@@ -208,8 +208,8 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await tensionPoints.nth(1).blur();
 	await tensionPoints.nth(2).fill('77');
 	await tensionPoints.nth(2).blur();
-	await page.getByLabel('Glitch VHS curto').check();
-	await page.getByLabel('CTA final').check();
+	await page.getByRole('checkbox', { name: 'Glitch VHS curto' }).check();
+	await page.getByRole('checkbox', { name: 'CTA final' }).check();
 	await page.getByRole('button', { name: 'Aplicar direção selecionada' }).click();
 	await expect(page.locator('.notice.success')).toContainText('Versão');
 	await expect(page.locator('.notice.error')).toHaveCount(0);
@@ -220,7 +220,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page.getByLabel('Tensão 0–100').nth(0)).toHaveValue('11');
 	await expect(page.getByLabel('Tensão 0–100').nth(1)).toHaveValue('33');
 	await expect(page.getByLabel('Tensão 0–100').nth(2)).toHaveValue('77');
-	await expect(page.getByLabel('Glitch VHS curto')).toBeChecked();
+	await expect(page.getByRole('checkbox', { name: 'Glitch VHS curto' })).toBeChecked();
 
 	console.log('[timeline-e2e] director persists after a fresh login');
 	await page.context().clearCookies();
@@ -245,7 +245,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	console.log('[timeline-e2e] applying director again for render');
 	await page.getByRole('button', { name: 'Gerar proposta' }).click();
 	await expect(page.getByRole('heading', { name: 'Curva de tensão' })).toBeVisible();
-	await page.getByLabel('Glitch VHS curto').check();
+	await page.getByRole('checkbox', { name: 'Glitch VHS curto' }).check();
 	await page.getByRole('button', { name: 'Aplicar direção selecionada' }).click();
 	await expect(page.locator('.notice.success')).toContainText('Versão');
 	await page.goto(`/app/timeline?episodeId=${episodeId}`);
