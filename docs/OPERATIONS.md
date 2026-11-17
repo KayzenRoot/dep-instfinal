@@ -80,3 +80,14 @@ Production hosting is not provisioned by this Work Order. Before a separate depl
 - **Exports:** use the full ZIP only for frames adding up to 3,000,000 raw bytes. If HTTP 413 is returned, select **ZIP leve**. The lightweight ZIP includes all scripts, production prompts, captions/SRT, platform metadata and a `media/download-originals.md` map. Open each listed `/api/media/[assetId]?download=1` URL while authenticated; the route verifies owner access and redirects to a 180-second signed Cloudinary original. Keep export packages and signed links private. The existing ZIP never renders finished video or posts to TikTok/Instagram.
 - **Deployment release:** make branch PR READY only after full CI and independent audit. Squash merge with expected HEAD, deploy the merge commit on `main` to Production, confirm Vercel `READY` on exactly that SHA and verify HTTPS `/health`, `/login`, private route denial, owner login, Gemini generation, editable import, 15 scenes, media downloads and ZIP. Roll back Vercel alias to previous `READY` deployment if new version fails post-deploy; restore database from tested logical backup only if approved and necessary.
 - **Security maintenance:** rotate the Cloudinary API secret previously exposed in the chat directly in Cloudinary, update the Vercel sensitive variable, redeploy and retest signed media; never place secret literals in tickets, docs or output. Track moderate/low transitive dependency advisories; no bypass of HIGH/CRITICAL defects. Database backups and ZIP size caps remain required.
+
+### Dependency audit policy (2026-11-17)
+
+`npm run audit:deps` blocks on high/critical vulnerabilities in **production**
+dependencies (`--omit=dev`). Build/test tooling is audited by
+`npm run audit:deps:all` and tracked separately.
+
+Known upstream residual: `picomatch <= 4.0.7` (GHSA-fc5q-39xc-vjpf, high,
+dev-only via Vite/Vitest/Svelte tooling) has no patched release as of
+2026-11-17; the advisory references micromatch/picomatch#194. It is not shipped
+in the runtime bundle and processes repository-controlled glob patterns only.
