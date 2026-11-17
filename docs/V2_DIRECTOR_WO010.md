@@ -1,6 +1,6 @@
 # DIF-V2-WO-010 — Diretor de edição e curva de tensão
 
-**Status:** implementação completa em `feat/dif-v2-wo-010`; unit, typecheck, lint, policy, build, PgTAP, E2E, CI, Sonar, Socket e ARM64 **PASS**; correções da primeira auditoria aplicadas; reauditoria independente e aceitação humana **PENDENTES**. **Não merged**, **sem deploy de produção**, checkpoint apenas **PROPOSED**.
+**Status:** implementação completa em `feat/dif-v2-wo-010`; unit, typecheck, lint, policy, build, PgTAP, E2E, CI, Sonar, Socket e ARM64 **PASS**; auditoria round 2 **APPROVED WITH RESIDUALS**, correções E1/E2 aplicadas; aceitação humana **PENDENTE**. **Não merged**, **sem deploy de produção**, checkpoint apenas **PROPOSED**.
 **Base:** `main` `faa329a` (checkpoint WO-009 promovido).
 **Escopo:** WO-010 (#27) + addendum ENH-03 (curva de tensão cinematográfica), dependente de WO-004/WO-006/WO-008/WO-009.
 
@@ -40,18 +40,18 @@
 | `slow-burn` usa menos efeitos que `reveal`                                       | **PASS local** | teste unitário diferencia a contagem de eventos                                                    |
 | Rejeitar pontos inválidos/inputs maliciosos                                      | **PASS local** | pontos não monotônicos e glitch >700 ms rejeitados; prompt injection tratado como dados            |
 | E2E sugerir → revisar → aplicar → reverter → render                              | **PASS local** | `e2e/timeline.spec.ts` 1/1 em 12,8 min; worker real concluiu READY                                 |
-| Aceitação visual/auditiva humana dos 3 presets                                   | **PENDENTE**   | requer owner; amostras serão registradas em `docs/evidence/wo-010/`                                |
+| Aceitação visual/auditiva humana dos 3 presets                                   | **PENDENTE**   | amostras em `docs/evidence/wo-010/review/`; requer resposta explícita do owner                     |
 
 ## Testes
 
-- Suite completa local: **175 testes PASS + 3 skipped** (25 arquivos), incluindo FFmpeg real de 120 s; `edit-director.test.ts` 10/10, `director-ai.test.ts` 3/3, `render-composition.test.ts` 11/11.
+- Suite local: **175 testes PASS + 3 skipped** (25 arquivos) antes dos dois testes finais; CI final **181 + 3**. Focados: `edit-director.test.ts` 14/14, `director-ai.test.ts` 5/5, `render-composition.test.ts` 11/11 (30/30).
 - Typecheck `svelte-check`: **0 erros / 0 warnings**.
 - Lint: **PASS** (`eslint . --max-warnings=0`).
 - Policy: **27 invariantes / 24 tabelas** (sem migração nesta WO).
 - FFmpeg: expressões `eq=...:enable='between(t,...)'` e `volume=0:enable='between(t,...)'` aceitas e executadas no FFmpeg 9.0.2.
 - E2E: `e2e/timeline.spec.ts` **1/1 PASS** (12,8 min) com gerar → editar 3 pontos → aceitar VHS/CTA → aplicar → reload → novo login → reverter → reaplicar → narração/legendas → render READY; log em `docs/evidence/wo-010/e2e-timeline-local.txt`.
 - PgTAP: **131/131 PASS**; sem migração nova.
-- CI: run **44179512298** **SUCCESS** (8m8s) — format/lint/typecheck, unit 175+3, build, policy 27/24, audit de produção, PgTAP e E2E **13/13** (3,5m); Sonar, Socket e Vercel preview PASS. ARM64 run **44179512400** SUCCESS: 7,666 s wall / 165.952 KiB RSS no mix de 120 s.
+- CI: run **44190122840** **SUCCESS** (6m45s) — format/lint/typecheck, unit **181+3**, build, policy 27/24, audit de produção, PgTAP e E2E **13/13** (3,3m); Sonar, Socket e Vercel preview PASS. ARM64 run **44190122832** SUCCESS: 7,738 s wall / 165.948 KiB RSS no mix de 120 s.
 - Auditoria independente e aceitação humana serão registradas em `docs/evidence/wo-010/` após execução.
 
 ## Correções pós-auditoria independente
@@ -68,7 +68,7 @@ A primeira auditoria (head `e196ca7`) retornou **CORRECTION REQUIRED** por um HI
 - `PHRASE_HIGHLIGHT` identificado como informativo (sem efeito no render nesta versão).
 - Controle “Reduzir movimento” remove o glitch VHS da aplicação; botões têm nomes acessíveis específicos e a curva tem resumo textual.
 - Associação episódio↔proposta validada no apply; marcadores duplicados rejeitados; seed 0 e 1 deixam de colidir.
-- Testes: 12 diretor + 5 provider + 11 render (27 focados) PASS local.
+- Testes: 14 diretor + 5 provider + 11 render (30 focados) PASS local.
 
 ## Riscos e residuais
 

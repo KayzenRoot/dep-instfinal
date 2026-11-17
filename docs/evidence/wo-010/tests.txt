@@ -20,7 +20,7 @@ Result: PASS after formatting
 ## Unit
 
 Command: `npx vitest run src/lib/domain/edit-director.test.ts src/lib/server/director-ai.test.ts`
-Result: 2 files, **13 tests passed** (10 director + 3 provider)
+Result: 2 files, **19 tests passed** (14 director + 5 provider)
 
 Command: `npx vitest run src/lib/domain/render-composition.test.ts`
 Result: 11 tests passed (includes VHS enable window, silence duck-mute, rejected/proposed ignored)
@@ -49,7 +49,13 @@ Command: `npm run build`
 Result: PASS (`@sveltejs/adapter-node`, built in 17.29 s).
 
 Command: `npx vitest run --maxWorkers=4`
-Result: **25 files passed, 3 skipped; 175 tests passed, 3 skipped** (450.5 s).
+Result: **25 files passed, 3 skipped; 175 tests passed, 3 skipped** (450.5 s, before the two final regression tests).
 The long FFmpeg integration suite completed: 120 s composition, narration mux,
 caption burn-in, crossfade and audio mix. A previous unconstrained run timed out
 only under host saturation; the constrained run is the recorded local result.
+
+## Final CI suite
+
+Run `44190122840` at code head `ca62764`: 25 files passed, 3 skipped;
+**181 tests passed + 3 skipped**; PgTAP 131/131; E2E 13/13 (3.3m);
+format/lint/typecheck/build/policy/production audit PASS.

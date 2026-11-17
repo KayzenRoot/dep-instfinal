@@ -1,0 +1,44 @@
+# WO-010 — independent audit round 2
+
+Date: 2026-11-17
+Audited head: `b072371` (corrections after round 1)
+Verdict: **APPROVED WITH RESIDUALS**
+
+No new HIGH or CRITICAL defect. Round-1 HIGH (aggregate VHS exposure) was
+confirmed fixed. Remaining items were accepted disclosures or LOW/evidence
+residuals.
+
+## Confirmed fixed
+
+- H1: VHS 700 ms/event, max 3 events and 2,100 ms total, plus motion reduction.
+- M2: Gemini 6 requests/hour per owner; offline does not consume the bucket.
+- M5: largest-gap point insertion, per-type duration clamps, specific Zod errors.
+- M6: apply refuses to exceed 64 audio events.
+- M8: fades scale to short SFX duration.
+- M9: planner, prompt allowlist and apply all require SFX kind.
+- L1/L2/L3/L4/L5/L6: seed 0/1 distinct, duplicate markers rejected, CTA included
+  in preset caps, optional episode binding, body-read timeout, system/data prompt
+  separation.
+- Focused suite: 28/28 PASS; check 0/0; lint PASS.
+
+## Residuals accepted/disclosed
+
+- M1: approved captions are version-bound; UI warns and requires manual reapproval.
+- M3: ambient gain is a static per-event offset, not continuous automation.
+- M4: phrase highlight is informational; cut rhythm, caption contrast and dynamic
+  ducking are out of scope.
+- Process-local Gemini rate limit; per-event decision history and URL text
+  sanitization remain future work.
+- Human visual/auditory acceptance pending.
+
+## Round-2 evidence corrections requested
+
+- Update evidence to the final CI/ARM64 head and counts.
+- Add regression tests for the newly corrected guards and a realistic body-read
+  timeout simulation.
+
+Both were addressed after b072371: final CI `44190122840` at `ca62764` has
+181+3 unit tests and E2E 13/13; the guard tests and duplicate-marker test were
+added; the local-only sample generator was removed from the product tree to keep
+Sonar's security rating clean. A real body-read-abort simulation remains a
+documented test residual.
