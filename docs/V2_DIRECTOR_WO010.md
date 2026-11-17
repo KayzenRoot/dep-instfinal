@@ -1,6 +1,6 @@
 # DIF-V2-WO-010 — Diretor de edição e curva de tensão
 
-**Status:** implementação completa em `feat/dif-v2-wo-010`; unit, typecheck, lint, policy, build, PgTAP e E2E **PASS local**; CI, auditoria independente e aceitação humana **PENDENTES**. **Não merged**, **não deployed**, checkpoint apenas **PROPOSED**.
+**Status:** implementação completa em `feat/dif-v2-wo-010`; unit, typecheck, lint, policy, build, PgTAP, E2E, CI, Sonar, Socket e ARM64 **PASS**; correções da primeira auditoria aplicadas; reauditoria independente e aceitação humana **PENDENTES**. **Não merged**, **sem deploy de produção**, checkpoint apenas **PROPOSED**.
 **Base:** `main` `faa329a` (checkpoint WO-009 promovido).
 **Escopo:** WO-010 (#27) + addendum ENH-03 (curva de tensão cinematográfica), dependente de WO-004/WO-006/WO-008/WO-009.
 
@@ -10,7 +10,7 @@
 - Planner offline determinístico com seed, limite de eventos por preset (`slow-burn` 3, `found-footage` 5, `reveal` 6), detecção de cena de revelação, silêncio pré-revelação, porta/impacto somente com assets licenciados, glitch VHS, destaque de frase e CTA referenciando no máximo duas escolhas existentes.
 - Provider Gemini opcional (`GEMINI_API_KEY`): prompt com dados separados de instruções, JSON estrito, timeout de 20 s, teto de saída de 2.048 tokens, allowlist de assets verificados e timecodes; qualquer falha cai no planner offline com aviso, sem fallback pago. Nenhuma resposta vira comando, Shell, SQL ou URL.
 - Aplicação/reversão atômica do subplano de direção no `VideoEditPlan`: eventos aceitos viram eventos de áudio versionados com IDs determinísticos; CTA é aplicada somente se o card for aceito; `previousCta` restaura a CTA anterior no revert; assets ausentes ou sem licença comercial/social falham com erro explícito.
-- Mapeamento da curva para parâmetros allowlisted: ganho de SFX, duração do glitch VHS (máximo 700 ms), duração do silêncio, ganho de música/ambiência em ±3 dB e seleção/quantidade de efeitos. O timing de clipes, narração e legendas é protegido e não é movido silenciosamente.
+- Mapeamento da curva para parâmetros allowlisted: ganho de SFX, duração do glitch VHS (máximo 700 ms), duração do silêncio e offset de ganho de música/ambiência em ±3 dB calculado no início do evento. O timing de clipes, narração e legendas é protegido e não é movido silenciosamente. A quantidade de eventos é limitada pelo preset (não pela curva), e o ganho de ambiência não é automação contínua nesta versão.
 - Render: janelas `VHS_STATIC` viram `eq` com `enable='between(t,...)'`; janelas `SILENCE_BEFORE_REVEAL` aplicam `volume=0:enable='between(t,...)'` nos buses de música/ambiência. O grafo FFmpeg foi validado com FFmpeg 9.0.2.
 - UI `/app/director`: seletor de episódio, preset/seed/suspense/modo, gráfico SVG da curva com comparação antes/depois, edição de pontos por campos numéricos, cards de evento com motivo/intensidade/status, CTA referenciada, aplicar/reverter, nota de versão e histórico. Sem processamento pesado no navegador.
 - Navegação `Diretor` no workspace e cobertura E2E do fluxo sugerir → revisar → aplicar → reverter → aplicar → render.
@@ -19,8 +19,9 @@
 
 - O modo offline é o padrão e não faz chamadas de rede.
 - O diretor **não reescreve** roteiro, escolhas, cânone, votos ou produto final; toda aplicação é uma nova versão DRAFT do plano e exige aprovação humana antes do render.
-- A curva controla áudio, pausas e glitch; **não altera o ritmo de cortes** porque retiming de clipes dessincronizaria narração/legendas e violaria o contrato de timing canônico. Contraste de legendas por tensão também não é automatizado nesta WO.
-- Glitch é limitado a 700 ms e um evento por proposta para reduzir risco fotossensível; não há alegação de retenção ou eficácia.
+- A curva controla áudio, pausas e glitch; **não altera o ritmo de cortes** porque retiming de clipes dessincronizaria narração/legendas e violaria o contrato de timing canônico. Contraste de legendas por tensão, ducking dinâmico e automação contínua de ambiência também não são automatizados nesta WO; o ganho de ambiência é um offset estático por evento.
+- `PHRASE_HIGHLIGHT` é registrado como marcador editorial informativo nesta versão; não altera o render. A CTA e os efeitos de áudio/VHS são os elementos aplicados.
+- Glitch é limitado a 700 ms por evento, 3 eventos e 2.100 ms no total; o planner propõe um evento, reduzindo risco fotossensível. Não há alegação de retenção ou eficácia.
 - Gemini é opcional e usa a chave gratuita já prevista em `docs/OPERATIONS.md`; nenhum serviço pago, GPU ou API de vídeo foi adicionado.
 
 ## Critérios de aceitação
@@ -50,11 +51,31 @@
 - FFmpeg: expressões `eq=...:enable='between(t,...)'` e `volume=0:enable='between(t,...)'` aceitas e executadas no FFmpeg 9.0.2.
 - E2E: `e2e/timeline.spec.ts` **1/1 PASS** (12,8 min) com gerar → editar 3 pontos → aceitar VHS/CTA → aplicar → reload → novo login → reverter → reaplicar → narração/legendas → render READY; log em `docs/evidence/wo-010/e2e-timeline-local.txt`.
 - PgTAP: **131/131 PASS**; sem migração nova.
-- CI/auditoria/aceitação humana serão registrados em `docs/evidence/wo-010/` após execução.
+- CI: run **44179512298** **SUCCESS** (8m8s) — format/lint/typecheck, unit 175+3, build, policy 27/24, audit de produção, PgTAP e E2E **13/13** (3,5m); Sonar, Socket e Vercel preview PASS. ARM64 run **44179512400** SUCCESS: 7,666 s wall / 165.952 KiB RSS no mix de 120 s.
+- Auditoria independente e aceitação humana serão registradas em `docs/evidence/wo-010/` após execução.
+
+## Correções pós-auditoria independente
+
+A primeira auditoria (head `e196ca7`) retornou **CORRECTION REQUIRED** por um HIGH: o cap de 700 ms era por evento, sem limite agregado de glitches. Correções aplicadas:
+
+- VHS limitado a 3 eventos e 2.100 ms somados, além de 700 ms por evento.
+- Timeout do Gemini cobre também a leitura do corpo; testes para timeout, 401, 429, 500, JSON inválido, asset foreign, CTA estrangeira e prompt injection.
+- Instruções e dados do Gemini separados (`systemInstruction` vs. conteúdo do usuário); allowlist de SFX exige `kind === 'SFX'`.
+- Rate limit de 6 sugestões Gemini por hora por owner; offline não consome bucket.
+- Aplicar/reverter avisa que legendas aprovadas ficam presas à versão anterior e precisam ser reaprovadas; a CTA entra pelas legendas.
+- Pontos: inserção no maior intervalo, sem duplicar `timeMs`; erros do Zod são devolvidos com caminho/mensagem.
+- Duração de VHS/silêncio limitada na UI; fades de SFX curtos escalados; total de eventos de áudio limitado a 64.
+- `PHRASE_HIGHLIGHT` identificado como informativo (sem efeito no render nesta versão).
+- Controle “Reduzir movimento” remove o glitch VHS da aplicação; botões têm nomes acessíveis específicos e a curva tem resumo textual.
+- Associação episódio↔proposta validada no apply; marcadores duplicados rejeitados; seed 0 e 1 deixam de colidir.
+- Testes: 12 diretor + 5 provider + 11 render (27 focados) PASS local.
 
 ## Riscos e residuais
 
-- Retiming de cortes e contraste de legendas por tensão ficam fora desta WO para não quebrar sincronização; documentados como limite, não como recurso entregue.
+- Retiming de cortes, contraste de legendas, ducking dinâmico e automação contínua de ambiência ficam fora desta WO; o ganho de ambiência é um offset estático no início do evento.
+- Aplicar/reverter invalida legendas aprovadas por versão; a UI avisa, mas não faz rebind automático.
+- O rate limit do Gemini é process-local; instâncias múltiplas exigem limite de borda.
+- `PHRASE_HIGHLIGHT` é informativo e não altera o render nesta versão.
 - A curva é uma proposta editorial; não garante retenção nem substitui revisão humana.
 - Gemini continua opcional; indisponibilidade/quota/erro caem no offline, nunca em gasto.
 - Aprovação humana dos presets e comparação visual/auditiva dos três estilos ainda pendentes.

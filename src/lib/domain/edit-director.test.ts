@@ -9,6 +9,7 @@ import {
 	directorPlanHash,
 	EditDirectorError,
 	resetDirector,
+	tensionAt,
 	type DirectorInput,
 } from './edit-director.js';
 import { videoEditPlanSchema } from '#lib/schemas/video-edit-plan.js';
@@ -164,6 +165,31 @@ describe('deterministic edit director', () => {
 		).toBe(false);
 	});
 
+	it('interpolates the curve and keeps every seed/preset inside safe envelopes', () => {
+		const director = buildDirectorPlan(input);
+		const midpoint = Math.round((director.points[0]!.timeMs + director.points[1]!.timeMs) / 2);
+		const interpolated = tensionAt(director.points, midpoint);
+		expect(interpolated).toBeGreaterThanOrEqual(director.points[0]!.tension);
+		expect(interpolated).toBeLessThanOrEqual(director.points[1]!.tension);
+		expect(tensionAt(director.points, -1)).toBe(director.points[0]!.tension);
+		expect(tensionAt(director.points, 999_999)).toBe(director.points.at(-1)!.tension);
+
+		for (const preset of ['slow-burn', 'reveal', 'found-footage'] as const) {
+			for (let seed = 0; seed < 12; seed += 1) {
+				const candidate = buildDirectorPlan({ ...input, preset, seed });
+				expect(candidate.points.every((point) => point.timeMs <= 120_000)).toBe(true);
+				expect(candidate.events.every((event) => event.startMs + event.durationMs <= 120_000)).toBe(
+					true,
+				);
+				const vhs = candidate.events.filter((event) => event.type === 'VHS_STATIC');
+				expect(vhs.every((event) => event.durationMs <= 700)).toBe(true);
+				expect(vhs.reduce((total, event) => total + event.durationMs, 0)).toBeLessThanOrEqual(
+					2_100,
+				);
+			}
+		}
+	});
+
 	it('falls back cleanly when audio assets are missing', () => {
 		const director = buildDirectorPlan({ ...input, audioAssets: [] });
 		expect(director.events.some((event) => event.type === 'DOOR_CREAK')).toBe(false);
@@ -247,6 +273,30 @@ describe('deterministic edit director', () => {
 				acceptedEventIds: accepted,
 			}),
 		).toThrow(EditDirectorError);
+		expect(() =>
+			applyDirectorToPlan({
+				plan,
+				director,
+				assets: [{ ...door, kind: 'MUSIC' }],
+				acceptedEventIds: accepted,
+			}),
+		).toThrow(EditDirectorError);
+	});
+
+	it('scales fades for short SFX so a 100 ms asset still applies', () => {
+		const director = buildDirectorPlan(input);
+		const accepted = director.events
+			.filter((event) => event.type === 'DOOR_CREAK')
+			.map((event) => event.id);
+		const applied = applyDirectorToPlan({
+			plan,
+			director,
+			assets: [{ ...door, durationMs: 120 }],
+			acceptedEventIds: accepted,
+		});
+		const audio = applied.audio!.events.find((event) => event.directorEventId)!;
+		expect(audio.durationMs).toBe(120);
+		expect(audio.fadeInMs + audio.fadeOutMs).toBeLessThanOrEqual(audio.durationMs);
 	});
 
 	it('maps curve intensity onto gain and VHS duration without moving timecodes', () => {

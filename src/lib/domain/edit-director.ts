@@ -78,7 +78,8 @@ const PRESET_EVENT_CAP: Record<Exclude<DirectorPreset, 'custom'>, number> = {
 };
 
 function seeded(seed: number): () => number {
-	let state = seed >>> 0 || 1;
+	let state = seed >>> 0;
+	if (state === 0) state = 0x9e37_79b9;
 	return () => {
 		state ^= state << 13;
 		state ^= state >>> 17;
@@ -206,6 +207,7 @@ function chooseAsset(
 	return (
 		input.audioAssets.find(
 			(asset) =>
+				asset.kind === 'SFX' &&
 				asset.licenseStatus === 'VERIFIED' &&
 				asset.commercialAllowed &&
 				asset.socialAllowed &&
@@ -239,11 +241,27 @@ export function buildDirectorPlan(input: DirectorInput): EditDirectorPlan {
 		Math.max(1_000, duration - 6_000),
 	);
 	const climaxMs = clamp(Math.round(duration * 0.8), revealMs + 500, duration - 3_000);
+	const protagonist = input.characters[0]?.trim().slice(0, 80) ?? '';
+	const place = input.location?.trim().slice(0, 120) ?? '';
 	const markers: TensionMarker[] = [
-		marker(0, 'HOOK', 'Hook', 'Abre com a pergunta dramática do episódio.'),
+		marker(
+			0,
+			'HOOK',
+			'Hook',
+			place
+				? `Abre a pergunta dramática em ${place} sem revelar a resposta.`
+				: 'Abre com a pergunta dramática do episódio.',
+		),
 		marker(Math.round(duration * 0.22), 'BUILDUP', 'Construção', 'Sobe a pressão sem revelar.'),
 		marker(Math.round(duration * 0.48), 'RELIEF', 'Alívio', 'Dá respiro antes da virada.'),
-		marker(revealMs, 'REVEAL', 'Revelação', 'A cena de revelação ancora a virada.'),
+		marker(
+			revealMs,
+			'REVEAL',
+			'Revelação',
+			protagonist
+				? `A virada de ${protagonist} ancora a revelação.`
+				: 'A cena de revelação ancora a virada.',
+		),
 		marker(climaxMs, 'CLIMAX', 'Clímax', 'O pico de tensão vai ao impacto.'),
 		marker(
 			Math.max(0, duration - 4_000),
@@ -351,8 +369,11 @@ export function buildDirectorPlan(input: DirectorInput): EditDirectorPlan {
 					references: input.choices.slice(0, 2).map((choice) => choice.label),
 				}
 			: { text: ctaText, references: [] };
+	const ctaEvent = events.at(-1)!;
+	const finalEvents = [...events.slice(0, -1).slice(0, Math.max(0, cap - 1)), ctaEvent];
 	const draft: EditDirectorPlan = {
 		schemaVersion: 1,
+		episodeId: input.episodeId,
 		source: 'OFFLINE',
 		preset,
 		seed: input.seed,
@@ -360,7 +381,7 @@ export function buildDirectorPlan(input: DirectorInput): EditDirectorPlan {
 		generatedAt: new Date().toISOString(),
 		points,
 		markers,
-		events: events.slice(0, cap + 1),
+		events: finalEvents,
 		cta,
 		previousCta: null,
 		acceptedEventIds: [],
@@ -393,6 +414,11 @@ export function applyDirectorToPlan(input: {
 	acceptedEventIds: string[];
 }): VideoEditPlan {
 	const accepted = new Set(input.acceptedEventIds);
+	if (input.director.episodeId && input.director.episodeId !== input.plan.episodeId)
+		throw new EditDirectorError(
+			'DIRECTOR_EPISODE_MISMATCH',
+			'A proposta de direção pertence a outro episódio.',
+		);
 	const eventIds = new Set(input.director.events.map((event) => event.id));
 	for (const eventId of accepted)
 		if (!eventIds.has(eventId))
@@ -406,7 +432,9 @@ export function applyDirectorToPlan(input: {
 			? ('ACCEPTED' as const)
 			: event.status === 'REJECTED'
 				? ('REJECTED' as const)
-				: ('PROPOSED' as const),
+				: event.status === 'ADJUSTED'
+					? ('ADJUSTED' as const)
+					: ('PROPOSED' as const),
 	}));
 	const director: EditDirectorPlan = {
 		...input.director,
@@ -422,6 +450,15 @@ export function applyDirectorToPlan(input: {
 			event.kind === 'MUSIC' || event.kind === 'AMBIENCE'
 				? { ...event, directorGainDb: directorAmbientGain(director, event.startMs) }
 				: event,
+		);
+	const directorSfxCount = events.filter(
+		(event) =>
+			accepted.has(event.id) && event.assetId && ['DOOR_CREAK', 'SFX_ACCENT'].includes(event.type),
+	).length;
+	if (audioEvents.length + directorSfxCount > 64)
+		throw new EditDirectorError(
+			'DIRECTOR_AUDIO_LIMIT',
+			'O plano já tem 64 eventos de áudio; remova eventos antes de aplicar a direção.',
 		);
 	for (const event of events) {
 		if (!accepted.has(event.id) || !event.assetId) continue;
@@ -443,20 +480,21 @@ export function applyDirectorToPlan(input: {
 				'O efeito aceito exige um asset da categoria SFX.',
 			);
 		const startMs = clamp(event.startMs, 0, Math.max(0, input.plan.durationMs - 100));
+		const durationMs = Math.max(
+			100,
+			Math.min(event.durationMs, asset.durationMs, input.plan.durationMs - startMs),
+		);
 		const audioEvent: EditPlanAudioEvent = {
 			id: event.id,
 			directorEventId: event.id,
 			assetId: asset.id,
 			kind: asset.kind,
 			startMs,
-			durationMs: Math.max(
-				100,
-				Math.min(event.durationMs, asset.durationMs, input.plan.durationMs - startMs),
-			),
+			durationMs,
 			sourceInMs: 0,
 			gainDb: clamp(-20 + directorEventIntensity(director, event) * 2, -60, 12),
-			fadeInMs: 80,
-			fadeOutMs: 250,
+			fadeInMs: Math.min(80, Math.floor(durationMs / 3)),
+			fadeOutMs: Math.min(250, Math.floor(durationMs / 3)),
 			pan: 0,
 			distance: 0.3,
 			loop: false,

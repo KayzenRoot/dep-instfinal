@@ -1,0 +1,33 @@
+DIF Studio CI — PR #58 / WO-010
+Run: 44179512298 (quality) — SUCCESS
+Head SHA: e196ca7f98bffd8afce6dbf1abde2ae362810979
+Started: 2026-11-17T21:24:41Z
+Completed: 2026-11-17T21:32:49Z (8m8s)
+
+`npm run check:baseline`
+- format:check PASS
+- lint PASS
+- typecheck PASS
+- unit: 25 files passed, 3 skipped; 175 tests passed, 3 skipped
+- build PASS
+- policy: 27 invariants / 24 tables
+- audit:deps (production) PASS
+
+`npm run test:db`
+- All tests successful. Result: PASS (131/131 locally; CI stack PASS)
+
+`npm run test:e2e:local`
+- 13 passed (3.5m)
+- timeline spec 59.2s including director generate → edit 3 points → fresh login → apply → revert → reapply → narration/captions → real worker render READY (job 8e094866-7c6e-4244-a836-7f35dfb482a9, planVersion 7)
+- anonymous private video access returned 401 in the same run
+
+Other checks on PR #58:
+- SonarCloud Code Analysis: PASS
+- Socket Security PR alerts / project report: PASS
+- Vercel preview deployment: PASS
+- Audio Mix ARM64 Benchmark run 44179512400: SUCCESS, 7.666 s wall,
+  7.434 s user, 0.205 s sys, 165,952 KiB max RSS (job artifact
+  audio-mix-arm64-benchmark).
+
+No CI log contains credentials; only synthetic disposable owner identities
+created by the test harness were used.

@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-010` · issue #27 · epic #17 · addendum ENH-03
 - **Base:** `main` `faa329a`; branch `feat/dif-v2-wo-010`
-- **Status:** implementação completa; suite unit 175+3, typecheck/lint/policy/build, PgTAP 131/131 e E2E **PASS local**; CI, auditoria independente e aceitação humana **PENDENTES**. Checkpoint apenas **PROPOSED**; sem merge/deploy.
+- **Status:** implementação completa; suite unit 175+3, typecheck/lint/policy/build, PgTAP 131/131, E2E 13/13, CI, Sonar, Socket e ARM64 **PASS**; auditoria independente e aceitação humana **PENDENTES**. Checkpoint apenas **PROPOSED**; sem merge/deploy de produção.
 
 | Check        | Result     | Evidence                                                                                                    |
 | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------- |

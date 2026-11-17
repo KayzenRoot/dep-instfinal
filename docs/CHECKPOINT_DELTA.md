@@ -2,7 +2,7 @@
 
 ## DIF-V2-WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; implementação completa em `feat/dif-v2-wo-010`; unit 175+3, typecheck/lint/policy/build, PgTAP 131/131 e E2E 1/1 PASS local; CI/auditoria/aceitação humana pendentes. Sem merge, deploy ou promoção.
+- **Status:** **PROPOSED — NOT PROMOTED**; implementação completa em `feat/dif-v2-wo-010`; unit 175+3, PgTAP 131/131, E2E 13/13, CI `44179512298`, Sonar, Socket e ARM64 PASS; auditoria/aceitação humana pendentes. Sem merge, deploy de produção ou promoção.
 - **Base:** `main` `faa329a` (checkpoint WO-009 promovido); branch `feat/dif-v2-wo-010`.
 - **Delivered:** `EditDirectorPlan`/`TensionCurve` versionados no plano; planner offline determinístico com presets e seed; provider Gemini opcional com JSON estrito, timeout, allowlist e fallback offline; apply/revert do subplano com restauração de CTA; mapeamento da curva para ganho, pausas e glitch; janelas de render VHS/silêncio; UI `/app/director` com gráfico, edição, motivos e histórico.
 - **Limits:** timing de clipes, narração e legendas é protegido (sem retiming); contraste de legendas e ritmo de cortes não são automatizados; aceitação visual/auditiva dos três presets e revisão independente pendentes.

@@ -97,6 +97,7 @@ export const directorPreviousCtaSchema = z
 export const editDirectorPlanSchema = z
 	.object({
 		schemaVersion: z.literal(1),
+		episodeId: uuid.optional(),
 		source: directorSourceSchema,
 		preset: directorPresetSchema,
 		seed: z.number().int().min(0).max(2_147_483_647),
@@ -126,6 +127,17 @@ export const editDirectorPlanSchema = z
 				});
 			previous = point.timeMs;
 		}
+		const markerKeys = new Set<string>();
+		for (const [index, marker] of director.markers.entries()) {
+			const key = `${marker.phase}:${marker.timeMs}`;
+			if (markerKeys.has(key))
+				context.addIssue({
+					code: 'custom',
+					path: ['markers', index],
+					message: 'Marcador de direção duplicado.',
+				});
+			markerKeys.add(key);
+		}
 		const eventIds = new Set<string>();
 		for (const [index, event] of director.events.entries()) {
 			if (eventIds.has(event.id))
@@ -144,6 +156,19 @@ export const editDirectorPlanSchema = z
 					message: 'Aceite aponta para evento inexistente.',
 				});
 		}
+		const glitches = director.events.filter((event) => event.type === 'VHS_STATIC');
+		if (glitches.length > 3)
+			context.addIssue({
+				code: 'custom',
+				path: ['events'],
+				message: 'No máximo 3 glitches VHS por episódio.',
+			});
+		if (glitches.reduce((total, event) => total + event.durationMs, 0) > 2_100)
+			context.addIssue({
+				code: 'custom',
+				path: ['events'],
+				message: 'Glitches VHS somam mais de 2.100 ms; reduza por fotossensibilidade.',
+			});
 	});
 
 export type DirectorPreset = z.infer<typeof directorPresetSchema>;

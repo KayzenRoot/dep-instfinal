@@ -10,6 +10,7 @@ import {
 	VideoEditPlanError,
 } from '#lib/server/video-edit-plans.js';
 import { listAudioAssets } from '#lib/server/audio-library.js';
+import { loadCaptionTrack } from '#lib/server/captions.js';
 import {
 	applyDirectorToPlan,
 	buildDirectorPlan,
@@ -24,6 +25,7 @@ import {
 	type EditDirectorPlan,
 } from '#lib/schemas/edit-director.js';
 import { directorAiConfigured, suggestDirectorWithGemini } from '#lib/server/director-ai.js';
+import { checkRateLimit } from '#lib/server/rate-limit.js';
 import { firstRelation } from '#lib/server/relations.js';
 
 async function loadDirectorInput(
@@ -45,7 +47,9 @@ async function loadDirectorInput(
 	const [scenes, characters, choices, assets] = await Promise.all([
 		db
 			.from('scenes')
-			.select('id,scene_index,start_ms,end_ms,narration_pt_br,visual_description,audio_notes')
+			.select(
+				'id,scene_index,start_ms,end_ms,narration_pt_br,visual_description,audio_notes,location',
+			)
 			.eq('owner_id', owner.id)
 			.eq('episode_id', episodeId)
 			.order('scene_index'),
@@ -83,7 +87,10 @@ async function loadDirectorInput(
 			audioNotes: String(scene.audio_notes ?? ''),
 		})),
 		characters: (characters.data ?? []).map((character) => String(character.name)),
-		location: null,
+		location:
+			(scenes.data ?? [])
+				.map((scene) => String(scene.location ?? '').trim())
+				.find((location) => location.length > 0) ?? null,
 		audioAssets: assets,
 		choices: (choices.data ?? []).map((choice) => ({
 			optionKey: String(choice.option_key),
@@ -105,6 +112,7 @@ export const load: PageServerLoad = async (event) => {
 			director: null,
 			versions: [],
 			aiConfigured: directorAiConfigured(),
+			captionsApproved: false,
 			loadError: 'Crie/selecione um episódio.',
 		};
 	try {
@@ -117,8 +125,15 @@ export const load: PageServerLoad = async (event) => {
 				director: null,
 				versions: [],
 				aiConfigured: directorAiConfigured(),
+				captionsApproved: false,
 				loadError: 'Salve a timeline antes de dirigir o episódio.',
 			};
+		const captionTrack = await loadCaptionTrack(
+			db,
+			owner,
+			selected.id,
+			stored.plan.current_version,
+		).catch(() => null);
 		return {
 			episodes,
 			selectedEpisode: selected,
@@ -130,6 +145,7 @@ export const load: PageServerLoad = async (event) => {
 			director: stored.plan.plan.director ?? null,
 			versions: stored.versions,
 			aiConfigured: directorAiConfigured(),
+			captionsApproved: captionTrack?.status === 'APPROVED',
 			loadError: null,
 		};
 	} catch (cause) {
@@ -140,6 +156,7 @@ export const load: PageServerLoad = async (event) => {
 			director: null,
 			versions: [],
 			aiConfigured: directorAiConfigured(),
+			captionsApproved: false,
 			loadError: cause instanceof Error ? cause.message : 'Não foi possível carregar o diretor.',
 		};
 	}
@@ -150,16 +167,23 @@ function parseSeed(value: string): number {
 	return Number.isInteger(parsed) && parsed >= 0 && parsed <= 2_147_483_647 ? parsed : 7;
 }
 
-function directorForSave(raw: string): EditDirectorPlan | null {
+function directorForSave(raw: string): { director?: EditDirectorPlan; message?: string } {
 	let value: unknown;
 	try {
 		value = JSON.parse(raw);
 	} catch {
-		return null;
+		return { message: 'A direção enviada não é um JSON válido.' };
 	}
 	const parsed = editDirectorPlanSchema.safeParse(value);
-	if (!parsed.success) return null;
-	return { ...parsed.data, planHash: directorPlanHash(parsed.data) };
+	if (!parsed.success) {
+		const issue = parsed.error.issues[0];
+		return {
+			message: issue
+				? `Direção inválida em ${issue.path.join('.') || 'plano'}: ${issue.message}`
+				: 'Direção inválida.',
+		};
+	}
+	return { director: { ...parsed.data, planHash: directorPlanHash(parsed.data) } };
 }
 
 export const actions: Actions = {
@@ -176,6 +200,14 @@ export const actions: Actions = {
 		try {
 			const input = await loadDirectorInput(db, owner, episodeId, seed, preset.data, suspense);
 			if (mode === 'gemini') {
+				const limit = checkRateLimit(`director-ai:${owner.id}`, 6, 60 * 60 * 1000);
+				if (!limit.allowed)
+					return fail(429, {
+						message: `Limite de sugestões Gemini atingido. Tente novamente em ${Math.max(
+							1,
+							Math.ceil(limit.retryAfterSeconds / 60),
+						)} min.`,
+					});
 				try {
 					const result = await suggestDirectorWithGemini(input);
 					return {
@@ -212,9 +244,11 @@ export const actions: Actions = {
 		const { db, owner } = ownerDatabase(event);
 		const form = await event.request.formData();
 		const episodeId = readFormText(form, 'episodeId');
-		const director = directorForSave(readFormText(form, 'director'));
+		const saved = directorForSave(readFormText(form, 'director'));
 		const expectedVersion = Number.parseInt(readFormText(form, 'expectedVersion'), 10);
-		if (!episodeId || !director) return fail(400, { message: 'Direção inválida.' });
+		if (!episodeId || !saved.director)
+			return fail(400, { message: saved.message ?? 'Direção inválida.' });
+		const director = saved.director;
 		if (!Number.isInteger(expectedVersion) || expectedVersion < 0)
 			return fail(400, { message: 'Versão esperada inválida.' });
 		try {

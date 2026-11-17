@@ -29,6 +29,7 @@
 	let seed = $state(7);
 	let suspense = $state(true);
 	let mode = $state<'offline' | 'gemini'>('offline');
+	let reduceMotion = $state(false);
 	let editorKey = $state('');
 
 	$effect(() => {
@@ -105,6 +106,23 @@
 		}
 	}
 
+	function applyMotionPreference() {
+		if (!director || !reduceMotion) return;
+		accepted = accepted.filter(
+			(id) => director?.events.find((event) => event.id === id)?.type !== 'VHS_STATIC',
+		);
+		director = {
+			...director,
+			acceptedEventIds: accepted,
+			events: director.events.map((event) =>
+				event.type === 'VHS_STATIC' && accepted.includes(event.id)
+					? { ...event, status: 'PROPOSED' as const }
+					: event,
+			),
+			planHash: null,
+		};
+	}
+
 	function updatePoint(index: number, field: 'timeMs' | 'tension', raw: string) {
 		if (!director) return;
 		const value = Number(raw);
@@ -128,14 +146,31 @@
 	function addPoint() {
 		if (!director) return;
 		const duration = data.plan?.durationMs ?? 120_000;
-		const timeMs = Math.min(duration, (director.points.at(-1)?.timeMs ?? 0) + 5_000);
+		const ordered = [...director.points].sort((left, right) => left.timeMs - right.timeMs);
+		const boundaries = [0, ...ordered.map((point) => point.timeMs), duration];
+		let insertAt = -1;
+		let widest = 0;
+		for (let index = 1; index < boundaries.length; index += 1) {
+			const gap = boundaries[index]! - boundaries[index - 1]!;
+			if (gap > widest) {
+				widest = gap;
+				insertAt = Math.round(boundaries[index - 1]! + gap / 2);
+			}
+		}
+		if (insertAt <= 0 || insertAt >= duration || widest < 500) return;
 		director = {
 			...director,
-			points: [...director.points, { timeMs, tension: 50 }].sort(
+			points: [...ordered, { timeMs: insertAt, tension: 50 }].sort(
 				(left, right) => left.timeMs - right.timeMs,
 			),
 			planHash: null,
 		};
+	}
+
+	function maxEventDuration(event: DirectorEvent): number {
+		if (event.type === 'VHS_STATIC') return 700;
+		if (event.type === 'SILENCE_BEFORE_REVEAL') return 2_500;
+		return 8_000;
 	}
 
 	function removePoint(index: number) {
@@ -162,13 +197,14 @@
 						status: 'ADJUSTED' as const,
 						intensity: Math.max(1, Math.min(5, Math.round(value))),
 					};
+				const maxDuration = maxEventDuration(event);
 				if (field === 'durationMs')
 					return {
 						...event,
 						status: 'ADJUSTED' as const,
 						durationMs: Math.max(
 							100,
-							Math.min(event.startMs + Math.round(value), duration) - event.startMs,
+							Math.min(Math.round(value), maxDuration, duration - event.startMs),
 						),
 					};
 				const startMs = Math.max(0, Math.min(duration - 100, Math.round(value)));
@@ -176,7 +212,7 @@
 					...event,
 					status: 'ADJUSTED' as const,
 					startMs,
-					durationMs: Math.min(event.durationMs, duration - startMs),
+					durationMs: Math.min(maxDuration, event.durationMs, duration - startMs),
 				};
 			}),
 			planHash: null,
@@ -301,6 +337,11 @@
 				<span><i class="line-current"></i> proposta</span>
 				{#if data.director}<span><i class="line-before"></i> versão atual</span>{/if}
 			</div>
+			<p class="meta-label">
+				Pontos: {director.points
+					.map((point) => `${(point.timeMs / 1_000).toFixed(1)} s = ${point.tension}`)
+					.join(' · ')}
+			</p>
 			<div class="points">
 				{#each director.points as point, index (index)}
 					<label
@@ -323,7 +364,12 @@
 							onchange={(event) => updatePoint(index, 'tension', event.currentTarget.value)}
 						/>
 					</label>
-					<button type="button" class="link" onclick={() => removePoint(index)}>Remover</button>
+					<button
+						type="button"
+						class="link"
+						aria-label={`Remover ponto ${index + 1} de tensão`}
+						onclick={() => removePoint(index)}>Remover</button
+					>
 				{/each}
 				<button type="button" onclick={addPoint}>Adicionar ponto</button>
 			</div>
@@ -342,13 +388,24 @@
 								<input
 									type="checkbox"
 									checked={accepted.includes(event.id)}
+									disabled={reduceMotion && event.type === 'VHS_STATIC'}
 									onchange={(changeEvent) => toggle(event.id, changeEvent.currentTarget.checked)}
 								/>
 								{eventLabels[event.type]}
 							</label>
-							<button type="button" class="link" onclick={() => reject(event.id)}>Rejeitar</button>
+							<button
+								type="button"
+								class="link"
+								aria-label={`Rejeitar ${eventLabels[event.type]} em ${(event.startMs / 1_000).toFixed(1)} segundos`}
+								onclick={() => reject(event.id)}>Rejeitar</button
+							>
 						</header>
 						<p class="reason">{event.reason}</p>
+						{#if event.type === 'PHRASE_HIGHLIGHT'}
+							<p class="hint">
+								Informativo nesta versão: registra a frase para revisão, sem alterar o render.
+							</p>
+						{/if}
 						<div class="event-grid">
 							<label
 								>Início (ms)
@@ -366,7 +423,7 @@
 								<input
 									type="number"
 									min="100"
-									max={data.plan.durationMs}
+									max={maxEventDuration(event)}
 									value={event.durationMs}
 									onchange={(changeEvent) =>
 										clampEvent(index, 'durationMs', changeEvent.currentTarget.value)}
@@ -403,6 +460,20 @@
 		</section>
 
 		<div class="actions">
+			{#if data.captionsApproved}
+				<p class="notice warning" role="status">
+					Há legendas aprovadas nesta versão. Aplicar ou reverter cria uma nova versão e exige
+					reaprovar/regerar as legendas antes do render.
+				</p>
+			{/if}
+			<p class="hint">
+				Aplicar ou reverter cria uma nova versão DRAFT. Legendas aprovadas ficam presas à versão
+				anterior; reaprove-as na tela de legendas antes de renderizar. A CTA entra pelas legendas.
+			</p>
+			<label class="check motion-control">
+				<input type="checkbox" bind:checked={reduceMotion} onchange={applyMotionPreference} /> Reduzir
+				movimento (remove o glitch VHS)
+			</label>
 			<form method="POST" action="?/apply">
 				<input type="hidden" name="episodeId" value={data.selectedEpisode.id} />
 				<input type="hidden" name="expectedVersion" value={data.plan.version} />
@@ -561,6 +632,10 @@
 		gap: 0.2rem;
 		color: var(--muted);
 		font-size: 0.78rem;
+	}
+	.actions .hint,
+	.actions .notice {
+		flex-basis: 100%;
 	}
 	.events ol {
 		display: grid;
