@@ -1,10 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-009 — Biblioteca licenciada, mix/ducking e soundscape (2026-11-14) — PROPOSED
+## V2 WO-009 — Biblioteca licenciada, mix/ducking e soundscape (2026-11-14) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-009` · issue #26 · epic #17 · addendum ENH-14
 - **Base:** `main` `7d6af5e`; branch `feat/dif-v2-wo-009`
-- **Status:** audit corrections applied; local validation, CI, ARM64 and owner listening **PASS**; **APPROVED WITH RESIDUALS**; merge/promotion pending. No deploy.
+- **Status:** audit corrections applied; local validation, CI, ARM64 and owner listening **PASS**; **APPROVED WITH RESIDUALS**; squash-merged at `0b60321` (PR #57); issue #26 closed.
 
 | Check      | Result     | Evidence                                                                             |
 | ---------- | ---------- | ------------------------------------------------------------------------------------ |

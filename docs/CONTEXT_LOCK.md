@@ -213,10 +213,10 @@ Revalidate before any external action if `main` changes; the feature branch is r
 ## V2 Context Lock — WO-009 (#26)
 
 - **Base revalidated:** `main` `7d6af5e` (checkpoint WO-008 promoted). Branch: `feat/dif-v2-wo-009`.
-- **Issue inventory:** WO-001–008 **MERGED/CLOSED/PROMOTED**; WO-009/#26 **IN PROGRESS**; WO-010+ remain gated.
+- **Issue inventory:** WO-001–009 **MERGED/CLOSED/PROMOTED**; WO-010/#27 is next; WO-011+ remain gated.
 - **Delivered locally:** owner-only `audio_assets` with licence provenance and private bytes; five categories; optional versioned `audio` events in `VideoEditPlan`; `/app/audio` import/filter/playback; timeline gain/fades/pan/loop/ducking/spatial presets and 120 s suspense template; FFmpeg mix with narration sidechain, ducking, SFX bus, loudnorm/alimiter and AAC 48 kHz stereo; licence gate in UI/save/worker.
-- **Tests:** unit **159 + 3 skipped**; PgTAP **131/131**; E2E audio library PASS; policy **27 invariants/24 tables**; corrections applied; ENH-14 human/ARM64 STOP, CI/re-audit pending.
-- **Gate:** CI, Evidence Bundle, Checkpoint Delta PROPOSED, independent audit and explicit owner merge authorization. No deploy/VPS change.
+- **Tests:** unit **159 + 3 skipped**; PgTAP **131/131**; E2E audio library PASS; policy **27 invariants/24 tables**; corrections applied; CI `43660937084` SUCCESS; ARM64 `43660937121` SUCCESS; owner listening PASS (“aprovado”, 2026-11-17).
+- **Gate:** owner authorized merge/promotion on 2026-11-17; PR #57 squash-merged at `0b60321`; issue #26 closed; checkpoint **PROMOTED**. WO-010 (#27) is next. No deploy/VPS change.
 
 ### Fingerprints no base `7d6af5e`
 

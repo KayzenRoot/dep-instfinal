@@ -9,13 +9,13 @@
 - **Limits:** Piper não altera emoção real (`emotion:false`); emoção é direção e voz importada é o fallback. Aceitação auditiva humana e benchmark ARM64 **PASS**. R2 lifecycle/GC, SRT (WO-008) e credencial de menor privilégio (WO-013/014) permanecem residuais.
 - **Gate:** CI, auditoria de código, aceitação auditiva e benchmark ARM64 PASS; owner authorized merge/promotion on 2026-11-14. WO-008 (#25) is the next planned WO.
 
-## DIF-V2-WO-009 — Biblioteca licenciada, mix/ducking e soundscape (2026-11-14) — PROPOSED
+## DIF-V2-WO-009 — Biblioteca licenciada, mix/ducking e soundscape (2026-11-14) — PROMOTED
 
-- **Status:** **PROPOSED — CORRECTION REQUIRED/ENH-14 BLOCKED**; biblioteca/eventos/UI/mixer implementados e correções H1/H2/M1–M8 aplicadas; testes locais e CI `43660937084` PASS; ARM64 `43660937121` PASS; falta escuta humana.
+- **Status:** **PROMOTED**; biblioteca/eventos/UI/mixer implementados e correções H1/H2/M1–M8 aplicadas; CI `43660937084` PASS; ARM64 `43660937121` PASS; aceitação auditiva do owner **PASS** em 2026-11-17 (“aprovado”); squash-merged at `0b60321` (PR #57); issue #26 closed.
 - **Base:** `main` `7d6af5e` (checkpoint WO-008 promovido); branch `feat/dif-v2-wo-009`.
 - **Delivered:** ingestão privada WAV/MP3/M4A/OGG com licença/atribuição/direitos, dedup por SHA; cinco categorias; eventos de áudio versionados no plano; timeline com ganho/fades/pan/loop/ducking/presets espaciais; template suspense 120 s; mixer com narração prioritária, ducking, SFU/SFX, loudnorm/alimiter, AAC 48 kHz estéreo e validação true peak/LUFS; manifesto `audio`/`audioMix`.
-- **Limits:** licença é declaração registrada, não parecer jurídico; soundscape é estéreo simulado, não Atmos/3D nativo; benchmark ARM64 e escuta humana pendentes; R2 live/lifecycle e menor privilégio do worker permanecem WO-013/014.
-- **Gate:** testes, CI, Evidence Bundle, Checkpoint Delta PROPOSED, auditoria independente e autorização explícita de merge/promoção.
+- **Limits:** licença é declaração registrada, não parecer jurídico; soundscape é estéreo simulado, não Atmos/3D nativo; substituição de objeto R2 perdido, E2E do worker com áudio e teste de restore/aprovação bloqueada permanecem residuais; R2 lifecycle/GC e menor privilégio do worker via WO-013/014.
+- **Gate:** CI, auditoria de código **APPROVED WITH RESIDUALS**, ARM64 e aceitação auditiva PASS; owner authorized merge/promotion on 2026-11-17. WO-010 (#27) is next.
 
 ## DIF-V2-WO-008 — Legendas reais, SRT/ASS e burn-in (2026-11-14) — PROMOTED
 
@@ -24,6 +24,14 @@
 - **Delivered:** `caption_tracks` owner-only/versionado por plano e take de narração; alinhamento deterministico roteiro↔ASR com descarte de hallucination e timestamps monotonicos; SRT/ASS com safe zones, largura segura e escape; editor `/app/captions`; import ASR/manual; worker exige take aprovado e queima ASS; manifesto registra track/take/style/safeZone; CLI Vosk opcional.
 - **Limits:** Vosk/modelo local opcional; sem deploy VPS; revisão visual humana e alignment real multi-voz pendentes.
 - **Gate:** CI e auditoria independente **APPROVED WITH RESIDUALS** PASS; owner authorized merge/promotion on 2026-11-14. WO-009 (#26) is next.
+
+## V2 checkpoint promotion — WO-009 (2026-11-17)
+
+- **Owner decision:** owner listened to the ENH-14 samples and replied **“aprovado”**; PR #57 squash-merged at `0b60321`; issue #26 closed.
+- **Audit:** independent code audit **APPROVED WITH RESIDUALS**, no HIGH/CRITICAL code defect after corrections.
+- **Evidence:** unit **159+3**, PgTAP **131/131**, E2E **13/13**, CI `43660937084` PASS, ARM64 `43660937121` PASS, Sonar PASS, owner listening PASS.
+- **Residuals:** lost-object R2 replacement, worker audio-mix E2E, restore/approval licence rejection test, approximate binaural preview, dev-only picomatch ReDoS without upstream patch (production audit clean).
+- **Next:** WO-010 (#27) edit director + tension curve.
 
 ## V2 checkpoint promotion — WO-008 (2026-11-14)
 

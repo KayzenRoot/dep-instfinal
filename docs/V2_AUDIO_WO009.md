@@ -1,7 +1,7 @@
 # DIF-V2-WO-009 — Biblioteca licenciada, mix/ducking e soundscape
 
-**Status:** implementação e correções de auditoria aplicadas; testes locais e CI `43656294117` **PASS**; reauditoria e aceitação humana/ARM64 pendentes. **APPROVED WITH RESIDUALS**; auditoria de código aprovada, CI/ARM64 **PASS** e aceitação auditiva do owner **PASS** em 2026-11-17 (“aprovado”). Merge/promoção pendentes. **Não aprovada**, **não merged**, **não deployed**.
-**Base:** `main` `7d6af5e` (checkpoint WO-008 promovido).
+**Status:** implementação e correções de auditoria aplicadas; testes locais e CI `43656294117` **PASS**; reauditoria e aceitação humana/ARM64 pendentes. **PROMOTED**; auditoria de código aprovada, CI/ARM64 **PASS**, aceitação auditiva do owner **PASS** em 2026-11-17 (“aprovado”); squash-merged at `0b60321` (PR #57); issue #26 closed. **Não aprovada**, **não merged**, **não deployed**.
+**Base:** `main` `7d6af5e` (checkpoint WO-008 promovido); merge em `0b60321`.
 **Branch:** `feat/dif-v2-wo-009`.
 **Escopo:** WO-009 (#26) + addendum ENH-14 (soundscape estéreo simulado), dependente de WO-006/WO-007.
 
