@@ -48,7 +48,7 @@
 - Lint: **PASS** (`eslint . --max-warnings=0`).
 - Policy: **27 invariantes / 24 tabelas** (sem migração nesta WO).
 - FFmpeg: expressões `eq=...:enable='between(t,...)'` e `volume=0:enable='between(t,...)'` aceitas e executadas no FFmpeg 9.0.2.
-- E2E: `e2e/timeline.spec.ts` **1/1 PASS** (12,8 min) com gerar → editar 3 pontos → aceitar VHS/CTA → aplicar → reload → novo login → reverter → reaplicar → narração/legendas → render READY; log em `docs/evidence/wo-010/e2e-timeline-local.log`.
+- E2E: `e2e/timeline.spec.ts` **1/1 PASS** (12,8 min) com gerar → editar 3 pontos → aceitar VHS/CTA → aplicar → reload → novo login → reverter → reaplicar → narração/legendas → render READY; log em `docs/evidence/wo-010/e2e-timeline-local.txt`.
 - PgTAP: **131/131 PASS**; sem migração nova.
 - CI/auditoria/aceitação humana serão registrados em `docs/evidence/wo-010/` após execução.
 

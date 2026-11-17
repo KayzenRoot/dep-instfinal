@@ -1,0 +1,34 @@
+
+> dif-studio@0.1.0 test:e2e:local
+> node scripts/test-local-e2e.mjs e2e/timeline.spec.ts
+
+
+Running 1 test using 1 worker
+
+[timeline-e2e] episode created 4d17934c-c687-495e-a272-6fdc0d3cfd5a
+[timeline-e2e] episode narration saved
+[WebServer] 409 POST /app/timeline?/restore
+[WebServer] 400 POST /app/timeline?/status
+[timeline-e2e] generating deterministic director proposal
+[timeline-e2e] director persisted after reload
+[timeline-e2e] director persists after a fresh login
+[timeline-e2e] reverting only the director layer
+[timeline-e2e] applying director again for render
+[timeline-e2e] opening narration editor
+[timeline-e2e] uploading narration take
+[timeline-e2e] narration approved; restoring previous version
+[timeline-e2e] previous version restored; reapproving
+[timeline-e2e] narration reapproved
+[timeline-e2e] aligning captions from synthetic ASR words
+[timeline-e2e] captions approved; returning to timeline
+[timeline-e2e] render enqueued
+[timeline-e2e] worker spawned
+[render-worker] {"event":"worker_started","workerId":"e2e-3c6f4b0f-c18d-4929-831d-fdc7357b9368","pollMs":250,"leaseSeconds":180,"maxJobs":1,"stub":false}
+[render-worker] {"event":"render_started","workerId":"e2e-3c6f4b0f-c18d-4929-831d-fdc7357b9368","jobId":"181fd621-6c09-43b3-b714-648e0b9fd86c","planVersion":7,"stub":false}
+[render-worker] {"event":"render_completed","workerId":"e2e-3c6f4b0f-c18d-4929-831d-fdc7357b9368","jobId":"181fd621-6c09-43b3-b714-648e0b9fd86c"}
+[render-worker] {"event":"worker_stopped","workerId":"e2e-3c6f4b0f-c18d-4929-831d-fdc7357b9368","jobsRun":1}
+  ok 1 [chromium] › e2e\timeline.spec.ts:34:1 › owner edits a versioned timeline and restores an earlier version (12.8m)
+
+  Slow test file: [chromium] › e2e\timeline.spec.ts (12.8m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 passed (13.9m)
