@@ -115,7 +115,7 @@
 			...director,
 			acceptedEventIds: accepted,
 			events: director.events.map((event) =>
-				event.type === 'VHS_STATIC' && accepted.includes(event.id)
+				event.type === 'VHS_STATIC' && event.status === 'ACCEPTED'
 					? { ...event, status: 'PROPOSED' as const }
 					: event,
 			),
@@ -389,6 +389,7 @@
 									type="checkbox"
 									checked={accepted.includes(event.id)}
 									disabled={reduceMotion && event.type === 'VHS_STATIC'}
+									aria-label={`${eventLabels[event.type]} em ${(event.startMs / 1_000).toFixed(1)} segundos`}
 									onchange={(changeEvent) => toggle(event.id, changeEvent.currentTarget.checked)}
 								/>
 								{eventLabels[event.type]}

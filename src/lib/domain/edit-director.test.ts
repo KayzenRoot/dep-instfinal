@@ -299,6 +299,65 @@ describe('deterministic edit director', () => {
 		expect(audio.fadeInMs + audio.fadeOutMs).toBeLessThanOrEqual(audio.durationMs);
 	});
 
+	it('rejects cross-episode proposals and plans that already have 64 audio events', () => {
+		const director = buildDirectorPlan(input);
+		const accepted = director.events
+			.filter((event) => event.type === 'DOOR_CREAK')
+			.map((event) => event.id);
+		expect(() =>
+			applyDirectorToPlan({
+				plan: { ...plan, episodeId: '77777777-7777-4777-8777-777777777777' },
+				director,
+				assets: [door, impact],
+				acceptedEventIds: accepted,
+			}),
+		).toThrow(EditDirectorError);
+
+		const fullAudio = videoEditPlanSchema.parse({
+			...plan,
+			audio: {
+				masterGainDb: 0,
+				events: Array.from({ length: 64 }, (_, index) => ({
+					id: `55555555-5555-4555-8555-${String(index).padStart(12, '0')}`,
+					assetId: impact.id,
+					kind: 'MUSIC',
+					startMs: 0,
+					durationMs: 120_000,
+					gainDb: -20,
+				})),
+			},
+		});
+		expect(() =>
+			applyDirectorToPlan({
+				plan: fullAudio,
+				director,
+				assets: [door, impact],
+				acceptedEventIds: accepted,
+			}),
+		).toThrow(EditDirectorError);
+	});
+
+	it('rejects duplicate markers', () => {
+		const director = buildDirectorPlan(input);
+		expect(
+			editDirectorPlanSchema.safeParse({
+				...director,
+				markers: [director.markers[0]!, { ...director.markers[0]! }],
+			}).success,
+		).toBe(false);
+		const vhs = director.events.find((event) => event.type === 'VHS_STATIC')!;
+		expect(
+			editDirectorPlanSchema.safeParse({
+				...director,
+				events: Array.from({ length: 4 }, (_, index) => ({
+					...vhs,
+					id: `99999999-9999-4999-8999-${String(index).padStart(12, '0')}`,
+					startMs: 1_000 + index * 1_000,
+				})),
+			}).success,
+		).toBe(false);
+	});
+
 	it('maps curve intensity onto gain and VHS duration without moving timecodes', () => {
 		const director = buildDirectorPlan(input);
 		const vhs = director.events.find((event) => event.type === 'VHS_STATIC')!;
