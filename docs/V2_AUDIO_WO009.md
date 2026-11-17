@@ -1,6 +1,6 @@
 # DIF-V2-WO-009 — Biblioteca licenciada, mix/ducking e soundscape
 
-**Status:** implementação e correções de auditoria aplicadas; testes locais e CI `43656294117` **PASS**; reauditoria e aceitação humana/ARM64 pendentes. **BLOQUEADA apenas na aceitação auditiva humana do ENH-14**; benchmark ARM64 e CI **PASS**. **Não aprovada**, **não merged**, **não deployed**.
+**Status:** implementação e correções de auditoria aplicadas; testes locais e CI `43656294117` **PASS**; reauditoria e aceitação humana/ARM64 pendentes. **APPROVED WITH RESIDUALS**; auditoria de código aprovada, CI/ARM64 **PASS** e aceitação auditiva do owner **PASS** em 2026-11-17 (“aprovado”). Merge/promoção pendentes. **Não aprovada**, **não merged**, **não deployed**.
 **Base:** `main` `7d6af5e` (checkpoint WO-008 promovido).
 **Branch:** `feat/dif-v2-wo-009`.
 **Escopo:** WO-009 (#26) + addendum ENH-14 (soundscape estéreo simulado), dependente de WO-006/WO-007.
@@ -61,7 +61,7 @@ A biblioteca começa vazia; nenhum asset é baixado automaticamente. As licença
 
 - Licença é metadado declarado; revisão jurídica humana continua necessária.
 - O helper/ingestão exige WAV PCM 16-bit para o ASR; a biblioteca aceita WAV/MP3/M4A/OGG.
-- **STOP ENH-14:** benchmark ARM64 PASS (`docs/evidence/wo-009/arm64-mix.txt`); falta apenas a **escuta humana** em fones/speaker das amostras em `docs/evidence/wo-009/listening/`. Sem essa aceitação, WO-009 não pode ser aprovada/promovida.
+- **ENH-14:** benchmark ARM64 PASS (`docs/evidence/wo-009/arm64-mix.txt`) e escuta humana **PASS** em 2026-11-17 (`docs/evidence/wo-009/owner-acceptance.txt`, owner: “aprovado”).
 - Recuperação de objeto R2 perdido por reenvio do mesmo asset não está exposta na UI; atualização/revogação de licença está disponível.
 - R2 live download/lifecycle/GC e menor privilégio do worker permanecem WO-013/014.
 - O template de suspense é um ponto de partida; não substitui direção sonora humana.

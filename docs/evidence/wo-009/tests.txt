@@ -57,6 +57,10 @@ Hosted CI run 43660937084 (head 8034352)
   quality PASS; unit 159+3; PgTAP 131/131;
   E2E 13/13 in 4.8m; Sonar/Socket/Vercel PASS; ARM64 43660937121 PASS.
 
+## Owner acceptance
+
+- 2026-11-17: owner listened to `steps-left-right.mp4` and `radio-far-near.mp4` and replied **“aprovado”**. Evidence: `docs/evidence/wo-009/owner-acceptance.txt`.
+
 ## Notes
 
 - The library starts empty; no external/downloaded asset was used.
