@@ -101,6 +101,7 @@ export function buildDefaultEditPlan(context: EditPlanContext): VideoEditPlan {
 		clips,
 		captions: { template: 'clean' },
 		cta: null,
+		audio: { masterGainDb: 0, events: [] },
 	};
 }
 
@@ -260,6 +261,22 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 			throw new EditPlanError('EDIT_PLAN_CTA_INVALID', 'CTA habilitada exige texto.');
 		if (plan.cta.endMs <= plan.cta.startMs || plan.cta.endMs > plan.durationMs)
 			throw new EditPlanError('EDIT_PLAN_CTA_INVALID', 'Janela da CTA inválida.');
+	}
+
+	const audioEventIds = new Set<string>();
+	for (const event of plan.audio?.events ?? []) {
+		if (audioEventIds.has(event.id))
+			throw new EditPlanError('EDIT_PLAN_AUDIO_DUPLICATE', 'Evento de áudio duplicado.');
+		audioEventIds.add(event.id);
+		if (event.startMs + event.durationMs > plan.durationMs)
+			throw new EditPlanError(
+				'EDIT_PLAN_AUDIO_RANGE',
+				'Evento de áudio excede a duração do episódio.',
+			);
+		if (event.fadeInMs + event.fadeOutMs > event.durationMs)
+			throw new EditPlanError('EDIT_PLAN_AUDIO_FADE', 'Fades do áudio excedem o evento.');
+		if (event.loop && event.sourceInMs !== 0)
+			throw new EditPlanError('EDIT_PLAN_AUDIO_LOOP', 'Loop de áudio não aceita offset.');
 	}
 
 	return {

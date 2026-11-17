@@ -17,7 +17,7 @@
 	"scripts": {
 		"dev": "vite dev --host 127.0.0.1",
 		"build": "vite build",
-		"start": "node build",
+		"start": "node scripts/start.mjs",
 		"serve:tunnel": "node scripts/serve-tunnel.mjs",
 		"preview": "vite preview --host 127.0.0.1",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -32,10 +32,12 @@
 		"test:e2e:local": "node scripts/test-local-e2e.mjs",
 		"check:r2": "node scripts/check-r2.mjs",
 		"audit:policy": "node scripts/audit-policy.mjs",
-		"audit:deps": "npm audit --audit-level=high",
+		"audit:deps": "npm audit --omit=dev --audit-level=high",
+		"audit:deps:all": "npm audit --audit-level=high",
 		"check:baseline": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run audit:policy && npm run audit:deps",
 		"ci:all": "npm run check:baseline && npm run test:db && npm run test:e2e:local",
 		"tts:local": "tsx scripts/narration-tts.ts",
+		"benchmark:audio-mix": "tsx scripts/benchmark-audio-mix.ts",
 		"test:tts": "vitest run src/lib/server/narration-tts.integration.test.ts",
 		"captions:align": "tsx scripts/caption-align.ts"
 	},

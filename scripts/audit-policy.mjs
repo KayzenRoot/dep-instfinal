@@ -50,6 +50,10 @@ const captionMigration = await readFile(
 	'supabase/migrations/20261114120000_v2_wo008_captions.sql',
 	'utf8',
 );
+const audioMigration = await readFile(
+	'supabase/migrations/20261114130000_v2_wo009_audio.sql',
+	'utf8',
+);
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -81,9 +85,10 @@ const tables = [
 	...renderJobMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...narrationMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...captionMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...audioMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['23 owner-scoped public tables', tables.length === 23],
+	['24 owner-scoped public tables', tables.length === 24],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -284,6 +289,18 @@ const checks = [
 			) &&
 			captionMigration.includes('caption_plan_version_mismatch') &&
 			captionMigration.includes('caption_cues_required'),
+	],
+	[
+		'audio library is owner-read, server-written and licence-gated',
+		audioMigration.includes('audio_assets') &&
+			audioMigration.includes('force row level security') &&
+			audioMigration.includes('revoke all on table public.audio_assets') &&
+			audioMigration.includes('grant select on table public.audio_assets to authenticated') &&
+			audioMigration.includes(
+				'grant select, insert, update, delete on table public.audio_assets to service_role',
+			) &&
+			audioMigration.includes('audio_verified_license_requires_rights') &&
+			audioMigration.includes('license_status in'),
 	],
 	[
 		'video storage is private, multipart and short-lived signed',

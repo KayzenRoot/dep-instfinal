@@ -1,0 +1,9 @@
+# WO-009 — owner listening acceptance
+
+- Date: 2026-11-17
+- Owner statement: **“aprovado”**
+- Context: response to the two ENH-14 listening samples in this directory:
+  - `steps-left-right.mp4` (voice + footsteps moving left → right)
+  - `radio-far-near.mp4` (voice + radio moving far → near)
+- Interpretation: the owner accepted the simulated stereo soundscape samples for WO-009. This closes the ENH-14 human headphone/speaker acceptance gate and, together with the owner's standing authorization to merge when the work is good, authorizes merge/promotion of WO-009.
+- This is acceptance of the delivered simulated stereo processing; it is not a claim of Dolby Atmos, native 3D audio or general legal approval of third-party licences.

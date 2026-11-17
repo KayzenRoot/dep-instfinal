@@ -1,0 +1,69 @@
+# WO-009 — local verification evidence
+
+Date: 2026-11-14
+Branch: `feat/dif-v2-wo-009`
+Base: `main` `7d6af5e`
+Scope: licensed SFX/music library, audio events, mix/ducking and simulated stereo soundscape.
+
+## Commands and results
+
+```text
+npm run lint
+  PASS (eslint --max-warnings=0)
+
+npm run check
+  PASS (svelte-check: 0 errors, 0 warnings)
+
+npx supabase db reset --local
+  all migrations applied, including 20261114130000_v2_wo009_audio.sql
+
+npx supabase test db
+  Files=1, Tests=131, Result: PASS
+
+npx vitest run
+  Test Files 23 passed | 3 skipped (26)
+       Tests 159 passed | 3 skipped (162)
+  Includes:
+    - audio library/licence/event/template tests (10)
+    - audio ingestion tests (4)
+    - real FFmpeg mix: narration + ducked music + SFX + loudness/true peak + mono downmix
+    - second render and instrumental (no narration) mix
+
+npm run build
+  adapter-node build PASS
+
+npm run audit:policy
+  Checked 27 policy invariants across 24 tables. PASS
+
+npm run test:e2e:local -- e2e/audio-library.spec.ts
+  1 passed (21.9s): five categories imported with CC0 metadata, filtered, licence revoked/restored
+
+npm run test:e2e:local -- e2e/timeline.spec.ts
+  1 passed (2.5m): full timeline/narration/captions/render journey still READY
+
+npm run test:e2e:local -- e2e/owner-boundary.spec.ts -g "authenticated studio pages fit"
+  1 passed (36.0s): /app/audio responsive at 360/768/1440
+```
+
+## FFmpeg mix measurements
+
+- Narration + music + SFX: AAC 48 kHz stereo, `loudnorm -16 LUFS`, true peak ≤ −0,8 dBTP; ducking measured as a lower music/voice band ratio; SFX band level present at its timecode; right/left pan separation; mono downmix within 3 dB of stereo (no severe cancellation).
+- 120 s local benchmark (x64, 2 events + narration, 1080×1920 video stream copy):
+  - command: `npm run benchmark:audio-mix` (script generates fixtures and prints `-benchmark`).
+  - wall **10.6 s**, user **13.6 s**, system **0.6 s**, max RSS **124,268 KiB**.
+  - ARM64 mixer benchmark PASS (run 43659179231): 7,86 s wall, 7,56 s user, 166.060 KiB RSS; synthetic owner samples in `docs/evidence/wo-009/listening/`. Human headphone/speaker listening remains pending.
+
+Hosted CI run 43660937084 (head 8034352)
+  quality PASS; unit 159+3; PgTAP 131/131;
+  E2E 13/13 in 4.8m; Sonar/Socket/Vercel PASS; ARM64 43660937121 PASS.
+
+## Owner acceptance
+
+- 2026-11-17: owner listened to `steps-left-right.mp4` and `radio-far-near.mp4` and replied **“aprovado”**. Evidence: `docs/evidence/wo-009/owner-acceptance.txt`.
+
+## Notes
+
+- The library starts empty; no external/downloaded asset was used.
+- Licences are declared metadata (CC0 fixtures in tests), not a legal opinion.
+- Soundscape is processed stereo (`stereo_pan`/`binaural_simulated`), not native Dolby Atmos or tracked 3D.
+- No paid API, GPU, public media, deployment or VPS change was used.

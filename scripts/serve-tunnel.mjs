@@ -23,7 +23,7 @@ function stop(exitCode = 0) {
 }
 
 function startServer(origin) {
-	server = spawn(process.execPath, ['--env-file=.env', 'build'], {
+	server = spawn(process.execPath, ['--env-file=.env', 'scripts/start.mjs'], {
 		stdio: 'inherit',
 		env: {
 			...process.env,

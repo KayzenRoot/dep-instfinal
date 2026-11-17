@@ -1,0 +1,13 @@
+# WO-009 hosted CI evidence — run 43656294117
+
+- Head: `4138948` (code head `120d86c`)
+- Branch: `feat/dif-v2-wo-009`
+- Workflow: DIF Studio CI (quality)
+- Result: **SUCCESS** at 2026-11-15T00:12Z (7m47s)
+- URL: https://github.com/KayzenRoot/dep-instfinal/actions/runs/43656294117
+- Checks: quality PASS, SonarCloud PASS, Socket PASS, Vercel Preview PASS.
+- Baseline: format, lint, typecheck, build, policy **27 invariants / 24 tables** and dependency audit PASS.
+- Tests: **159 passed + 3 skipped**; PgTAP **131/131**; E2E **13/13** in 3.6 min.
+- Covers H1/H2/M1–M8 corrections, licence UI/revoke, 4 MB upload ceiling, ducking buses, narration policy, preview parameters, template silence and listening artifacts.
+- Remaining external gates: ENH-14 human headphone/speaker acceptance and ARM64 mixer benchmark.
+- No merge/deploy/promotion performed.

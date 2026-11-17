@@ -43,6 +43,12 @@
 			glyph: 'archive',
 		},
 		{
+			path: '/app/audio',
+			href: resolve('/app/audio'),
+			label: 'Áudio',
+			glyph: 'archive',
+		},
+		{
 			path: '/app/captions',
 			href: resolve('/app/captions'),
 			label: 'Legendas',

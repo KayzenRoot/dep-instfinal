@@ -1,4 +1,9 @@
 import type { VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
+import type {
+	AudioKind,
+	AudioSpatialMode,
+	AudioSpatialPreset,
+} from '#lib/schemas/audio-library.js';
 import { narrationDurationPolicy } from './voice-direction.js';
 
 export class RenderCompositionError extends Error {
@@ -334,5 +339,248 @@ export function buildNarrationMuxCommand(input: {
 		narrationDurationMs: input.narrationDurationMs,
 		paddedMs: policy.paddedMs,
 		trimmedMs: policy.trimmedMs,
+	};
+}
+
+export interface AudioMixEvent {
+	id: string;
+	path: string;
+	kind: AudioKind;
+	startMs: number;
+	durationMs: number;
+	sourceInMs: number;
+	gainDb: number;
+	fadeInMs: number;
+	fadeOutMs: number;
+	pan: number;
+	distance: number;
+	loop: boolean;
+	ducking: boolean;
+	spatialPreset: AudioSpatialPreset;
+	spatialMode: AudioSpatialMode;
+	intensity: number;
+}
+
+export interface AudioMixCommand {
+	args: string[];
+	videoPath: string;
+	outputPath: string;
+	videoDurationMs: number;
+	narrationDurationMs: number | null;
+	paddedMs: number;
+	trimmedMs: number;
+	eventCount: number;
+	duckedCount: number;
+	spatialModes: Record<string, number>;
+}
+
+function panGains(pan: number): { left: number; right: number } {
+	const angle = ((Math.max(-1, Math.min(1, pan)) + 1) * Math.PI) / 4;
+	return { left: Math.cos(angle), right: Math.sin(angle) };
+}
+
+function spatialFilters(event: AudioMixEvent): string {
+	const filters: string[] = [];
+	if (event.spatialPreset === 'corridor')
+		filters.push('highpass=f=180', 'lowpass=f=6000', 'aecho=0.8:0.6:18|28:0.22|0.16');
+	else if (event.spatialPreset === 'radio')
+		filters.push('highpass=f=450', 'lowpass=f=3000', 'aecho=0.7:0.4:12|20:0.16|0.1');
+	else if (event.spatialPreset === 'steps-behind')
+		filters.push('lowpass=f=3500', 'aecho=0.8:0.5:32|48:0.18|0.12');
+	else if (event.spatialPreset === 'whisper-side')
+		filters.push('highpass=f=700', 'lowpass=f=5000', 'aecho=0.7:0.4:10|18:0.12|0.08');
+	if (event.spatialMode === 'binaural_simulated') {
+		const delay = Math.max(3, Math.round(3 + event.distance * 12));
+		filters.push(`adelay=0|${delay}`);
+	}
+	return filters.length ? `${filters.join(',')},` : '';
+}
+
+/**
+ * Builds the full audio mix: voice first, music/ambience ducked against it,
+ * SFX limited, stereo simulated pan/reverb and a final loudness/true-peak guard.
+ * The video stream is copied bit-for-bit.
+ */
+export function buildAudioMixCommand(input: {
+	videoPath: string;
+	outputPath: string;
+	videoDurationMs: number;
+	narration?: { path: string; durationMs: number; volumeDb?: number } | null;
+	events: AudioMixEvent[];
+	masterGainDb?: number;
+}): AudioMixCommand {
+	if (!input.videoPath || !input.outputPath)
+		throw new RenderCompositionError('RENDER_MIX_INPUT_INVALID', 'Mix de áudio inválido.');
+	if (/(^|[\\/])\.\.([\\/]|$)/.test(input.outputPath))
+		throw new RenderCompositionError('RENDER_OUTPUT_INVALID', 'Caminho de saída inválido.');
+	if (input.events.length > 64)
+		throw new RenderCompositionError('RENDER_MIX_TOO_LARGE', 'O mix excede 64 eventos.');
+	if (!input.events.length)
+		throw new RenderCompositionError('RENDER_MIX_EMPTY', 'O mix não tem eventos de áudio.');
+	const duration = (input.videoDurationMs / 1000).toFixed(3);
+	let narrationPolicy: ReturnType<typeof narrationDurationPolicy> | null = null;
+	if (input.narration) {
+		try {
+			narrationPolicy = narrationDurationPolicy(input.narration.durationMs, input.videoDurationMs);
+		} catch {
+			throw new RenderCompositionError(
+				'NARRATION_DURATION_INVALID',
+				'Duração da narração ou do vídeo inválida.',
+			);
+		}
+		if (narrationPolicy.underflowMs > 0)
+			throw new RenderCompositionError(
+				'NARRATION_TOO_SHORT',
+				`A narração cobre menos da metade do vídeo (${narrationPolicy.narrationMs} de ${narrationPolicy.videoMs} ms).`,
+			);
+		if (narrationPolicy.overflowMs > 0)
+			throw new RenderCompositionError(
+				'NARRATION_OVERFLOW',
+				`A narração excede o vídeo em ${narrationPolicy.overflowMs} ms.`,
+			);
+	}
+	const filters: string[] = [];
+	const inputs: string[] = [];
+	let inputIndex = 1;
+	let narrationLabel: string | null = null;
+	if (input.narration) {
+		const volume = Math.max(-12, Math.min(6, input.narration.volumeDb ?? 0));
+		filters.push(
+			`[${inputIndex}:a]volume=${volume}dB,apad=whole_dur=${duration},atrim=0:${duration},aformat=sample_rates=48000:channel_layouts=stereo[narrbase]`,
+		);
+		narrationLabel = 'narrbase';
+		inputs.push(input.narration.path);
+		inputIndex += 1;
+	}
+	const duckedBus: string[] = [];
+	const unduckedBus: string[] = [];
+	const sfxBus: string[] = [];
+	for (const event of input.events) {
+		const index = inputIndex;
+		inputs.push(event.path);
+		inputIndex += 1;
+		const fadeOutStart = Math.max(0, event.durationMs - event.fadeOutMs) / 1000;
+		const eventFilters = [
+			`atrim=start=${(event.sourceInMs / 1000).toFixed(3)}:duration=${(event.durationMs / 1000).toFixed(3)}`,
+			'asetpts=PTS-STARTPTS',
+			`volume=${Math.max(-60, Math.min(12, event.gainDb)).toFixed(2)}dB`,
+			'aformat=sample_rates=48000:channel_layouts=stereo',
+		];
+		if (event.fadeInMs > 0)
+			eventFilters.push(`afade=t=in:st=0:d=${(event.fadeInMs / 1000).toFixed(3)}`);
+		if (event.fadeOutMs > 0)
+			eventFilters.push(
+				`afade=t=out:st=${fadeOutStart.toFixed(3)}:d=${(event.fadeOutMs / 1000).toFixed(3)}`,
+			);
+		const gains = panGains(event.pan);
+		const spatial = spatialFilters(event).replace(/,$/, '');
+		if (spatial) eventFilters.push(spatial);
+		eventFilters.push(
+			`pan=stereo|c0=${gains.left.toFixed(4)}*c0|c1=${gains.right.toFixed(4)}*c1`,
+			`adelay=${event.startMs}|${event.startMs}`,
+			`apad=whole_dur=${duration}`,
+			`atrim=0:${duration}`,
+		);
+		const label = `a${index}`;
+		filters.push(`[${index}:a]${eventFilters.join(',')}[${label}]`);
+		if (event.kind === 'SFX') sfxBus.push(label);
+		else if (event.ducking && input.narration) duckedBus.push(label);
+		else unduckedBus.push(label);
+	}
+	const mixBus = (labels: string[], label: string) => {
+		if (labels.length === 1) {
+			filters.push(`[${labels[0]}]anull[${label}]`);
+		} else {
+			filters.push(
+				`${labels.map((entry) => `[${entry}]`).join('')}amix=inputs=${labels.length}:normalize=0:duration=longest:dropout_transition=0[${label}]`,
+			);
+		}
+	};
+	let duckedLabel: string | null = null;
+	let unduckedLabel: string | null = null;
+	if (duckedBus.length) {
+		mixBus(duckedBus, 'duckedbus');
+		filters.push(`[${narrationLabel ?? 'narrbase'}]asplit=2[narr][duck]`);
+		narrationLabel = 'narr';
+		filters.push(
+			`[duckedbus][duck]sidechaincompress=threshold=0.005:ratio=8:attack=20:release=350:makeup=1[ducked]`,
+		);
+		duckedLabel = 'ducked';
+	}
+	if (unduckedBus.length) {
+		mixBus(unduckedBus, 'unduckedbus');
+		unduckedLabel = 'unduckedbus';
+	}
+	if (sfxBus.length) mixBus(sfxBus, 'sfxbus');
+	const finalInputs = [
+		...(narrationLabel ? [narrationLabel] : []),
+		...(duckedLabel ? [duckedLabel] : []),
+		...(unduckedLabel ? [unduckedLabel] : []),
+		...(sfxBus.length ? ['sfxbus'] : []),
+	];
+	if (!finalInputs.length)
+		throw new RenderCompositionError('RENDER_MIX_EMPTY', 'O mix não tem áudio.');
+	const master = Math.max(-12, Math.min(6, input.masterGainDb ?? 0));
+	const finalFilter = [
+		finalInputs.length === 1
+			? `[${finalInputs[0]}]anull`
+			: `${finalInputs.map((label) => `[${label}]`).join('')}amix=inputs=${finalInputs.length}:normalize=0:duration=longest:dropout_transition=0`,
+		`volume=${master}dB`,
+		'loudnorm=I=-16:TP=-1.5:LRA=11',
+		'alimiter=limit=0.891',
+		`atrim=0:${duration}`,
+	].join(',');
+	filters.push(`${finalFilter}[outa]`);
+	const args = [
+		'-y',
+		'-hide_banner',
+		'-loglevel',
+		'error',
+		'-i',
+		input.videoPath,
+		...(input.narration ? ['-i', input.narration.path] : []),
+		...input.events.flatMap((event) => [
+			...(event.loop ? ['-stream_loop', '-1'] : []),
+			'-i',
+			event.path,
+		]),
+		'-filter_complex',
+		filters.join(';'),
+		'-map',
+		'0:v:0',
+		'-map',
+		'[outa]',
+		'-c:v',
+		'copy',
+		'-c:a',
+		'aac',
+		'-b:a',
+		'192k',
+		'-ar',
+		'48000',
+		'-ac',
+		'2',
+		'-t',
+		duration,
+		'-movflags',
+		'+faststart',
+		input.outputPath,
+	];
+	const spatialModes: Record<string, number> = {};
+	for (const event of input.events)
+		spatialModes[event.spatialMode] = (spatialModes[event.spatialMode] ?? 0) + 1;
+	const paddedMs = narrationPolicy?.paddedMs ?? 0;
+	const trimmedMs = narrationPolicy?.trimmedMs ?? 0;
+	return {
+		args,
+		videoPath: input.videoPath,
+		outputPath: input.outputPath,
+		videoDurationMs: input.videoDurationMs,
+		narrationDurationMs: input.narration?.durationMs ?? null,
+		paddedMs,
+		trimmedMs,
+		eventCount: input.events.length,
+		duckedCount: input.narration ? duckedBus.length : 0,
+		spatialModes,
 	};
 }

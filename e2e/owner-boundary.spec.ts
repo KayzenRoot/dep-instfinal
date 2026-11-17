@@ -102,6 +102,7 @@ test('private narration endpoints reject anonymous visitors', async ({ request }
 		'/api/narration/takes/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
 		'/api/captions/11111111-1111-4111-8111-111111111111/srt',
 		'/api/captions/11111111-1111-4111-8111-111111111111/ass',
+		'/api/audio/11111111-1111-4111-8111-111111111111',
 	]) {
 		const response = await request.get(path, { maxRedirects: 0 });
 		if (process.env.PUBLIC_SUPABASE_URL && process.env.SUPABASE_OWNER_USER_ID) {
@@ -726,6 +727,7 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 		'/app/export',
 		'/app/narration',
 		'/app/captions',
+		'/app/audio',
 		'/app/settings',
 		...(seriesDetail ? [seriesDetail] : []),
 		...(episodeDetail ? [episodeDetail] : []),
