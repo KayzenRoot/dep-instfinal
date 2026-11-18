@@ -1,5 +1,28 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-010` · issue #27 · epic #17 · addendum ENH-03
+- **Base:** `main` `faa329a`; branch `feat/dif-v2-wo-010`
+- **Status:** implementação completa; suite unit **181+3**, typecheck/lint/policy/build, PgTAP 131/131, E2E 13/13, CI `44190122840`, Sonar, Socket e ARM64 **PASS**; auditoria round 2 **APPROVED WITH RESIDUALS**; aceitação humana **PENDENTE**. Checkpoint apenas **PROPOSED**; sem merge/deploy de produção.
+
+| Check        | Result       | Evidence                                                                                                            |
+| ------------ | ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Planner      | PASS         | `edit-director.test.ts` 14/14: seed/presets, 4+ fases, cap total, fallback sem SFX, mismatch/cap de áudio           |
+| Schema       | PASS         | pontos monotônicos, VHS 700 ms / 3 eventos / 2.100 ms, aceite subset, CTA anterior, IDs/marcadores únicos           |
+| Gemini       | PASS         | `director-ai.test.ts` 5/5: offline sem fetch, timeout/401/429/500, JSON/asset/timecode/CTA estrangeiros, injection  |
+| Apply/revert | PASS         | IDs determinísticos, CTA/áudio restaurados, kind/licença, fades curtos, limite de 64 eventos, episódio vinculado    |
+| Render       | PASS         | `render-composition.test.ts` 11/11; `eq`/`volume` com `enable='between(t,...)'` aceitos no FFmpeg 9.0.2             |
+| UI           | PASS         | typecheck 0/0, lint PASS; curva, pontos, eventos, aviso de legendas, aplicar/reverter, reduzir movimento, histórico |
+| Policy       | PASS         | 27 invariantes / 24 tabelas (sem migração)                                                                          |
+| E2E          | PASS         | CI: 13/13 (3,3m); timeline com 3 pontos + relogin, aplicar/reverter, worker READY                                   |
+| PgTAP        | PASS         | 131/131; sem migração nova                                                                                          |
+| CI           | PASS         | run `44190122840`: baseline, unit 181+3, policy, PgTAP, E2E 13/13, Sonar/Socket/Vercel                              |
+| ARM64        | PASS         | run `44190122832`: 7,738 s wall / 165.948 KiB RSS no mix de 120 s                                                   |
+| Auditoria    | PASS c/ res. | round 2 **APPROVED WITH RESIDUALS**; H1 corrigido; residuais M3/M4 documentados                                     |
+| Amostras     | PASS local   | `docs/evidence/wo-010/review/`: slow-burn/reveal/found-footage 12 s; aceitação humana pendente                      |
+| Limites      | —            | timing de cortes, contraste de legendas, ducking dinâmico e ambiência contínua não são automatizados                |
+
 ## V2 WO-009 — Biblioteca licenciada, mix/ducking e soundscape (2026-11-14) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-009` · issue #26 · epic #17 · addendum ENH-14

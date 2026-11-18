@@ -303,6 +303,7 @@ async function main() {
 				durationMs: event.durationMs,
 				sourceInMs: event.sourceInMs,
 				gainDb: event.gainDb,
+				directorGainDb: event.directorGainDb,
 				fadeInMs: event.fadeInMs,
 				fadeOutMs: event.fadeOutMs,
 				pan: event.pan,

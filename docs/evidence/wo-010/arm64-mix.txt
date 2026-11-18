@@ -1,0 +1,20 @@
+# WO-010 — ARM64 benchmark (final)
+
+Workflow: Audio Mix ARM64 Benchmark
+Run: 44190122832
+Code head: ca62764
+Result: SUCCESS
+
+Benchmark: 120 s audio mix, 2 events, 1 ducked
+
+```
+{"videoDurationMs":120000,"eventCount":2,"duckedCount":1,
+ "wallMs":7738,"utimeSeconds":7.506,"stimeSeconds":0.211,
+ "rtimeSeconds":7.656,"maxRssKiB":165948}
+```
+
+Artifact: `audio-mix-arm64-benchmark`.
+
+WO-010 adds no new decode/encode stage; it reuses the WO-009 audio mix and
+WO-006 video graph. This benchmark confirms the modified render-composition
+module still runs inside the existing free ARM64 envelope.

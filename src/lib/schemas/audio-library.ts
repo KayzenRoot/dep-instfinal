@@ -86,11 +86,14 @@ export const editPlanAudioEventSchema = z
 	.object({
 		id: uuid,
 		assetId: uuid,
+		directorEventId: uuid.nullable().optional(),
 		kind: audioKindSchema,
 		startMs: millisecond,
 		durationMs: z.number().int().min(100).max(600_000),
 		sourceInMs: z.number().int().min(0).max(600_000).default(0),
 		gainDb: z.number().min(-60).max(12).default(0),
+		/** Curve-driven gain applied by the edit director; absent when no director is active. */
+		directorGainDb: z.number().min(-6).max(6).optional(),
 		fadeInMs: z.number().int().min(0).max(10_000).default(0),
 		fadeOutMs: z.number().int().min(0).max(10_000).default(0),
 		pan: z.number().min(-1).max(1).default(0),

@@ -14,6 +14,7 @@ import {
 } from '#lib/domain/render-composition.js';
 import type { VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
 import { measureAudioLoudness } from './audio-analysis.js';
+import { acceptedDirectorEvents } from '#lib/domain/edit-director.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -227,6 +228,9 @@ export async function renderPlanToFile(input: {
 					: null,
 				events: audioEvents,
 				masterGainDb: input.masterGainDb,
+				silenceWindows: acceptedDirectorEvents(input.plan.director, 'SILENCE_BEFORE_REVEAL').map(
+					(event) => ({ startMs: event.startMs, durationMs: event.durationMs }),
+				),
 			});
 		} else if (input.narration) {
 			mux = buildNarrationMuxCommand({

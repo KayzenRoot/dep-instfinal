@@ -1,0 +1,56 @@
+# WO-010 — independent audit round 1
+
+Date: 2026-11-17
+Audited head: `e196ca7f98bffd8afce6dbf1abde2ae362810979`
+Verdict on that head: **CORRECTION REQUIRED** (one HIGH, no other HIGH/CRITICAL).
+
+## HIGH
+
+- H1: only per-event VHS cap (700 ms); no aggregate/temporal cap. Docs claimed one
+  glitch per proposal. Risk of >3 flashes/s with crafted proposals.
+
+## MEDIUM
+
+- M1: apply/revert creates a new plan version; approved captions are version-bound
+  and the worker silently renders no captions; CTA only reaches captions on
+  regeneration.
+- M2: no request rate limit for the Gemini branch of `/app/director`.
+- M3: ambient gain is a static offset computed at event start, not time-varying.
+- M4: `PHRASE_HIGHLIGHT` had no render consumer; docs overclaimed ducking/SFX
+  quantity mapping.
+- M5: UI `addPoint` could create duplicate timestamps; VHS duration field allowed
+  >700 ms; server returned only a generic invalid-plan message.
+- M6: apply could produce >64 audio events and make the stored plan fail Zod on
+  reload.
+- M7: missing provider tests for timeout/401/429/5xx/quota/injection.
+- M8: fixed fades (80+250 ms) made SFX shorter than 330 ms fail apply.
+- M9: planner/AI could select non-SFX assets, rejected later by apply.
+
+## LOW
+
+Seed 0/1 alias, duplicate marker keys, preset cap wording, proposal-episode
+binding, body-read timeout, prompt/data separation, a11y names, dead
+`REVIEWED`/`ADJUSTED`, revert provenance, client-asserted source, URL text.
+
+## Corrections applied after round 1
+
+- VHS: per-event 700 ms, max 3 events and 2,100 ms total.
+- Gemini: timeout covers body read; separate `systemInstruction` from user data;
+  provider tests for timeout, 401/429/500, invalid JSON, foreign asset/timecode,
+  foreign CTA reference and prompt-injection-as-data; no retry.
+- Apply: episode binding, deterministic IDs, SFX kind and licence checks,
+  duration-scaled fades, 64-event cap, ADJUSTED status preserved.
+- UI: rate limit 6/hour for Gemini, largest-gap point insertion, VHS/silence
+  duration clamps, Zod field errors, caption-version warning, motion-reduction
+  control, specific accessible names, textual curve summary.
+- Schema: duplicate markers rejected; seed 0 and 1 no longer alias; per-episode
+  proposal ID validated on apply.
+
+## Residual after corrections
+
+- Caption rebind remains manual with an explicit UI warning.
+- Ambient gain remains a static per-event offset; no continuous automation.
+- Cut rhythm, caption contrast and dynamic ducking are out of scope and disclosed.
+- `PHRASE_HIGHLIGHT` is informational only.
+- Rate limit is process-local.
+- Human visual/auditory acceptance and re-audit are pending.

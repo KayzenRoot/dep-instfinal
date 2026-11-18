@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { editPlanAudioSchema } from './audio-library.js';
+import { editDirectorPlanSchema } from './edit-director.js';
 
 const uuid = z.string().uuid();
 const millisecond = z.number().int().min(0).max(150_000);
@@ -63,6 +64,7 @@ export const videoEditPlanSchema = z.object({
 		.default({ template: 'clean' }),
 	cta: editPlanCtaSchema.nullable().default(null),
 	audio: editPlanAudioSchema.optional(),
+	director: editDirectorPlanSchema.optional(),
 });
 
 export type VideoEditPlan = z.infer<typeof videoEditPlanSchema>;

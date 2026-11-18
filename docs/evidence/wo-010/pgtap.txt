@@ -1,0 +1,16 @@
+# WO-010 — PgTAP evidence
+
+Date: 2026-11-17
+
+Command: `npm run test:db`
+Result:
+
+```
+/Projects/dif/supabase/tests/rls_and_integrity.sql .. ok
+All tests successful.
+Files=1, Tests=131
+Result: PASS
+```
+
+No migration was added by WO-010: the director is stored inside the existing
+versioned `video_edit_plans.plan` JSON and validated by Zod before save.

@@ -1,0 +1,61 @@
+# WO-010 — local static and unit evidence
+
+Date: 2026-11-17 (America/Sao_Paulo workspace)
+
+## Typecheck
+
+Command: `npm run check`
+Result: `svelte-check found 0 errors and 0 warnings`
+
+## Lint
+
+Command: `npm run lint`
+Result: PASS (`eslint . --max-warnings=0`, no output after command)
+
+## Format
+
+Command: `npx prettier --check` over every WO-010 file
+Result: PASS after formatting
+
+## Unit
+
+Command: `npx vitest run src/lib/domain/edit-director.test.ts src/lib/server/director-ai.test.ts`
+Result: 2 files, **19 tests passed** (14 director + 5 provider)
+
+Command: `npx vitest run src/lib/domain/render-composition.test.ts`
+Result: 11 tests passed (includes VHS enable window, silence duck-mute, rejected/proposed ignored)
+
+## Policy
+
+Command: `npm run audit:policy`
+Result: PASS, **27 invariants / 24 tables**.
+
+## FFmpeg syntax probe
+
+Commands:
+
+```
+ffmpeg -f lavfi -i color=c=gray:s=64x64:d=2:r=30 \
+  -vf "eq=contrast=1.35:brightness=0.03:saturation=0.45:enable='between(t,0.5,1.5)'" -f null -
+ffmpeg -f lavfi -i sine=frequency=440:duration=2 \
+  -af "volume=0:enable='between(t,0.5,1.5)'" -f null -
+```
+
+Result: both exit 0 on FFmpeg 9.0.2-full_build.
+
+## Build
+
+Command: `npm run build`
+Result: PASS (`@sveltejs/adapter-node`, built in 17.29 s).
+
+Command: `npx vitest run --maxWorkers=4`
+Result: **25 files passed, 3 skipped; 175 tests passed, 3 skipped** (450.5 s, before the two final regression tests).
+The long FFmpeg integration suite completed: 120 s composition, narration mux,
+caption burn-in, crossfade and audio mix. A previous unconstrained run timed out
+only under host saturation; the constrained run is the recorded local result.
+
+## Final CI suite
+
+Run `44190122840` at code head `ca62764`: 25 files passed, 3 skipped;
+**181 tests passed + 3 skipped**; PgTAP 131/131; E2E 13/13 (3.3m);
+format/lint/typecheck/build/policy/production audit PASS.

@@ -4,6 +4,7 @@ import type {
 	AudioSpatialMode,
 	AudioSpatialPreset,
 } from '#lib/schemas/audio-library.js';
+import { acceptedDirectorEvents } from './edit-director.js';
 import { narrationDurationPolicy } from './voice-direction.js';
 
 export class RenderCompositionError extends Error {
@@ -201,6 +202,19 @@ export function buildRenderCommand(
 		filters.push(`[${current}]ass=filename=${options.captionAssFile}[captioned]`);
 		current = 'captioned';
 	}
+	const vhsWindows = acceptedDirectorEvents(plan.director, 'VHS_STATIC');
+	if (vhsWindows.length) {
+		const enable = vhsWindows
+			.map(
+				(window) =>
+					`between(t,${(window.startMs / 1000).toFixed(3)},${((window.startMs + window.durationMs) / 1000).toFixed(3)})`,
+			)
+			.join('+');
+		filters.push(
+			`[${current}]eq=contrast=1.35:brightness=0.03:saturation=0.45:enable='${enable}'[glitch]`,
+		);
+		current = 'glitch';
+	}
 	if (vhs > 0) {
 		const noise = 4 + vhs * 4;
 		filters.push(
@@ -350,6 +364,7 @@ export interface AudioMixEvent {
 	durationMs: number;
 	sourceInMs: number;
 	gainDb: number;
+	directorGainDb?: number;
 	fadeInMs: number;
 	fadeOutMs: number;
 	pan: number;
@@ -408,6 +423,7 @@ export function buildAudioMixCommand(input: {
 	narration?: { path: string; durationMs: number; volumeDb?: number } | null;
 	events: AudioMixEvent[];
 	masterGainDb?: number;
+	silenceWindows?: Array<{ startMs: number; durationMs: number }>;
 }): AudioMixCommand {
 	if (!input.videoPath || !input.outputPath)
 		throw new RenderCompositionError('RENDER_MIX_INPUT_INVALID', 'Mix de áudio inválido.');
@@ -463,7 +479,7 @@ export function buildAudioMixCommand(input: {
 		const eventFilters = [
 			`atrim=start=${(event.sourceInMs / 1000).toFixed(3)}:duration=${(event.durationMs / 1000).toFixed(3)}`,
 			'asetpts=PTS-STARTPTS',
-			`volume=${Math.max(-60, Math.min(12, event.gainDb)).toFixed(2)}dB`,
+			`volume=${Math.max(-60, Math.min(12, event.gainDb + (event.directorGainDb ?? 0))).toFixed(2)}dB`,
 			'aformat=sample_rates=48000:channel_layouts=stereo',
 		];
 		if (event.fadeInMs > 0)
@@ -496,6 +512,14 @@ export function buildAudioMixCommand(input: {
 			);
 		}
 	};
+	const silenceEnable = input.silenceWindows?.length
+		? input.silenceWindows
+				.map(
+					(window) =>
+						`between(t,${(window.startMs / 1000).toFixed(3)},${((window.startMs + window.durationMs) / 1000).toFixed(3)})`,
+				)
+				.join('+')
+		: null;
 	let duckedLabel: string | null = null;
 	let unduckedLabel: string | null = null;
 	if (duckedBus.length) {
@@ -505,11 +529,17 @@ export function buildAudioMixCommand(input: {
 		filters.push(
 			`[duckedbus][duck]sidechaincompress=threshold=0.005:ratio=8:attack=20:release=350:makeup=1[ducked]`,
 		);
-		duckedLabel = 'ducked';
+		if (silenceEnable) {
+			filters.push(`[ducked]volume=0:enable='${silenceEnable}'[duckedmute]`);
+			duckedLabel = 'duckedmute';
+		} else duckedLabel = 'ducked';
 	}
 	if (unduckedBus.length) {
 		mixBus(unduckedBus, 'unduckedbus');
-		unduckedLabel = 'unduckedbus';
+		if (silenceEnable) {
+			filters.push(`[unduckedbus]volume=0:enable='${silenceEnable}'[unduckedmute]`);
+			unduckedLabel = 'unduckedmute';
+		} else unduckedLabel = 'unduckedbus';
 	}
 	if (sfxBus.length) mixBus(sfxBus, 'sfxbus');
 	const finalInputs = [

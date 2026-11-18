@@ -263,6 +263,28 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 			throw new EditPlanError('EDIT_PLAN_CTA_INVALID', 'Janela da CTA inválida.');
 	}
 
+	if (plan.director) {
+		for (const point of plan.director.points)
+			if (point.timeMs > plan.durationMs)
+				throw new EditPlanError(
+					'EDIT_PLAN_DIRECTOR_RANGE',
+					'Ponto de tensão excede a duração do episódio.',
+				);
+		for (const marker of plan.director.markers)
+			if (marker.timeMs > plan.durationMs)
+				throw new EditPlanError(
+					'EDIT_PLAN_DIRECTOR_RANGE',
+					'Marcador do diretor excede a duração do episódio.',
+				);
+		for (const event of plan.director.events) {
+			if (event.startMs + event.durationMs > plan.durationMs)
+				throw new EditPlanError(
+					'EDIT_PLAN_DIRECTOR_RANGE',
+					'Evento do diretor excede a duração do episódio.',
+				);
+		}
+	}
+
 	const audioEventIds = new Set<string>();
 	for (const event of plan.audio?.events ?? []) {
 		if (audioEventIds.has(event.id))
