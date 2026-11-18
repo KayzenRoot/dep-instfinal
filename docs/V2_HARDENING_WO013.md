@@ -1,6 +1,6 @@
 # DIF-V2-WO-013 — Hardening operacional: quotas, backup, retenção e recuperação
 
-**Status:** implementação completa em `feat/dif-v2-wo-013`; unit **209+3**, PgTAP **155/155**, policy **29/25**, restore local e retenção dry-run **PASS**; CI e auditoria independente **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** implementação completa e correções da auditoria em `feat/dif-v2-wo-013`; unit 209+3, PgTAP 155/155, policy 29/25, restore local e retenção dry-run PASS; CI final e reauditoria **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
 **Base:** `main` `7d15076` (checkpoint WO-012 promovido).
 **Escopo:** WO-013 (#30) — núcleo operacional (quotas, limites de worker, saúde, backup/restore, retenção dry-run). As extensões OPS-2026-11-12 ligadas às WOs 015–021 ficam registradas como obrigações posteriores, sem infraestrutura duplicada.
 
@@ -25,13 +25,13 @@
 
 ## Critérios de aceitação
 
-| Critério                                                              | Estado     | Evidência                                                                             |
-| --------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------- |
-| CPU/RAM/disco respeitam limites; fila informa status real             | PASS local | threads 1–8, reserva 2048 MB, pausa por disco, concorrência 1, health endpoint        |
-| Worker offline/restart/storage full/timeout recuperam sem READY falso | PASS local | pausa por disco sem claim, lease/reconcile, E2E enfileira/cancela sem worker          |
-| Restore em ambiente de teste recupera episódio/plano/cenas/SHA        | PASS local | `dif_restore_test`: 0 mismatches, join 15, hash manifesto=QA, blob ausente sinalizado |
-| Logs sem segredos; quotas/histórico; dry-run antes de limpeza         | PASS local | quota 429, health sanitizado, retenção dry-run, `--confirm` e recusa com job ativo    |
-| V1 disponível com worker desativado                                   | PASS local | E2E enfileira/cancela sem worker e navega páginas V1                                  |
+| Critério                                                              | Estado     | Evidência                                                                                                                      |
+| --------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| CPU/RAM/disco respeitam limites; fila informa status real             | PASS local | threads 1–8, reserva 2048 MB, pausa por disco, concorrência 1, health endpoint                                                 |
+| Worker offline/restart/storage full/timeout recuperam sem READY falso | PASS local | pausa por disco sem claim, lease/reconcile, E2E enfileira/cancela sem worker                                                   |
+| Restore em ambiente de teste recupera episódio/plano/cenas/SHA        | PASS local | `dif_restore_test`: 0 mismatches, join 30, 2 hashes manifesto=QA, blobs verified_local; run com blob removido retorna ok=false |
+| Logs sem segredos; quotas/histórico; dry-run antes de limpeza         | PASS local | quota 429, health sanitizado, retenção dry-run, `--confirm` e recusa com job ativo                                             |
+| V1 disponível com worker desativado                                   | PASS local | E2E enfileira/cancela sem worker e navega páginas V1                                                                           |
 
 ## Testes planejados
 
@@ -40,6 +40,18 @@
 - Backup/restore real local: schema+data dump, restore em `dif_restore_test`, contagens/join/hash.
 - Retenção: dry-run com referenciado + órfão, recusa sem `--confirm`, deleção só do órfão.
 - E2E timeline existente (worker real, QA/download) e responsivo; CI completo.
+
+## Correções pós-auditoria
+
+A primeira auditoria independente retornou **CORRECTION REQUIRED** (F1–F11). Aplicado:
+
+- **F1/F5/F6:** allowlist + regex estrita de tabelas, verificação SHA-256 de schema/data antes de aplicar e nome de banco/container validado por regex.
+- **F2:** `ok`/exit code agora exigem metadados corretos **e** blobs locais verificados por tamanho+SHA; blob ausente/hash mismatch são falha explícita, R2 fica `unverified_r2`.
+- **F3/F4:** jobs e laudos são paginados; retenção e backup falham fechado em erro em vez de truncar em 1000.
+- **F7:** CANCELED conta na cota diária, advisory lock por owner e teto de bytes documentado como soft.
+- **F8:** env numérico do worker usa parser finito com fallback (poll/lease/reserva/intervalo).
+- **F9/F10:** `-filter_threads` aplicado além de `-threads`; backup usa diretório privado com modo 0700/0600 e permite `SUPABASE_BIN`.
+- **F11:** documentação reclassifica benchmark de CPU/RAM como parcial e não declara sucesso quando o blob está ausente.
 
 ## Riscos e residuais
 

@@ -63,17 +63,27 @@ function argumentsFrom(argv) {
 }
 
 const options = argumentsFrom(process.argv.slice(2));
+if (options.localDir) {
+	const resolved = resolve(options.localDir);
+	if (!/dif/i.test(resolved) || resolved.length <= 3)
+		throw new Error('Refusing an unsafe --local-dir; use a DIF render directory.');
+}
 const { url, key } = supabaseEnvironment();
 const client = createClient(url, key, {
 	auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
 });
 
-const { data: jobs, error: jobsError } = await client
-	.from('render_jobs')
-	.select('id,status,output_manifest,created_at')
-	.order('created_at', { ascending: false })
-	.limit(1000);
-if (jobsError) throw new Error(`render_jobs: ${jobsError.message}`);
+const jobs = [];
+for (let from = 0; ; from += 1_000) {
+	const { data, error } = await client
+		.from('render_jobs')
+		.select('id,status,output_manifest,created_at')
+		.order('created_at', { ascending: false })
+		.range(from, from + 999);
+	if (error) throw new Error(`render_jobs: ${error.message}`);
+	jobs.push(...(data ?? []));
+	if (!data || data.length < 1_000) break;
+}
 
 const referenced = new Set();
 const missingReferenced = [];

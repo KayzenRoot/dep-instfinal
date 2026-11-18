@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
-import { assertDiskReserve, clampThreads } from './worker-limits.mjs';
+import { assertDiskReserve, clampThreads, finiteNumber } from './worker-limits.mjs';
 
 const url =
 	process.env.WORKER_SUPABASE_URL ?? process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL;
@@ -17,12 +17,16 @@ if (!url || !serviceKey) {
 const stub = process.env.WORKER_STUB === '1';
 
 const workerId = (process.env.WORKER_ID ?? `worker-${hostname()}-${process.pid}`).slice(0, 80);
-const pollMs = Math.max(250, Math.min(30_000, Number(process.env.WORKER_POLL_MS ?? 1_000)));
-const leaseSeconds = Math.max(15, Math.min(600, Number(process.env.WORKER_LEASE_SECONDS ?? 60)));
-const maxJobs = Math.max(0, Math.min(1_000, Number(process.env.WORKER_MAX_JOBS ?? 0)));
-const diskReserveMb = Math.max(256, Number(process.env.WORKER_DISK_RESERVE_MB ?? 2_048));
+const pollMs = Math.floor(finiteNumber(process.env.WORKER_POLL_MS, 1_000, 250, 30_000));
+const leaseSeconds = Math.floor(finiteNumber(process.env.WORKER_LEASE_SECONDS, 60, 15, 600));
+const maxJobs = Math.floor(finiteNumber(process.env.WORKER_MAX_JOBS, 0, 0, 1_000));
+const diskReserveMb = Math.floor(
+	finiteNumber(process.env.WORKER_DISK_RESERVE_MB, 2_048, 256, 1_000_000_000),
+);
 const ffmpegThreads = clampThreads(process.env.WORKER_FFMPEG_THREADS, 2);
-const diskCheckMs = Math.max(1_000, Number(process.env.WORKER_DISK_CHECK_MS ?? 15_000));
+const diskCheckMs = Math.floor(
+	finiteNumber(process.env.WORKER_DISK_CHECK_MS, 15_000, 1_000, 600_000),
+);
 const client = createClient(url, serviceKey, {
 	auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
 });

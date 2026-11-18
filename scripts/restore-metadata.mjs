@@ -2,7 +2,15 @@
 // Restores a metadata backup into a disposable local database and verifies
 // counts, owner links and artifact hashes. Never touches the source database.
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import {
+	chmodSync,
+	createReadStream,
+	existsSync,
+	readFileSync,
+	statSync,
+	writeFileSync,
+} from 'node:fs';
 import { join, resolve } from 'node:path';
 
 function option(name, fallback) {
@@ -14,10 +22,45 @@ const backupDir = resolve(option('--backup-dir', ''));
 if (!backupDir || !existsSync(join(backupDir, 'summary.json')))
 	throw new Error('Use --backup-dir with a summary.json produced by backup-metadata.mjs.');
 const database = option('--database', 'dif_restore_test');
-if (!database.startsWith('dif_restore_test'))
+if (!/^dif_restore_test[a-z0-9_]{0,48}$/.test(database))
 	throw new Error('Refusing to restore into a non-disposable database name.');
 const container = option('--container', 'supabase_db_dif-studio-local');
+if (!/^supabase_db_[a-z0-9_-]{1,64}$/.test(container))
+	throw new Error('Refusing an unexpected Docker container name.');
 const summary = JSON.parse(readFileSync(join(backupDir, 'summary.json'), 'utf8'));
+const allowedTables = new Set([
+	'series',
+	'seasons',
+	'episodes',
+	'scenes',
+	'choices',
+	'polls',
+	'poll_results',
+	'canonical_decisions',
+	'video_upload_sessions',
+	'video_assets',
+	'video_edit_plans',
+	'video_edit_plan_versions',
+	'render_jobs',
+	'render_job_events',
+	'voice_direction_plans',
+	'narration_takes',
+	'caption_tracks',
+	'audio_assets',
+	'render_quality_reports',
+]);
+for (const table of Object.keys(summary.counts)) {
+	if (!allowedTables.has(table) || !/^[a-z][a-z0-9_]{0,63}$/.test(table))
+		throw new Error(`Unexpected backup table: ${table}`);
+}
+const schemaBytes = readFileSync(join(backupDir, 'schema.sql'));
+const dataBytes = readFileSync(join(backupDir, 'data.sql'));
+const schemaSha = createHash('sha256').update(schemaBytes).digest('hex');
+const dataSha = createHash('sha256').update(dataBytes).digest('hex');
+if (schemaSha !== summary.files?.schema?.sha256 || dataSha !== summary.files?.data?.sha256)
+	throw new Error('Backup SHA-256 mismatch; refusing to restore a corrupted or altered dump.');
+const schemaSql = schemaBytes.toString('utf8');
+const dataSql = dataBytes.toString('utf8');
 
 function psql(target, args, input) {
 	return execFileSync(
@@ -53,8 +96,8 @@ psql(database, [
 		   select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb)
 		 $$;`,
 ]);
-psql(database, ['-v', 'ON_ERROR_STOP=1', '-f', '-'], readFileSync(join(backupDir, 'schema.sql')));
-psql(database, ['-v', 'ON_ERROR_STOP=1', '-f', '-'], readFileSync(join(backupDir, 'data.sql')));
+psql(database, ['-v', 'ON_ERROR_STOP=1', '-f', '-'], schemaSql);
+psql(database, ['-v', 'ON_ERROR_STOP=1', '-f', '-'], dataSql);
 
 const tables = Object.keys(summary.counts);
 const countSql = tables
@@ -93,37 +136,60 @@ const hashCheck = psql(database, [
 	   and j.output_manifest ->> 'sha256' = q.artifact_sha256`,
 ]).trim();
 
-const artifacts = summary.artifacts.map((artifact) => {
-	if (artifact.bucket !== 'local-test' || !artifact.objectKey)
-		return { ...artifact, blob: 'unverified_r2' };
+const artifacts = [];
+for (const artifact of summary.artifacts) {
+	if (artifact.bucket !== 'local-test' || !artifact.objectKey) {
+		artifacts.push({ ...artifact, blob: 'unverified_r2' });
+		continue;
+	}
 	const displayPath = String(artifact.objectKey).replaceAll('\\', '/');
-	const exists = existsSync(artifact.objectKey);
+	if (!existsSync(artifact.objectKey)) {
+		artifacts.push({ ...artifact, objectKey: displayPath, blob: 'missing' });
+		continue;
+	}
 	const sizeMatches =
-		exists && typeof artifact.byteSize === 'number'
+		typeof artifact.byteSize === 'number'
 			? statSync(artifact.objectKey).size === artifact.byteSize
-			: null;
-	return {
+			: true;
+	if (!sizeMatches) {
+		artifacts.push({ ...artifact, objectKey: displayPath, blob: 'size_mismatch' });
+		continue;
+	}
+	const hash = createHash('sha256');
+	const source = createReadStream(artifact.objectKey);
+	for await (const chunk of source) hash.update(chunk);
+	artifacts.push({
 		...artifact,
 		objectKey: displayPath,
-		blob: exists ? (sizeMatches ? 'verified_local' : 'size_mismatch') : 'missing',
-	};
-});
+		blob: hash.digest('hex') === artifact.sha256 ? 'verified_local' : 'hash_mismatch',
+	});
+}
 
+const expectedQa = summary.artifacts.filter((artifact) =>
+	summary.qualityReports.some(
+		(report) => report.job_id === artifact.jobId && report.artifact_sha256 === artifact.sha256,
+	),
+).length;
+const metadataOk =
+	countMismatches.length === 0 && Number(joinCheck) > 0 && Number(hashCheck) === expectedQa;
+const mediaOk = artifacts.every((artifact) => artifact.blob === 'verified_local');
 const report = {
 	schemaVersion: 1,
 	generatedAt: new Date().toISOString(),
 	backupDir,
 	database,
+	shaVerified: true,
 	countMismatches,
 	episodeSceneJoinRows: Number(joinCheck),
+	expectedReadyJobsWithQa: expectedQa,
 	readyJobsWithMatchingQaHash: Number(hashCheck),
+	metadataOk,
+	mediaOk,
 	artifacts,
-	ok: countMismatches.length === 0 && Number(joinCheck) > 0 && Number(hashCheck) >= 0,
+	ok: metadataOk && mediaOk,
 };
-writeFileSync(
-	join(backupDir, 'restore-report.json'),
-	`${JSON.stringify(report, null, 2)}\n`,
-	'utf8',
-);
+const reportPath = join(backupDir, 'restore-report.json');
+writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+chmodSync(reportPath, 0o600);
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 if (!report.ok) process.exitCode = 1;

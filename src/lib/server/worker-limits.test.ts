@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { assertDiskReserve, clampThreads, freeDiskMb } from '../../../scripts/worker-limits.mjs';
+import {
+	assertDiskReserve,
+	clampThreads,
+	finiteNumber,
+	freeDiskMb,
+} from '../../../scripts/worker-limits.mjs';
 
 describe('worker operational limits', () => {
 	it('reports free disk and accepts a small reserve', async () => {
@@ -19,5 +24,11 @@ describe('worker operational limits', () => {
 		expect(clampThreads('12')).toBe(8);
 		expect(clampThreads('not-a-number', 2)).toBe(2);
 		expect(clampThreads(undefined, 3)).toBe(3);
+	});
+
+	it('falls back on invalid numeric worker env values', () => {
+		expect(finiteNumber('abc', 1_000, 250, 30_000)).toBe(1_000);
+		expect(finiteNumber('1', 1_000, 250, 30_000)).toBe(250);
+		expect(finiteNumber('999999', 1_000, 250, 30_000)).toBe(30_000);
 	});
 });

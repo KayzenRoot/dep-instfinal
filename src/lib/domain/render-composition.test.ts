@@ -116,6 +116,7 @@ describe('render composition command', () => {
 		expect(command.args).toContain('slow');
 		expect(command.args).toContain('18');
 		expect(command.args.join(' ')).toContain('-threads 1');
+		expect(command.args.join(' ')).toContain('-filter_threads 1');
 		expect(() =>
 			buildRenderCommand(plan, inputs(plan), '/tmp/out.mp4', { width: 1080, height: 1280 }),
 		).toThrow(RenderCompositionError);

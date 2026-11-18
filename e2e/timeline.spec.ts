@@ -502,5 +502,9 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page.getByText('QUEUED', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Cancelar' }).first().click();
 	await expect(page.getByText('CANCELED', { exact: true })).toBeVisible();
-	await rm(renderRoot, { recursive: true, force: true });
+	if (process.env.E2E_KEEP_RENDER === '1') {
+		console.log(`[timeline-e2e] kept render root at ${renderRoot}`);
+	} else {
+		await rm(renderRoot, { recursive: true, force: true });
+	}
 });

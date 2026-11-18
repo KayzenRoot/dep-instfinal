@@ -3,7 +3,8 @@
 // portable via psql/--use-copy; no video bytes or service keys are included.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
@@ -45,21 +46,29 @@ function option(name, fallback) {
 
 const timestamp = new Date().toISOString().replaceAll(/[:.]/g, '-');
 const outDir = resolve(
-	option('--out-dir', join(process.env.TEMP ?? '/tmp', `dif-backup-${timestamp}`)),
+	option('--out-dir', join(homedir(), '.dif-studio', 'backups', `dif-backup-${timestamp}`)),
 );
-mkdirSync(outDir, { recursive: true });
+mkdirSync(outDir, { recursive: true, mode: 0o700 });
 const schemaPath = join(outDir, 'schema.sql');
 const dataPath = join(outDir, 'data.sql');
 
-execFileSync('supabase', ['db', 'dump', '--local', '--schema', 'public', '-f', schemaPath], {
+const supabaseBin = process.env.SUPABASE_BIN ?? 'supabase';
+const dumpOptions = {
 	stdio: ['ignore', 'inherit', 'inherit'],
 	shell: process.platform === 'win32',
-});
+};
 execFileSync(
-	'supabase',
-	['db', 'dump', '--local', '--data-only', '--schema', 'public', '--use-copy', '-f', dataPath],
-	{ stdio: ['ignore', 'inherit', 'inherit'], shell: process.platform === 'win32' },
+	supabaseBin,
+	['db', 'dump', '--local', '--schema', 'public', '-f', schemaPath],
+	dumpOptions,
 );
+execFileSync(
+	supabaseBin,
+	['db', 'dump', '--local', '--data-only', '--schema', 'public', '--use-copy', '-f', dataPath],
+	dumpOptions,
+);
+chmodSync(schemaPath, 0o600);
+chmodSync(dataPath, 0o600);
 
 const schema = readFileSync(schemaPath);
 const data = readFileSync(dataPath);
@@ -95,12 +104,25 @@ for (const table of tableNames) {
 	if (error) throw new Error(`${table}: ${error.message}`);
 	counts[table] = count ?? 0;
 }
-const { data: jobs, error: jobsError } = await client
-	.from('render_jobs')
-	.select('id,status,output_manifest')
-	.eq('status', 'READY');
-if (jobsError) throw new Error(`render_jobs: ${jobsError.message}`);
-const artifacts = (jobs ?? [])
+async function fetchAll(table, select, filter) {
+	const rows = [];
+	for (let from = 0; ; from += 1_000) {
+		let query = client
+			.from(table)
+			.select(select)
+			.range(from, from + 999);
+		if (filter) query = filter(query);
+		const { data, error } = await query;
+		if (error) throw new Error(`${table}: ${error.message}`);
+		rows.push(...(data ?? []));
+		if (!data || data.length < 1_000) break;
+	}
+	return rows;
+}
+const jobs = await fetchAll('render_jobs', 'id,status,output_manifest', (query) =>
+	query.eq('status', 'READY'),
+);
+const artifacts = jobs
 	.map((job) => {
 		const manifest = job.output_manifest;
 		if (!manifest || typeof manifest !== 'object') return null;
@@ -113,10 +135,7 @@ const artifacts = (jobs ?? [])
 		};
 	})
 	.filter(Boolean);
-const { data: reports, error: reportsError } = await client
-	.from('render_quality_reports')
-	.select('job_id,artifact_sha256,status');
-if (reportsError) throw new Error(`render_quality_reports: ${reportsError.message}`);
+const reports = await fetchAll('render_quality_reports', 'job_id,artifact_sha256,status');
 
 const summary = {
 	schemaVersion: 1,
@@ -134,6 +153,7 @@ const summary = {
 		},
 	},
 	counts,
+	paginationComplete: true,
 	artifacts,
 	qualityReports: reports ?? [],
 	redaction: 'public schema only; auth users/secrets and media bytes are not included',

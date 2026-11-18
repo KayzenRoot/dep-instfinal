@@ -23,3 +23,9 @@ export function clampThreads(value, fallback = 2) {
 	if (!Number.isFinite(parsed)) return fallback;
 	return Math.max(1, Math.min(8, Math.floor(parsed)));
 }
+
+export function finiteNumber(value, fallback, min, max) {
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed)) return fallback;
+	return Math.max(min, Math.min(max, parsed));
+}

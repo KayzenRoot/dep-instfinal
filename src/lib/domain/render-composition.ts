@@ -242,6 +242,8 @@ export function buildRenderCommand(
 		'-hide_banner',
 		'-loglevel',
 		'error',
+		'-filter_threads',
+		String(threads),
 		...clips.flatMap((clip) => ['-i', inputs[clip.inputIndex]?.path ?? '']),
 		'-filter_complex',
 		filterGraph,

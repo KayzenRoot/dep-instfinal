@@ -1,6 +1,8 @@
 -- V2 WO-013: operational quotas and queue health.
--- Daily limits are conservative and independent from the free-tier estimate:
--- 20 render jobs and 2 GiB of READY output per owner per UTC day.
+-- Conservative defaults independent from the free-tier estimate: per UTC day,
+-- 20 render jobs (including canceled) and 2 GiB of recorded READY output. The
+-- byte cap is soft because output size is known only after the render.
+-- The per-owner advisory lock serializes concurrent enqueue calls.
 
 create or replace function public.enqueue_render_job(
   p_owner_id uuid,
@@ -67,6 +69,7 @@ begin
     end if;
   end if;
 
+  perform pg_advisory_xact_lock(hashtext('dif_render_quota:' || p_owner_id::text));
   select count(*), coalesce(sum(
     case
       when jsonb_typeof(r.output_manifest -> 'byteSize') = 'number'
@@ -77,8 +80,7 @@ begin
   into v_day_jobs, v_day_bytes
   from public.render_jobs r
   where r.owner_id = p_owner_id
-    and r.created_at >= date_trunc('day', now())
-    and r.status <> 'CANCELED';
+    and r.created_at >= date_trunc('day', now());
   if v_day_jobs >= 20 then
     raise exception 'render_daily_job_quota' using errcode = '23514';
   end if;

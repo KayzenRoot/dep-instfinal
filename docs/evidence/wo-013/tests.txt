@@ -20,12 +20,12 @@ Date: 2026-11-18 (America/Sao_Paulo)
 
 - Full local suite: **209 passed + 3 skipped** (30 files), including real FFmpeg
   render/audio/QA integrations.
-- `worker-limits.test.ts`: 3/3 — free disk, `WORKER_DISK_RESERVED`, thread clamp.
+- `worker-limits.test.ts`: 4/4 — free disk, `WORKER_DISK_RESERVED`, thread clamp and finite env fallback.
 - `render-composition.test.ts`: 12/12 — `-threads`, 720p/high, unsupported geometry.
 
 ## Worker limits
 
-- E2E timeline with real worker: **1/1 (4.3 min)**; worker logged
+- E2E timeline with real worker and kept artifacts: **1/1 (5.6 min)**; worker logged
   `diskReserveMb: 2048, ffmpegThreads: 2`, rendered READY with QA PASS and
   hash-verified download.
 - Forced reserve test (`WORKER_DISK_RESERVE_MB=999999999`, 4 s):
@@ -35,14 +35,16 @@ Date: 2026-11-18 (America/Sao_Paulo)
 
 ## Backup / restore
 
-- `backup:metadata` wrote schema.sql (SHA-256 `8b557db9…`) and data.sql
-  (SHA-256 `a38eb15a…`) for the `public` schema with counts and artifact refs.
+- `backup:metadata` wrote schema.sql/data.sql with SHA-256, exact counts,
+  paginated artifact/QA refs and `paginationComplete: true`.
 - `restore:metadata` into `dif_restore_test`:
+  - schema and data SHAs recomputed and matched before apply;
   - `countMismatches: []` for all 19 tables;
-  - `episodeSceneJoinRows: 15` (episode → season → series → scenes);
-  - `readyJobsWithMatchingQaHash: 1` (manifest SHA = QA report artifact SHA);
-  - the local blob was absent after the E2E cleanup and was reported
-    `blob: "missing"` instead of a false success.
+  - `episodeSceneJoinRows: 30` (episode → season → series → scenes);
+  - `expectedReadyJobsWithQa: 2` and `readyJobsWithMatchingQaHash: 2`;
+  - both local blobs verified by size and SHA-256 (`verified_local`), `ok: true`;
+  - a separate run with a deleted blob reported `blob: "missing"`, `metadataOk: true`,
+    `mediaOk: false` and `ok: false` (never a false success).
 - Auth users/secrets/media bytes are intentionally excluded; owner Auth restore
   remains a separate runbook step.
 
