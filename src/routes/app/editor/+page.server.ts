@@ -2,7 +2,7 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { ownerDatabase, readFormText } from '#lib/server/authorized.js';
 import { createSupabaseAdminClient } from '#lib/server/supabase.js';
-import { firstRelation } from '#lib/server/relations.js';
+import { loadOwnerEpisodeOptions } from '#lib/server/episode-options.js';
 import {
 	defaultEditPlan,
 	loadEditPlan,
@@ -35,25 +35,13 @@ function messageFor(cause: unknown): { status: number; message: string } {
 
 export const load: PageServerLoad = async (event) => {
 	const { db, owner } = ownerDatabase(event);
-	const { data: episodes, error } = await db
-		.from('episodes')
-		.select('id,episode_number,title,status,duration_ms,seasons(title,series(title))')
-		.eq('owner_id', owner.id)
-		.order('updated_at', { ascending: false });
-	if (error) throw new Error('Não foi possível carregar os episódios.');
-	const episodeList = (episodes ?? []).map((episode) => {
-		const season = firstRelation(episode.seasons);
-		return {
-			...episode,
-			seasons: season ? { ...season, series: firstRelation(season.series) } : null,
-		};
-	});
+	const episodes = await loadOwnerEpisodeOptions(db, owner);
 	const requestedId = event.url.searchParams.get('episodeId');
 	const selectedEpisode =
-		episodeList.find((episode) => episode.id === requestedId) ?? episodeList[0] ?? null;
+		episodes.find((episode) => episode.id === requestedId) ?? episodes[0] ?? null;
 	if (!selectedEpisode)
 		return {
-			episodes: episodeList,
+			episodes,
 			selectedEpisode: null,
 			context: null,
 			plan: null,
@@ -85,7 +73,7 @@ export const load: PageServerLoad = async (event) => {
 				).catch(() => null)
 			: null;
 		return {
-			episodes: episodeList,
+			episodes,
 			selectedEpisode,
 			context,
 			plan,
@@ -116,7 +104,7 @@ export const load: PageServerLoad = async (event) => {
 		};
 	} catch (cause) {
 		return {
-			episodes: episodeList,
+			episodes,
 			selectedEpisode,
 			context: null,
 			plan: null,
