@@ -103,6 +103,22 @@ describe('render composition command', () => {
 		expect(command.filterGraph).toContain('[outv]');
 	});
 
+	it('supports the 720p fallback and the high quality tier', () => {
+		const plan = buildDefaultEditPlan(context());
+		const command = buildRenderCommand(plan, inputs(plan), '/tmp/out.mp4', {
+			width: 720,
+			height: 1280,
+			quality: 'high',
+		});
+		expect(command.filterGraph).toContain('scale=720:1280');
+		expect(command.filterGraph).toContain('crop=720:1280');
+		expect(command.args).toContain('slow');
+		expect(command.args).toContain('18');
+		expect(() =>
+			buildRenderCommand(plan, inputs(plan), '/tmp/out.mp4', { width: 1080, height: 1280 }),
+		).toThrow(RenderCompositionError);
+	});
+
 	it('uses xfade for a crossfade between segments', () => {
 		const plan = buildDefaultEditPlan(context());
 		const clips = retimeClips([

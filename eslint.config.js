@@ -12,6 +12,7 @@ export default [
 			'dist/**',
 			'node_modules/**',
 			'playwright-report/**',
+			'supabase/.temp/**',
 			'test-results/**',
 		],
 	},

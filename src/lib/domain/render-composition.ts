@@ -28,8 +28,9 @@ export interface RenderAssetInput {
 export interface RenderCompositionOptions {
 	ffmpegPath?: string;
 	fps?: 30;
-	width?: 1080;
-	height?: 1920;
+	width?: number;
+	height?: number;
+	quality?: 'standard' | 'high';
 	vhsIntensity?: 0 | 1 | 2 | 3;
 	/** ASS filename relative to the working directory chosen by the renderer. */
 	captionAssFile?: string;
@@ -135,6 +136,14 @@ export function buildRenderCommand(
 	const fps = options.fps ?? 30;
 	const width = options.width ?? 1080;
 	const height = options.height ?? 1920;
+	const quality = options.quality ?? 'standard';
+	if (!((width === 1080 && height === 1920) || (width === 720 && height === 1280)))
+		throw new RenderCompositionError(
+			'RENDER_OUTPUT_GEOMETRY_UNSUPPORTED',
+			'A saída suporta apenas 1080x1920 ou o fallback 720x1280.',
+		);
+	if (quality !== 'standard' && quality !== 'high')
+		throw new RenderCompositionError('RENDER_QUALITY_UNSUPPORTED', 'Qualidade de render inválida.');
 	const vhs = options.vhsIntensity ?? 1;
 	const clips = normalizedClips(plan, inputs);
 	if (clips.length === 0)
@@ -240,7 +249,9 @@ export function buildRenderCommand(
 		'-profile:v',
 		'high',
 		'-preset',
-		'veryfast',
+		quality === 'high' ? 'slow' : 'veryfast',
+		'-crf',
+		quality === 'high' ? '18' : '23',
 		'-pix_fmt',
 		'yuv420p',
 		'-r',
