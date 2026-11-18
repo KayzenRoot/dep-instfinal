@@ -623,6 +623,8 @@
 		border-radius: 0.4rem;
 		color: var(--ink);
 		padding: 0.5rem 0.65rem;
+		max-width: 100%;
+		min-width: 0;
 	}
 	.button,
 	button {
@@ -768,6 +770,14 @@
 		gap: 0.2rem;
 		color: var(--muted);
 		font-size: 0.72rem;
+		min-width: 0;
+	}
+	.box-grid input,
+	.clip-list input,
+	.clip-list select,
+	.save-form input {
+		width: 100%;
+		min-width: 0;
 	}
 	.clip-list {
 		display: grid;

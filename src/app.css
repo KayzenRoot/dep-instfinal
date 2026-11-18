@@ -77,6 +77,19 @@ select {
 	font: inherit;
 }
 
+/* Native selects size themselves to their longest option, which forces
+   horizontal overflow on 360px viewports. Episode pickers share one markup
+   (.episode-picker) and .field selects appear on the video ingest page. */
+.episode-picker select {
+	min-width: min(34rem, 100%);
+	max-width: 100%;
+}
+
+.field select {
+	min-width: 0;
+	max-width: 100%;
+}
+
 button,
 a,
 input,
