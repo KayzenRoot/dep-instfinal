@@ -445,6 +445,34 @@
 					Mapa de clipes é uma referência de duração, não uma forma de onda de precisão. A fila
 					completa e o retry ficam na timeline.
 				</p>
+				<ul class="track-list" aria-label="Faixas do plano">
+					<li>
+						Narração:
+						<strong>{data.narration?.takeId ? data.narration.status : 'sem take'}</strong>
+					</li>
+					<li>
+						Legendas:
+						<strong
+							>{data.captions
+								? `${data.captions.status} · ${data.captions.track.cues.length} cues`
+								: 'sem track nesta versão'}</strong
+						>
+					</li>
+					<li>
+						Música/ambiência:
+						<strong
+							>{(data.plan.audio?.events ?? []).filter((event) =>
+								['MUSIC', 'AMBIENCE'].includes(event.kind),
+							).length} eventos</strong
+						>
+					</li>
+					<li>
+						SFX:
+						<strong
+							>{(data.plan.audio?.events ?? []).filter((event) => event.kind === 'SFX').length} eventos</strong
+						>
+					</li>
+				</ul>
 			</section>
 
 			{#if data.renderJobs.length}
@@ -700,6 +728,18 @@
 		flex: 1;
 		background: #7dd3fc;
 		min-height: 3%;
+	}
+	.track-list {
+		display: grid;
+		gap: 0.3rem;
+		margin: 0.6rem 0 0;
+		padding: 0;
+		list-style: none;
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+	.track-list strong {
+		color: var(--ink);
 	}
 	.collisions {
 		display: grid;
