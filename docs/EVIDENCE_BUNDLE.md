@@ -1,26 +1,27 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-012 — Export MP4, download privado e Quality Inspector (2026-11-18) — PROPOSED
+## V2 WO-012 — Export MP4, download privado e Quality Inspector (2026-11-18) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-012` · issue #29 · epic #17 · addendum ENH-05
-- **Base:** `main` `b21afa3` (checkpoint WO-011 promovido); branch `feat/dif-v2-wo-012`
-- **Status:** implementação completa; unit **206+3**, PgTAP **152/152**, policy **28/25**, E2E timeline **1/1** (12,0 min nesta máquina) e responsivo **1/1** (2,9 min), typecheck/lint/build **PASS**; CI e auditoria independente **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
+- **Base:** `main` `b21afa3` (checkpoint WO-011 promovido); branch `feat/dif-v2-wo-012`; merge `3edec2b`
+- **Status:** **PROMOTED**; unit **206+3**, PgTAP **152/152**, policy **28/25**, E2E **13/13**; CI `44384311546` e ARM64 `44384957968` em `23be8a5` **PASS**; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `3edec2b` (PR #60); issue #29 fechada. Sem deploy de worker/VPS.
 
-| Check       | Result     | Evidence                                                                                                     |
-| ----------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| Export opts | PASS local | `output_profile`/`quality` no enqueue; 1080×1920 e fallback 720×1280; CRF/preset por tier; aviso na UI       |
-| QA report   | PASS local | `render_quality_reports` imutável por job+artefato, RLS owner-only, WARN ack, BLOCKED irrecusável            |
-| Inspector   | PASS local | hash, plano, codec/geometria/duração, AAC, drift, decode, black/freeze/silence/pico, safe area, captions/CTA |
-| Exceptions  | PASS local | janelas do diretor/pad descontam só a sobreposição aprovada; intervalo real registrado                       |
-| Gate        | PASS local | BLOCKED técnico falha sem upload; WARN (preto/freeze/silêncio) exige ack; crítico NOT_TESTED bloqueia        |
-| Download    | PASS local | rota owner-only, metadata R2/sha/tamanho/plano conferidos, E2E baixou MP4 idêntico ao SHA do manifesto       |
-| UI          | PASS local | `/app/export` lista QA, timecodes, ack WARN, MP4, SRT e laudo JSON; timeline escolhe saída/qualidade         |
-| PgTAP       | PASS       | 152/152, incluindo opções, RLS, imutabilidade e acknowledgement                                              |
-| Unit        | PASS       | 206 passed + 3 skipped; parsers, schema, 720p/high e integração FFmpeg real                                  |
-| Type/lint   | PASS local | `svelte-check` 0/0, eslint 0 warnings, build adapter-node                                                    |
-| CI          | PENDENTE   | será registrado após push do PR Draft                                                                        |
-| Auditoria   | PENDENTE   | revisão independente obrigatória antes de merge                                                              |
-| Limites     | —          | QA heurístico sem OCR/semântica; checklist humano no JSON; sem assinatura separada para PASS                 |
+| Check       | Result       | Evidence                                                                                                       |
+| ----------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
+| Export opts | PASS local   | `output_profile`/`quality` no enqueue; 1080×1920 e fallback 720×1280; CRF/preset por tier; aviso na UI         |
+| QA report   | PASS local   | `render_quality_reports` imutável por job+artefato, RLS owner-only, WARN ack, BLOCKED técnico irrecusável      |
+| Inspector   | PASS local   | hash, plano, codec/geometria/fps/pixfmt/duração, AAC, drift, decode, black/freeze/silence/pico/LUFS, safe area |
+| Exceptions  | PASS local   | janelas do diretor/pad descontam só a sobreposição aprovada; intervalo real registrado                         |
+| Gate        | PASS local   | BLOCKED técnico falha sem upload; WARN (preto/freeze/silêncio) exige ack; crítico NOT_TESTED bloqueia          |
+| Download    | PASS local   | rota owner-only, laudo pelo SHA do manifesto, metadata R2 conferida, E2E baixou MP4 idêntico ao SHA            |
+| UI          | PASS local   | `/app/export` lista QA com filtros, exceções, ack WARN, MP4, SRT pinado e laudo JSON; timeline escolhe perfil  |
+| PgTAP       | PASS         | 152/152, incluindo 720p completo, gate de laudo, RLS, imutabilidade e acknowledgement                          |
+| Unit        | PASS         | 206 passed + 3 skipped; parsers, schema, 720p/high e integração FFmpeg real                                    |
+| Type/lint   | PASS local   | `svelte-check` 0/0, eslint 0 warnings, build adapter-node                                                      |
+| CI          | PASS         | `44384311546` em `23be8a5`: unit 206+3, PgTAP 152/152, E2E 13/13 (4,0 min), Sonar/Socket/Vercel                |
+| ARM64       | PASS         | `44384957968` em `23be8a5`                                                                                     |
+| Auditoria   | PASS c/ res. | rodada 1 CORRECTION REQUIRED (H1/H2/M1–M8); reauditoria APPROVED WITH RESIDUALS, sem HIGH/CRITICAL             |
+| Limites     | —            | QA heurístico sem OCR/semântica; checklist humano no JSON; sem assinatura separada para PASS                   |
 
 ## V2 WO-011 — Editor visual, preview e safe zones (2026-11-18) — PROMOTED
 

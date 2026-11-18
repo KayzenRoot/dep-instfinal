@@ -1,6 +1,9 @@
 # WO-012 — local evidence
 
 Date: 2026-11-18 (America/Sao_Paulo)
+Final CI: 44384311546 at 23be8a5 (quality) + 44384957968 (ARM64), success
+Audit: first round CORRECTION REQUIRED, final re-audit APPROVED WITH RESIDUALS
+Merge: 3edec2b (PR #60)
 
 ## Static
 

@@ -2,8 +2,8 @@
 
 - **Work Order:** `DIF-V2-WO-001` · issue #18
 - **Epic:** #17 · issues #18–#45
-- **Base atual:** `main` `d4a6a80` (checkpoint WO-011 promovido); WO-012 em execução; plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
-- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged** (`239f3ba`); WO-007 **APPROVED/merged** (`326c576`); WO-008 **APPROVED/merged** (`a633c3a`); WO-009 **APPROVED/merged** (`0b60321`); WO-010 **APPROVED/merged** (`1824061`); WO-011 **APPROVED WITH RESIDUALS/merged** (`d4a6a80`); WO-012 em execução.
+- **Base atual:** `main` `3edec2b` (checkpoint WO-012 promovido); WO-013 em execução; plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
+- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged** (`239f3ba`); WO-007 **APPROVED/merged** (`326c576`); WO-008 **APPROVED/merged** (`a633c3a`); WO-009 **APPROVED/merged** (`0b60321`); WO-010 **APPROVED/merged** (`1824061`); WO-011 **APPROVED WITH RESIDUALS/merged** (`d4a6a80`); WO-012 **APPROVED WITH RESIDUALS/merged** (`3edec2b`); WO-013 em execução.
 - **Fonte viva:** os corpos atuais das issues #18–#45 prevalecem sobre este plano.
 
 ## Inventário — 28 WOs e 20 melhorias
@@ -21,8 +21,8 @@
 | WO-009 | #26   | SFX/música licenciados, mix/ducking, soundscape estéreo | STANDARD | WO-006; WO-007; adendo soundscape                                 | COMPLETED (merged `0b60321`) |
 | WO-010 | #27   | Diretor de edição e curva de tensão                     | ELEVATED | WO-004; WO-025 (proposta); adendo tensão                          | COMPLETED (merged `1824061`) |
 | WO-011 | #28   | Editor/preview e safe zones                             | ELEVATED | WO-006–009; adendo safe zones                                     | COMPLETED (merged `d4a6a80`) |
-| WO-012 | #29   | Export MP4 H.264/AAC + Quality Inspector                | ELEVATED | WO-005–009; WO-011; adendo QA                                     | IN PROGRESS                  |
-| WO-013 | #30   | Hardening: quotas, backup, retenção, recuperação        | ELEVATED | WO-003; WO-005; WO-012; WO-015–021 (complemento); etapa final     | PLANNED                      |
+| WO-012 | #29   | Export MP4 H.264/AAC + Quality Inspector                | ELEVATED | WO-005–009; WO-011; adendo QA                                     | COMPLETED (merged `3edec2b`) |
+| WO-013 | #30   | Hardening: quotas, backup, retenção, recuperação        | ELEVATED | WO-003; WO-005; WO-012; WO-015–021 (complemento); etapa final     | IN PROGRESS                  |
 | WO-014 | #31   | Release V2: regressão, auditoria, deploy                | ELEVATED | WO-001–013 e WO-015–021; terminal                                 | PLANNED                      |
 | WO-015 | #32   | Hook Lab: 3 aberturas A/B/C                             | STANDARD | WO-004; WO-010; WO-011; WO-012                                    | PLANNED                      |
 | WO-016 | #33   | Color Match e presets de terror                         | STANDARD | WO-002; WO-003; WO-006; WO-011; WO-012                            | PLANNED                      |

@@ -1,12 +1,21 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-012 — Export MP4, download privado e Quality Inspector (2026-11-18) — PROPOSED
+## DIF-V2-WO-012 — Export MP4, download privado e Quality Inspector (2026-11-18) — PROMOTED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; implementação completa em `feat/dif-v2-wo-012`; unit 206+3, PgTAP 152/152, policy 28/25, E2E timeline 1/1 e responsivo 1/1 PASS; CI/auditoria pendentes. Sem merge/deploy.
+- **Status:** **PROMOTED**; unit 206+3, PgTAP 152/152, policy 28/25, E2E 13/13 (4,0 min); CI `44384311546` e ARM64 `44384957968` em `23be8a5` PASS; auditoria final **APPROVED WITH RESIDUALS**; owner autorizou continuação em 2026-11-18 (“continue de onde parou”); squash-merged em `3edec2b` (PR #60); issue #29 fechada.
 - **Base:** `main` `b21afa3` (checkpoint WO-011 promovido); branch `feat/dif-v2-wo-012`.
-- **Delivered:** opções de saída/qualidade no render; relatório imutável de QA por job+artefato com RLS owner-only; Quality Inspector no worker (hash, plano, codec/geometria/duração, AAC, drift, decode, black/freeze/silence/pico, safe area, legendas/CTA); gate BLOCKED/WARN; download owner-only com metadata R2 conferida; `/app/export` com QA, ack, MP4, SRT e laudo JSON.
-- **Limits:** QA heurístico, sem OCR/semântica/copyright; checklist humano no JSON sem assinatura separada para PASS; renderizadores anteriores sem relatório exigem re-render; worker ainda com service role ampla (WO-013).
-- **Gate:** CI + auditoria independente + autorização do owner. WO-013 (#30) e WO-014 (#31) dependem deste gate.
+- **Delivered:** opções de saída/qualidade no render (1080p/720p, standard/high); relatório imutável de QA por job+artefato com RLS owner-only; Quality Inspector no worker (hash, plano, codec/geometria/fps/pixfmt/duração, AAC, drift, decode, black/freeze/silence/pico/LUFS, safe area, legendas/CTA); gate de READY no banco; download owner-only com metadata R2 e laudo pelo SHA; `/app/export` com filtros, exceções, ack, MP4, SRT pinado e laudo JSON.
+- **Audit corrections:** rodada 1 CORRECTION REQUIRED (H1 720p, H2 heurístico, M1–M8) e reauditoria APPROVED WITH RESIDUALS; residuais LOW tratados (laudo por SHA, exceção parcial, SRT sem take).
+- **Residuals:** QA heurístico sem OCR/semântica/copyright; clique por timestamp abre a timeline, não o frame exato; sem sign-off separado para PASS; retenção/quota/R2 GC e menor privilégio do worker ficam para WO-013.
+- **Gate:** atendido; WO-013 (#30) é a próxima e WO-014 (#31) depende das WOs 001–013 e 015–021. Sem deploy de worker/VPS.
+
+## V2 checkpoint promotion — WO-012 (2026-11-18)
+
+- **Owner decision:** “continue de onde parou” / “vamos continuar nosso projeto até a produção” recorded as continuity/merge authorization under the standing authorization; no separate “aprovado” verdict on individual MP4s. PR #60 squash-merged at `3edec2b`; issue #29 closed.
+- **Audit:** two rounds; first **CORRECTION REQUIRED** (H1 720p completion, H2 ack-able heuristics, M1–M8), final re-audit **APPROVED WITH RESIDUALS**, no HIGH/CRITICAL.
+- **Evidence:** unit 206+3, PgTAP 152/152, policy 28/25, E2E 13/13 in 4.0 min, CI `44384311546`, ARM64 `44384957968`, Sonar/Socket/Vercel PASS at `23be8a5`.
+- **Residuals:** heuristic QA; timeline link instead of frame-accurate timestamp; no separate PASS sign-off; legacy plans blocked from download until saved with preview; R2 GC/quota/least-privilege worker deferred to WO-013.
+- **Next:** WO-013 (#30) hardening. No worker/VPS deploy.
 
 ## DIF-V2-WO-011 — Editor visual, preview e safe zones (2026-11-18) — PROMOTED
 

@@ -1,6 +1,6 @@
 # DIF-V2-WO-012 — Export MP4, download privado e Quality Inspector
 
-**Status:** implementação completa em `feat/dif-v2-wo-012`; unit **206+3**, PgTAP **152/152**, policy **28/25**, E2E timeline **1/1** e responsivo **1/1** PASS; CI e auditoria independente **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** **PROMOTED**; unit **206+3**, PgTAP **152/152**, policy **28/25**, E2E **13/13**; CI `44384311546` em `23be8a5` e ARM64 `44384957968` **PASS**; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `3edec2b` (PR #60); issue #29 fechada. Sem deploy de worker/VPS.
 **Base:** `main` `b21afa3` (checkpoint WO-011 promovido).
 **Escopo:** WO-012 (#29) + addendum ENH-05 (Quality Inspector técnico), dependente de WO-005–WO-011.
 
@@ -73,4 +73,4 @@ A primeira auditoria independente retornou **CORRECTION REQUIRED** (H1: `complet
 
 ## Gate
 
-CI hosted, PgTAP, Evidence Bundle, Checkpoint Delta PROPOSED, auditoria independente e autorização do owner antes de merge/promoção. **Sem merge/deploy.**
+CI hosted, PgTAP, Evidence Bundle, auditoria independente **APPROVED WITH RESIDUALS** e autorização do owner (“continue de onde parou”, 2026-11-18) atendidos; PR #60 squash-merged em `3edec2b`; issue #29 fechada; checkpoint **PROMOTED**. WO-013 (#30) é a próxima.
