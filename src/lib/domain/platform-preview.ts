@@ -200,9 +200,14 @@ export function detectPreviewCollisions(
 	return collisions;
 }
 
-export function assertPreviewLayout(preview?: EditPlanPreview | null): ResolvedPreviewLayout {
+export function assertPreviewLayout(
+	preview?: EditPlanPreview | null,
+	options: PreviewCollisionOptions = {},
+): ResolvedPreviewLayout {
 	const layout = resolvePreviewLayout(preview);
-	const high = detectPreviewCollisions(preview).filter(
+	const checkCaption = options.caption ?? true;
+	const checkCta = options.cta ?? true;
+	const high = detectPreviewCollisions(preview, options).filter(
 		(collision) => collision.severity === 'HIGH',
 	);
 	if (high.length)
@@ -210,12 +215,12 @@ export function assertPreviewLayout(preview?: EditPlanPreview | null): ResolvedP
 			'PREVIEW_LAYOUT_UNSAFE',
 			high.map((collision) => collision.message).join(' '),
 		);
-	if (layout.captionBox.width < 600 || layout.captionBox.height < 140)
+	if (checkCaption && (layout.captionBox.width < 600 || layout.captionBox.height < 140))
 		throw new PlatformPreviewError(
 			'PREVIEW_CAPTION_BOX_SMALL',
 			'A caixa de legenda precisa de pelo menos 600 × 140 px.',
 		);
-	if (layout.ctaBox.width < 500 || layout.ctaBox.height < 120)
+	if (checkCta && (layout.ctaBox.width < 500 || layout.ctaBox.height < 120))
 		throw new PlatformPreviewError(
 			'PREVIEW_CTA_BOX_SMALL',
 			'A caixa de CTA precisa de pelo menos 500 × 120 px.',
@@ -223,10 +228,20 @@ export function assertPreviewLayout(preview?: EditPlanPreview | null): ResolvedP
 	return layout;
 }
 
-export function layoutFromPlan(plan: { preview?: EditPlanPreview }): {
-	captionBox: PreviewBox;
-	ctaBox: PreviewBox;
-} {
-	const layout = assertPreviewLayout(plan.preview ?? defaultPreview());
+/**
+ * Plans saved before WO-011 have no `preview` and keep their historical ASS
+ * layout (880 px safe width, style margins). Only plans with an explicit
+ * preview are forced through the platform safe-zone boxes.
+ */
+export function layoutFromPlan(plan: {
+	preview?: EditPlanPreview;
+	captions?: { template: string };
+	cta?: { enabled: boolean } | null;
+}): { captionBox: PreviewBox; ctaBox: PreviewBox } | null {
+	if (!plan.preview) return null;
+	const layout = assertPreviewLayout(plan.preview, {
+		caption: plan.captions?.template !== 'none',
+		cta: Boolean(plan.cta?.enabled),
+	});
 	return { captionBox: layout.captionBox, ctaBox: layout.ctaBox };
 }

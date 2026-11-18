@@ -58,6 +58,29 @@ describe('default video edit plan', () => {
 		expect(() => validateEditPlan({ ...plan, preview: undefined }, context120)).not.toThrow();
 	});
 
+	it('skips preview box constraints when captions and CTA are disabled', () => {
+		const context90 = context(90_000, 6_000);
+		const plan = buildDefaultEditPlan(context90);
+		const unsafeBox = { x: 90, y: 1_700, width: 810, height: 180 };
+		expect(() =>
+			validateEditPlan(
+				{
+					...plan,
+					captions: { template: 'none' },
+					cta: null,
+					preview: { ...plan.preview!, captionBox: unsafeBox },
+				},
+				context90,
+			),
+		).not.toThrow();
+		expect(() =>
+			validateEditPlan(
+				{ ...plan, preview: { ...plan.preview!, captionBox: unsafeBox } },
+				context90,
+			),
+		).toThrow(EditPlanError);
+	});
+
 	it('keeps the last clip partial for 90 and 150 seconds', () => {
 		const context90 = context(90_000, 8_000);
 		const plan90 = buildDefaultEditPlan(context90);

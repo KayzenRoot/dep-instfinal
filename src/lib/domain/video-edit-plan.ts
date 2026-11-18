@@ -327,20 +327,27 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 		}
 	}
 
-	try {
-		const previewLayout = assertPreviewLayout(plan.preview ?? defaultPreview());
-		if (plan.cta?.enabled && plan.captions.template !== 'none') {
-			for (const chunk of wrapCtaText(plan.cta.text, previewLayout.ctaBox.width - 20))
-				if (!captionTextFitsBox(chunk, previewLayout.ctaBox))
-					throw new EditPlanError(
-						'EDIT_PLAN_CTA_OVERFLOW',
-						'O texto da CTA não cabe na caixa segura do perfil.',
-					);
+	if (plan.preview) {
+		const captionEnabled = plan.captions.template !== 'none';
+		const ctaEnabled = Boolean(plan.cta?.enabled);
+		try {
+			const previewLayout = assertPreviewLayout(plan.preview, {
+				caption: captionEnabled,
+				cta: ctaEnabled,
+			});
+			if (ctaEnabled && captionEnabled) {
+				for (const chunk of wrapCtaText(plan.cta!.text, previewLayout.ctaBox.width - 20))
+					if (!captionTextFitsBox(chunk, previewLayout.ctaBox))
+						throw new EditPlanError(
+							'EDIT_PLAN_CTA_OVERFLOW',
+							'O texto da CTA não cabe na caixa segura do perfil.',
+						);
+			}
+		} catch (cause) {
+			if (cause instanceof PlatformPreviewError)
+				throw new EditPlanError('EDIT_PLAN_PREVIEW_INVALID', cause.message);
+			throw cause;
 		}
-	} catch (cause) {
-		if (cause instanceof PlatformPreviewError)
-			throw new EditPlanError('EDIT_PLAN_PREVIEW_INVALID', cause.message);
-		throw cause;
 	}
 
 	const audioEventIds = new Set<string>();

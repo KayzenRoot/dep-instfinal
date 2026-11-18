@@ -91,8 +91,9 @@ describe('platform preview profiles', () => {
 		expect(editPlanPreviewSchema.safeParse({ profileId: 'youtube' }).success).toBe(false);
 	});
 
-	it('falls back to safe default boxes for legacy plans without preview', () => {
-		expect(layoutFromPlan({})).toEqual({
+	it('keeps legacy plans without preview on their historical ASS layout', () => {
+		expect(layoutFromPlan({})).toBeNull();
+		expect(layoutFromPlan({ preview: defaultPreview() })).toEqual({
 			captionBox: PLATFORM_PREVIEW_PROFILES.tiktok.captionBox,
 			ctaBox: PLATFORM_PREVIEW_PROFILES.tiktok.ctaBox,
 		});
@@ -100,6 +101,14 @@ describe('platform preview profiles', () => {
 			profileId: 'tiktok',
 			profileVersion: 1,
 		});
+	});
+
+	it('ignores disabled boxes when validating the preview', () => {
+		const unsafe = layout({ captionBox: { x: 90, y: 1_700, width: 810, height: 180 } });
+		expect(() => assertPreviewLayout(unsafe, { caption: false, cta: true })).not.toThrow();
+		expect(() => assertPreviewLayout(unsafe, { caption: true, cta: false })).toThrow(
+			PlatformPreviewError,
+		);
 	});
 
 	it('rejects text that would overflow its box height', () => {
@@ -164,6 +173,22 @@ describe('positioned caption ASS', () => {
 		const ass = buildCaptionAss(track);
 		expect(ass).not.toContain('\\pos(');
 		expect(ass).toContain(',2,90,90,220,1');
+	});
+
+	it('renders a pre-WO-011 cue wider than the new default box', () => {
+		const legacy = {
+			...track,
+			cues: [
+				{
+					...track.cues[0]!,
+					text: 'Alice ouviu a própria voz agora\ne correu para o arquivo vazio',
+				},
+			],
+		};
+		expect(() => buildCaptionAss(legacy)).not.toThrow();
+		expect(() => buildCaptionAss(legacy, layoutFromPlan({ preview: defaultPreview() })!)).toThrow(
+			CaptionError,
+		);
 	});
 
 	it('fails closed when stored text overflows its box', () => {

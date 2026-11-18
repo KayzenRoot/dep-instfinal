@@ -37,6 +37,8 @@
 	let waveform = $state<number[]>([]);
 	let waveformState = $state<'idle' | 'loading' | 'ready' | 'error'>('idle');
 	let waveformError = $state<string | null>(null);
+	let videoElement = $state<HTMLVideoElement | null>(null);
+	let previewError = $state<string | null>(null);
 	const boxKinds = ['captionBox', 'ctaBox'] as const;
 	const boxFields = ['x', 'y', 'width', 'height'] as const;
 
@@ -56,10 +58,12 @@
 	});
 
 	const layout = $derived(resolvePreviewLayout(preview));
+	const captionEnabled = $derived(data.plan ? data.plan.captions.template !== 'none' : true);
+	const ctaEnabled = $derived(Boolean(data.plan?.cta?.enabled));
 	const collisions = $derived(
 		detectPreviewCollisions(preview, {
-			caption: data.plan?.captions.template !== 'none',
-			cta: Boolean(data.plan?.cta?.enabled),
+			caption: captionEnabled,
+			cta: ctaEnabled,
 		}),
 	);
 	const selectedClip = $derived(clips[selectedClipIndex] ?? clips[0] ?? null);
@@ -81,17 +85,22 @@
 		const cues = data.captions?.track.cues ?? [];
 		return cues.find((cue) => playheadMs >= cue.startMs && playheadMs < cue.endMs) ?? null;
 	});
-	const captionText = $derived(currentCue?.text ?? 'Prévia da legenda nesta posição segura.');
-	const ctaText = $derived(data.plan?.cta?.enabled ? data.plan.cta.text : 'CTA de duas escolhas');
+	const captionCue = $derived(currentCue?.role === 'CTA' ? null : currentCue);
+	const ctaCue = $derived(currentCue?.role === 'CTA' ? currentCue : null);
+	const captionText = $derived(
+		captionCue?.text ?? (ctaCue ? '' : 'Prévia da legenda nesta posição segura.'),
+	);
+	const ctaText = $derived(
+		ctaCue?.text ?? (data.plan?.cta?.enabled ? data.plan.cta.text : 'CTA de duas escolhas'),
+	);
 	const fitIssues = $derived.by(() => {
-		if (!data.plan) return [];
+		if (!data.plan || !captionEnabled) return [];
 		const issues: string[] = [];
-		if (
-			data.plan.captions.template !== 'none' &&
-			!captionTextFitsBox(captionText, layout.captionBox)
-		)
+		if (captionCue && !captionTextFitsBox(captionCue.text, layout.captionBox))
 			issues.push('O texto da legenda não cabe na caixa segura atual.');
-		if (data.plan.cta?.enabled && data.plan.captions.template !== 'none') {
+		if (ctaCue && !captionTextFitsBox(ctaCue.text, layout.ctaBox))
+			issues.push('O texto da CTA não cabe na caixa segura atual.');
+		if (ctaEnabled && !ctaCue) {
 			for (const chunk of wrapCtaText(ctaText, layout.ctaBox.width - 20))
 				if (!captionTextFitsBox(chunk, layout.ctaBox))
 					issues.push('O texto da CTA não cabe na caixa segura atual.');
@@ -104,8 +113,8 @@
 			issues: detectPreviewCollisions(
 				{ ...preview, profileId: profile.id },
 				{
-					caption: data.plan?.captions.template !== 'none',
-					cta: Boolean(data.plan?.cta?.enabled),
+					caption: captionEnabled,
+					cta: ctaEnabled,
 				},
 			).length,
 		})),
@@ -120,10 +129,8 @@
 	const canSave = $derived(
 		Boolean(planForSave) &&
 			previewIssues.length === 0 &&
-			layout.captionBox.width >= 600 &&
-			layout.captionBox.height >= 140 &&
-			layout.ctaBox.width >= 500 &&
-			layout.ctaBox.height >= 120,
+			(!captionEnabled || (layout.captionBox.width >= 600 && layout.captionBox.height >= 140)) &&
+			(!ctaEnabled || (layout.ctaBox.width >= 500 && layout.ctaBox.height >= 120)),
 	);
 
 	function setProfile(profileId: PlatformProfileId) {
@@ -195,10 +202,30 @@
 	function updatePlayhead(event: Event) {
 		const element = event.currentTarget as HTMLVideoElement;
 		const clip = selectedClip;
+		if (!clip) return;
+		const sourceOutSeconds = clip.sourceOutMs / 1_000;
+		if (element.currentTime >= sourceOutSeconds) {
+			element.pause();
+			element.currentTime = sourceOutSeconds;
+			playheadMs = clip.timelineEndMs;
+			return;
+		}
 		playheadMs =
-			(clip?.timelineStartMs ?? 0) +
-			Math.max(0, Math.round(element.currentTime * 1_000 - (clip?.sourceInMs ?? 0)));
+			clip.timelineStartMs + Math.max(0, Math.round(element.currentTime * 1_000 - clip.sourceInMs));
 	}
+
+	function seekPreviewToTrim() {
+		const clip = selectedClip;
+		const element = videoElement;
+		if (!clip || !element || !Number.isFinite(element.duration)) return;
+		const start = clip.sourceInMs / 1_000;
+		const end = clip.sourceOutMs / 1_000;
+		if (element.currentTime < start || element.currentTime >= end) element.currentTime = start;
+	}
+
+	$effect(() => {
+		seekPreviewToTrim();
+	});
 
 	async function loadWaveform() {
 		const takeId = data.narration?.takeId;
@@ -311,6 +338,12 @@
 			renderizar.
 		</p>
 	{/if}
+	{#if data.plan && !data.plan.preview}
+		<p class="notice warning" role="status">
+			Este plano é anterior às safe zones. O render mantém o layout histórico de legendas até você
+			salvar uma nova versão com as caixas seguras.
+		</p>
+	{/if}
 	{#if data.captions?.status === 'APPROVED'}
 		<p class="notice warning" role="status">
 			As legendas aprovadas pertencem a esta versão. Salvar correções cria uma nova versão e exige
@@ -323,11 +356,15 @@
 			<div class="preview-frame">
 				{#if selectedClip}
 					<video
+						bind:this={videoElement}
 						src={`/api/video/${selectedClip.assetId}`}
 						controls
 						playsinline
 						preload="metadata"
 						ontimeupdate={updatePlayhead}
+						onloadedmetadata={seekPreviewToTrim}
+						onloadeddata={() => (previewError = null)}
+						onerror={() => (previewError = 'Prévia indisponível; o render é a fonte de verdade.')}
 					>
 						<track
 							kind="captions"
@@ -337,6 +374,7 @@
 						/>
 					</video>
 				{/if}
+				{#if previewError}<p class="hint" role="alert">{previewError}</p>{/if}
 				{#if showOverlay}
 					<div class="safe-area" style={boxStyle(layout.profile.safeArea)} aria-hidden="true"></div>
 					{#if showCover}
@@ -804,12 +842,14 @@
 		gap: 0.2rem;
 	}
 	.clip-actions button {
+		min-width: 2.75rem;
+		min-height: 2.75rem;
 		padding: 0.35rem 0.5rem;
 	}
 	.track-map {
 		display: flex;
 		gap: 2px;
-		height: 2.4rem;
+		height: 2.75rem;
 		margin-block: 0.6rem;
 		background: #080808;
 		border-radius: 0.4rem;
