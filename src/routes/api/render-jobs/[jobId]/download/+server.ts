@@ -29,12 +29,20 @@ export const GET: RequestHandler = async (event) => {
 	if (job.status !== 'READY' || !job.output_manifest)
 		return jsonError(409, 'RENDER_NOT_READY', 'O render ainda não está pronto para download.');
 
-	const report = await loadQualityReportForJob(db, owner.id, job.id);
+	const manifest = job.output_manifest;
+	const bucket = manifestField<string>(manifest, 'bucket');
+	const objectKey = manifestField<string>(manifest, 'objectKey');
+	const byteSize = manifestField<number>(manifest, 'byteSize');
+	const sha256 = manifestField<string>(manifest, 'sha256');
+	if (!bucket || !objectKey || !byteSize || !sha256)
+		return jsonError(409, 'RENDER_MANIFEST_INVALID', 'O manifesto do render está incompleto.');
+
+	const report = await loadQualityReportForJob(db, owner.id, job.id, sha256);
 	if (!report)
 		return jsonError(
 			409,
 			'QUALITY_REPORT_MISSING',
-			'Este render não tem relatório de qualidade; gere novamente.',
+			'Este render não tem relatório de qualidade para o artefato; gere novamente.',
 		);
 	const block = downloadBlockReason({
 		status: report.status,
@@ -52,14 +60,6 @@ export const GET: RequestHandler = async (event) => {
 						: 'Uma verificação crítica ficou NOT_TESTED; gere novamente com um plano com safe zones.';
 		return jsonError(409, block, message);
 	}
-
-	const manifest = job.output_manifest;
-	const bucket = manifestField<string>(manifest, 'bucket');
-	const objectKey = manifestField<string>(manifest, 'objectKey');
-	const byteSize = manifestField<number>(manifest, 'byteSize');
-	const sha256 = manifestField<string>(manifest, 'sha256');
-	if (!bucket || !objectKey || !byteSize || !sha256)
-		return jsonError(409, 'RENDER_MANIFEST_INVALID', 'O manifesto do render está incompleto.');
 	if (report.artifact_sha256 !== sha256)
 		return jsonError(
 			409,

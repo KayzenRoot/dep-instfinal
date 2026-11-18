@@ -11,8 +11,8 @@
 | Export opts | PASS local | `output_profile`/`quality` no enqueue; 1080×1920 e fallback 720×1280; CRF/preset por tier; aviso na UI       |
 | QA report   | PASS local | `render_quality_reports` imutável por job+artefato, RLS owner-only, WARN ack, BLOCKED irrecusável            |
 | Inspector   | PASS local | hash, plano, codec/geometria/duração, AAC, drift, decode, black/freeze/silence/pico, safe area, captions/CTA |
-| Exceptions  | PASS local | janelas do diretor e pad da narração viram exceções rastreáveis, sem bloquear arte intencional               |
-| Gate        | PASS local | BLOCKED falha o job sem upload; WARN exige justificativa; PASS/NOT_TESTED testados                           |
+| Exceptions  | PASS local | janelas do diretor/pad descontam só a sobreposição aprovada; intervalo real registrado                       |
+| Gate        | PASS local | BLOCKED técnico falha sem upload; WARN (preto/freeze/silêncio) exige ack; crítico NOT_TESTED bloqueia        |
 | Download    | PASS local | rota owner-only, metadata R2/sha/tamanho/plano conferidos, E2E baixou MP4 idêntico ao SHA do manifesto       |
 | UI          | PASS local | `/app/export` lista QA, timecodes, ack WARN, MP4, SRT e laudo JSON; timeline escolhe saída/qualidade         |
 | PgTAP       | PASS       | 152/152, incluindo opções, RLS, imutabilidade e acknowledgement                                              |

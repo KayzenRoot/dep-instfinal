@@ -8,10 +8,11 @@ export const GET: RequestHandler = async (event) => {
 	const { db, owner } = ownerDatabase(event);
 	const job = await getRenderJob({ db, owner, jobId: event.params.jobId }).catch(() => null);
 	if (!job) return json({ error: 'RENDER_JOB_NOT_FOUND' }, { status: 404 });
-	const report = await loadQualityReportForJob(db, owner.id, job.id);
+	const manifest = job.output_manifest ?? {};
+	const sha256 = typeof manifest.sha256 === 'string' ? manifest.sha256 : null;
+	const report = await loadQualityReportForJob(db, owner.id, job.id, sha256);
 	if (!report) return json({ error: 'QUALITY_REPORT_MISSING' }, { status: 404 });
 	const durationMs = report.report.artifact.durationMs;
-	const manifest = job.output_manifest ?? {};
 	const cta = manifest.cta as { startMs?: number; endMs?: number } | null | undefined;
 	const frames = [0.08, 0.3, 0.5, 0.7].map((ratio) => ({
 		timeMs: Math.round(durationMs * ratio),

@@ -87,6 +87,7 @@ export async function loadCaptionContext(
 	episodeId: string,
 	requestedVersion?: number | null,
 	requestedTakeId?: string | null,
+	pinTake = false,
 ): Promise<CaptionContext> {
 	const { data: episode, error: episodeError } = await db
 		.from('episodes')
@@ -160,11 +161,15 @@ export async function loadCaptionContext(
 		voicePlan?.current_status === 'APPROVED'
 			? ((voicePlan.plan as { takeId?: unknown } | null)?.takeId ?? null)
 			: null;
-	const takeId =
-		requestedTakeId ?? (typeof plannedTake === 'string' ? plannedTake : (latestTake?.id ?? null));
-	let audioSha256 = latestTake?.sha256 ?? null;
+	const takeId = pinTake
+		? (requestedTakeId ?? null)
+		: (requestedTakeId ??
+			(typeof plannedTake === 'string' ? plannedTake : (latestTake?.id ?? null)));
+	let audioSha256 = pinTake ? null : (latestTake?.sha256 ?? null);
 	let plannedTakeReady = false;
-	const selectedTakeId = requestedTakeId ?? (typeof plannedTake === 'string' ? plannedTake : null);
+	const selectedTakeId = pinTake
+		? (requestedTakeId ?? null)
+		: (requestedTakeId ?? (typeof plannedTake === 'string' ? plannedTake : null));
 	if (selectedTakeId) {
 		const { data: selected } = await db
 			.from('narration_takes')
@@ -547,6 +552,7 @@ export async function getCaptionExports(input: {
 	episodeId: string;
 	planVersion?: number | null;
 	narrationTakeId?: string | null;
+	pinTake?: boolean;
 }): Promise<{ srt: string; ass: string } | null> {
 	const context =
 		input.planVersion && input.planVersion > 0
@@ -556,6 +562,7 @@ export async function getCaptionExports(input: {
 					input.episodeId,
 					input.planVersion,
 					input.narrationTakeId ?? null,
+					input.pinTake ?? false,
 				)
 			: await loadCaptionContext(
 					input.db,
@@ -563,6 +570,7 @@ export async function getCaptionExports(input: {
 					input.episodeId,
 					null,
 					input.narrationTakeId ?? null,
+					input.pinTake ?? false,
 				);
 	const stored = await loadCaptionTrack(
 		input.db,

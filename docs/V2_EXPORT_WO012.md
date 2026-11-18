@@ -54,11 +54,11 @@ A primeira auditoria independente retornou **CORRECTION REQUIRED** (H1: `complet
 - **H2:** `BLACK_FRAMES`, `FREEZE_FRAMES` e `SILENCE` viraram WARN com severidade HIGH/MEDIUM e podem ser reconhecidos pelo owner com justificativa; BLOCKED fica restrito a falhas técnicas (hash, codec, decode, áudio, safe area, legendas/CTA ausentes). Sobreposição parcial de exceção agora desconta só a janela aprovada.
 - **M1:** CTA habilitada com legendas desativadas vira BLOCKED (a CTA não entraria no MP4).
 - **M2:** download bloqueia qualquer check crítico `NOT_TESTED` (ex.: safe area de plano legado).
-- **M3:** a página de exportação mantém o relatório mais recente por job e valida o JSON com Zod.
-- **M4:** QA mede fps/pix format do probe e adiciona nível integrado (LUFS) quando disponível.
-- **M5:** UI ganhou filtro de checks, exceções visíveis e link para a timeline.
-- **M6:** SRT usa `takeId` da narração pinada no manifesto quando disponível.
-- **M7:** worker usa o `reportSha256/status` retornados pelo registro existente, grava artefatos locais por job id e extrai `QA_*` do stderr sem depender do início da linha.
+- **M3:** exceção de sobreposição parcial desconta só a janela aprovada e registra o intervalo real.
+- **M4:** a página de exportação mantém o relatório do SHA do manifesto e valida o JSON com Zod.
+- **M5:** QA mede fps/pix format do probe e adiciona nível integrado (LUFS) quando disponível.
+- **M6:** UI ganhou filtro de checks, exceções visíveis e link para a timeline.
+- **M7:** SRT/ASS usam `takeId` da narração pinada (ou `none` explícito); worker usa o `reportSha256/status` retornados, grava artefatos locais por job id e extrai `QA_*` do stderr sem depender do início da linha.
 - **M8:** evidência/docs foram recontadas após os testes.
 
 ## Riscos e residuais

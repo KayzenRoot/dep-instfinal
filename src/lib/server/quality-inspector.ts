@@ -137,8 +137,8 @@ function overlappingException(
 	if (!window) return null;
 	return {
 		checkId,
-		startMs: segment.startMs,
-		endMs: segment.endMs,
+		startMs: Math.max(segment.startMs, window.startMs),
+		endMs: Math.min(segment.endMs, window.endMs),
 		reason: window.reason,
 		source: 'DIRECTOR',
 	};

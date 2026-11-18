@@ -44,25 +44,30 @@ export const load: PageServerLoad = async (event) => {
 			)
 			.eq('owner_id', owner.id)
 			.order('created_at', { ascending: false })
-			.limit(20),
+			.limit(100),
 	]);
 	if (jobsResult.error || reportsResult.error)
 		throw new Error('Não foi possível listar os renders exportáveis.');
 	const reports = new Map<string, QualityReportRow>();
 	for (const report of (reportsResult.data ?? []) as QualityReportRow[]) {
-		if (reports.has(report.job_id)) continue;
+		const key = `${report.job_id}:${report.artifact_sha256}`;
+		if (reports.has(key)) continue;
 		const parsed = qualityInspectionReportSchema.safeParse(report.report);
 		if (!parsed.success) continue;
-		reports.set(report.job_id, { ...report, report: parsed.data });
+		reports.set(key, { ...report, report: parsed.data });
 	}
 	const titles = new Map(episodes.map((episode) => [episode.id, episode.title]));
 	return {
 		episodes,
-		renders: (jobsResult.data ?? []).map((job) => ({
-			...job,
-			episode_title: titles.get(job.episode_id as string) ?? 'Episódio',
-			report: reports.get(job.id as string) ?? null,
-		})),
+		renders: (jobsResult.data ?? []).map((job) => {
+			const manifest = job.output_manifest as Record<string, unknown> | null;
+			const sha256 = typeof manifest?.sha256 === 'string' ? manifest.sha256 : null;
+			return {
+				...job,
+				episode_title: titles.get(job.episode_id as string) ?? 'Episódio',
+				report: sha256 ? (reports.get(`${job.id}:${sha256}`) ?? null) : null,
+			};
+		}),
 	};
 };
 

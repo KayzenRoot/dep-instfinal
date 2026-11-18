@@ -9,7 +9,7 @@ export const GET: RequestHandler = async (event) => {
 	if (rawVersion && (!Number.isInteger(planVersion) || planVersion! < 1))
 		return new Response('Versão inválida.', { status: 400 });
 	const rawTake = event.url.searchParams.get('takeId');
-	if (rawTake && !/^[0-9a-f-]{36}$/i.test(rawTake))
+	if (rawTake && rawTake !== 'none' && !/^[0-9a-f-]{36}$/i.test(rawTake))
 		return new Response('Take inválido.', { status: 400 });
 	try {
 		return await captionExportResponse({
@@ -17,7 +17,8 @@ export const GET: RequestHandler = async (event) => {
 			owner,
 			episodeId: event.params.episodeId,
 			planVersion,
-			narrationTakeId: rawTake,
+			narrationTakeId: rawTake === 'none' ? null : rawTake,
+			pinTake: rawTake !== null,
 			format: 'srt',
 		});
 	} catch (cause) {

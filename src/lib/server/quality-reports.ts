@@ -87,14 +87,17 @@ export async function loadQualityReportForJob(
 	db: SupabaseClient,
 	ownerId: string,
 	jobId: string,
+	artifactSha256?: string | null,
 ): Promise<QualityReportRow | null> {
-	const { data, error } = await db
+	let query = db
 		.from('render_quality_reports')
 		.select(
 			'id,owner_id,job_id,episode_id,plan_id,plan_version,artifact_sha256,report_sha256,status,report,acknowledged_at,acknowledged_by,acknowledgement_note,created_at',
 		)
 		.eq('owner_id', ownerId)
-		.eq('job_id', jobId)
+		.eq('job_id', jobId);
+	if (artifactSha256) query = query.eq('artifact_sha256', artifactSha256);
+	const { data, error } = await query
 		.order('created_at', { ascending: false })
 		.limit(1)
 		.maybeSingle();

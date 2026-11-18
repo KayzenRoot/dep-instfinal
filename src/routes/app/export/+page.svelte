@@ -128,8 +128,8 @@
 
 	function srtHref(render: RenderView): string {
 		const base = resolve('/api/captions/[episodeId]/srt', { episodeId: render.episode_id });
-		const takeId = manifest(render)?.captions?.narrationTakeId;
-		return `${base}?planVersion=${render.plan_version}${takeId ? `&takeId=${encodeURIComponent(takeId)}` : ''}`;
+		const takeId = manifest(render)?.captions?.narrationTakeId ?? 'none';
+		return `${base}?planVersion=${render.plan_version}&takeId=${encodeURIComponent(takeId)}`;
 	}
 </script>
 
