@@ -1951,7 +1951,7 @@ select is(
 select lives_ok(
   $$insert into public.hook_variants (
       owner_id, episode_id, plan_id, plan_version, variant_key, label, objective,
-      source_plan_hash, opening_clip_id, opening_asset_id, opening_scene_index,
+      source_plan_hash, opening_clip_id, opening_asset_id, opening_clip_index,
       opening_start_ms, opening_end_ms, premise, score, reasons
     )
     select owner_id, episode_id, plan_id, plan_version, 'cold_open',
@@ -1970,7 +1970,7 @@ select is(
 select throws_ok(
   $$insert into public.hook_variants (
       owner_id, episode_id, plan_id, plan_version, variant_key, label, objective,
-      source_plan_hash, opening_clip_id, opening_asset_id, opening_scene_index,
+      source_plan_hash, opening_clip_id, opening_asset_id, opening_clip_index,
       opening_start_ms, opening_end_ms, premise, score, reasons
     ) values (
       '11111111-1111-4111-8111-111111111111',

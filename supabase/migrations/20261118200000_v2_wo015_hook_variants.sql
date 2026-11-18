@@ -13,7 +13,7 @@ create table public.hook_variants (
   source_plan_hash text not null check (source_plan_hash ~ '^[0-9a-f]{64}$'),
   opening_clip_id uuid not null,
   opening_asset_id uuid not null,
-  opening_scene_index integer not null check (opening_scene_index >= 0),
+  opening_clip_index integer not null check (opening_clip_index >= 0),
   opening_start_ms integer not null check (opening_start_ms >= 0),
   opening_end_ms integer not null check (opening_end_ms > opening_start_ms),
   premise text not null check (char_length(btrim(premise)) between 8 and 300),

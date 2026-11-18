@@ -10,7 +10,7 @@ export const hookVariantDraftSchema = z.object({
 	objective: hookObjectiveSchema,
 	openingClipId: z.string().uuid(),
 	openingAssetId: z.string().uuid(),
-	openingSceneIndex: z.number().int().min(0),
+	openingClipIndex: z.number().int().min(0),
 	openingStartMs: z.number().int().min(0),
 	openingEndMs: z.number().int().min(1),
 	premise: z.string().min(8).max(300),

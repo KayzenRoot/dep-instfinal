@@ -2,6 +2,7 @@ import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { captionTrackSchema, type CaptionTrack } from '#lib/schemas/captions.js';
 import { hookVariantDraftSchema, type HookVariantRow } from '#lib/schemas/hook-variants.js';
 import { applyHookVariant, buildHookVariants } from '#lib/domain/hook-lab.js';
+import { videoEditPlanSchema } from '#lib/schemas/video-edit-plan.js';
 import {
 	loadEditPlan,
 	manifestHash,
@@ -33,7 +34,7 @@ function mapRow(row: Record<string, unknown>): HookVariantRow {
 		sourcePlanHash: row.source_plan_hash as string,
 		openingClipId: row.opening_clip_id as string,
 		openingAssetId: row.opening_asset_id as string,
-		openingSceneIndex: Number(row.opening_scene_index),
+		openingClipIndex: Number(row.opening_clip_index),
 		openingStartMs: Number(row.opening_start_ms),
 		openingEndMs: Number(row.opening_end_ms),
 		premise: row.premise as string,
@@ -163,7 +164,7 @@ export async function generateHookVariants(input: {
 			source_plan_hash: manifestHash(plan),
 			opening_clip_id: draft.openingClipId,
 			opening_asset_id: draft.openingAssetId,
-			opening_scene_index: draft.openingSceneIndex,
+			opening_clip_index: draft.openingClipIndex,
 			opening_start_ms: draft.openingStartMs,
 			opening_end_ms: draft.openingEndMs,
 			premise: draft.premise,
@@ -204,6 +205,27 @@ export async function applyVariantAsPlan(input: {
 	const variant = mapRow(data as Record<string, unknown>);
 	const stored = await loadEditPlan(input.db, input.owner, input.episodeId);
 	if (!stored.plan) throw new HookLabError(409, 'HOOK_PLAN_MISSING', 'Plano atual não encontrado.');
+	const { data: sourceVersion } = await input.db
+		.from('video_edit_plan_versions')
+		.select('plan')
+		.eq('owner_id', input.owner.id)
+		.eq('plan_id', variant.planId)
+		.eq('version', variant.planVersion)
+		.maybeSingle();
+	const sourcePlan = sourceVersion ? videoEditPlanSchema.safeParse(sourceVersion.plan) : null;
+	if (!sourcePlan?.success)
+		throw new HookLabError(409, 'HOOK_STALE', 'Versão base da abertura não está disponível.');
+	const signature = (clips: typeof stored.plan.plan.clips) =>
+		clips
+			.map((clip) => `${clip.id}:${clip.assetId}:${clip.sourceInMs}:${clip.sourceOutMs}`)
+			.sort()
+			.join('|');
+	if (signature(sourcePlan.data.clips) !== signature(stored.plan.plan.clips))
+		throw new HookLabError(
+			409,
+			'HOOK_STALE',
+			'O plano atual tem cortes diferentes da versão base; gere aberturas novamente.',
+		);
 	if (!stored.plan.plan.clips.some((clip) => clip.id === variant.openingClipId))
 		throw new HookLabError(
 			409,

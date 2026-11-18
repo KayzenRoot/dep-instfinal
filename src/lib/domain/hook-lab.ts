@@ -90,7 +90,7 @@ function variantFor(
 		objective,
 		openingClipId: clip.id,
 		openingAssetId: clip.assetId,
-		openingSceneIndex: clipIndex,
+		openingClipIndex: clipIndex,
 		openingStartMs: clip.sourceInMs,
 		openingEndMs: Math.min(
 			clip.sourceOutMs,
