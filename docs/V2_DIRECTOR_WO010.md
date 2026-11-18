@@ -1,7 +1,7 @@
 # DIF-V2-WO-010 — Diretor de edição e curva de tensão
 
-**Status:** implementação completa em `feat/dif-v2-wo-010`; unit, typecheck, lint, policy, build, PgTAP, E2E, CI, Sonar, Socket e ARM64 **PASS**; auditoria round 2 **APPROVED WITH RESIDUALS**, correções E1/E2 aplicadas; aceitação humana **PENDENTE**. **Não merged**, **sem deploy de produção**, checkpoint apenas **PROPOSED**.
-**Base:** `main` `faa329a` (checkpoint WO-009 promovido).
+**Status:** **PROMOTED** em `1824061` (squash-merge do PR #58); issue #27 fechada. Unit 181+3, PgTAP 131/131, E2E 13/13, CI `44191794064`, Sonar, Socket e ARM64 **PASS**; auditoria round 2 **APPROVED WITH RESIDUALS**; owner autorizou continuidade/merge em 2026-11-18 (“continue de onde parou”), com a ressalva registrada de que não houve veredito separado “aprovado” sobre as amostras. **Sem deploy de produção.**
+**Base:** `main` `faa329a` (checkpoint WO-009 promovido); merge em `1824061`.
 **Escopo:** WO-010 (#27) + addendum ENH-03 (curva de tensão cinematográfica), dependente de WO-004/WO-006/WO-008/WO-009.
 
 ## Entregue
@@ -26,21 +26,21 @@
 
 ## Critérios de aceitação
 
-| Critério                                                                         | Estado         | Evidência                                                                                          |
-| -------------------------------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------- |
-| Mesmo roteiro/assets/seed produzem plano equivalente offline                     | **PASS local** | `edit-director.test.ts`: hash determinístico, variação por seed, 3 presets                         |
-| Usuário solicita IA opcional, vê sugestões e rejeita sem alterar cânone          | **PASS local** | modo offline padrão; provider retorna DRAFT com `acceptedEventIds=[]`; UI exige aceite explícito   |
-| JSON inválido, timecode negativo, asset foreign, efeito fora da allowlist        | **PASS local** | `director-ai.test.ts`: JSON inválido, asset estrangeiro e timecode fora; schema Zod rejeita demais |
-| Caso “porta abre”: efeito no instante, pausa antes da revelação, sync preservado | **PASS local** | planner ancora silêncio/porta na cena de revelação; E2E cobre aplicação; render windows testadas   |
-| Zero chamadas de API no modo offline, inclusive em retries                       | **PASS local** | `suggestDirectorWithGemini` não chama `fetch` sem chave; action offline usa apenas planner         |
-| 120 s/15 cenas com ≥4 fases por preset                                           | **PASS local** | `edit-director.test.ts` verifica 6 marcadores e 4+ fases nos três presets                          |
-| Edição manual de 3 pontos persiste após relogin                                  | **PASS local** | E2E edita 3 tensões e confirma após reload e após novo login                                       |
-| Curva impacta mix/render nos timecodes corretos sem dessincronizar               | **PASS local** | testes unitários de ganho/duração; filtros `eq/volume enable`; timing de clipes intocado           |
-| Preview e render com hash/versionamento e antes/depois                           | **PASS local** | `planHash`, versão do plano, curva anterior tracejada e histórico; render usa plano aprovado       |
-| `slow-burn` usa menos efeitos que `reveal`                                       | **PASS local** | teste unitário diferencia a contagem de eventos                                                    |
-| Rejeitar pontos inválidos/inputs maliciosos                                      | **PASS local** | pontos não monotônicos e glitch >700 ms rejeitados; prompt injection tratado como dados            |
-| E2E sugerir → revisar → aplicar → reverter → render                              | **PASS local** | `e2e/timeline.spec.ts` 1/1 em 12,8 min; worker real concluiu READY                                 |
-| Aceitação visual/auditiva humana dos 3 presets                                   | **PENDENTE**   | amostras em `docs/evidence/wo-010/review/`; requer resposta explícita do owner                     |
+| Critério                                                                         | Estado               | Evidência                                                                                                                                                   |
+| -------------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mesmo roteiro/assets/seed produzem plano equivalente offline                     | **PASS local**       | `edit-director.test.ts`: hash determinístico, variação por seed, 3 presets                                                                                  |
+| Usuário solicita IA opcional, vê sugestões e rejeita sem alterar cânone          | **PASS local**       | modo offline padrão; provider retorna DRAFT com `acceptedEventIds=[]`; UI exige aceite explícito                                                            |
+| JSON inválido, timecode negativo, asset foreign, efeito fora da allowlist        | **PASS local**       | `director-ai.test.ts`: JSON inválido, asset estrangeiro e timecode fora; schema Zod rejeita demais                                                          |
+| Caso “porta abre”: efeito no instante, pausa antes da revelação, sync preservado | **PASS local**       | planner ancora silêncio/porta na cena de revelação; E2E cobre aplicação; render windows testadas                                                            |
+| Zero chamadas de API no modo offline, inclusive em retries                       | **PASS local**       | `suggestDirectorWithGemini` não chama `fetch` sem chave; action offline usa apenas planner                                                                  |
+| 120 s/15 cenas com ≥4 fases por preset                                           | **PASS local**       | `edit-director.test.ts` verifica 6 marcadores e 4+ fases nos três presets                                                                                   |
+| Edição manual de 3 pontos persiste após relogin                                  | **PASS local**       | E2E edita 3 tensões e confirma após reload e após novo login                                                                                                |
+| Curva impacta mix/render nos timecodes corretos sem dessincronizar               | **PASS local**       | testes unitários de ganho/duração; filtros `eq/volume enable`; timing de clipes intocado                                                                    |
+| Preview e render com hash/versionamento e antes/depois                           | **PASS local**       | `planHash`, versão do plano, curva anterior tracejada e histórico; render usa plano aprovado                                                                |
+| `slow-burn` usa menos efeitos que `reveal`                                       | **PASS local**       | teste unitário diferencia a contagem de eventos                                                                                                             |
+| Rejeitar pontos inválidos/inputs maliciosos                                      | **PASS local**       | pontos não monotônicos e glitch >700 ms rejeitados; prompt injection tratado como dados                                                                     |
+| E2E sugerir → revisar → aplicar → reverter → render                              | **PASS local**       | `e2e/timeline.spec.ts` 1/1 em 12,8 min; worker real concluiu READY                                                                                          |
+| Aceitação visual/auditiva humana dos 3 presets                                   | **PASS c/ ressalva** | owner autorizou continuidade/merge após receber as amostras (“continue de onde parou”); não houve veredito separado “aprovado” — ver `owner-acceptance.txt` |
 
 ## Testes
 
@@ -83,4 +83,4 @@ A primeira auditoria (head `e196ca7`) retornou **CORRECTION REQUIRED** por um HI
 
 ## Gate
 
-Testes completos, PgTAP, E2E, CI, Evidence Bundle, Checkpoint Delta PROPOSED, auditoria independente e autorização explícita de merge/promoção. **Sem merge/deploy.**
+Testes completos, PgTAP, E2E, CI, Evidence Bundle, Checkpoint Delta, auditoria independente e autorização de continuidade do owner. **Merged** em `1824061`; sem deploy de produção. WO-011 (#28) é a próxima WO e deve confirmar suas dependências no corpo da issue.

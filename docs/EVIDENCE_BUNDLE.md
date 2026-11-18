@@ -1,10 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROPOSED
+## V2 WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-010` · issue #27 · epic #17 · addendum ENH-03
-- **Base:** `main` `faa329a`; branch `feat/dif-v2-wo-010`
-- **Status:** implementação completa; suite unit **181+3**, typecheck/lint/policy/build, PgTAP 131/131, E2E 13/13, CI `44190122840`, Sonar, Socket e ARM64 **PASS**; auditoria round 2 **APPROVED WITH RESIDUALS**; aceitação humana **PENDENTE**. Checkpoint apenas **PROPOSED**; sem merge/deploy de produção.
+- **Base:** `main` `faa329a`; branch `feat/dif-v2-wo-010`; merge `1824061`
+- **Status:** **PROMOTED**; suite unit **181+3**, typecheck/lint/policy/build, PgTAP 131/131, E2E 13/13, CI `44190122840`/`44191794064`, Sonar, Socket e ARM64 **PASS**; auditoria round 2 **APPROVED WITH RESIDUALS**; owner autorizou continuidade/merge em 2026-11-18 (“continue de onde parou”), com ressalva de ausência de veredito separado “aprovado”. Sem deploy de produção.
 
 | Check        | Result       | Evidence                                                                                                            |
 | ------------ | ------------ | ------------------------------------------------------------------------------------------------------------------- |

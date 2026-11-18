@@ -1,0 +1,32 @@
+# WO-010 — autorização do owner
+
+Data: 2026-11-18 (America/Sao_Paulo)
+
+## Instrução registrada
+
+Após a entrega dos três excertos de revisão em `docs/evidence/wo-010/review/` e
+da pergunta sobre aprovação dos presets, o owner respondeu textualmente:
+
+```
+continue de onde parou
+```
+
+## Interpretação e escopo
+
+A instrução foi tratada como autorização para continuar o fluxo já iniciado e
+para efetuar o merge/promoção sob a autorização permanente de merge concedida
+anteriormente ("autorizo tudo inclusive merge quando vc achar que esta bom e sem
+erros"), condicionada a auditoria e CI verdes.
+
+- Auditoria independente round 2: **APPROVED WITH RESIDUALS**.
+- CI final do PR #58: **SUCCESS** (run `44191794064`).
+- ARM64, Sonar e Socket: **PASS**.
+- PR #58 squash-merged em `1824061`; issue #27 fechada.
+
+## Ressalva registrada
+
+Não houve um veredito visual/auditivo separado com a palavra "aprovado" depois da
+entrega das amostras. O merge foi feito por instrução explícita de continuidade
+do owner, não por uma afirmação de que ele assistiu/ouviu os três clipes. Os
+clipes e seus hashes permanecem disponíveis para revisão posterior; qualquer
+ajuste visual/auditivo deve ser tratado como correção pós-merge.
