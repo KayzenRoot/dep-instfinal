@@ -94,7 +94,11 @@ export async function loadQualityReportForJob(
 		.limit(1)
 		.maybeSingle();
 	if (error) return null;
-	return (data as QualityReportRow | null) ?? null;
+	const row = (data as QualityReportRow | null) ?? null;
+	if (!row) return null;
+	const parsed = qualityInspectionReportSchema.safeParse(row.report);
+	if (!parsed.success) return null;
+	return { ...row, report: parsed.data };
 }
 
 export async function acknowledgeQualityReport(input: {

@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { acceptedDirectorEvents } from '#lib/domain/edit-director.js';
 import { captionTextFitsBox, wrapCtaText } from '#lib/domain/caption-metrics.js';
@@ -267,9 +268,11 @@ export async function inspectRenderArtifact(
 	const expectedHeight = input.outputProfile === '720p' ? 1280 : 1920;
 	const durationMs = input.output.durationMs;
 
-	const bytes = await readFile(input.output.path);
-	const sha256 = createHash('sha256').update(bytes).digest('hex');
-	const hashMatches = sha256 === input.output.sha256 && bytes.byteLength === input.output.byteSize;
+	const artifactStat = await stat(input.output.path);
+	const hash = createHash('sha256');
+	for await (const chunk of createReadStream(input.output.path)) hash.update(chunk);
+	const sha256 = hash.digest('hex');
+	const hashMatches = sha256 === input.output.sha256 && artifactStat.size === input.output.byteSize;
 	checks.push(
 		check(
 			'ARTIFACT_HASH',
@@ -280,7 +283,7 @@ export async function inspectRenderArtifact(
 				: 'SHA-256 ou tamanho não conferem com o render.',
 			{
 				severity: hashMatches ? undefined : 'HIGH',
-				evidence: [{ value: bytes.byteLength, unit: 'bytes', detail: sha256 }],
+				evidence: [{ value: artifactStat.size, unit: 'bytes', detail: sha256 }],
 			},
 		),
 	);
