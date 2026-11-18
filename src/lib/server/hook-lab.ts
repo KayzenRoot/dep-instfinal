@@ -50,6 +50,23 @@ function mapRow(row: Record<string, unknown>): HookVariantRow {
 	};
 }
 
+async function loadVariantRow(
+	db: SupabaseClient,
+	ownerId: string,
+	episodeId: string,
+	variantId: string,
+): Promise<HookVariantRow> {
+	const { data, error } = await db
+		.from('hook_variants')
+		.select('*')
+		.eq('owner_id', ownerId)
+		.eq('episode_id', episodeId)
+		.eq('id', variantId)
+		.maybeSingle();
+	if (error || !data) throw new HookLabError(404, 'HOOK_NOT_FOUND', 'Abertura não encontrada.');
+	return mapRow(data as Record<string, unknown>);
+}
+
 async function loadCaptionForVersion(
 	db: SupabaseClient,
 	ownerId: string,
@@ -194,15 +211,7 @@ export async function applyVariantAsPlan(input: {
 	episodeId: string;
 	variantId: string;
 }): Promise<number> {
-	const { data, error } = await input.db
-		.from('hook_variants')
-		.select('*')
-		.eq('owner_id', input.owner.id)
-		.eq('episode_id', input.episodeId)
-		.eq('id', input.variantId)
-		.maybeSingle();
-	if (error || !data) throw new HookLabError(404, 'HOOK_NOT_FOUND', 'Abertura não encontrada.');
-	const variant = mapRow(data as Record<string, unknown>);
+	const variant = await loadVariantRow(input.db, input.owner.id, input.episodeId, input.variantId);
 	const stored = await loadEditPlan(input.db, input.owner, input.episodeId);
 	if (!stored.plan) throw new HookLabError(409, 'HOOK_PLAN_MISSING', 'Plano atual não encontrado.');
 	const { data: sourceVersion } = await input.db
@@ -274,15 +283,7 @@ export async function revertHookVariant(input: {
 	episodeId: string;
 	variantId: string;
 }): Promise<number> {
-	const { data, error } = await input.db
-		.from('hook_variants')
-		.select('*')
-		.eq('owner_id', input.owner.id)
-		.eq('episode_id', input.episodeId)
-		.eq('id', input.variantId)
-		.maybeSingle();
-	if (error || !data) throw new HookLabError(404, 'HOOK_NOT_FOUND', 'Abertura não encontrada.');
-	const variant = mapRow(data as Record<string, unknown>);
+	const variant = await loadVariantRow(input.db, input.owner.id, input.episodeId, input.variantId);
 	const stored = await loadEditPlan(input.db, input.owner, input.episodeId);
 	if (!stored.plan) throw new HookLabError(409, 'HOOK_PLAN_MISSING', 'Plano atual não encontrado.');
 	const version = await restoreVideoEditPlan({

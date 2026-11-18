@@ -1968,18 +1968,8 @@ select is(
   'owner can read hook variants'
 );
 select throws_ok(
-  $$insert into public.hook_variants (
-      owner_id, episode_id, plan_id, plan_version, variant_key, label, objective,
-      source_plan_hash, opening_clip_id, opening_asset_id, opening_clip_index,
-      opening_start_ms, opening_end_ms, premise, score, reasons
-    ) values (
-      '11111111-1111-4111-8111-111111111111',
-      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
-      (select plan_id from public.render_jobs limit 1),
-      (select plan_version from public.render_jobs limit 1),
-      'intriguing_line', 'Spoof', 'REVEAL', repeat('b', 64),
-      gen_random_uuid(), gen_random_uuid(), 0, 0, 8000, 'Spoof', 50, '[]'::jsonb
-    );$$,
+  $$insert into public.hook_variants (owner_id)
+    values ('11111111-1111-4111-8111-111111111111');$$,
   '42501', 'permission denied for table hook_variants',
   'owner cannot write hook variants directly'
 );
