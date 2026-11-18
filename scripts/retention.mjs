@@ -1,48 +1,16 @@
 #!/usr/bin/env node
 // Dry-run-first retention for local render artifacts. R2 lifecycle/GC stays
 // manual until the bucket-scoped token gets lifecycle permission (WO-013 note).
-import { execFileSync } from 'node:child_process';
 import { readdir, stat, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
-function parseEnvironment(output) {
-	return Object.fromEntries(
-		output
-			.split(/\r?\n/)
-			.map((line) => line.match(/^(?:export\s+)?([A-Z][A-Z0-9_]*)=(.*)$/))
-			.filter(Boolean)
-			.map(([, name, raw]) => {
-				const value = raw.trim();
-				return [name, value.startsWith('"') ? JSON.parse(value) : value.replace(/^'|'$/g, '')];
-			}),
-	);
-}
-
 function supabaseEnvironment() {
-	if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
-		return {
-			url: process.env.SUPABASE_URL,
-			key: process.env.SUPABASE_SERVICE_ROLE_KEY,
-		};
-	const output =
-		process.platform === 'win32'
-			? execFileSync(
-					process.env.ComSpec ?? 'cmd.exe',
-					['/d', '/s', '/c', 'supabase status --output env'],
-					{
-						encoding: 'utf8',
-						stdio: ['ignore', 'pipe', 'pipe'],
-					},
-				)
-			: execFileSync('supabase', ['status', '--output', 'env'], {
-					encoding: 'utf8',
-					stdio: ['ignore', 'pipe', 'pipe'],
-				});
-	const env = parseEnvironment(output);
-	if (!env.API_URL || !env.SERVICE_ROLE_KEY)
-		throw new Error('Supabase API_URL/SERVICE_ROLE_KEY missing.');
-	return { url: env.API_URL, key: env.SERVICE_ROLE_KEY };
+	const url = process.env.SUPABASE_URL;
+	const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+	if (!url || !key)
+		throw new Error('Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (no PATH lookup).');
+	return { url, key };
 }
 
 function argumentsFrom(argv) {

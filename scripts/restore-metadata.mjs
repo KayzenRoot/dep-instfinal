@@ -11,7 +11,7 @@ import {
 	statSync,
 	writeFileSync,
 } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 
 function option(name, fallback) {
 	const index = process.argv.indexOf(name);
@@ -25,6 +25,9 @@ const database = option('--database', 'dif_restore_test');
 if (!/^dif_restore_test[a-z0-9_]{0,48}$/.test(database))
 	throw new Error('Refusing to restore into a non-disposable database name.');
 const container = option('--container', 'supabase_db_dif-studio-local');
+const dockerBin = process.env.DOCKER_BIN;
+if (!dockerBin || !isAbsolute(dockerBin))
+	throw new Error('Set DOCKER_BIN to an absolute Docker CLI path (no PATH lookup).');
 if (!/^supabase_db_[a-z0-9_-]{1,64}$/.test(container))
 	throw new Error('Refusing an unexpected Docker container name.');
 const summary = JSON.parse(readFileSync(join(backupDir, 'summary.json'), 'utf8'));
@@ -64,7 +67,7 @@ const dataSql = dataBytes.toString('utf8');
 
 function psql(target, args, input) {
 	return execFileSync(
-		'docker',
+		dockerBin,
 		['exec', '-i', container, 'psql', '-U', 'postgres', '-d', target, ...args],
 		{
 			input,

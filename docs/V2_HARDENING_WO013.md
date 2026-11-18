@@ -14,6 +14,20 @@
 - `scripts/retention.mjs`: dry-run por padrão, referencia artefatos locais aos manifests, exige `--confirm` para deletar, recusa exclusão com jobs ativos e mantém R2 manual.
 - `grant select` explícito ao service role para as 19 tabelas operacionais usadas por backup/health.
 
+## Runbook mínimo dos scripts
+
+```bash
+export SUPABASE_URL=http://127.0.0.1:54321
+export SUPABASE_SERVICE_ROLE_KEY=...
+export SUPABASE_CLI_JS=/caminho/absoluto/node_modules/supabase/dist/supabase.js
+npm run backup:metadata -- --out-dir /caminho/privado
+
+export DOCKER_BIN=/caminho/absoluto/docker
+npm run restore:metadata -- --backup-dir /caminho/privado --database dif_restore_test
+```
+
+`retention` usa apenas `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; o dry-run é o padrão e `--delete-local --confirm` é obrigatório para excluir.
+
 ## Capacidade real versus planejada
 
 - R2 lifecycle/GC continua manual: o token bucket-scoped do R2 recebe `AccessDenied` em APIs de lifecycle; nenhuma exclusão remota é feita por script.
@@ -50,7 +64,7 @@ A primeira auditoria independente retornou **CORRECTION REQUIRED** (F1–F11). A
 - **F3/F4:** jobs e laudos são paginados; retenção e backup falham fechado em erro em vez de truncar em 1000.
 - **F7:** CANCELED conta na cota diária, advisory lock por owner e teto de bytes documentado como soft.
 - **F8:** env numérico do worker usa parser finito com fallback (poll/lease/reserva/intervalo).
-- **F9/F10:** `-filter_threads` aplicado além de `-threads`; backup usa diretório privado com modo 0700/0600 e permite `SUPABASE_BIN`.
+- **F9/F10:** `-filter_threads` aplicado além de `-threads`; backup usa diretório privado 0700/0600; scripts exigem caminhos absolutos (`SUPABASE_CLI_JS`, `DOCKER_BIN`) e credenciais por env, sem lookup de PATH.
 - **F11:** documentação reclassifica benchmark de CPU/RAM como parcial e não declara sucesso quando o blob está ausente.
 
 ## Riscos e residuais

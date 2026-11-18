@@ -5,38 +5,15 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
-function parseEnvironment(output) {
-	return Object.fromEntries(
-		output
-			.split(/\r?\n/)
-			.map((line) => line.match(/^(?:export\s+)?([A-Z][A-Z0-9_]*)=(.*)$/))
-			.filter(Boolean)
-			.map(([, name, raw]) => {
-				const value = raw.trim();
-				return [name, value.startsWith('"') ? JSON.parse(value) : value.replace(/^'|'$/g, '')];
-			}),
-	);
-}
-
 function supabaseEnvironment() {
-	const output =
-		process.platform === 'win32'
-			? execFileSync(
-					process.env.ComSpec ?? 'cmd.exe',
-					['/d', '/s', '/c', 'supabase status --output env'],
-					{ encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
-				)
-			: execFileSync('supabase', ['status', '--output', 'env'], {
-					encoding: 'utf8',
-					stdio: ['ignore', 'pipe', 'pipe'],
-				});
-	const env = parseEnvironment(output);
-	if (!env.API_URL || !env.SERVICE_ROLE_KEY)
-		throw new Error('Supabase API_URL/SERVICE_ROLE_KEY missing.');
-	return { url: env.API_URL, key: env.SERVICE_ROLE_KEY };
+	const url = process.env.SUPABASE_URL;
+	const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+	if (!url || !key)
+		throw new Error('Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (no PATH lookup).');
+	return { url, key };
 }
 
 function option(name, fallback) {
@@ -52,21 +29,27 @@ mkdirSync(outDir, { recursive: true, mode: 0o700 });
 const schemaPath = join(outDir, 'schema.sql');
 const dataPath = join(outDir, 'data.sql');
 
-const supabaseBin = process.env.SUPABASE_BIN ?? 'supabase';
-const dumpOptions = {
-	stdio: ['ignore', 'inherit', 'inherit'],
-	shell: process.platform === 'win32',
-};
-execFileSync(
-	supabaseBin,
-	['db', 'dump', '--local', '--schema', 'public', '-f', schemaPath],
-	dumpOptions,
-);
-execFileSync(
-	supabaseBin,
-	['db', 'dump', '--local', '--data-only', '--schema', 'public', '--use-copy', '-f', dataPath],
-	dumpOptions,
-);
+const supabaseCli = process.env.SUPABASE_CLI_JS;
+if (!supabaseCli || !isAbsolute(supabaseCli))
+	throw new Error('Set SUPABASE_CLI_JS to an absolute Supabase CLI JS path (no PATH lookup).');
+
+function runSupabase(args) {
+	execFileSync(process.execPath, [supabaseCli, ...args], {
+		stdio: ['ignore', 'inherit', 'inherit'],
+	});
+}
+runSupabase(['db', 'dump', '--local', '--schema', 'public', '-f', schemaPath]);
+runSupabase([
+	'db',
+	'dump',
+	'--local',
+	'--data-only',
+	'--schema',
+	'public',
+	'--use-copy',
+	'-f',
+	dataPath,
+]);
 chmodSync(schemaPath, 0o600);
 chmodSync(dataPath, 0o600);
 
