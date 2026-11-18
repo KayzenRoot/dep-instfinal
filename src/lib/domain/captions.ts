@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto';
 import { formatSrtTime } from './timeline.js';
 import type { CaptionCue, CaptionStyle, CaptionTrack, CaptionWord } from '#lib/schemas/captions.js';
+import type { PreviewBox } from '#lib/schemas/platform-preview.js';
+
+export interface CaptionLayout {
+	captionBox: PreviewBox;
+	ctaBox: PreviewBox;
+}
 
 export class CaptionError extends Error {
 	constructor(
@@ -259,23 +265,20 @@ function splitWordToWidth(word: string, maxWidth: number, maxChars = MAX_LINE_CH
 	return pieces.length ? pieces : [word];
 }
 
-function wrapLines(words: CaptionWord[]): string[][] {
+function wrapLines(words: CaptionWord[], maxWidth = CAPTION_SAFE_WIDTH): string[][] {
 	const lines: string[][] = [];
 	let current: string[] = [];
 	let length = 0;
 	let width = 0;
 	for (const word of words) {
-		const pieces = splitWordToWidth(word.text, CAPTION_SAFE_WIDTH);
+		const pieces = splitWordToWidth(word.text, maxWidth);
 		for (const piece of pieces) {
 			const pieceWidth = estimateCaptionWidth(piece);
 			const addition = current.length ? 1 + piece.length : piece.length;
 			const widthAddition = current.length
 				? width + estimateCaptionWidth(' ') + pieceWidth
 				: pieceWidth;
-			if (
-				current.length &&
-				(length + addition > MAX_LINE_CHARS || widthAddition > CAPTION_SAFE_WIDTH)
-			) {
+			if (current.length && (length + addition > MAX_LINE_CHARS || widthAddition > maxWidth)) {
 				lines.push(current);
 				current = [piece];
 				length = piece.length;
@@ -565,13 +568,13 @@ function assStyle(style: CaptionStyle, safeZone: CaptionTrack['safeZone']): stri
 	return `Style: Default,DejaVu Sans,58,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,1,2,90,90,${marginV},1`;
 }
 
-function wrapCueLine(line: string): string[] {
+function wrapCueLine(line: string, maxWidth = CAPTION_SAFE_WIDTH): string[] {
 	const words = line
 		.trim()
 		.split(/\s+/u)
 		.filter(Boolean)
 		.map((text) => ({ text, startMs: 0, endMs: 0, confidence: null }));
-	return wrapLines(words).map((parts) => parts.join(' '));
+	return wrapLines(words, maxWidth).map((parts) => parts.join(' '));
 }
 
 export function wrapCtaText(text: string): string[] {
@@ -612,13 +615,20 @@ export function appendCtaCues(input: {
 		const cueStart = Math.max(cursor, startMs + index * slot);
 		const cueEnd = Math.min(endMs, cueStart + slot);
 		if (cueEnd - cueStart < 300) break;
-		cues.push({ id: crypto.randomUUID(), startMs: cueStart, endMs: cueEnd, text, words: [] });
+		cues.push({
+			id: crypto.randomUUID(),
+			startMs: cueStart,
+			endMs: cueEnd,
+			text,
+			role: 'CTA',
+			words: [],
+		});
 		cursor = cueEnd;
 	}
 	return cues;
 }
 
-export function buildCaptionAss(track: CaptionTrack): string {
+export function buildCaptionAss(track: CaptionTrack, layout?: CaptionLayout): string {
 	const lines = [
 		'[Script Info]',
 		'ScriptType: v4.00+',
@@ -635,11 +645,19 @@ export function buildCaptionAss(track: CaptionTrack): string {
 		'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
 	];
 	for (const cue of track.cues) {
-		const cueLines = cue.text.split('\n').flatMap(wrapCueLine);
+		const box = layout ? (cue.role === 'CTA' ? layout.ctaBox : layout.captionBox) : null;
+		const cueLines = cue.text
+			.split('\n')
+			.flatMap((line) => wrapCueLine(line, box ? Math.max(320, box.width - 20) : undefined));
 		let text = cueLines.map(escapeAssLine).join('\\N');
 		if (track.style === 'highlight') {
 			const [first, ...rest] = text.split('\\N');
-			text = `{\\c&H0000FFFF&\\b1}${first}{\\r}${rest.length ? `\\N${rest.join('\\N')}` : ''}`;
+			const position = box
+				? `\\an5\\pos(${Math.round(box.x + box.width / 2)},${Math.round(box.y + box.height / 2)})`
+				: '';
+			text = `{${position}\\c&H0000FFFF&\\b1}${first}{\\r}${rest.length ? `\\N${rest.join('\\N')}` : ''}`;
+		} else if (box) {
+			text = `{\\an5\\pos(${Math.round(box.x + box.width / 2)},${Math.round(box.y + box.height / 2)})}${text}`;
 		}
 		lines.push(`Dialogue: 0,${assTime(cue.startMs)},${assTime(cue.endMs)},Default,,0,0,0,,${text}`);
 	}

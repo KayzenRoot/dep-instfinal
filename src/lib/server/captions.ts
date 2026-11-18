@@ -10,6 +10,7 @@ import {
 	type AsrWordInput,
 	type ScriptSegment,
 } from '#lib/domain/captions.js';
+import { layoutFromPlan } from '#lib/domain/platform-preview.js';
 import { captionTrackSchema, type CaptionStyle, type CaptionTrack } from '#lib/schemas/captions.js';
 import { videoEditPlanSchema, type VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
 
@@ -544,9 +545,10 @@ export async function getCaptionExports(input: {
 		context.narrationTakeId,
 	);
 	if (!stored) return null;
+	const layout = layoutFromPlan(context.plan);
 	return {
 		srt: buildCaptionSrt(stored.track.cues),
-		ass: buildCaptionAss(stored.track),
+		ass: buildCaptionAss(stored.track, layout ?? undefined),
 	};
 }
 

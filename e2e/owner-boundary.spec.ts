@@ -728,6 +728,8 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 		'/app/narration',
 		'/app/captions',
 		'/app/audio',
+		'/app/editor',
+		'/app/director',
 		'/app/settings',
 		...(seriesDetail ? [seriesDetail] : []),
 		...(episodeDetail ? [episodeDetail] : []),

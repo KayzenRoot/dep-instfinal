@@ -307,6 +307,97 @@ describe.skipIf(!enabled)('FFmpeg caption burn-in integration', () => {
 			await rm(workspace, { recursive: true, force: true });
 		}
 	}, 180_000);
+
+	it('positions captions inside the selected profile box in the real MP4', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'dif-caption-position-'));
+		try {
+			const { plan, inputs } = twoClipPlan(workspace, 'color=c=black:s=180x320:r=30');
+			const track = captionTrackSchema.parse({
+				schemaVersion: 1,
+				episodeId: plan.episodeId,
+				planId: '33333333-3333-4333-8333-333333333333',
+				planVersion: 1,
+				narrationTakeId: null,
+				style: 'clean',
+				safeZone: 'tiktok',
+				source: 'MANUAL',
+				cues: [
+					{
+						id: '44444444-4444-4444-8444-444444444444',
+						startMs: 200,
+						endMs: 3_500,
+						text: 'TESTE',
+						role: 'CAPTION',
+						words: [],
+					},
+				],
+			});
+			const assPath = join(workspace, 'positioned.ass');
+			await writeFile(
+				assPath,
+				buildCaptionAss(track, {
+					captionBox: { x: 300, y: 600, width: 480, height: 200 },
+					ctaBox: { x: 240, y: 1_100, width: 600, height: 200 },
+				}),
+				'utf8',
+			);
+			const output = await renderPlanToFile({
+				plan,
+				assets: inputs,
+				outputPath: join(workspace, 'positioned.mp4'),
+				vhsIntensity: 0,
+				timeoutMs: 120_000,
+				captionAssPath: assPath,
+			});
+			const framePath = join(workspace, 'frame.rgb');
+			execFileSync(
+				'ffmpeg',
+				[
+					'-y',
+					'-hide_banner',
+					'-loglevel',
+					'error',
+					'-ss',
+					'1.5',
+					'-i',
+					output.path,
+					'-frames:v',
+					'1',
+					'-pix_fmt',
+					'rgb24',
+					'-f',
+					'rawvideo',
+					framePath,
+				],
+				{ timeout: 60_000, windowsHide: true },
+			);
+			const frame = await readFile(framePath);
+			let minX = 1_080;
+			let maxX = -1;
+			let minY = 1_920;
+			let maxY = -1;
+			let count = 0;
+			for (let y = 450; y < 900; y += 1) {
+				for (let x = 200; x < 900; x += 1) {
+					const offset = (y * 1_080 + x) * 3;
+					if (frame[offset]! > 140 && frame[offset + 1]! > 140 && frame[offset + 2]! > 140) {
+						minX = Math.min(minX, x);
+						maxX = Math.max(maxX, x);
+						minY = Math.min(minY, y);
+						maxY = Math.max(maxY, y);
+						count += 1;
+					}
+				}
+			}
+			expect(count).toBeGreaterThan(100);
+			expect(minX).toBeGreaterThanOrEqual(250);
+			expect(maxX).toBeLessThanOrEqual(830);
+			expect(minY).toBeGreaterThanOrEqual(560);
+			expect(maxY).toBeLessThanOrEqual(840);
+		} finally {
+			await rm(workspace, { recursive: true, force: true });
+		}
+	}, 180_000);
 });
 
 describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {

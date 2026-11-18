@@ -15,6 +15,7 @@ import {
 import { probeAudioMedia, probeMedia, renderPlanToFile } from '../src/lib/server/render-compose.js';
 import type { AudioMixEvent } from '../src/lib/domain/render-composition.js';
 import { buildCaptionAss } from '../src/lib/domain/captions.js';
+import { layoutFromPlan } from '../src/lib/domain/platform-preview.js';
 import { captionTrackSchema, type CaptionTrack } from '../src/lib/schemas/captions.js';
 
 function required(name: string): string {
@@ -318,7 +319,11 @@ async function main() {
 		let captionAssPath: string | undefined;
 		if (caption) {
 			captionAssPath = join(work, 'captions.ass');
-			await writeFile(captionAssPath, buildCaptionAss(caption.track), 'utf8');
+			await writeFile(
+				captionAssPath,
+				buildCaptionAss(caption.track, layoutFromPlan(validated) ?? undefined),
+				'utf8',
+			);
 		}
 		const outputPath = join(work, 'output.mp4');
 		const configuredVhs = Number(process.env.WORKER_VHS_INTENSITY ?? 1);

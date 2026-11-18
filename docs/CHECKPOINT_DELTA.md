@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-011 — Editor visual, preview e safe zones (2026-11-18) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; implementação completa em `feat/dif-v2-wo-011`; focado/typecheck/lint/burn-in/E2E local PASS; CI/auditoria/aceitação pendentes. Sem merge/deploy.
+- **Base:** `main` `95e5d16` (checkpoint WO-010 promovido); branch `feat/dif-v2-wo-011`.
+- **Delivered:** perfis versionados TikTok/Reels/clean com áreas seguras e UI simulada; `EditPlanPreview` com caixas canônicas; detecção de colisão e bloqueio de save; ASS posicionado por papel CAPTION/CTA; `/app/editor` com preview, quatro correções, mapa de faixas, waveform opt-in e fila; E2E de colisão/correção/reload/render.
+- **Limits:** preview é o clipe selecionado, não o render composto; crop de capa/feed e undo ilimitado não implementados; perfis são estimativas e exigem revisão no aparelho; legendas reaprovadas após mudança de plano.
+- **Gate:** CI + auditoria independente + autorização do owner; WO-012 (#29) depende deste gate.
+
 ## DIF-V2-WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROMOTED
 
 - **Status:** **PROMOTED**; unit 181+3, PgTAP 131/131, E2E 13/13, CI `44190122840`/`44191794064`, Sonar, Socket e ARM64 PASS; auditoria round 2 **APPROVED WITH RESIDUALS**; owner autorizou continuidade/merge em 2026-11-18 (“continue de onde parou”); squash-merged at `1824061` (PR #58); issue #27 closed. Sem deploy de produção.

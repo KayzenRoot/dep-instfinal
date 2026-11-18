@@ -1,5 +1,23 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-011 — Editor visual, preview e safe zones (2026-11-18) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-011` · issue #28 · epic #17 · addendum ENH-07
+- **Base:** `main` `95e5d16`; branch `feat/dif-v2-wo-011`
+- **Status:** implementação completa; platform/captions/plan tests, burn-in FFmpeg, typecheck, lint e E2E local **PASS**; CI, auditoria independente e aceitação humana **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
+
+| Check      | Result     | Evidence                                                                                                |
+| ---------- | ---------- | ------------------------------------------------------------------------------------------------------- |
+| Profiles   | PASS local | TikTok/Reels/clean versionados, áreas/UI simuladas, disclaimers e defaults sem colisão                  |
+| Layout     | PASS local | caixas canônicas no plano, limites, overlap e colisão com UI; save bloqueado em HIGH                    |
+| ASS/render | PASS local | CAPTION/CTA recebem `\an5\pos`; burn-in real mede a caixa de legenda no frame                           |
+| Editor UI  | PASS local | preview, overlay, quatro correções, mapa de faixas, waveform opt-in, fila e versões                     |
+| E2E        | PASS local | timeline 1/1 com colisão HIGH → correção → save → reload → render READY; owner-boundary responsivo 1/1  |
+| Type/lint  | PASS local | `svelte-check` 0/0, eslint 0 warnings                                                                   |
+| CI         | PENDENTE   | será registrado após push do PR Draft                                                                   |
+| Auditoria  | PENDENTE   | revisão independente obrigatória antes de merge                                                         |
+| Limites    | —          | preview é clipe selecionado; crop capa/feed, undo ilimitado e render composto na prévia ficam residuais |
+
 ## V2 WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-010` · issue #27 · epic #17 · addendum ENH-03
@@ -17,7 +35,7 @@
 | Policy       | PASS         | 27 invariantes / 24 tabelas (sem migração)                                                                          |
 | E2E          | PASS         | CI: 13/13 (3,3m); timeline com 3 pontos + relogin, aplicar/reverter, worker READY                                   |
 | PgTAP        | PASS         | 131/131; sem migração nova                                                                                          |
-| CI           | PASS         | run `44190122840`: baseline, unit 181+3, policy, PgTAP, E2E 13/13, Sonar/Socket/Vercel                              |
+| CI           | PASS         | run `44190122840`: baseline, unit 188+3, policy, PgTAP, E2E 13/13, Sonar/Socket/Vercel                              |
 | ARM64        | PASS         | run `44190122832`: 7,738 s wall / 165.948 KiB RSS no mix de 120 s                                                   |
 | Auditoria    | PASS c/ res. | round 2 **APPROVED WITH RESIDUALS**; H1 corrigido; residuais M3/M4 documentados                                     |
 | Amostras     | PASS local   | `docs/evidence/wo-010/review/`: slow-burn/reveal/found-footage 12 s; aceitação humana pendente                      |

@@ -16,6 +16,7 @@ export const captionCueSchema = z
 		startMs: millisecond,
 		endMs: millisecond,
 		text: z.string().trim().min(1).max(240),
+		role: z.enum(['CAPTION', 'CTA']).optional(),
 		words: z.array(captionWordSchema).max(60).default([]),
 	})
 	.superRefine((cue, context) => {

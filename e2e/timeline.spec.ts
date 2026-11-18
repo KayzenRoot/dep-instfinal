@@ -248,6 +248,41 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await page.getByRole('checkbox', { name: 'Glitch VHS curto' }).check();
 	await page.getByRole('button', { name: 'Aplicar direção selecionada' }).click();
 	await expect(page.locator('.notice.success')).toContainText('Versão');
+
+	console.log('[timeline-e2e] editing safely in the visual editor');
+	await page.goto(`/app/editor?episodeId=${episodeId}`);
+	await expect(page.getByRole('heading', { name: 'Editor visual' })).toBeVisible();
+	await page.waitForLoadState('networkidle');
+	const captionFields = page.locator('fieldset').filter({ hasText: 'Legenda' });
+	const captionY = captionFields.getByLabel('y', { exact: true });
+	await page.getByLabel('Perfil').selectOption('reels');
+	await expect(page.getByLabel('Perfil')).toHaveValue('reels');
+	await captionY.fill('1700');
+	await captionY.blur();
+	await expect(page.locator('.collisions li').first()).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Salvar correções no plano' })).toBeDisabled();
+	await captionY.fill('1250');
+	await captionY.blur();
+	await expect(page.locator('.collisions li')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Salvar correções no plano' })).toBeEnabled();
+	await page.getByRole('button', { name: 'Mover cena 1 para baixo' }).click();
+	await page.locator('.clip-list li').nth(1).getByLabel('Transição').selectOption('crossfade');
+	await page.getByLabel(/Ganho master/).evaluate((element) => {
+		const input = element as HTMLInputElement;
+		input.value = '-3';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+	});
+	await page.getByRole('button', { name: 'Salvar correções no plano' }).click();
+	await expect(page.locator('p.notice.success[role="status"]')).toContainText('Versão');
+	await page.goto(`/app/editor?episodeId=${episodeId}`);
+	await expect(page.getByLabel('Perfil')).toHaveValue('reels');
+	await expect(captionFields.getByLabel('y', { exact: true })).toHaveValue('1250');
+	await expect(page.locator('.clip-list li').nth(1).getByLabel('Transição')).toHaveValue(
+		'crossfade',
+	);
+	await expect(page.getByLabel(/Ganho master/)).toHaveValue('-3');
+
 	await page.goto(`/app/timeline?episodeId=${episodeId}`);
 	await page.getByRole('button', { name: 'Aprovar plano atual' }).click();
 	await expect(page.getByText('APPROVED')).toBeVisible({ timeout: 20_000 });

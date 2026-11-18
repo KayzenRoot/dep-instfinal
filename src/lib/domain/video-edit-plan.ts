@@ -1,4 +1,5 @@
 import type { EditPlanClip, VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
+import { assertPreviewLayout, PlatformPreviewError } from './platform-preview.js';
 
 export class EditPlanError extends Error {
 	constructor(
@@ -282,6 +283,16 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 					'EDIT_PLAN_DIRECTOR_RANGE',
 					'Evento do diretor excede a duração do episódio.',
 				);
+		}
+	}
+
+	if (plan.preview) {
+		try {
+			assertPreviewLayout(plan.preview);
+		} catch (cause) {
+			if (cause instanceof PlatformPreviewError)
+				throw new EditPlanError('EDIT_PLAN_PREVIEW_INVALID', cause.message);
+			throw cause;
 		}
 	}
 
