@@ -10,15 +10,15 @@
 | ---------- | ---------- | ------------------------------------------------------------------------------------------------------- |
 | Profiles   | PASS local | TikTok/Reels/clean versionados, áreas/UI simuladas, disclaimers e defaults sem colisão                  |
 | Layout     | PASS local | caixas canônicas no plano, limites, overlap e colisão com UI; save bloqueado em HIGH                    |
-| Legacy     | PASS       | plano sem `preview` mantém ASS histórico de 880 px; manifesto registra `layoutSource: 'legacy'`          |
+| Legacy     | PASS       | plano sem `preview` mantém ASS histórico de 880 px; manifesto registra `layoutSource: 'legacy'`         |
 | ASS/render | PASS local | CAPTION/CTA recebem `\an5\pos`; burn-in real mede a caixa de legenda no frame                           |
 | Editor UI  | PASS local | preview, overlay, quatro correções, mapa de faixas, waveform opt-in, fila e trim com seek               |
-| E2E        | PASS       | CI E2E 13/13 em 4,9 min; responsivo local 360/768/1440 inclui editor, director, video e timeline         |
+| E2E        | PASS       | CI E2E 13/13 em 4,9 min; responsivo local 360/768/1440 inclui editor, director, video e timeline        |
 | Responsivo | PASS       | overflow de selects em 360px corrigido em `e1599fb`; rotas `/app/video` e `/app/timeline` incluídas     |
 | Unit       | PASS       | 194 passed + 3 skipped, incluindo integrações FFmpeg reais                                              |
 | Type/lint  | PASS local | `svelte-check` 0/0, eslint 0 warnings                                                                   |
 | CI         | PASS       | run `44334200966` em `7c1925c`: baseline, PgTAP, E2E 13/13, Sonar, Socket e Vercel                      |
-| Auditoria  | CORRIGIDA  | rodada 1 CORRECTION REQUIRED (H1/H2), rodada 2 CORRECTION REQUIRED (H3/M1–M4); correções aplicadas     |
+| Auditoria  | CORRIGIDA  | rodada 1 CORRECTION REQUIRED (H1/H2), rodada 2 CORRECTION REQUIRED (H3/M1–M4); correções aplicadas      |
 | Limites    | —          | preview é clipe selecionado; crop capa/feed, undo ilimitado e render composto na prévia ficam residuais |
 
 ## V2 WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROMOTED
