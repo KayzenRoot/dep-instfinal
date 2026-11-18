@@ -12,8 +12,9 @@ Date: 2026-11-18 (America/Sao_Paulo)
 ## Database
 
 - `supabase db reset` applied `20261118150000_v2_wo012_quality_reports.sql`.
-- PgTAP: **144/144 PASS**, including output profile/quality, RLS owner-only,
-  immutable findings, WARN acknowledgement and BLOCKED rejection.
+- PgTAP: **152/152 PASS**, including output profile/quality, 720p completion,
+  QA-gated READY, RLS owner-only, immutable findings, WARN acknowledgement and
+  BLOCKED rejection.
 
 ## Unit / integration
 
@@ -23,16 +24,16 @@ Date: 2026-11-18 (America/Sao_Paulo)
 - `quality-report.test.ts`: 2/2 summary/status contract
 - `render-composition.test.ts`: 12/12 including 720p/high and unsupported geometry
 - `render-jobs.test.ts`: 3/3 defaults and invalid profile/quality
-- Full local suite: **205 passed + 3 skipped** (29 files), including the real
+- Full local suite: **206 passed + 3 skipped** (29 files), including the real
   120 s FFmpeg integration and the QA detector pass.
 
 ## E2E
 
-- `e2e/timeline.spec.ts`: 1/1 (5.5 min). Render READY with QA **PASS**,
+- `e2e/timeline.spec.ts`: 1/1 (12.0 min on this host; 5.5 min on the prior run). Render READY with QA **PASS**,
   manifest `outputProfile: 1080p`, `quality: standard`, `DECODE`/`CONTAINER` PASS,
   authenticated download identical to the manifest SHA-256.
 - `e2e/owner-boundary.spec.ts -g "authenticated studio pages|private narration endpoints"`:
-  2/2 (1.8 min). Responsive 360/768/1440 includes `/app/export`; anonymous
+  2/2 (2.9 min; responsive 2.0 min). Responsive 360/768/1440 includes `/app/export`; anonymous
   `/api/render-jobs/[id]/download` returns 401; caption SRT/ASS/narration/audio 401.
 
 ## Limits verified

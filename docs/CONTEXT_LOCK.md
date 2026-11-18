@@ -215,7 +215,7 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Base revalidated:** `main` `b21afa3` (checkpoint WO-011 promoted). Branch: `feat/dif-v2-wo-012`.
 - **Issue inventory:** WO-001–011 **MERGED/CLOSED/PROMOTED**; WO-012/#29 em execução; WO-013+ remain gated.
 - **Scope:** export MP4 final com opções 1080p/720p e qualidade, download privado autenticado, manifest e Quality Inspector técnico versionado por plano+artefato. Sem publish social, GPU ou API paga.
-- **Delivered locally:** `render_quality_reports` imutável com RLS owner-only e ack de WARN; QA no worker antes do upload; gate BLOCKED/WARN/NOT_TESTED; `/app/export` com laudo JSON, SRT e checklist humano; PgTAP 144/144; unit 205+3.
+- **Delivered locally:** `render_quality_reports` imutável com RLS owner-only e ack de WARN; QA no worker antes do upload; gate BLOCKED/WARN/NOT_TESTED; `/app/export` com laudo JSON, SRT e checklist humano; PgTAP 152/152; unit 206+3.
 - **Gate:** CI, auditoria independente e autorização do owner; checkpoint **PROPOSED**; sem merge/deploy. WO-013 (#30) é a próxima.
 
 ### Fingerprints no base `b21afa3`

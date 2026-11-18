@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-012` · issue #29 · epic #17 · addendum ENH-05
 - **Base:** `main` `b21afa3` (checkpoint WO-011 promovido); branch `feat/dif-v2-wo-012`
-- **Status:** implementação completa; unit **205+3**, PgTAP **144/144**, policy **28/25**, E2E timeline **1/1** (5,5 min) e responsivo **1/1** (1,8 min), typecheck/lint/build **PASS**; CI e auditoria independente **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
+- **Status:** implementação completa; unit **206+3**, PgTAP **152/152**, policy **28/25**, E2E timeline **1/1** (12,0 min nesta máquina) e responsivo **1/1** (2,9 min), typecheck/lint/build **PASS**; CI e auditoria independente **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
 
 | Check       | Result     | Evidence                                                                                                     |
 | ----------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
@@ -15,8 +15,8 @@
 | Gate        | PASS local | BLOCKED falha o job sem upload; WARN exige justificativa; PASS/NOT_TESTED testados                           |
 | Download    | PASS local | rota owner-only, metadata R2/sha/tamanho/plano conferidos, E2E baixou MP4 idêntico ao SHA do manifesto       |
 | UI          | PASS local | `/app/export` lista QA, timecodes, ack WARN, MP4, SRT e laudo JSON; timeline escolhe saída/qualidade         |
-| PgTAP       | PASS       | 144/144, incluindo opções, RLS, imutabilidade e acknowledgement                                              |
-| Unit        | PASS       | 205 passed + 3 skipped; parsers, schema, 720p/high e integração FFmpeg real                                  |
+| PgTAP       | PASS       | 152/152, incluindo opções, RLS, imutabilidade e acknowledgement                                              |
+| Unit        | PASS       | 206 passed + 3 skipped; parsers, schema, 720p/high e integração FFmpeg real                                  |
 | Type/lint   | PASS local | `svelte-check` 0/0, eslint 0 warnings, build adapter-node                                                    |
 | CI          | PENDENTE   | será registrado após push do PR Draft                                                                        |
 | Auditoria   | PENDENTE   | revisão independente obrigatória antes de merge                                                              |

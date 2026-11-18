@@ -1,6 +1,6 @@
 # DIF-V2-WO-012 — Export MP4, download privado e Quality Inspector
 
-**Status:** implementação completa em `feat/dif-v2-wo-012`; unit **205+3**, PgTAP **144/144**, policy **28/25**, E2E timeline **1/1** e responsivo **1/1** PASS; CI e auditoria independente **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** implementação completa em `feat/dif-v2-wo-012`; unit **206+3**, PgTAP **152/152**, policy **28/25**, E2E timeline **1/1** e responsivo **1/1** PASS; CI e auditoria independente **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
 **Base:** `main` `b21afa3` (checkpoint WO-011 promovido).
 **Escopo:** WO-012 (#29) + addendum ENH-05 (Quality Inspector técnico), dependente de WO-005–WO-011.
 
@@ -9,13 +9,13 @@
 - `render_jobs.output_profile` (`1080p` padrão, `720p` fallback explícito) e `render_jobs.quality` (`standard`/`high`) persistidos no enqueue, com UI na timeline e aviso honesto no fallback 720p.
 - `render-composition` parametrizado para 1080×1920 ou 720×1280, H.264 High/yuv420p, 30 fps, faststart, CRF/preset por qualidade; geometria não suportada falha fechado.
 - `render_quality_reports`: relatório imutável por job + SHA do artefato, RLS owner-only, escrita apenas por service role, acknowledgement de WARN com justificativa; BLOCKED não pode ser reconhecido.
-- Quality Inspector no worker após o render e antes do upload: hash/tamanho, vínculo plano↔artefato, codec/geometria/duração, AAC estéreo 48 kHz, drift A/V, decodificação integral, `blackdetect`, `freezedetect`, `silencedetect`, pico `astats`, safe area declarativa, legendas e CTA.
-- Exceções artísticas: janelas aceitas do diretor (`SILENCE_BEFORE_REVEAL`, `VHS_STATIC`, `CTA_CARD`) e pad intencional da narração evitam falso bloqueio; cada exceção fica registrada com motivo.
-- Gate: QA `BLOCKED` falha o job sem READY e sem upload; `WARN` exige reconhecimento do owner; `PASS` libera o download; `NOT_TESTED` não libera.
+- Quality Inspector no worker após o render e antes do upload: hash/tamanho, vínculo plano↔artefato, codec/geometria/fps/pix format/duração, AAC estéreo 48 kHz, drift A/V, decodificação integral, `blackdetect`, `freezedetect`, `silencedetect`, pico `astats`, LUFS quando disponível, safe area declarativa, legendas e CTA.
+- Exceções artísticas: janelas aceitas do diretor (`SILENCE_BEFORE_REVEAL`, `VHS_STATIC`, `CTA_CARD`) e pad intencional da narração descontam apenas o trecho aprovado; cada exceção fica registrada com motivo.
+- Gate: `BLOCKED` técnico (hash, codec, decode, áudio, safe area, legendas/CTA ausentes) falha o job sem READY e sem upload; preto/freeze/silêncio heurístico é `WARN` com severidade e pode ser reconhecido pelo owner; `PASS` libera o download; check crítico `NOT_TESTED` e `WARN` sem reconhecimento não liberam.
 - Manifest registra `outputProfile`, `quality`, `qa.status/reportId/reportSha256/summary`, `captionsOmitted` e CTA; upload R2 grava `sha256`/plano/QA como metadata privada.
 - Download owner-only `/api/render-jobs/[jobId]/download`: confere relatório e metadata R2 (SHA/tamanho/plano), transmite com `private, no-store` e não expõe URL permanente; modo local de teste restrito a non-production.
 - `/app/export`: lista os renders recentes, status QA, verificações com timecodes, reconhecimento de WARN, download do MP4, SRT e laudo JSON (`/api/render-jobs/[jobId]/qa`) com checklist humano.
-- PgTAP: 144/144 (novos testes de opções, RLS, imutabilidade e acknowledgement); policy audit 28 invariantes/25 tabelas.
+- PgTAP: 152/152 (opções, 720p completo, RLS, imutabilidade, acknowledgement); policy audit 28 invariantes/25 tabelas.
 
 ## Capacidade real versus planejada
 
@@ -46,13 +46,30 @@
 - E2E timeline: render READY com QA PASS, `GET /api/render-jobs/[jobId]` com laudo, download idêntico ao SHA, anon 401.
 - Responsivo 360/768/1440 da página de exportação; lint/typecheck/build/policy.
 
+## Correções pós-auditoria
+
+A primeira auditoria independente retornou **CORRECTION REQUIRED** (H1: `complete_render_job` ainda exigia 1080×1920 e o fallback 720p falhava; H2: preto/freeze/silêncio heurístico geravam BLOCKED irrevogável; M1–M8). Aplicado:
+
+- **H1:** `complete_render_job` lê `output_profile` e aceita 1080×1920 ou 720×1280; manifesto com bloco `qa` exige relatório PASS/WARN correspondente ao SHA; PgTAP cobre 720p, hash divergente e ausência de laudo.
+- **H2:** `BLACK_FRAMES`, `FREEZE_FRAMES` e `SILENCE` viraram WARN com severidade HIGH/MEDIUM e podem ser reconhecidos pelo owner com justificativa; BLOCKED fica restrito a falhas técnicas (hash, codec, decode, áudio, safe area, legendas/CTA ausentes). Sobreposição parcial de exceção agora desconta só a janela aprovada.
+- **M1:** CTA habilitada com legendas desativadas vira BLOCKED (a CTA não entraria no MP4).
+- **M2:** download bloqueia qualquer check crítico `NOT_TESTED` (ex.: safe area de plano legado).
+- **M3:** a página de exportação mantém o relatório mais recente por job e valida o JSON com Zod.
+- **M4:** QA mede fps/pix format do probe e adiciona nível integrado (LUFS) quando disponível.
+- **M5:** UI ganhou filtro de checks, exceções visíveis e link para a timeline.
+- **M6:** SRT usa `takeId` da narração pinada no manifesto quando disponível.
+- **M7:** worker usa o `reportSha256/status` retornados pelo registro existente, grava artefatos locais por job id e extrai `QA_*` do stderr sem depender do início da linha.
+- **M8:** evidência/docs foram recontadas após os testes.
+
 ## Riscos e residuais
 
 - Thresholds heurísticos podem gerar falso positivo/negativo; exceções e revisão humana são obrigatórias.
+- O clique por timestamp abre a timeline do episódio, não um frame exato; não há OCR nem julgamento semântico.
 - O worker ainda usa service role ampla; menor privilégio e quotas ficam para WO-013.
 - R2 lifecycle/GC e retenção de renders antigos continuam pendentes de WO-013.
 - Relatórios de jobs anteriores à WO-012 não existem; é necessário re-renderizar para liberar o download.
 - O download em produção depende de R2 configurado; em dev/teste usa o diretório local do worker.
+- O sign-off humano é registrado pelo acknowledgement de WARN; renders PASS têm checklist no laudo, sem assinatura separada.
 
 ## Gate
 
