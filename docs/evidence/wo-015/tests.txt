@@ -1,0 +1,38 @@
+# WO-015 — local evidence
+
+Date: 2026-11-18 (America/Sao_Paulo)
+
+## Static
+
+- `npm run check`: `svelte-check found 0 errors and 0 warnings`
+- `npm run lint`: PASS (`eslint . --max-warnings=0`)
+- `npm run audit:policy`: 30 invariants / 26 tables PASS
+
+## Database
+
+- `supabase db reset` applied `20261118200000_v2_wo015_hook_variants.sql`.
+- PgTAP: **160/160 PASS**, including hook_variants RLS, service-only writes,
+  ownership isolation and uniqueness per plan version.
+
+## Unit
+
+- `hook-lab.test.ts`: 3/3 — three distinct openings with reasons, apply without
+  duplicating clips, honest fallback with limited material.
+- Full local suite: **213 passed + 3 skipped** (31 files).
+
+## E2E
+
+- `e2e/timeline.spec.ts`: 1/1 (4.3 min). After the real render/QA/download, the
+  owner opens `/app/hooks`, generates at least two variants, applies one as a new
+  plan version and reverts to the original edit; the success notices confirm both
+  transitions.
+- `e2e/owner-boundary.spec.ts -g "authenticated studio pages|private narration endpoints"`:
+  2/2 (1.0 min). Responsive 360/768/1440 includes `/app/hooks`; private endpoints 401.
+
+## Limits verified
+
+- Variants reorder whole READY clips; no frames are generated or duplicated.
+- Narration, captions, SFX and CTA stay on the original timeline; the owner must
+  review the visual↔speech relationship on the device.
+- The score is heuristic and never presented as retention or virality.
+- No Gemini call is made; the text-hook variant uses approved captions only.

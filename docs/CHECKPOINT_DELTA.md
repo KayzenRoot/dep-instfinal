@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; unit 213+3, PgTAP 160/160, policy 30/26, E2E PASS; CI/auditoria pendentes. Sem merge/deploy.
+- **Base:** `main` `9862f8c` (checkpoint WO-013 núcleo promovido); branch `feat/dif-v2-wo-015`.
+- **Delivered:** `hook_variants` owner-only/versionado; motor determinístico com cold open por tensão, fala interrogativa aprovada e entrada por áudio; cards A/B/C com preview, score e motivos; aplicar cria nova versão do plano; reverter restaura a base; metadados para WO-020.
+- **Limits:** variantes reordenam clipes inteiros; preview é o clipe de abertura, não o render composto; narração/legendas permanecem na timeline original; score heurístico; hook de texto Gemini opt-in não implementado.
+- **Gate:** CI + auditoria independente + autorização do owner; WO-016 (#33) é a próxima.
+
 ## DIF-V2-WO-013 — Hardening operacional (2026-11-18) — PROMOTED (core)
 
 - **Status:** **PROMOTED (núcleo)**; unit 210+3, PgTAP 155/155, policy 29/25, E2E 14/14; CI `44410994788` e ARM64 `44410995020` em `fa236af` PASS; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b1a1eaf` (PR #61); issue #30 fechada. Extensões OPS das WOs 015–021 continuam pendentes.
