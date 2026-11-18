@@ -81,6 +81,7 @@ async function main() {
 	const quality = job.quality === 'high' ? 'high' : 'standard';
 	const outputWidth = outputProfile === '720p' ? 720 : 1080;
 	const outputHeight = outputProfile === '720p' ? 1280 : 1920;
+	const ffmpegThreads = Math.max(1, Math.min(8, Number(process.env.WORKER_FFMPEG_THREADS ?? 2)));
 	const assets = [];
 	for (const clip of validated.clips) {
 		const { data: asset, error: assetError } = await admin
@@ -352,6 +353,7 @@ async function main() {
 			width: outputWidth,
 			height: outputHeight,
 			quality,
+			threads: ffmpegThreads,
 		});
 		const qualityResult = await inspectRenderArtifact({
 			jobId: job.id,

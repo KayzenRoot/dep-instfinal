@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-013 — Hardening operacional (2026-11-18) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; núcleo implementado em `feat/dif-v2-wo-013`; unit 210+3, PgTAP 155/155, policy 29/25, restore local, retenção dry-run e E2E PASS; CI/auditoria pendentes. Sem merge/deploy.
+- **Base:** `main` `7d15076` (checkpoint WO-012 promovido); branch `feat/dif-v2-wo-013`.
+- **Delivered:** quotas diárias 20 jobs/2 GiB com 429; worker com reserva de disco, pausa sem claim, threads FFmpeg 1–8; `render_queue_health` + health owner-only e painel na timeline; backup/restore de metadados com SHA, verificação de contagens/join/QA e sinalização de blob ausente; retenção dry-run com `--confirm` e proteção de jobs ativos; grants de leitura service role.
+- **Limits:** R2 lifecycle/GC manual; Auth users e bytes de mídia não entram no backup; restore automatizado só em banco local descartável; quotas fixas (teto de bytes soft); sem cgroup/benchmark de CPU/RAM; scripts exigem caminhos absolutos por env; extensões OPS das WOs 015–021 pendentes.
+- **Gate:** CI + auditoria independente + autorização do owner; WO-014 (#31) depende deste gate e das WOs 015–021.
+
 ## DIF-V2-WO-012 — Export MP4, download privado e Quality Inspector (2026-11-18) — PROMOTED
 
 - **Status:** **PROMOTED**; unit 206+3, PgTAP 152/152, policy 28/25, E2E 13/13 (4,0 min); CI `44384311546` e ARM64 `44384957968` em `23be8a5` PASS; auditoria final **APPROVED WITH RESIDUALS**; owner autorizou continuação em 2026-11-18 (“continue de onde parou”); squash-merged em `3edec2b` (PR #60); issue #29 fechada.

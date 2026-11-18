@@ -183,6 +183,7 @@ export async function renderPlanToFile(input: {
 	width?: number;
 	height?: number;
 	quality?: 'standard' | 'high';
+	threads?: number;
 }): Promise<RenderOutput> {
 	const absoluteOutput = resolve(input.outputPath);
 	const expectedWidth = input.width ?? 1080;
@@ -214,6 +215,7 @@ export async function renderPlanToFile(input: {
 			width: expectedWidth,
 			height: expectedHeight,
 			quality: input.quality,
+			threads: input.threads,
 		});
 		await execFileAsync(input.ffmpegPath ?? 'ffmpeg', ['-nostdin', ...command.args], {
 			timeout: input.timeoutMs ?? 600_000,

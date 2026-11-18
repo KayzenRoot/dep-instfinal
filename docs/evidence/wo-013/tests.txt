@@ -1,0 +1,68 @@
+# WO-013 — local evidence
+
+Date: 2026-11-18 (America/Sao_Paulo)
+
+## Static
+
+- `npm run check`: `svelte-check found 0 errors and 0 warnings`
+- `npm run lint`: PASS (`eslint . --max-warnings=0`)
+- `npm run build`: PASS (`@sveltejs/adapter-node`)
+- `npm run audit:policy`: 29 invariants / 25 tables PASS
+
+## Database
+
+- `supabase db reset` applied `20261118170000_v2_wo013_hardening.sql`.
+- PgTAP: **155/155 PASS**, including daily job/byte quotas, queue health,
+  720p/QA gates, RLS owner-only and immutable reports.
+- `grant select` service role on the 19 operational tables used by backup.
+
+## Unit / integration
+
+- Full local suite: **209 passed + 3 skipped** (30 files), including real FFmpeg
+  render/audio/QA integrations.
+- `worker-limits.test.ts`: 4/4 — free disk, `WORKER_DISK_RESERVED`, thread clamp and finite env fallback.
+- `render-composition.test.ts`: 12/12 — `-threads`, 720p/high, unsupported geometry.
+
+## Worker limits
+
+- E2E timeline with real worker and kept artifacts: **1/1 (5.6 min)**; worker logged
+  `diskReserveMb: 2048, ffmpegThreads: 2`, rendered READY with QA PASS and
+  hash-verified download.
+- Forced reserve test (`WORKER_DISK_RESERVE_MB=999999999`, 4 s):
+  `worker_started` then `worker_paused {code:"WORKER_DISK_RESERVED"}` with no job
+  claimed. The queue and V1 pages remain available.
+- Concurrency remains 1 via the DB lease; per-episode cap 3 and global 100.
+
+## Backup / restore
+
+- `backup:metadata` wrote schema.sql/data.sql with SHA-256, exact counts,
+  paginated artifact/QA refs and `paginationComplete: true`.
+- `restore:metadata` into `dif_restore_test`:
+  - schema and data SHAs recomputed and matched before apply;
+  - `countMismatches: []` for all 19 tables;
+  - `episodeSceneJoinRows: 30` (episode → season → series → scenes);
+  - `expectedReadyJobsWithQa: 2` and `readyJobsWithMatchingQaHash: 2`;
+  - both local blobs verified by size and SHA-256 (`verified_local`), `ok: true`;
+  - a separate run with a deleted blob reported `blob: "missing"`, `metadataOk: true`,
+    `mediaOk: false` and `ok: false` (never a false success).
+- Auth users/secrets/media bytes are intentionally excluded; owner Auth restore
+  remains a separate runbook step.
+
+## Retention
+
+- Dry-run with one referenced artifact and one old orphan:
+  `referencedLocalArtifacts: 1`, `localFiles: 2`, `candidates: 1`, no deletion.
+- `--delete-local` without `--confirm` was rejected; with `--confirm` only the
+  orphan was deleted and the referenced artifact remained.
+- R2 lifecycle/GC is reported as `manual` because the bucket-scoped token cannot
+  manage lifecycle.
+
+## E2E / access
+
+- Responsive 360/768/1440: **1/1 (46.7 s)**.
+- Anonymous download/health/captions/narration/audio endpoints: **401**.
+- Owner `GET /api/render-jobs/health`: **200**, concurrency 1, sanitized JSON.
+
+## CI
+
+- PENDING until the Draft PR is pushed.

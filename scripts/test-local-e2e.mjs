@@ -201,6 +201,7 @@ const childEnvironment = {
 	R2_BUCKET: r2Environment.R2_BUCKET ?? '',
 	R2_ENDPOINT: r2Environment.R2_ENDPOINT ?? '',
 	E2E_OWNER_EMAIL: ownerEmail,
+	E2E_KEEP_RENDER: process.env.E2E_KEEP_RENDER ?? '',
 	E2E_OWNER_PASSWORD: ownerPassword,
 	E2E_OTHER_EMAIL: otherEmail,
 	E2E_OTHER_PASSWORD: otherPassword,

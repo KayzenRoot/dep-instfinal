@@ -1,5 +1,24 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-013 — Hardening operacional (2026-11-18) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-013` · issue #30 · epic #17
+- **Base:** `main` `7d15076` (checkpoint WO-012 promovido); branch `feat/dif-v2-wo-013`
+- **Status:** implementação completa do núcleo; unit **210+3**, PgTAP **155/155**, policy **29/25**, restore local e retenção dry-run **PASS**; CI/auditoria **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
+
+| Check      | Result     | Evidence                                                                                                     |
+| ---------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| Quotas     | PASS local | 20 jobs/dia e 2 GiB/dia no enqueue; 429 `RENDER_DAILY_QUOTA`; PgTAP cobre ambos                              |
+| Worker     | PASS local | reserva 2048 MB antes do claim, pausa `WORKER_DISK_RESERVED`, threads 1–8, concorrência 1                    |
+| Saúde      | PASS local | `render_queue_health()` service-only e `/api/render-jobs/health` owner-only sanitizado; timeline mostra fila |
+| Backup     | PASS local | schema/data dump com SHA-256 e contagens; service role com SELECT explícito nas 19 tabelas                   |
+| Restore    | PASS local | `dif_restore_test`: 0 mismatches, join 15, manifesto=QA hash, blob ausente sinalizado                        |
+| Retenção   | PASS local | dry-run referenced/orphan, recusa sem `--confirm` e com job ativo, delete só do órfão; R2 manual             |
+| V1 offline | PASS local | E2E enfileira/cancela sem worker e navega páginas V1; health 401 anon e 200 owner                            |
+| CI         | PENDENTE   | será registrado após push do PR Draft                                                                        |
+| Auditoria  | PENDENTE   | revisão independente obrigatória antes de merge                                                              |
+| Limites    | —          | R2 lifecycle manual; Auth/mídia fora do backup; quotas fixas; sem cgroup nativo                              |
+
 ## V2 WO-012 — Export MP4, download privado e Quality Inspector (2026-11-18) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-012` · issue #29 · epic #17 · addendum ENH-05

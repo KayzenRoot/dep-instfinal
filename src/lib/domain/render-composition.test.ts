@@ -109,14 +109,20 @@ describe('render composition command', () => {
 			width: 720,
 			height: 1280,
 			quality: 'high',
+			threads: 1,
 		});
 		expect(command.filterGraph).toContain('scale=720:1280');
 		expect(command.filterGraph).toContain('crop=720:1280');
 		expect(command.args).toContain('slow');
 		expect(command.args).toContain('18');
+		expect(command.args.join(' ')).toContain('-threads 1');
+		expect(command.args.join(' ')).toContain('-filter_threads 1');
 		expect(() =>
 			buildRenderCommand(plan, inputs(plan), '/tmp/out.mp4', { width: 1080, height: 1280 }),
 		).toThrow(RenderCompositionError);
+		expect(() => buildRenderCommand(plan, inputs(plan), '/tmp/out.mp4', { threads: 0 })).toThrow(
+			RenderCompositionError,
+		);
 	});
 
 	it('uses xfade for a crossfade between segments', () => {
