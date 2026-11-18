@@ -1,5 +1,6 @@
 import type { EditPlanClip, VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
-import { assertPreviewLayout, PlatformPreviewError } from './platform-preview.js';
+import { assertPreviewLayout, defaultPreview, PlatformPreviewError } from './platform-preview.js';
+import { captionTextFitsBox, wrapCtaText } from './caption-metrics.js';
 
 export class EditPlanError extends Error {
 	constructor(
@@ -103,6 +104,7 @@ export function buildDefaultEditPlan(context: EditPlanContext): VideoEditPlan {
 		captions: { template: 'clean' },
 		cta: null,
 		audio: { masterGainDb: 0, events: [] },
+		preview: defaultPreview(),
 	};
 }
 
@@ -325,14 +327,20 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 		}
 	}
 
-	if (plan.preview) {
-		try {
-			assertPreviewLayout(plan.preview);
-		} catch (cause) {
-			if (cause instanceof PlatformPreviewError)
-				throw new EditPlanError('EDIT_PLAN_PREVIEW_INVALID', cause.message);
-			throw cause;
+	try {
+		const previewLayout = assertPreviewLayout(plan.preview ?? defaultPreview());
+		if (plan.cta?.enabled && plan.captions.template !== 'none') {
+			for (const chunk of wrapCtaText(plan.cta.text, previewLayout.ctaBox.width - 20))
+				if (!captionTextFitsBox(chunk, previewLayout.ctaBox))
+					throw new EditPlanError(
+						'EDIT_PLAN_CTA_OVERFLOW',
+						'O texto da CTA não cabe na caixa segura do perfil.',
+					);
 		}
+	} catch (cause) {
+		if (cause instanceof PlatformPreviewError)
+			throw new EditPlanError('EDIT_PLAN_PREVIEW_INVALID', cause.message);
+		throw cause;
 	}
 
 	const audioEventIds = new Set<string>();

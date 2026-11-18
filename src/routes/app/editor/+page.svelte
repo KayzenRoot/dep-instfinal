@@ -8,7 +8,9 @@
 		PreviewBox,
 	} from '#lib/schemas/platform-preview.js';
 	import { moveClips, setClipTransition, trimClips } from '#lib/domain/video-edit-plan.js';
+	import { captionTextFitsBox, wrapCtaText } from '#lib/domain/caption-metrics.js';
 	import {
+		defaultPreview,
 		detectPreviewCollisions,
 		PLATFORM_PREVIEW_PROFILES,
 		resolvePreviewLayout,
@@ -23,11 +25,12 @@
 	} = $props();
 
 	let clips = $state<EditPlanClip[]>([]);
-	let preview = $state<EditPlanPreview | null>(null);
+	let preview = $state<EditPlanPreview>(defaultPreview());
 	let masterGainDb = $state(0);
 	let selectedClipIndex = $state(0);
 	let playheadMs = $state(0);
 	let showOverlay = $state(true);
+	let showCover = $state(false);
 	let editorKey = $state('');
 	let editError = $state<string | null>(null);
 	let changeNote = $state('');
@@ -43,28 +46,29 @@
 		editorKey = key;
 		clips = data.plan ? data.plan.clips.map((clip) => ({ ...clip })) : [];
 		masterGainDb = data.plan?.audio?.masterGainDb ?? 0;
-		preview = data.plan?.preview
-			? structuredClone(data.plan.preview)
-			: {
-					profileId: 'tiktok',
-					profileVersion: 1,
-					captionBox: { ...PLATFORM_PREVIEW_PROFILES.tiktok.captionBox },
-					ctaBox: { ...PLATFORM_PREVIEW_PROFILES.tiktok.ctaBox },
-				};
+		preview = data.plan?.preview ? structuredClone(data.plan.preview) : defaultPreview();
 		selectedClipIndex = 0;
 		playheadMs = 0;
 		editError = null;
+		waveform = [];
+		waveformState = 'idle';
+		waveformError = null;
 	});
 
 	const layout = $derived(resolvePreviewLayout(preview));
-	const collisions = $derived(preview ? detectPreviewCollisions(preview) : []);
+	const collisions = $derived(
+		detectPreviewCollisions(preview, {
+			caption: data.plan?.captions.template !== 'none',
+			cta: Boolean(data.plan?.cta?.enabled),
+		}),
+	);
 	const selectedClip = $derived(clips[selectedClipIndex] ?? clips[0] ?? null);
 	const planForSave = $derived<VideoEditPlan | null>(
 		data.plan
 			? {
 					...data.plan,
 					clips,
-					preview: preview ?? undefined,
+					preview,
 					audio: {
 						masterGainDb,
 						events: data.plan.audio?.events ?? [],
@@ -73,20 +77,54 @@
 			: null,
 	);
 	const expectedVersion = $derived(data.storedPlan?.currentVersion ?? 0);
-	const canSave = $derived(
-		Boolean(planForSave) &&
-			collisions.length === 0 &&
-			layout.captionBox.width >= 600 &&
-			layout.captionBox.height >= 140 &&
-			layout.ctaBox.width >= 500 &&
-			layout.ctaBox.height >= 120,
-	);
 	const currentCue = $derived.by(() => {
 		const cues = data.captions?.track.cues ?? [];
 		return cues.find((cue) => playheadMs >= cue.startMs && playheadMs < cue.endMs) ?? null;
 	});
 	const captionText = $derived(currentCue?.text ?? 'Prévia da legenda nesta posição segura.');
 	const ctaText = $derived(data.plan?.cta?.enabled ? data.plan.cta.text : 'CTA de duas escolhas');
+	const fitIssues = $derived.by(() => {
+		if (!data.plan) return [];
+		const issues: string[] = [];
+		if (
+			data.plan.captions.template !== 'none' &&
+			!captionTextFitsBox(captionText, layout.captionBox)
+		)
+			issues.push('O texto da legenda não cabe na caixa segura atual.');
+		if (data.plan.cta?.enabled && data.plan.captions.template !== 'none') {
+			for (const chunk of wrapCtaText(ctaText, layout.ctaBox.width - 20))
+				if (!captionTextFitsBox(chunk, layout.ctaBox))
+					issues.push('O texto da CTA não cabe na caixa segura atual.');
+		}
+		return [...new Set(issues)];
+	});
+	const channelReport = $derived(
+		Object.values(PLATFORM_PREVIEW_PROFILES).map((profile) => ({
+			label: profile.label,
+			issues: detectPreviewCollisions(
+				{ ...preview, profileId: profile.id },
+				{
+					caption: data.plan?.captions.template !== 'none',
+					cta: Boolean(data.plan?.cta?.enabled),
+				},
+			).length,
+		})),
+	);
+	const previewIssues = $derived([
+		...fitIssues.map((message) => ({ severity: 'HIGH' as const, message })),
+		...collisions.map((collision) => ({
+			severity: collision.severity,
+			message: collision.message,
+		})),
+	]);
+	const canSave = $derived(
+		Boolean(planForSave) &&
+			previewIssues.length === 0 &&
+			layout.captionBox.width >= 600 &&
+			layout.captionBox.height >= 140 &&
+			layout.ctaBox.width >= 500 &&
+			layout.ctaBox.height >= 120,
+	);
 
 	function setProfile(profileId: PlatformProfileId) {
 		const profile = PLATFORM_PREVIEW_PROFILES[profileId];
@@ -100,7 +138,6 @@
 	}
 
 	function updateBox(kind: 'captionBox' | 'ctaBox', field: keyof PreviewBox, raw: string) {
-		if (!preview) return;
 		const value = Number(raw);
 		if (!Number.isFinite(value)) return;
 		const current = preview[kind] ?? layout[kind];
@@ -158,7 +195,9 @@
 	function updatePlayhead(event: Event) {
 		const element = event.currentTarget as HTMLVideoElement;
 		const clip = selectedClip;
-		playheadMs = (clip?.timelineStartMs ?? 0) + Math.round(element.currentTime * 1_000);
+		playheadMs =
+			(clip?.timelineStartMs ?? 0) +
+			Math.max(0, Math.round(element.currentTime * 1_000 - (clip?.sourceInMs ?? 0)));
 	}
 
 	async function loadWaveform() {
@@ -166,8 +205,13 @@
 		if (!takeId || waveformState === 'loading') return;
 		waveformState = 'loading';
 		waveformError = null;
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 20_000);
 		try {
-			const response = await fetch(`/api/narration/takes/${takeId}`, { redirect: 'follow' });
+			const response = await fetch(`/api/narration/takes/${takeId}`, {
+				redirect: 'follow',
+				signal: controller.signal,
+			});
 			if (!response.ok) throw new Error(`HTTP ${response.status}`);
 			const audioContext = new AudioContext();
 			try {
@@ -195,6 +239,8 @@
 				cause instanceof Error
 					? `Waveform indisponível (${cause.message}); o render é a fonte de verdade.`
 					: 'Waveform indisponível; o render é a fonte de verdade.';
+		} finally {
+			clearTimeout(timeout);
 		}
 	}
 
@@ -259,6 +305,18 @@
 	</div>
 
 	{#if editError}<p class="notice error" role="alert">{editError}</p>{/if}
+	{#if data.planStale}
+		<p class="notice warning" role="status">
+			O plano está preso a uma revisão anterior do roteiro. Reconstrua/revise na timeline antes de
+			renderizar.
+		</p>
+	{/if}
+	{#if data.captions?.status === 'APPROVED'}
+		<p class="notice warning" role="status">
+			As legendas aprovadas pertencem a esta versão. Salvar correções cria uma nova versão e exige
+			reaprovar as legendas antes do render.
+		</p>
+	{/if}
 
 	<div class="editor-grid">
 		<section class="preview-panel" aria-label="Prévia de safe zones">
@@ -281,6 +339,11 @@
 				{/if}
 				{#if showOverlay}
 					<div class="safe-area" style={boxStyle(layout.profile.safeArea)} aria-hidden="true"></div>
+					{#if showCover}
+						<div class="cover-crop" style={boxStyle(layout.profile.coverBox)}>
+							<span>Crop capa/feed</span>
+						</div>
+					{/if}
 					{#each layout.profile.uiZones as zone (zone.label)}
 						<div
 							class="ui-zone"
@@ -311,19 +374,33 @@
 				<label class="check"
 					><input type="checkbox" bind:checked={showOverlay} /> Mostrar overlay</label
 				>
+				<label class="check"
+					><input type="checkbox" bind:checked={showCover} /> Crop capa/feed 4:5</label
+				>
 			</div>
 			<p class="hint">
-				{layout.profile.disclaimer} O vídeo acima é o clipe selecionado, não o render composto.
+				{layout.profile.disclaimer} O vídeo acima é o clipe selecionado, não o render composto. Fonte:
+				{layout.profile.source} · v{layout.profile.version}.
 			</p>
-			{#if collisions.length}
+			{#if previewIssues.length}
 				<ul class="collisions" aria-label="Colisões de safe zone">
-					{#each collisions as collision (collision.code + collision.message)}
-						<li class="danger">{collision.message}</li>
+					{#each previewIssues as issue, index (issue.message + index)}
+						<li class:danger={issue.severity === 'HIGH'}>
+							<span class="severity">{issue.severity}</span>
+							{issue.message}
+						</li>
 					{/each}
 				</ul>
 			{:else}
 				<p class="notice success">Sem colisões de safe zone no perfil atual.</p>
 			{/if}
+			<ul class="channel-report" aria-label="Relatório por canal">
+				{#each channelReport as channel (channel.label)}
+					<li class:warning={channel.issues > 0}>
+						{channel.label}: {channel.issues} risco(s)
+					</li>
+				{/each}
+			</ul>
 		</section>
 
 		<div class="side-panel">
@@ -610,6 +687,31 @@
 	.safe-area {
 		border: 1px dashed rgb(255 255 255 / 55%);
 	}
+	.cover-crop {
+		position: absolute;
+		border: 2px solid #7dd3fc;
+		background: rgb(125 211 252 / 8%);
+		pointer-events: none;
+	}
+	.cover-crop span {
+		position: absolute;
+		top: 0.2rem;
+		left: 0.2rem;
+		color: #7dd3fc;
+		font-size: 0.7rem;
+	}
+	.channel-report {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		padding: 0;
+		list-style: none;
+		font-size: 0.75rem;
+		color: var(--muted);
+	}
+	.channel-report .warning {
+		color: #ffe4a3;
+	}
 	.ui-zone {
 		background: rgb(183 63 85 / 22%);
 		border: 1px solid rgb(255 160 174 / 55%);
@@ -747,6 +849,14 @@
 		padding-inline-start: 1.1rem;
 		color: #ffb4b4;
 	}
+	.severity {
+		display: inline-block;
+		border: 1px solid currentColor;
+		border-radius: 0.25rem;
+		padding: 0 0.25rem;
+		font-size: 0.65rem;
+		font-weight: 700;
+	}
 	.notice {
 		padding: 0.65rem 0.8rem;
 		border-radius: 0.5rem;
@@ -762,6 +872,11 @@
 		border: 1px solid #5a5;
 		color: #b8f5c0;
 		background: #102a16;
+	}
+	.notice.warning {
+		border: 1px solid #b58a2a;
+		color: #ffe4a3;
+		background: #2a210f;
 	}
 	.badge {
 		margin-inline-start: 0.5rem;

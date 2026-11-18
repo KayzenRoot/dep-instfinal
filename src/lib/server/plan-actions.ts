@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from './supabase.js';
 import { saveVideoEditPlan, VideoEditPlanError } from './video-edit-plans.js';
 import { videoEditPlanSchema } from '#lib/schemas/video-edit-plan.js';
 import { EditPlanError } from '#lib/domain/video-edit-plan.js';
+import { defaultPreview } from '#lib/domain/platform-preview.js';
 
 export type SavePlanResult =
 	{ ok: true; version: number } | { ok: false; status: number; message: string };
@@ -40,6 +41,7 @@ export async function savePlanFromForm(
 		return { ok: false, status: 400, message: 'O plano pertence a outro episódio.' };
 	if (!Number.isInteger(expectedVersion) || expectedVersion < 0)
 		return { ok: false, status: 400, message: 'Versão esperada inválida.' };
+	const normalizedPlan = plan.preview ? plan : { ...plan, preview: defaultPreview() };
 	try {
 		const version = await saveVideoEditPlan({
 			db,
@@ -47,7 +49,7 @@ export async function savePlanFromForm(
 			owner,
 			episodeId,
 			expectedVersion,
-			plan,
+			plan: normalizedPlan,
 			changeNote: readFormText(form, 'changeNote') || options.defaultNote,
 		});
 		return { ok: true, version };

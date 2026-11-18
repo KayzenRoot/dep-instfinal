@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
 	assertPreviewLayout,
+	defaultPreview,
 	detectPreviewCollisions,
+	layoutFromPlan,
 	PLATFORM_PREVIEW_PROFILES,
 	resolvePreviewLayout,
 	PlatformPreviewError,
 } from './platform-preview.js';
-import { buildCaptionAss } from './captions.js';
+import { buildCaptionAss, CaptionError } from './captions.js';
+import { captionTextFitsBox } from './caption-metrics.js';
 import { editPlanPreviewSchema, type EditPlanPreview } from '#lib/schemas/platform-preview.js';
 import { videoEditPlanSchema } from '#lib/schemas/video-edit-plan.js';
 
@@ -87,6 +90,31 @@ describe('platform preview profiles', () => {
 		).toBe(false);
 		expect(editPlanPreviewSchema.safeParse({ profileId: 'youtube' }).success).toBe(false);
 	});
+
+	it('falls back to safe default boxes for legacy plans without preview', () => {
+		expect(layoutFromPlan({})).toEqual({
+			captionBox: PLATFORM_PREVIEW_PROFILES.tiktok.captionBox,
+			ctaBox: PLATFORM_PREVIEW_PROFILES.tiktok.ctaBox,
+		});
+		expect(defaultPreview()).toMatchObject({
+			profileId: 'tiktok',
+			profileVersion: 1,
+		});
+	});
+
+	it('rejects text that would overflow its box height', () => {
+		expect(
+			captionTextFitsBox('A'.repeat(200), {
+				x: 120,
+				y: 1_000,
+				width: 500,
+				height: 120,
+			}),
+		).toBe(false);
+		expect(captionTextFitsBox('Linha curta', { x: 120, y: 1_000, width: 780, height: 220 })).toBe(
+			true,
+		);
+	});
 });
 
 describe('positioned caption ASS', () => {
@@ -136,5 +164,20 @@ describe('positioned caption ASS', () => {
 		const ass = buildCaptionAss(track);
 		expect(ass).not.toContain('\\pos(');
 		expect(ass).toContain(',2,90,90,220,1');
+	});
+
+	it('fails closed when stored text overflows its box', () => {
+		expect(() =>
+			buildCaptionAss(
+				{
+					...track,
+					cues: [{ ...track.cues[0]!, text: 'A'.repeat(200) }],
+				},
+				{
+					captionBox: { x: 120, y: 1_000, width: 500, height: 120 },
+					ctaBox: { x: 120, y: 800, width: 500, height: 120 },
+				},
+			),
+		).toThrow(CaptionError);
 	});
 });

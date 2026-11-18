@@ -53,7 +53,9 @@ describe('default video edit plan', () => {
 		expect(plan.clips[0]).toMatchObject({ timelineStartMs: 0, timelineEndMs: 8_000 });
 		expect(plan.clips[14]).toMatchObject({ timelineStartMs: 112_000, timelineEndMs: 120_000 });
 		expect(videoEditPlanSchema.parse(plan)).toEqual(plan);
+		expect(plan.preview).toMatchObject({ profileId: 'tiktok', profileVersion: 1 });
 		expect(validateEditPlan(plan, context120)).toEqual(plan);
+		expect(() => validateEditPlan({ ...plan, preview: undefined }, context120)).not.toThrow();
 	});
 
 	it('keeps the last clip partial for 90 and 150 seconds', () => {

@@ -29,6 +29,8 @@ export interface PlatformPreviewProfile {
 	uiZones: PreviewZone[];
 	captionBox: PreviewBox;
 	ctaBox: PreviewBox;
+	/** 4:5 centered crop used by feed/cover previews. */
+	coverBox: PreviewBox;
 }
 
 /**
@@ -52,6 +54,7 @@ export const PLATFORM_PREVIEW_PROFILES: Record<PlatformProfileId, PlatformPrevie
 		],
 		captionBox: { x: 90, y: 1_320, width: 810, height: 240 },
 		ctaBox: { x: 120, y: 1_020, width: 780, height: 220 },
+		coverBox: { x: 0, y: 285, width: 1_080, height: 1_350 },
 	},
 	reels: {
 		id: 'reels',
@@ -68,6 +71,7 @@ export const PLATFORM_PREVIEW_PROFILES: Record<PlatformProfileId, PlatformPrevie
 		],
 		captionBox: { x: 90, y: 1_310, width: 810, height: 240 },
 		ctaBox: { x: 120, y: 1_000, width: 780, height: 220 },
+		coverBox: { x: 0, y: 285, width: 1_080, height: 1_350 },
 	},
 	clean: {
 		id: 'clean',
@@ -79,6 +83,7 @@ export const PLATFORM_PREVIEW_PROFILES: Record<PlatformProfileId, PlatformPrevie
 		uiZones: [],
 		captionBox: { x: 90, y: 1_440, width: 900, height: 240 },
 		ctaBox: { x: 240, y: 1_130, width: 600, height: 200 },
+		coverBox: { x: 0, y: 285, width: 1_080, height: 1_350 },
 	},
 };
 
@@ -90,7 +95,22 @@ export interface ResolvedPreviewLayout {
 	captionMode: 'caption' | 'cta';
 }
 
+export function defaultPreview(profileId: PlatformProfileId = 'tiktok'): EditPlanPreview {
+	const profile = PLATFORM_PREVIEW_PROFILES[profileId];
+	return {
+		profileId,
+		profileVersion: 1,
+		captionBox: { ...profile.captionBox },
+		ctaBox: { ...profile.ctaBox },
+	};
+}
+
 export function resolvePreviewLayout(preview?: EditPlanPreview | null): ResolvedPreviewLayout {
+	if (preview && preview.profileVersion !== 1)
+		throw new PlatformPreviewError(
+			'PREVIEW_PROFILE_VERSION_UNSUPPORTED',
+			'Versão de perfil de prévia não suportada.',
+		);
 	const profile = PLATFORM_PREVIEW_PROFILES[preview?.profileId ?? 'tiktok'];
 	return {
 		profile,
@@ -132,8 +152,18 @@ export interface PreviewCollision {
 	area: number;
 }
 
-export function detectPreviewCollisions(preview?: EditPlanPreview | null): PreviewCollision[] {
+export interface PreviewCollisionOptions {
+	caption?: boolean;
+	cta?: boolean;
+}
+
+export function detectPreviewCollisions(
+	preview?: EditPlanPreview | null,
+	options: PreviewCollisionOptions = {},
+): PreviewCollision[] {
 	const layout = resolvePreviewLayout(preview);
+	const checkCaption = options.caption ?? true;
+	const checkCta = options.cta ?? true;
 	const collisions: PreviewCollision[] = [];
 	const check = (target: 'caption' | 'cta', box: PreviewBox, label: string) => {
 		if (!inside(box, layout.profile.safeArea))
@@ -156,10 +186,10 @@ export function detectPreviewCollisions(preview?: EditPlanPreview | null): Previ
 				});
 		}
 	};
-	check('caption', layout.captionBox, 'A legenda');
-	check('cta', layout.ctaBox, 'A CTA');
+	if (checkCaption) check('caption', layout.captionBox, 'A legenda');
+	if (checkCta) check('cta', layout.ctaBox, 'A CTA');
 	const overlap = intersectionArea(layout.captionBox, layout.ctaBox);
-	if (overlap > 0)
+	if (checkCaption && checkCta && overlap > 0)
 		collisions.push({
 			code: 'CAPTION_CTA_OVERLAP',
 			severity: 'HIGH',
@@ -196,8 +226,7 @@ export function assertPreviewLayout(preview?: EditPlanPreview | null): ResolvedP
 export function layoutFromPlan(plan: { preview?: EditPlanPreview }): {
 	captionBox: PreviewBox;
 	ctaBox: PreviewBox;
-} | null {
-	if (!plan.preview) return null;
-	const layout = assertPreviewLayout(plan.preview);
+} {
+	const layout = assertPreviewLayout(plan.preview ?? defaultPreview());
 	return { captionBox: layout.captionBox, ctaBox: layout.ctaBox };
 }

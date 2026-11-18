@@ -29,6 +29,7 @@ export const load: PageServerLoad = async (event) => {
 			captions: null,
 			narration: null,
 			renderJobs: [],
+			planStale: false,
 			loadError: 'Crie ou selecione um episódio.',
 		};
 	try {
@@ -79,6 +80,9 @@ export const load: PageServerLoad = async (event) => {
 					}
 				: null,
 			renderJobs,
+			planStale: Boolean(
+				stored.plan && plan.episodeRevisionNumber !== context.episodeRevisionNumber,
+			),
 			loadError: null,
 		};
 	} catch (cause) {
@@ -92,6 +96,7 @@ export const load: PageServerLoad = async (event) => {
 			captions: null,
 			narration: null,
 			renderJobs: [],
+			planStale: false,
 			loadError: cause instanceof Error ? cause.message : 'Não foi possível carregar o editor.',
 		};
 	}

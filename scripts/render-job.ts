@@ -71,6 +71,10 @@ async function main() {
 	const validated = validateForContext(plan, context);
 	if (manifestHash(validated) !== version.manifest_hash)
 		throw new Error('render_plan_hash_mismatch');
+	const captionLayout = layoutFromPlan(validated);
+	const captionLayoutHash = createHash('sha256')
+		.update(JSON.stringify(captionLayout))
+		.digest('hex');
 	const assets = [];
 	for (const clip of validated.clips) {
 		const { data: asset, error: assetError } = await admin
@@ -319,11 +323,7 @@ async function main() {
 		let captionAssPath: string | undefined;
 		if (caption) {
 			captionAssPath = join(work, 'captions.ass');
-			await writeFile(
-				captionAssPath,
-				buildCaptionAss(caption.track, layoutFromPlan(validated) ?? undefined),
-				'utf8',
-			);
+			await writeFile(captionAssPath, buildCaptionAss(caption.track, captionLayout), 'utf8');
 		}
 		const outputPath = join(work, 'output.mp4');
 		const configuredVhs = Number(process.env.WORKER_VHS_INTENSITY ?? 1);
@@ -404,6 +404,10 @@ async function main() {
 						style: caption.track.style,
 						safeZone: caption.track.safeZone,
 						narrationTakeId: caption.track.narrationTakeId,
+						previewProfile: validated.preview?.profileId ?? 'tiktok',
+						previewVersion: validated.preview?.profileVersion ?? 1,
+						layout: captionLayout,
+						layoutHash: captionLayoutHash,
 						sha256: createHash('sha256').update(JSON.stringify(caption.track)).digest('hex'),
 					}
 				: null,
