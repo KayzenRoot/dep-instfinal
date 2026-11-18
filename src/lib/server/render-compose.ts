@@ -49,6 +49,8 @@ export interface RenderOutput {
 	durationMs: number;
 	width: number;
 	height: number;
+	fps: number;
+	pixelFormat: string;
 	codec: string;
 	container: string;
 	byteSize: number;
@@ -350,6 +352,8 @@ export async function renderPlanToFile(input: {
 			durationMs: probed.durationMs,
 			width: probed.width,
 			height: probed.height,
+			fps: probed.fps,
+			pixelFormat: probed.pixFmt ?? 'unknown',
 			codec: probed.codec,
 			container: probed.container,
 			byteSize: (await stat(absoluteOutput)).size,

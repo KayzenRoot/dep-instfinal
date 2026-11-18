@@ -85,3 +85,39 @@ export function reportStatus(checks: QualityCheck[]): 'PASS' | 'WARN' | 'BLOCKED
 	if (checks.every((check) => check.status === 'NOT_TESTED')) return 'NOT_TESTED';
 	return 'PASS';
 }
+
+/** Checks that must never be NOT_TESTED before an artifact is downloadable. */
+export const CRITICAL_QUALITY_CHECKS = [
+	'ARTIFACT_HASH',
+	'PLAN_HASH',
+	'CONTAINER',
+	'DURATION',
+	'AUDIO_STREAM',
+	'DECODE',
+	'SAFE_AREA',
+	'CAPTIONS',
+	'CTA',
+] as const;
+
+export type DownloadBlockReason =
+	| 'RENDER_NOT_READY'
+	| 'QUALITY_BLOCKED'
+	| 'QUALITY_NOT_TESTED'
+	| 'QUALITY_ACK_REQUIRED'
+	| `QUALITY_CHECK_UNTESTED:${string}`;
+
+export function downloadBlockReason(input: {
+	status: QualityCheckStatus | string;
+	checks: Array<{ id: string; status: string }>;
+	acknowledgedAt: string | null;
+}): DownloadBlockReason | null {
+	if (input.status === 'BLOCKED') return 'QUALITY_BLOCKED';
+	if (input.status === 'NOT_TESTED') return 'QUALITY_NOT_TESTED';
+	if (input.status === 'WARN' && !input.acknowledgedAt) return 'QUALITY_ACK_REQUIRED';
+	const untested = input.checks.find(
+		(check) =>
+			(CRITICAL_QUALITY_CHECKS as readonly string[]).includes(check.id) &&
+			check.status === 'NOT_TESTED',
+	);
+	return untested ? `QUALITY_CHECK_UNTESTED:${untested.id}` : null;
+}

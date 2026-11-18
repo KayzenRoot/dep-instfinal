@@ -8,6 +8,7 @@ import { ownerDatabase } from '#lib/server/authorized.js';
 import { getAppConfig } from '#lib/server/config.js';
 import { getRenderJob } from '#lib/server/render-jobs.js';
 import { loadQualityReportForJob } from '#lib/server/quality-reports.js';
+import { downloadBlockReason } from '#lib/schemas/quality-report.js';
 
 function jsonError(status: number, code: string, message: string): Response {
 	return new Response(JSON.stringify({ error: code, message }), {
@@ -35,24 +36,22 @@ export const GET: RequestHandler = async (event) => {
 			'QUALITY_REPORT_MISSING',
 			'Este render não tem relatório de qualidade; gere novamente.',
 		);
-	if (report.status === 'BLOCKED')
-		return jsonError(
-			409,
-			'QUALITY_BLOCKED',
-			'O Quality Inspector bloqueou este artefato; corrija e renderize novamente.',
-		);
-	if (report.status === 'NOT_TESTED')
-		return jsonError(
-			409,
-			'QUALITY_NOT_TESTED',
-			'O Quality Inspector não conseguiu validar este artefato; gere novamente.',
-		);
-	if (report.status === 'WARN' && !report.acknowledged_at)
-		return jsonError(
-			409,
-			'QUALITY_ACK_REQUIRED',
-			'Reconheça os avisos de qualidade com uma justificativa antes do download.',
-		);
+	const block = downloadBlockReason({
+		status: report.status,
+		checks: report.report.checks,
+		acknowledgedAt: report.acknowledged_at,
+	});
+	if (block) {
+		const message =
+			block === 'QUALITY_BLOCKED'
+				? 'O Quality Inspector bloqueou este artefato; corrija e renderize novamente.'
+				: block === 'QUALITY_NOT_TESTED'
+					? 'O Quality Inspector não conseguiu validar este artefato; gere novamente.'
+					: block === 'QUALITY_ACK_REQUIRED'
+						? 'Reconheça os avisos de qualidade com uma justificativa antes do download.'
+						: 'Uma verificação crítica ficou NOT_TESTED; gere novamente com um plano com safe zones.';
+		return jsonError(409, block, message);
+	}
 
 	const manifest = job.output_manifest;
 	const bucket = manifestField<string>(manifest, 'bucket');

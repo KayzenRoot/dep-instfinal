@@ -144,6 +144,13 @@ function overlappingException(
 	};
 }
 
+function approvedOverlapMs(
+	segment: TimeRange,
+	windows: Array<TimeRange & { reason: string }>,
+): number {
+	return Math.max(0, ...windows.map((window) => overlapMs(segment, window)));
+}
+
 function check(
 	id: string,
 	label: string,
@@ -298,24 +305,30 @@ export async function inspectRenderArtifact(
 		),
 	);
 
+	const fpsOk = input.output.fps >= 29 && input.output.fps <= 31;
+	const pixFmtOk = input.output.pixelFormat === 'yuv420p';
 	const containerOk =
 		input.output.codec === 'h264' &&
 		input.output.width === expectedWidth &&
-		input.output.height === expectedHeight;
+		input.output.height === expectedHeight &&
+		fpsOk &&
+		pixFmtOk;
 	checks.push(
 		check(
 			'CONTAINER',
-			'Codec, geometria e pix format',
+			'Codec, geometria, fps e pix format',
 			containerOk ? 'PASS' : 'BLOCKED',
 			containerOk
-				? `H.264 ${expectedWidth}x${expectedHeight} yuv420p.`
-				: `Esperado H.264 ${expectedWidth}x${expectedHeight}; recebido ${input.output.codec} ${input.output.width}x${input.output.height}.`,
+				? `H.264 ${expectedWidth}x${expectedHeight} yuv420p ${input.output.fps.toFixed(2)} fps.`
+				: `Esperado H.264 ${expectedWidth}x${expectedHeight} yuv420p ~30 fps; recebido ${input.output.codec} ${input.output.width}x${input.output.height} ${input.output.pixelFormat} ${input.output.fps.toFixed(2)} fps.`,
 			{
 				severity: containerOk ? undefined : 'HIGH',
 				evidence: [
 					{ value: input.output.width, unit: 'px' },
 					{ value: input.output.height, unit: 'px' },
+					{ value: input.output.fps, unit: 'fps' },
 					{ value: input.output.durationMs, unit: 'ms' },
+					{ detail: input.output.pixelFormat },
 				],
 			},
 		),
@@ -436,30 +449,34 @@ export async function inspectRenderArtifact(
 	} else {
 		const findings: QualityCheck['evidence'] = [];
 		let warn = false;
-		let blocked = false;
+		let severe = false;
 		for (const segment of black) {
 			const duration = segment.endMs - segment.startMs;
+			const approvedMs = approvedOverlapMs(segment, windows.static);
 			const exception = overlappingException(segment, windows.static, 'BLACK_FRAMES');
 			if (exception) exceptions.push(exception);
-			else if (duration >= thresholds.blackBlockMs) blocked = true;
-			else if (duration >= thresholds.blackWarnMs) warn = true;
+			const remaining = Math.max(0, duration - approvedMs);
+			if (remaining >= thresholds.blackWarnMs) {
+				warn = true;
+				if (remaining >= thresholds.blackBlockMs) severe = true;
+			}
 			findings.push({
 				startMs: segment.startMs,
 				endMs: segment.endMs,
-				value: duration,
+				value: remaining,
 				unit: 'ms',
-				detail: exception ? exception.reason : undefined,
+				detail: exception ? `${exception.reason}; ${approvedMs} ms aprovados` : undefined,
 			});
 		}
 		checks.push(
 			check(
 				'BLACK_FRAMES',
 				'Quadros pretos',
-				blocked ? 'BLOCKED' : warn ? 'WARN' : 'PASS',
+				warn ? 'WARN' : 'PASS',
 				`${black.length} trecho(s) preto(s) detectado(s).`,
 				{
-					severity: blocked ? 'HIGH' : warn ? 'MEDIUM' : undefined,
-					tolerance: `WARN ≥ ${thresholds.blackWarnMs} ms; BLOCKED ≥ ${thresholds.blackBlockMs} ms`,
+					severity: warn ? (severe ? 'HIGH' : 'MEDIUM') : undefined,
+					tolerance: `WARN ≥ ${thresholds.blackWarnMs} ms; HIGH ≥ ${thresholds.blackBlockMs} ms`,
 					evidence: findings,
 				},
 			),
@@ -472,30 +489,34 @@ export async function inspectRenderArtifact(
 	} else {
 		const findings: QualityCheck['evidence'] = [];
 		let warn = false;
-		let blocked = false;
+		let severe = false;
 		for (const segment of freeze) {
 			const duration = segment.endMs - segment.startMs;
+			const approvedMs = approvedOverlapMs(segment, windows.static);
 			const exception = overlappingException(segment, windows.static, 'FREEZE_FRAMES');
 			if (exception) exceptions.push(exception);
-			else if (duration >= thresholds.freezeBlockMs) blocked = true;
-			else if (duration >= thresholds.freezeWarnMs) warn = true;
+			const remaining = Math.max(0, duration - approvedMs);
+			if (remaining >= thresholds.freezeWarnMs) {
+				warn = true;
+				if (remaining >= thresholds.freezeBlockMs) severe = true;
+			}
 			findings.push({
 				startMs: segment.startMs,
 				endMs: segment.endMs,
-				value: duration,
+				value: remaining,
 				unit: 'ms',
-				detail: exception ? exception.reason : undefined,
+				detail: exception ? `${exception.reason}; ${approvedMs} ms aprovados` : undefined,
 			});
 		}
 		checks.push(
 			check(
 				'FREEZE_FRAMES',
 				'Quadros congelados',
-				blocked ? 'BLOCKED' : warn ? 'WARN' : 'PASS',
+				warn ? 'WARN' : 'PASS',
 				`${freeze.length} freeze(s) detectado(s).`,
 				{
-					severity: blocked ? 'HIGH' : warn ? 'MEDIUM' : undefined,
-					tolerance: `WARN ≥ ${thresholds.freezeWarnMs} ms; BLOCKED ≥ ${thresholds.freezeBlockMs} ms`,
+					severity: warn ? (severe ? 'HIGH' : 'MEDIUM') : undefined,
+					tolerance: `WARN ≥ ${thresholds.freezeWarnMs} ms; HIGH ≥ ${thresholds.freezeBlockMs} ms`,
 					evidence: findings,
 				},
 			),
@@ -520,31 +541,31 @@ export async function inspectRenderArtifact(
 		let silentMs = 0;
 		for (const segment of silence) {
 			const duration = segment.endMs - segment.startMs;
+			const approvedMs = approvedOverlapMs(segment, windows.silence);
 			const exception = overlappingException(segment, windows.silence, 'SILENCE');
 			if (exception) exceptions.push(exception);
-			else {
-				silentMs += duration;
-				if (duration >= thresholds.silenceWarnMs) warn = true;
-			}
+			const remaining = Math.max(0, duration - approvedMs);
+			silentMs += remaining;
+			if (remaining >= thresholds.silenceWarnMs) warn = true;
 			findings.push({
 				startMs: segment.startMs,
 				endMs: segment.endMs,
-				value: duration,
+				value: remaining,
 				unit: 'ms',
-				detail: exception ? exception.reason : undefined,
+				detail: exception ? `${exception.reason}; ${approvedMs} ms aprovados` : undefined,
 			});
 		}
 		const ratio = durationMs ? silentMs / durationMs : 0;
-		const blocked = ratio >= thresholds.silenceBlockRatio;
+		const severe = ratio >= thresholds.silenceBlockRatio;
 		checks.push(
 			check(
 				'SILENCE',
 				'Silêncio de áudio',
-				blocked ? 'BLOCKED' : warn ? 'WARN' : 'PASS',
+				warn || severe ? 'WARN' : 'PASS',
 				`${silence.length} trecho(s) de silêncio; ${Math.round(ratio * 100)}% sem áudio não justificado.`,
 				{
-					severity: blocked ? 'HIGH' : warn ? 'MEDIUM' : undefined,
-					tolerance: `WARN ≥ ${thresholds.silenceWarnMs} ms; BLOCKED ≥ ${Math.round(thresholds.silenceBlockRatio * 100)}%`,
+					severity: warn || severe ? (severe ? 'HIGH' : 'MEDIUM') : undefined,
+					tolerance: `WARN ≥ ${thresholds.silenceWarnMs} ms; HIGH ≥ ${Math.round(thresholds.silenceBlockRatio * 100)}%`,
 					evidence: findings,
 				},
 			),
@@ -562,6 +583,23 @@ export async function inspectRenderArtifact(
 				severity: peakDb !== null && peakDb > thresholds.peakWarnDb ? 'MEDIUM' : undefined,
 				tolerance: `≤ ${thresholds.peakWarnDb} dBFS`,
 				evidence: peakDb === null ? [] : [{ value: peakDb, unit: 'dBFS' }],
+			},
+		),
+	);
+
+	const lufs = input.output.audio?.lufs ?? null;
+	checks.push(
+		check(
+			'LOUDNESS',
+			'Nível integrado de áudio',
+			lufs === null ? 'NOT_TESTED' : lufs < -20 || lufs > -12 ? 'WARN' : 'PASS',
+			lufs === null
+				? 'Loudness integrado indisponível para este tipo de mix.'
+				: `Nível integrado em ${lufs.toFixed(1)} LUFS.`,
+			{
+				severity: lufs !== null && (lufs < -20 || lufs > -12) ? 'MEDIUM' : undefined,
+				tolerance: '−20 a −12 LUFS',
+				evidence: lufs === null ? [] : [{ value: lufs, unit: 'LUFS' }],
 			},
 		),
 	);
@@ -630,7 +668,17 @@ export async function inspectRenderArtifact(
 		);
 	}
 
-	if (input.plan.cta?.enabled && input.plan.captions.template !== 'none') {
+	if (input.plan.cta?.enabled && input.plan.captions.template === 'none') {
+		checks.push(
+			check(
+				'CTA',
+				'CTA de duas escolhas',
+				'BLOCKED',
+				'CTA habilitada, mas o template de legendas está desativado; a CTA não entraria no MP4.',
+				{ severity: 'HIGH' },
+			),
+		);
+	} else if (input.plan.cta?.enabled) {
 		const layout = resolvePreviewLayout(input.plan.preview);
 		const chunks = wrapCtaText(input.plan.cta.text, layout.ctaBox.width - 20);
 		const fits = chunks.every((chunk) => captionTextFitsBox(chunk, layout.ctaBox));
@@ -653,7 +701,7 @@ export async function inspectRenderArtifact(
 			);
 		}
 	} else {
-		checks.push(check('CTA', 'CTA de duas escolhas', 'PASS', 'CTA desativada ou sem legendas.'));
+		checks.push(check('CTA', 'CTA de duas escolhas', 'PASS', 'CTA desativada no plano.'));
 	}
 
 	if (input.narrationExpected) {
@@ -701,9 +749,9 @@ export async function inspectRenderArtifact(
 			durationMs: input.output.durationMs,
 			width: input.output.width,
 			height: input.output.height,
-			fps: 30,
+			fps: input.output.fps,
 			videoCodec: input.output.codec,
-			pixelFormat: 'yuv420p',
+			pixelFormat: input.output.pixelFormat,
 			audioCodec: input.output.audio?.codec ?? null,
 			audioChannels: input.output.audio?.channels ?? 0,
 			sampleRate: input.output.audio?.sampleRate ?? 0,

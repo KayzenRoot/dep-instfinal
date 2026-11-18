@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	downloadBlockReason,
 	qualityInspectionReportSchema,
 	reportStatus,
 	summarizeChecks,
@@ -55,5 +56,36 @@ describe('quality report contract', () => {
 			false,
 		);
 		expect(qualityInspectionReportSchema.safeParse({ ...base, checks: [] }).success).toBe(false);
+	});
+
+	it('blocks download on blocked, untested-critical and unacknowledged warn reports', () => {
+		expect(
+			downloadBlockReason({
+				status: 'PASS',
+				checks: [check('DECODE', 'PASS'), check('SAFE_AREA', 'NOT_TESTED')],
+				acknowledgedAt: null,
+			}),
+		).toBe('QUALITY_CHECK_UNTESTED:SAFE_AREA');
+		expect(
+			downloadBlockReason({
+				status: 'WARN',
+				checks: [check('BLACK_FRAMES', 'WARN')],
+				acknowledgedAt: null,
+			}),
+		).toBe('QUALITY_ACK_REQUIRED');
+		expect(
+			downloadBlockReason({
+				status: 'WARN',
+				checks: [check('BLACK_FRAMES', 'WARN')],
+				acknowledgedAt: '2026-11-18T12:00:00.000Z',
+			}),
+		).toBeNull();
+		expect(
+			downloadBlockReason({
+				status: 'BLOCKED',
+				checks: [check('DECODE', 'BLOCKED')],
+				acknowledgedAt: null,
+			}),
+		).toBe('QUALITY_BLOCKED');
 	});
 });

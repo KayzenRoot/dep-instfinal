@@ -82,6 +82,8 @@ describe.skipIf(!hasFfmpeg())('quality inspector integration', () => {
 			durationMs: 3_000,
 			width: 720,
 			height: 1280,
+			fps: 30,
+			pixelFormat: 'yuv420p',
 			codec: 'h264',
 			container: 'mp4',
 			byteSize: (await stat(path)).size,

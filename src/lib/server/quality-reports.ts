@@ -43,17 +43,22 @@ export async function recordQualityReport(input: {
 	artifactSha256: string;
 	reportSha256: string;
 	report: QualityInspectionReport;
-}): Promise<string> {
+}): Promise<{ id: string; reportSha256: string; status: QualityReportRow['status'] }> {
 	const parsed = qualityInspectionReportSchema.parse(input.report);
 	const status = reportStatus(parsed.checks);
 	const existing = await input.adminDb
 		.from('render_quality_reports')
-		.select('id')
+		.select('id,report_sha256,status')
 		.eq('owner_id', input.ownerId)
 		.eq('job_id', input.jobId)
 		.eq('artifact_sha256', input.artifactSha256)
 		.maybeSingle();
-	if (existing.data?.id) return existing.data.id as string;
+	if (existing.data?.id)
+		return {
+			id: existing.data.id as string,
+			reportSha256: existing.data.report_sha256 as string,
+			status: existing.data.status as QualityReportRow['status'],
+		};
 	const { data, error } = await input.adminDb
 		.from('render_quality_reports')
 		.insert({
@@ -75,7 +80,7 @@ export async function recordQualityReport(input: {
 			'QUALITY_REPORT_SAVE_FAILED',
 			'Não foi possível salvar o relatório de qualidade.',
 		);
-	return data.id as string;
+	return { id: data.id as string, reportSha256: input.reportSha256, status };
 }
 
 export async function loadQualityReportForJob(

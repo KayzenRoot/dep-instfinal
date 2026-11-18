@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { ownerDatabase } from '#lib/server/authorized.js';
 import { firstRelation } from '#lib/server/relations.js';
 import { createSupabaseAdminClient } from '#lib/server/supabase.js';
+import { qualityInspectionReportSchema } from '#lib/schemas/quality-report.js';
 import {
 	acknowledgeQualityReport,
 	QualityReportError,
@@ -47,9 +48,13 @@ export const load: PageServerLoad = async (event) => {
 	]);
 	if (jobsResult.error || reportsResult.error)
 		throw new Error('Não foi possível listar os renders exportáveis.');
-	const reports = new Map(
-		((reportsResult.data ?? []) as QualityReportRow[]).map((report) => [report.job_id, report]),
-	);
+	const reports = new Map<string, QualityReportRow>();
+	for (const report of (reportsResult.data ?? []) as QualityReportRow[]) {
+		if (reports.has(report.job_id)) continue;
+		const parsed = qualityInspectionReportSchema.safeParse(report.report);
+		if (!parsed.success) continue;
+		reports.set(report.job_id, { ...report, report: parsed.data });
+	}
 	const titles = new Map(episodes.map((episode) => [episode.id, episode.title]));
 	return {
 		episodes,

@@ -86,6 +86,7 @@ export async function loadCaptionContext(
 	owner: User,
 	episodeId: string,
 	requestedVersion?: number | null,
+	requestedTakeId?: string | null,
 ): Promise<CaptionContext> {
 	const { data: episode, error: episodeError } = await db
 		.from('episodes')
@@ -159,16 +160,18 @@ export async function loadCaptionContext(
 		voicePlan?.current_status === 'APPROVED'
 			? ((voicePlan.plan as { takeId?: unknown } | null)?.takeId ?? null)
 			: null;
-	const takeId = typeof plannedTake === 'string' ? plannedTake : (latestTake?.id ?? null);
+	const takeId =
+		requestedTakeId ?? (typeof plannedTake === 'string' ? plannedTake : (latestTake?.id ?? null));
 	let audioSha256 = latestTake?.sha256 ?? null;
 	let plannedTakeReady = false;
-	if (typeof plannedTake === 'string') {
+	const selectedTakeId = requestedTakeId ?? (typeof plannedTake === 'string' ? plannedTake : null);
+	if (selectedTakeId) {
 		const { data: selected } = await db
 			.from('narration_takes')
 			.select('sha256')
 			.eq('owner_id', owner.id)
 			.eq('episode_id', episodeId)
-			.eq('id', plannedTake)
+			.eq('id', selectedTakeId)
 			.eq('status', 'READY')
 			.maybeSingle();
 		audioSha256 = selected?.sha256 ?? null;
@@ -543,11 +546,24 @@ export async function getCaptionExports(input: {
 	owner: User;
 	episodeId: string;
 	planVersion?: number | null;
+	narrationTakeId?: string | null;
 }): Promise<{ srt: string; ass: string } | null> {
 	const context =
 		input.planVersion && input.planVersion > 0
-			? await loadCaptionContext(input.db, input.owner, input.episodeId, input.planVersion)
-			: await loadCaptionContext(input.db, input.owner, input.episodeId);
+			? await loadCaptionContext(
+					input.db,
+					input.owner,
+					input.episodeId,
+					input.planVersion,
+					input.narrationTakeId ?? null,
+				)
+			: await loadCaptionContext(
+					input.db,
+					input.owner,
+					input.episodeId,
+					null,
+					input.narrationTakeId ?? null,
+				);
 	const stored = await loadCaptionTrack(
 		input.db,
 		input.owner,

@@ -321,7 +321,7 @@ const checks = [
 			qualityMigration.includes('blocked_quality_report_cannot_be_acknowledged') &&
 			qualityMigration.includes('output_profile in') &&
 			qualityMigration.includes('quality in') &&
-			qualityMigration.includes("p_error_code like 'QA_%'"),
+			qualityMigration.includes("left(p_error_code, 3) = 'QA_'"),
 	],
 	[
 		'video storage is private, multipart and short-lived signed',

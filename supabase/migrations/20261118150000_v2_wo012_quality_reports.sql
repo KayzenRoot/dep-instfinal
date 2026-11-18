@@ -255,8 +255,90 @@ comment on column public.render_jobs.quality is
 comment on function public.acknowledge_render_quality_report(uuid, uuid, text) is
   'Owner acknowledges a WARN report with a justification; PASS needs none and BLOCKED cannot be acknowledged.';
 
--- QA gates are deterministic; retrying the same plan/artifact would repeat the
--- same failure. Keep ordinary render errors retryable.
+-- The final geometry depends on the requested profile. When the manifest
+-- carries a QA block, READY also requires a matching PASS/WARN report row.
+create or replace function public.complete_render_job(
+  p_job_id uuid,
+  p_worker_id text,
+  p_output_manifest jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_job public.render_jobs;
+  v_expected_width integer;
+  v_expected_height integer;
+  v_manifest_sha text;
+begin
+  if p_output_manifest is null or jsonb_typeof(p_output_manifest) <> 'object' then
+    raise exception 'render_output_invalid' using errcode = '23514';
+  end if;
+  if p_output_manifest ? 'stub' then
+    raise exception 'render_stub_not_allowed' using errcode = '23514';
+  end if;
+  select r.* into v_job from public.render_jobs r
+  where r.id = p_job_id and r.lease_owner = p_worker_id and r.status = 'RUNNING'
+  for update;
+  if not found then raise exception 'render_job_not_running' using errcode = 'P0001'; end if;
+  v_expected_width := case when v_job.output_profile = '720p' then 720 else 1080 end;
+  v_expected_height := case when v_job.output_profile = '720p' then 1280 else 1920 end;
+  v_manifest_sha := p_output_manifest ->> 'sha256';
+  if coalesce(p_output_manifest ->> 'codec', '') <> 'h264'
+    or coalesce((p_output_manifest ->> 'width')::integer, 0) <> v_expected_width
+    or coalesce((p_output_manifest ->> 'height')::integer, 0) <> v_expected_height
+    or coalesce((p_output_manifest ->> 'durationMs')::integer, 0) <= 0
+    or coalesce(p_output_manifest ->> 'objectKey', '') = ''
+    or coalesce(v_manifest_sha, '') !~ '^[0-9a-f]{64}$' then
+    raise exception 'render_output_invalid' using errcode = '23514';
+  end if;
+  if p_output_manifest ? 'qa' then
+    if coalesce(p_output_manifest -> 'qa' ->> 'status', '') not in ('PASS', 'WARN') then
+      raise exception 'render_quality_invalid' using errcode = '23514';
+    end if;
+    if not exists (
+      select 1 from public.render_quality_reports q
+      where q.owner_id = v_job.owner_id
+        and q.job_id = v_job.id
+        and q.artifact_sha256 = v_manifest_sha
+        and q.status in ('PASS', 'WARN')
+    ) then
+      raise exception 'render_quality_missing' using errcode = '23514';
+    end if;
+  end if;
+  if v_job.narration_take_id is not null then
+    if coalesce(p_output_manifest -> 'audio' ->> 'codec', '') <> 'aac'
+      or coalesce((p_output_manifest -> 'audio' ->> 'channels')::integer, 0) <> 2
+      or coalesce((p_output_manifest -> 'audio' ->> 'sampleRate')::integer, 0) <> 48000
+      or coalesce((p_output_manifest -> 'audio' ->> 'durationMs')::integer, 0) <= 0
+      or abs(
+        coalesce((p_output_manifest -> 'audio' ->> 'durationMs')::integer, 0)
+        - coalesce((p_output_manifest ->> 'durationMs')::integer, 0)
+      ) > 1000
+      or (p_output_manifest -> 'audio' ->> 'narrationTakeId') is distinct from v_job.narration_take_id::text then
+      raise exception 'render_narration_missing' using errcode = '23514';
+    end if;
+  end if;
+  update public.render_jobs r
+  set status = 'READY',
+      output_manifest = p_output_manifest,
+      lease_owner = null,
+      lease_expires_at = null,
+      heartbeat_at = null,
+      finished_at = now()
+  where r.id = p_job_id
+    and r.lease_owner = p_worker_id
+    and r.status = 'RUNNING'
+    and r.lease_expires_at > now()
+  returning * into v_job;
+  if not found then raise exception 'render_job_not_running' using errcode = 'P0001'; end if;
+  insert into public.render_job_events (owner_id, job_id, event_type, worker_id)
+  values (v_job.owner_id, v_job.id, 'COMPLETED', p_worker_id);
+end;
+$$;
+
 create or replace function public.fail_render_job(
   p_job_id uuid,
   p_worker_id text,
@@ -280,7 +362,7 @@ begin
   for update;
   if not found then raise exception 'render_job_not_owned' using errcode = 'P0001'; end if;
   v_next_status := case
-    when p_error_code like 'QA_%' then 'FAILED'
+    when left(p_error_code, 3) = 'QA_' then 'FAILED'
     when v_job.attempts < v_job.max_attempts then 'QUEUED'
     else 'FAILED'
   end;

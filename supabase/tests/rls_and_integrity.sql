@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(144);
+select plan(152);
 
 do $$
 declare
@@ -1755,6 +1755,66 @@ select throws_ok(
   '23514', 'render_output_profile_invalid',
   'enqueue rejects an unsupported output profile'
 );
+select is(
+  public.claim_render_job('worker-f', 60) ->> 'id',
+  (select id::text from test_render_jobs where name = 'job-qa'),
+  'worker-f claims the 720p fallback job'
+);
+select lives_ok(
+  $$select public.start_render_job(
+      (select id from test_render_jobs where name = 'job-qa'), 'worker-f'
+    );$$,
+  '720p fallback job starts'
+);
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job-qa'), 'worker-f',
+      '{"schemaVersion":1,"codec":"h264","width":1080,"height":1920,"durationMs":120000,"objectKey":"renders/720.mp4","sha256":"1111111111111111111111111111111111111111111111111111111111111111","qa":{"status":"PASS"}}'::jsonb
+    );$$,
+  '23514', 'render_output_invalid',
+  '720p fallback rejects a 1080x1920 manifest'
+);
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job-qa'), 'worker-f',
+      '{"schemaVersion":1,"codec":"h264","width":720,"height":1280,"durationMs":120000,"objectKey":"renders/720.mp4","sha256":"1111111111111111111111111111111111111111111111111111111111111111","qa":{"status":"PASS"}}'::jsonb
+    );$$,
+  '23514', 'render_quality_missing',
+  'a render with a QA block requires a stored PASS/WARN report'
+);
+select lives_ok(
+  $$insert into public.render_quality_reports (
+      owner_id, job_id, episode_id, plan_id, plan_version,
+      artifact_sha256, report_sha256, status, report
+    )
+    select owner_id, id, episode_id, plan_id, plan_version,
+      repeat('1', 64), repeat('2', 64), 'PASS',
+      '{"schemaVersion":1,"checks":[{"id":"DECODE","status":"PASS"}]}'::jsonb
+    from public.render_jobs
+    where id = (select id from test_render_jobs where name = 'job-qa');$$,
+  'service role stores the 720p QA report'
+);
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job-qa'), 'worker-f',
+      '{"schemaVersion":1,"codec":"h264","width":720,"height":1280,"durationMs":120000,"objectKey":"renders/720.mp4","sha256":"3333333333333333333333333333333333333333333333333333333333333333","qa":{"status":"PASS"}}'::jsonb
+    );$$,
+  '23514', 'render_quality_missing',
+  'the QA report must match the manifest artifact hash'
+);
+select lives_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job-qa'), 'worker-f',
+      '{"schemaVersion":1,"codec":"h264","width":720,"height":1280,"durationMs":120000,"objectKey":"renders/720.mp4","sha256":"1111111111111111111111111111111111111111111111111111111111111111","qa":{"status":"PASS"}}'::jsonb
+    );$$,
+  '720p fallback completes with matching QA'
+);
+select is(
+  (select status from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job-qa')),
+  'READY',
+  '720p fallback reaches READY'
+);
 select lives_ok(
   $$insert into public.render_quality_reports (
       owner_id, job_id, episode_id, plan_id, plan_version,
@@ -1782,8 +1842,8 @@ select lives_ok(
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
 select is(
-  (select count(*) from public.render_quality_reports), 2::bigint,
-  'owner can read both quality reports'
+  (select count(*) from public.render_quality_reports), 3::bigint,
+  'owner can read all quality reports'
 );
 select throws_ok(
   $$insert into public.render_quality_reports (

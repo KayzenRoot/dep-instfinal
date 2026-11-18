@@ -3,6 +3,7 @@
 	import type { PageProps } from './$types';
 	import PageHeading from '#lib/components/PageHeading.svelte';
 	import Panel from '#lib/components/Panel.svelte';
+	import { downloadBlockReason } from '#lib/schemas/quality-report.js';
 
 	type QualityCheckView = {
 		id: string;
@@ -23,6 +24,13 @@
 		report: {
 			summary: { pass: number; warn: number; blocked: number; notTested: number };
 			checks: QualityCheckView[];
+			exceptions: Array<{
+				checkId: string;
+				startMs: number;
+				endMs: number;
+				reason: string;
+				source: string;
+			}>;
 		};
 		acknowledged_at: string | null;
 		acknowledgement_note: string | null;
@@ -44,12 +52,13 @@
 	type RenderManifest = {
 		byteSize?: number;
 		durationMs?: number;
-		captions?: { cues?: number } | null;
+		captions?: { cues?: number; narrationTakeId?: string | null } | null;
 		captionsOmitted?: boolean;
 		qa?: { status?: string };
 	};
 
 	let { data, form }: PageProps = $props();
+	let qaFilter = $state<'all' | 'warn' | 'blocked' | 'not_tested'>('all');
 
 	function manifest(render: RenderView): RenderManifest | null {
 		return (render.output_manifest as RenderManifest | null) ?? null;
@@ -69,25 +78,39 @@
 		}).format(new Date(value));
 	}
 
+	function blockReason(render: RenderView): string | null {
+		if (render.status !== 'READY') return 'RENDER_NOT_READY';
+		if (!render.report) return 'QUALITY_REPORT_MISSING';
+		return downloadBlockReason({
+			status: render.report.status,
+			checks: render.report.report.checks,
+			acknowledgedAt: render.report.acknowledged_at,
+		});
+	}
+
 	function canDownload(render: RenderView): boolean {
-		if (render.status !== 'READY' || !render.report) return false;
-		if (render.report.status === 'BLOCKED' || render.report.status === 'NOT_TESTED') return false;
-		if (render.report.status === 'WARN' && !render.report.acknowledged_at) return false;
-		return true;
+		return blockReason(render) === null;
 	}
 
 	function downloadHint(render: RenderView): string {
-		if (render.status !== 'READY') return 'Ainda não está pronto.';
-		if (!render.report) return 'Sem relatório de qualidade; renderize novamente.';
-		if (render.report.status === 'BLOCKED') return 'Bloqueado pelo Quality Inspector.';
-		if (render.report.status === 'NOT_TESTED') return 'A inspeção não conseguiu validar o arquivo.';
-		if (render.report.status === 'WARN' && !render.report.acknowledged_at)
-			return 'Reconheça os avisos para liberar o download.';
+		const reason = blockReason(render);
+		if (reason === 'RENDER_NOT_READY') return 'Ainda não está pronto.';
+		if (reason === 'QUALITY_REPORT_MISSING')
+			return 'Sem relatório de qualidade; renderize novamente.';
+		if (reason === 'QUALITY_BLOCKED') return 'Bloqueado pelo Quality Inspector.';
+		if (reason === 'QUALITY_NOT_TESTED') return 'A inspeção não conseguiu validar o arquivo.';
+		if (reason === 'QUALITY_ACK_REQUIRED') return 'Reconheça os avisos para liberar o download.';
+		if (reason?.startsWith('QUALITY_CHECK_UNTESTED'))
+			return 'Uma verificação crítica ficou NOT_TESTED; gere novamente.';
 		return 'Download indisponível.';
 	}
 
 	function visibleChecks(report: QualityReportView): QualityCheckView[] {
-		return report.report.checks.filter((check) => check.status !== 'PASS').slice(0, 12);
+		const checks =
+			qaFilter === 'all'
+				? report.report.checks
+				: report.report.checks.filter((check) => check.status.toLowerCase() === qaFilter);
+		return checks.slice(0, 12);
 	}
 
 	function evidenceLabel(evidence: QualityCheckView['evidence'][number]): string {
@@ -101,6 +124,12 @@
 			parts.push(`${Number(evidence.value).toFixed(2)}${evidence.unit ? ` ${evidence.unit}` : ''}`);
 		if (evidence.detail) parts.push(evidence.detail);
 		return parts.join(' · ');
+	}
+
+	function srtHref(render: RenderView): string {
+		const base = resolve('/api/captions/[episodeId]/srt', { episodeId: render.episode_id });
+		const takeId = manifest(render)?.captions?.narrationTakeId;
+		return `${base}?planVersion=${render.plan_version}${takeId ? `&takeId=${encodeURIComponent(takeId)}` : ''}`;
 	}
 </script>
 
@@ -117,6 +146,17 @@
 		<p>Nenhum render ainda. Aprove o plano na timeline e use “Renderizar plano aprovado”.</p>
 		<a href={resolve('/app/timeline')}>Ir à timeline</a>
 	{:else}
+		<div class="filter">
+			<label>
+				Filtro QA
+				<select bind:value={qaFilter}>
+					<option value="all">Todos os checks</option>
+					<option value="warn">Só avisos</option>
+					<option value="blocked">Só bloqueios</option>
+					<option value="not_tested">Só não testados</option>
+				</select>
+			</label>
+		</div>
 		<div class="cards">
 			{#each data.renders as render (render.id)}
 				<article class="card">
@@ -155,6 +195,20 @@
 										</li>
 									{/each}
 								</ul>
+								{#if render.report.report.exceptions.length}
+									<div class="exceptions">
+										<strong>Exceções aceitas</strong>
+										<ul>
+											{#each render.report.report.exceptions as exception (exception.checkId + exception.startMs)}
+												<li>
+													{(exception.startMs / 1000).toFixed(1)}–
+													{(exception.endMs / 1000).toFixed(1)}s · {exception.reason}
+													<small>({exception.source})</small>
+												</li>
+											{/each}
+										</ul>
+									</div>
+								{/if}
 							</details>
 						{/if}
 						{#if render.report.status === 'WARN' && !render.report.acknowledged_at}
@@ -187,11 +241,7 @@
 						{/if}
 						{#if manifest(render)?.captions}
 							<!-- eslint-disable svelte/no-navigation-without-resolve -->
-							<a
-								href={`${resolve('/api/captions/[episodeId]/srt', {
-									episodeId: render.episode_id,
-								})}?planVersion=${render.plan_version}`}>Baixar SRT</a
-							>
+							<a href={srtHref(render)}>Baixar SRT</a>
 							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						{/if}
 						{#if render.report}
@@ -199,6 +249,7 @@
 								>Laudo QA (JSON)</a
 							>
 						{/if}
+						<a href={resolve(`/app/timeline?episodeId=${render.episode_id}`)}>Abrir timeline</a>
 					</div>
 					{#if manifest(render)?.captionsOmitted}
 						<p class="notice warning">
@@ -237,6 +288,34 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
 		gap: 1rem;
+	}
+	.filter {
+		display: flex;
+		justify-content: flex-end;
+		margin-block-end: 0.75rem;
+	}
+	.filter label {
+		display: grid;
+		gap: 0.2rem;
+		color: var(--muted);
+		font-size: 0.72rem;
+	}
+	.exceptions {
+		display: grid;
+		gap: 0.25rem;
+		margin-block-start: 0.6rem;
+		color: var(--muted);
+		font-size: 0.72rem;
+	}
+	.exceptions ul {
+		display: grid;
+		gap: 0.25rem;
+		margin: 0;
+		padding-inline-start: 1.1rem;
+	}
+	.exceptions small {
+		font-family: var(--mono);
+		font-size: 0.62rem;
 	}
 	.card {
 		display: grid;

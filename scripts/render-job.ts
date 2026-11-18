@@ -367,7 +367,7 @@ async function main() {
 			outputProfile,
 			quality,
 		});
-		const qualityReportId = await recordQualityReport({
+		const qualityReport = await recordQualityReport({
 			adminDb: admin,
 			ownerId: job.owner_id,
 			jobId: job.id,
@@ -386,9 +386,10 @@ async function main() {
 		}
 		const objectKey = `renders/${job.owner_id}/${job.episode_id}/${job.id}/output.mp4`;
 		const localOutput = process.env.WORKER_LOCAL_OUTPUT_DIR;
-		if (localOutput) {
-			await mkdir(localOutput, { recursive: true });
-			await copyFile(output.path, join(localOutput, 'output.mp4'));
+		const localArtifactPath = localOutput ? join(localOutput, `${job.id}.mp4`) : null;
+		if (localArtifactPath) {
+			await mkdir(localOutput!, { recursive: true });
+			await copyFile(output.path, localArtifactPath);
 		} else {
 			if (!r2 || !bucket) throw new Error('render_upload_unavailable');
 			await r2.send(
@@ -414,9 +415,9 @@ async function main() {
 			outputProfile,
 			quality,
 			qa: {
-				status: qualityResult.status,
-				reportId: qualityReportId,
-				reportSha256: qualityResult.reportSha256,
+				status: qualityReport.status,
+				reportId: qualityReport.id,
+				reportSha256: qualityReport.reportSha256,
 				summary: qualityResult.report.summary,
 			},
 			captionsOmitted: validated.captions.template !== 'none' && !caption,
@@ -429,7 +430,7 @@ async function main() {
 					}
 				: null,
 			bucket: localOutput ? 'local-test' : bucket,
-			objectKey: localOutput ? join(localOutput, 'output.mp4') : objectKey,
+			objectKey: localArtifactPath ?? objectKey,
 			durationMs: output.durationMs,
 			width: output.width,
 			height: output.height,
