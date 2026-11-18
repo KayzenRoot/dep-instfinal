@@ -215,7 +215,7 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Base revalidated:** `main` `7d15076` (checkpoint WO-012 promoted). Branch: `feat/dif-v2-wo-013`.
 - **Issue inventory:** WO-001–012 **MERGED/CLOSED/PROMOTED**; WO-013/#30 em execução; WO-014+ remain gated.
 - **Scope:** quotas diárias, limites de worker, saúde da fila, backup/restore de metadados, retenção dry-run e grants operacionais. Sem exclusão automática de mídia, sem deploy/VPS e sem custo.
-- **Delivered locally:** quotas 20/2 GiB + 429; reserva de disco com pausa; threads 1–8; `render_queue_health`/health owner-only; backup/restore com SHA e verificação; retenção com `--confirm` e proteção de jobs; PgTAP 155/155; unit 209+3.
+- **Delivered locally:** quotas 20/2 GiB + 429; reserva de disco com pausa; threads 1–8; `render_queue_health`/health owner-only; backup/restore com SHA e verificação; retenção com `--confirm` e proteção de jobs; PgTAP 155/155; unit 210+3.
 - **Gate:** CI, auditoria independente e autorização do owner; checkpoint **PROPOSED**; sem merge/deploy. WO-014 (#31) depende deste gate e das WOs 015–021.
 
 ### Fingerprints no base `7d15076`

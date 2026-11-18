@@ -93,6 +93,7 @@ async function fetchAll(table, select, filter) {
 		let query = client
 			.from(table)
 			.select(select)
+			.order('id', { ascending: true })
 			.range(from, from + 999);
 		if (filter) query = filter(query);
 		const { data, error } = await query;
@@ -100,6 +101,13 @@ async function fetchAll(table, select, filter) {
 		rows.push(...(data ?? []));
 		if (!data || data.length < 1_000) break;
 	}
+	const seen = new Set(rows.map((row) => row.id));
+	if (seen.size !== rows.length) throw new Error(`${table}: pagination returned duplicate ids.`);
+	let countQuery = client.from(table).select('*', { count: 'exact', head: true });
+	if (filter) countQuery = filter(countQuery);
+	const { count, error: countError } = await countQuery;
+	if (countError || count !== rows.length)
+		throw new Error(`${table}: pagination incomplete (${rows.length}/${count ?? '?'}).`);
 	return rows;
 }
 const jobs = await fetchAll('render_jobs', 'id,status,output_manifest', (query) =>
@@ -138,10 +146,13 @@ const summary = {
 	counts,
 	paginationComplete: true,
 	artifacts,
+	readyJobsWithoutArtifact: jobs.length - artifacts.length,
 	qualityReports: reports ?? [],
 	redaction: 'public schema only; auth users/secrets and media bytes are not included',
 };
-writeFileSync(join(outDir, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+const summaryPath = join(outDir, 'summary.json');
+writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, { mode: 0o600 });
+chmodSync(summaryPath, 0o600);
 process.stdout.write(
 	`${JSON.stringify({ ok: true, outDir, schemaSha256: summary.files.schema.sha256, dataSha256: summary.files.data.sha256, counts }, null, 2)}\n`,
 );

@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-013` · issue #30 · epic #17
 - **Base:** `main` `7d15076` (checkpoint WO-012 promovido); branch `feat/dif-v2-wo-013`
-- **Status:** implementação completa do núcleo; unit **209+3**, PgTAP **155/155**, policy **29/25**, restore local e retenção dry-run **PASS**; CI/auditoria **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
+- **Status:** implementação completa do núcleo; unit **210+3**, PgTAP **155/155**, policy **29/25**, restore local e retenção dry-run **PASS**; CI/auditoria **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
 
 | Check      | Result     | Evidence                                                                                                     |
 | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------ |

@@ -1,6 +1,6 @@
 # DIF-V2-WO-013 — Hardening operacional: quotas, backup, retenção e recuperação
 
-**Status:** implementação completa e correções da auditoria em `feat/dif-v2-wo-013`; unit 209+3, PgTAP 155/155, policy 29/25, restore local e retenção dry-run PASS; CI final e reauditoria **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** implementação completa e correções da auditoria em `feat/dif-v2-wo-013`; unit 210+3, PgTAP 155/155, policy 29/25, restore local e retenção dry-run PASS; CI final e reauditoria **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
 **Base:** `main` `7d15076` (checkpoint WO-012 promovido).
 **Escopo:** WO-013 (#30) — núcleo operacional (quotas, limites de worker, saúde, backup/restore, retenção dry-run). As extensões OPS-2026-11-12 ligadas às WOs 015–021 ficam registradas como obrigações posteriores, sem infraestrutura duplicada.
 

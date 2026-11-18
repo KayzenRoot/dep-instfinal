@@ -173,8 +173,13 @@ const expectedQa = summary.artifacts.filter((artifact) =>
 		(report) => report.job_id === artifact.jobId && report.artifact_sha256 === artifact.sha256,
 	),
 ).length;
+const artifactsWithoutQa = summary.artifacts.length - expectedQa;
+const coverageOk = artifactsWithoutQa === 0 && (summary.readyJobsWithoutArtifact ?? 0) === 0;
 const metadataOk =
-	countMismatches.length === 0 && Number(joinCheck) > 0 && Number(hashCheck) === expectedQa;
+	countMismatches.length === 0 &&
+	Number(joinCheck) > 0 &&
+	Number(hashCheck) === expectedQa &&
+	coverageOk;
 const mediaOk = artifacts.every((artifact) => artifact.blob === 'verified_local');
 const report = {
 	schemaVersion: 1,
@@ -187,6 +192,8 @@ const report = {
 	expectedReadyJobsWithQa: expectedQa,
 	readyJobsWithMatchingQaHash: Number(hashCheck),
 	metadataOk,
+	coverageOk,
+	artifactsWithoutQa,
 	mediaOk,
 	artifacts,
 	ok: metadataOk && mediaOk,

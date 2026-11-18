@@ -46,12 +46,21 @@ for (let from = 0; ; from += 1_000) {
 	const { data, error } = await client
 		.from('render_jobs')
 		.select('id,status,output_manifest,created_at')
-		.order('created_at', { ascending: false })
+		.order('id', { ascending: true })
 		.range(from, from + 999);
 	if (error) throw new Error(`render_jobs: ${error.message}`);
 	jobs.push(...(data ?? []));
 	if (!data || data.length < 1_000) break;
 }
+const { count: jobCount, error: jobCountError } = await client
+	.from('render_jobs')
+	.select('*', { count: 'exact', head: true });
+if (
+	jobCountError ||
+	jobCount !== jobs.length ||
+	new Set(jobs.map((job) => job.id)).size !== jobs.length
+)
+	throw new Error('render_jobs: pagination incomplete; refusing retention.');
 
 const referenced = new Set();
 const missingReferenced = [];
