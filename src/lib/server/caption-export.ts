@@ -8,6 +8,8 @@ export async function captionExportResponse(input: {
 	owner: User;
 	episodeId: string;
 	planVersion: number | null;
+	narrationTakeId?: string | null;
+	pinTake?: boolean;
 	format: 'srt' | 'ass';
 }): Promise<Response> {
 	if (!episodePattern.test(input.episodeId))
@@ -17,6 +19,8 @@ export async function captionExportResponse(input: {
 		owner: input.owner,
 		episodeId: input.episodeId,
 		planVersion: input.planVersion,
+		narrationTakeId: input.narrationTakeId ?? null,
+		pinTake: input.pinTake ?? false,
 	});
 	if (!exportData) return new Response('Legendas não encontradas.', { status: 404 });
 	const isSrt = input.format === 'srt';

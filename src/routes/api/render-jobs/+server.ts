@@ -51,6 +51,8 @@ export const POST: RequestHandler = async (event) => {
 			episodeId: parsed.data.episodeId,
 			idempotencyKey: parsed.data.idempotencyKey,
 			priority: parsed.data.priority,
+			outputProfile: parsed.data.outputProfile,
+			quality: parsed.data.quality,
 		});
 		return json(result, { status: 202 });
 	} catch (cause) {

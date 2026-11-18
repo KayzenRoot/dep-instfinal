@@ -86,7 +86,10 @@ async function runRealRender(job, signal) {
 	signal.addEventListener('abort', abort, { once: true });
 	try {
 		const code = await new Promise((resolve) => child.on('exit', (value) => resolve(value ?? 1)));
-		if (code !== 0) throw new Error(stderr.trim().slice(0, 64) || 'WORKER_RENDER_FAILED');
+		if (code !== 0) {
+			const safeCode = /(?:^|\n)([A-Z][A-Z0-9_]{1,63}):/.exec(stderr.trim())?.[1];
+			throw new Error(safeCode ?? stderr.trim().slice(0, 64) ?? 'WORKER_RENDER_FAILED');
+		}
 		const lines = stdout.trim().split(String.fromCharCode(10));
 		const lastLine = lines[lines.length - 1];
 		if (!lastLine) throw new Error('WORKER_RENDER_FAILED');
@@ -162,7 +165,7 @@ async function runJob(job) {
 		log('render_completed', { jobId: job.id });
 	} catch (cause) {
 		const message = cause instanceof Error ? cause.message : 'WORKER_STUB_FAILED';
-		const code = /WORKER_[A-Z_]+/.exec(message)?.[0] ?? 'WORKER_STUB_FAILED';
+		const code = /^[A-Z0-9_]{1,64}/.exec(message)?.[0] ?? 'WORKER_STUB_FAILED';
 		try {
 			await rpc('fail_render_job', {
 				p_job_id: job.id,

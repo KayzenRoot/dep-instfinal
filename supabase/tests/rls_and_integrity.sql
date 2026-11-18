@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(131);
+select plan(152);
 
 do $$
 declare
@@ -13,7 +13,8 @@ declare
     'image_references', 'generation_jobs', 'video_upload_sessions', 'video_assets',
     'video_edit_plans', 'video_edit_plan_versions',
     'render_jobs', 'render_job_events',
-    'voice_direction_plans', 'narration_takes'
+    'voice_direction_plans', 'narration_takes',
+    'caption_tracks', 'audio_assets', 'render_quality_reports'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -56,7 +57,11 @@ begin
         or has_table_privilege('authenticated', 'public.video_assets', 'DELETE') then
         raise exception 'authenticated can mutate video_assets outside the server';
       end if;
-    elsif v_table in ('video_edit_plans', 'video_edit_plan_versions', 'render_jobs', 'render_job_events', 'voice_direction_plans', 'narration_takes') then
+    elsif v_table in (
+      'video_edit_plans', 'video_edit_plan_versions', 'render_jobs', 'render_job_events',
+      'voice_direction_plans', 'narration_takes', 'caption_tracks', 'audio_assets',
+      'render_quality_reports'
+    ) then
       if v_policy_count <> 1 then raise exception 'edit plan policies must be read-only'; end if;
       if has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
         or has_table_privilege('authenticated', format('public.%I', v_table), 'UPDATE')
@@ -1721,6 +1726,186 @@ select throws_ok(
   '23514',
   'new row for relation "audio_assets" violates check constraint "audio_verified_license_requires_rights"',
   'verified audio requires commercial and social rights'
+);
+-- WO-012: render options and immutable Quality Inspector reports.
+insert into test_render_jobs
+select 'job-qa', public.enqueue_render_job(
+  '11111111-1111-4111-8111-111111111111',
+  'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+  'wo012-options-999', 50::smallint, null, '720p', 'high'
+);
+select is(
+  (select output_profile from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job-qa')),
+  '720p',
+  'enqueue stores the requested fallback output profile'
+);
+select is(
+  (select quality from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job-qa')),
+  'high',
+  'enqueue stores the requested quality tier'
+);
+select throws_ok(
+  $$select public.enqueue_render_job(
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      'wo012-bad-profile', 50::smallint, null, '4k', 'high'
+    );$$,
+  '23514', 'render_output_profile_invalid',
+  'enqueue rejects an unsupported output profile'
+);
+select is(
+  public.claim_render_job('worker-f', 60) ->> 'id',
+  (select id::text from test_render_jobs where name = 'job-qa'),
+  'worker-f claims the 720p fallback job'
+);
+select lives_ok(
+  $$select public.start_render_job(
+      (select id from test_render_jobs where name = 'job-qa'), 'worker-f'
+    );$$,
+  '720p fallback job starts'
+);
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job-qa'), 'worker-f',
+      '{"schemaVersion":1,"codec":"h264","width":1080,"height":1920,"durationMs":120000,"objectKey":"renders/720.mp4","sha256":"1111111111111111111111111111111111111111111111111111111111111111","qa":{"status":"PASS"}}'::jsonb
+    );$$,
+  '23514', 'render_output_invalid',
+  '720p fallback rejects a 1080x1920 manifest'
+);
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job-qa'), 'worker-f',
+      '{"schemaVersion":1,"codec":"h264","width":720,"height":1280,"durationMs":120000,"objectKey":"renders/720.mp4","sha256":"1111111111111111111111111111111111111111111111111111111111111111","qa":{"status":"PASS"}}'::jsonb
+    );$$,
+  '23514', 'render_quality_missing',
+  'a render with a QA block requires a stored PASS/WARN report'
+);
+select lives_ok(
+  $$insert into public.render_quality_reports (
+      owner_id, job_id, episode_id, plan_id, plan_version,
+      artifact_sha256, report_sha256, status, report
+    )
+    select owner_id, id, episode_id, plan_id, plan_version,
+      repeat('1', 64), repeat('2', 64), 'PASS',
+      '{"schemaVersion":1,"checks":[{"id":"DECODE","status":"PASS"}]}'::jsonb
+    from public.render_jobs
+    where id = (select id from test_render_jobs where name = 'job-qa');$$,
+  'service role stores the 720p QA report'
+);
+select throws_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job-qa'), 'worker-f',
+      '{"schemaVersion":1,"codec":"h264","width":720,"height":1280,"durationMs":120000,"objectKey":"renders/720.mp4","sha256":"3333333333333333333333333333333333333333333333333333333333333333","qa":{"status":"PASS"}}'::jsonb
+    );$$,
+  '23514', 'render_quality_missing',
+  'the QA report must match the manifest artifact hash'
+);
+select lives_ok(
+  $$select public.complete_render_job(
+      (select id from test_render_jobs where name = 'job-qa'), 'worker-f',
+      '{"schemaVersion":1,"codec":"h264","width":720,"height":1280,"durationMs":120000,"objectKey":"renders/720.mp4","sha256":"1111111111111111111111111111111111111111111111111111111111111111","qa":{"status":"PASS"}}'::jsonb
+    );$$,
+  '720p fallback completes with matching QA'
+);
+select is(
+  (select status from public.render_jobs
+   where id = (select id from test_render_jobs where name = 'job-qa')),
+  'READY',
+  '720p fallback reaches READY'
+);
+select lives_ok(
+  $$insert into public.render_quality_reports (
+      owner_id, job_id, episode_id, plan_id, plan_version,
+      artifact_sha256, report_sha256, status, report
+    )
+    select owner_id, id, episode_id, plan_id, plan_version,
+      repeat('a', 64), repeat('b', 64), 'WARN',
+      '{"schemaVersion":1,"checks":[{"id":"BLACK_FRAMES","status":"WARN"}]}'::jsonb
+    from public.render_jobs
+    where id = (select id from test_render_jobs where name = 'job3');$$,
+  'service role can store a WARN quality report'
+);
+select lives_ok(
+  $$insert into public.render_quality_reports (
+      owner_id, job_id, episode_id, plan_id, plan_version,
+      artifact_sha256, report_sha256, status, report
+    )
+    select owner_id, id, episode_id, plan_id, plan_version,
+      repeat('c', 64), repeat('d', 64), 'BLOCKED',
+      '{"schemaVersion":1,"checks":[{"id":"DECODE","status":"BLOCKED"}]}'::jsonb
+    from public.render_jobs
+    where id = (select id from test_render_jobs where name = 'job4');$$,
+  'service role can store a BLOCKED quality report'
+);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.render_quality_reports), 3::bigint,
+  'owner can read all quality reports'
+);
+select throws_ok(
+  $$insert into public.render_quality_reports (
+      owner_id, job_id, episode_id, plan_id, plan_version,
+      artifact_sha256, report_sha256, status, report
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      (select id from public.render_jobs limit 1),
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      (select plan_id from public.render_jobs limit 1),
+      (select plan_version from public.render_jobs limit 1),
+      repeat('e', 64), repeat('f', 64), 'PASS', '{}'::jsonb
+    );$$,
+  '42501', 'permission denied for table render_quality_reports',
+  'owner cannot insert quality reports directly'
+);
+select throws_ok(
+  $$update public.render_quality_reports set acknowledgement_note = 'spoof';$$,
+  '42501', 'permission denied for table render_quality_reports',
+  'owner cannot update quality reports directly'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.render_quality_reports), 0::bigint,
+  'second owner cannot read quality reports'
+);
+set local role service_role;
+select throws_ok(
+  $$update public.render_quality_reports
+    set report = '{"schemaVersion":1,"checks":[]}'::jsonb
+    where job_id = (select id from test_render_jobs where name = 'job3');$$,
+  '55000', 'quality_report_findings_are_immutable',
+  'quality findings cannot be rewritten'
+);
+select lives_ok(
+  $$select public.acknowledge_render_quality_report(
+      '11111111-1111-4111-8111-111111111111',
+      (select id from public.render_quality_reports
+       where job_id = (select id from test_render_jobs where name = 'job3')),
+      'VHS estático revisado no aparelho'
+    );$$,
+  'owner can acknowledge a WARN report with a justification'
+);
+select throws_ok(
+  $$select public.acknowledge_render_quality_report(
+      '11111111-1111-4111-8111-111111111111',
+      (select id from public.render_quality_reports
+       where job_id = (select id from test_render_jobs where name = 'job3')),
+      'Segunda tentativa de reconhecimento'
+    );$$,
+  '55000', 'quality_report_already_acknowledged',
+  'a quality acknowledgement cannot be replaced'
+);
+select throws_ok(
+  $$select public.acknowledge_render_quality_report(
+      '11111111-1111-4111-8111-111111111111',
+      (select id from public.render_quality_reports
+       where job_id = (select id from test_render_jobs where name = 'job4')),
+      'Tentativa de liberar um bloqueio'
+    );$$,
+  '23514', 'quality_report_not_acknowledgeable',
+  'a BLOCKED report cannot be acknowledged'
 );
 reset role;
 

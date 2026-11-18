@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync, spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { copyFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -128,6 +129,8 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 			'lavfi',
 			'-i',
 			'sine=frequency=300:sample_rate=48000:duration=118',
+			'-af',
+			'volume=0.2',
 			'-ac',
 			'1',
 			'-c:a',
@@ -413,6 +416,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	expect(jobsResponse.ok()).toBeTruthy();
 	const { jobs } = (await jobsResponse.json()) as {
 		jobs: Array<{
+			id: string;
 			status: string;
 			narration_take_id: string | null;
 			output_manifest: {
@@ -420,6 +424,15 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 				height: number;
 				codec: string;
 				durationMs: number;
+				sha256: string;
+				outputProfile: string;
+				quality: string;
+				qa: {
+					status: string;
+					reportId: string;
+					reportSha256: string;
+					summary: { pass: number; warn: number; blocked: number; notTested: number };
+				};
 				captions: {
 					trackId: string;
 					cues: number;
@@ -459,6 +472,30 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 		narrationTakeId,
 	});
 	expect(jobs[0]?.output_manifest.audio?.paddedMs).toBeGreaterThanOrEqual(1_000);
+	expect(jobs[0]?.output_manifest).toMatchObject({
+		outputProfile: '1080p',
+		quality: 'standard',
+		qa: { status: 'PASS' },
+	});
+	const jobId = jobs[0]!.id;
+	const qualityResponse = await page.request.get(`/api/render-jobs/${jobId}`);
+	expect(qualityResponse.ok()).toBeTruthy();
+	const { quality } = (await qualityResponse.json()) as {
+		quality: {
+			status: string;
+			report: { checks: Array<{ id: string; status: string }> };
+		} | null;
+	};
+	expect(quality?.status).toBe('PASS');
+	expect(quality?.report.checks.find((check) => check.id === 'DECODE')?.status).toBe('PASS');
+	expect(quality?.report.checks.find((check) => check.id === 'CONTAINER')?.status).toBe('PASS');
+	const download = await page.request.get(`/api/render-jobs/${jobId}/download`);
+	expect(download.status()).toBe(200);
+	expect(download.headers()['content-type']).toContain('video/mp4');
+	const downloaded = await download.body();
+	expect(createHash('sha256').update(downloaded).digest('hex')).toBe(
+		jobs[0]!.output_manifest.sha256,
+	);
 
 	await page.waitForTimeout(1_000);
 	await page.getByRole('button', { name: 'Renderizar plano aprovado' }).click();

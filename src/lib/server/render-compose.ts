@@ -49,6 +49,8 @@ export interface RenderOutput {
 	durationMs: number;
 	width: number;
 	height: number;
+	fps: number;
+	pixelFormat: string;
 	codec: string;
 	container: string;
 	byteSize: number;
@@ -178,8 +180,13 @@ export async function renderPlanToFile(input: {
 	narration?: NarrationRenderInput;
 	audioEvents?: AudioMixEvent[];
 	masterGainDb?: number;
+	width?: number;
+	height?: number;
+	quality?: 'standard' | 'high';
 }): Promise<RenderOutput> {
 	const absoluteOutput = resolve(input.outputPath);
+	const expectedWidth = input.width ?? 1080;
+	const expectedHeight = input.height ?? 1920;
 	const assets = input.assets.map((asset) => ({ ...asset, path: resolve(asset.path) }));
 	const audioEvents = (input.audioEvents ?? []).map((event) => ({
 		...event,
@@ -204,6 +211,9 @@ export async function renderPlanToFile(input: {
 			ffmpegPath: input.ffmpegPath,
 			vhsIntensity: input.vhsIntensity,
 			captionAssFile,
+			width: expectedWidth,
+			height: expectedHeight,
+			quality: input.quality,
 		});
 		await execFileAsync(input.ffmpegPath ?? 'ffmpeg', ['-nostdin', ...command.args], {
 			timeout: input.timeoutMs ?? 600_000,
@@ -265,8 +275,11 @@ export async function renderPlanToFile(input: {
 				'RENDER_OUTPUT_PIX_FMT',
 				'Pixel format do render não é yuv420p.',
 			);
-		if (probed.width !== 1080 || probed.height !== 1920)
-			throw new RenderCompositionError('RENDER_OUTPUT_GEOMETRY', 'O render não está em 1080x1920.');
+		if (probed.width !== expectedWidth || probed.height !== expectedHeight)
+			throw new RenderCompositionError(
+				'RENDER_OUTPUT_GEOMETRY',
+				`O render não está em ${expectedWidth}x${expectedHeight}.`,
+			);
 		if (
 			!Number.isFinite(probed.durationMs) ||
 			Math.abs(probed.durationMs - command.expectedDurationMs) > 1_000
@@ -339,6 +352,8 @@ export async function renderPlanToFile(input: {
 			durationMs: probed.durationMs,
 			width: probed.width,
 			height: probed.height,
+			fps: probed.fps,
+			pixelFormat: probed.pixFmt ?? 'unknown',
 			codec: probed.codec,
 			container: probed.container,
 			byteSize: (await stat(absoluteOutput)).size,

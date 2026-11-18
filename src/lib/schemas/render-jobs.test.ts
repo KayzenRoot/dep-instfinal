@@ -12,7 +12,24 @@ describe('render job schemas', () => {
 			episodeId: '11111111-1111-4111-8111-111111111111',
 			idempotencyKey: 'ui:render-001',
 			priority: 50,
+			outputProfile: '1080p',
+			quality: 'standard',
 		});
+	});
+
+	it('rejects invalid output profiles and quality tiers', () => {
+		expect(() =>
+			renderJobEnqueueSchema.parse({
+				episodeId: '11111111-1111-4111-8111-111111111111',
+				outputProfile: '4k',
+			}),
+		).toThrow();
+		expect(() =>
+			renderJobEnqueueSchema.parse({
+				episodeId: '11111111-1111-4111-8111-111111111111',
+				quality: 'ultra',
+			}),
+		).toThrow();
 	});
 
 	it('rejects invalid identifiers, keys and priority', () => {

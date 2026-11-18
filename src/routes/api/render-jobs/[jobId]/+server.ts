@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { ownerDatabase } from '#lib/server/authorized.js';
 import { createSupabaseAdminClient } from '#lib/server/supabase.js';
 import { cancelRenderJob, RenderJobError, getRenderJob } from '#lib/server/render-jobs.js';
+import { loadQualityReportForJob } from '#lib/server/quality-reports.js';
 
 function errorResponse(cause: unknown) {
 	if (cause instanceof RenderJobError)
@@ -17,7 +18,8 @@ export const GET: RequestHandler = async (event) => {
 	const { db, owner } = ownerDatabase(event);
 	try {
 		const job = await getRenderJob({ db, owner, jobId: event.params.jobId });
-		return json({ job });
+		const quality = await loadQualityReportForJob(db, owner.id, job.id);
+		return json({ job, quality });
 	} catch (cause) {
 		return errorResponse(cause);
 	}

@@ -19,6 +19,8 @@
 	let renderEpisodeKey = $state('');
 	let renderError = $state<string | null>(null);
 	let renderBusy = $state(false);
+	let renderProfile = $state<'1080p' | '720p'>('1080p');
+	let renderQuality = $state<'standard' | 'high'>('standard');
 
 	$effect(() => {
 		const key = `${data.selectedEpisode?.id ?? ''}:${data.storedPlan?.currentVersion ?? 0}:${data.plan?.episodeId ?? ''}`;
@@ -324,6 +326,8 @@
 				body: JSON.stringify({
 					episodeId: data.selectedEpisode.id,
 					idempotencyKey: `ui:${crypto.randomUUID()}`,
+					outputProfile: renderProfile,
+					quality: renderQuality,
 				}),
 			});
 			if (!response.ok) {
@@ -344,6 +348,14 @@
 			{ paddedMs?: number; trimmedMs?: number } | undefined;
 		if (!audio) return null;
 		return `áudio: ${audio.paddedMs ?? 0} ms de pad, ${audio.trimmedMs ?? 0} ms de corte`;
+	}
+
+	function renderQaLabel(job: RenderJob): string | null {
+		const qa = job.output_manifest?.qa as
+			{ status?: string; summary?: { warn?: number; blocked?: number } } | undefined;
+		if (!qa?.status) return null;
+		const warnings = qa.summary?.warn ?? 0;
+		return `QA: ${qa.status}${warnings ? ` · ${warnings} aviso(s)` : ''}`;
 	}
 
 	async function cancelRender(jobId: string) {
@@ -781,9 +793,31 @@
 					</p>
 				{/if}
 			</div>
-			<button class="primary" type="button" onclick={enqueueRender} disabled={!canRender}>
-				Renderizar plano aprovado
-			</button>
+			<div class="render-options">
+				<label
+					>Saída
+					<select bind:value={renderProfile}>
+						<option value="1080p">1080×1920</option>
+						<option value="720p">720×1280 (fallback)</option>
+					</select>
+				</label>
+				<label
+					>Qualidade
+					<select bind:value={renderQuality}>
+						<option value="standard">Padrão</option>
+						<option value="high">Alta</option>
+					</select>
+				</label>
+				<button class="primary" type="button" onclick={enqueueRender} disabled={!canRender}>
+					Renderizar plano aprovado
+				</button>
+			</div>
+			{#if renderProfile === '720p'}
+				<p class="notice warning">
+					Fallback 720×1280: use só quando o aparelho/player exigir; a qualidade final é menor que
+					1080×1920.
+				</p>
+			{/if}
 		</div>
 		{#if renderError}<p class="notice error" role="alert">{renderError}</p>{/if}
 		{#if !renderJobs.length}
@@ -795,6 +829,10 @@
 						<div>
 							<strong>{job.status}</strong>
 							<span>v{job.plan_version} · tentativa {job.attempts}/{job.max_attempts}</span>
+							<span>{job.output_profile} · {job.quality}</span>
+							{#if renderQaLabel(job)}
+								<span>{renderQaLabel(job)}</span>
+							{/if}
 							{#if renderAudioLabel(job)}
 								<span>{renderAudioLabel(job)}</span>
 							{/if}
@@ -1023,6 +1061,18 @@
 		gap: 1rem;
 		align-items: center;
 		flex-wrap: wrap;
+	}
+	.render-options {
+		display: flex;
+		gap: 0.75rem;
+		align-items: end;
+		flex-wrap: wrap;
+	}
+	.render-options label {
+		display: grid;
+		gap: 0.2rem;
+		color: var(--muted);
+		font-size: 0.72rem;
 	}
 	.render-list {
 		display: grid;

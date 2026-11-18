@@ -13,6 +13,8 @@ import {
 	validateForContext,
 } from '../src/lib/server/video-edit-plans.js';
 import { probeAudioMedia, probeMedia, renderPlanToFile } from '../src/lib/server/render-compose.js';
+import { inspectRenderArtifact } from '../src/lib/server/quality-inspector.js';
+import { recordQualityReport } from '../src/lib/server/quality-reports.js';
 import type { AudioMixEvent } from '../src/lib/domain/render-composition.js';
 import { buildCaptionAss } from '../src/lib/domain/captions.js';
 import { layoutFromPlan } from '../src/lib/domain/platform-preview.js';
@@ -75,6 +77,10 @@ async function main() {
 	const captionLayoutHash = captionLayout
 		? createHash('sha256').update(JSON.stringify(captionLayout)).digest('hex')
 		: null;
+	const outputProfile = job.output_profile === '720p' ? '720p' : '1080p';
+	const quality = job.quality === 'high' ? 'high' : 'standard';
+	const outputWidth = outputProfile === '720p' ? 720 : 1080;
+	const outputHeight = outputProfile === '720p' ? 1280 : 1920;
 	const assets = [];
 	for (const clip of validated.clips) {
 		const { data: asset, error: assetError } = await admin
@@ -343,12 +349,47 @@ async function main() {
 			narration: narrationInput,
 			audioEvents: audioInputs,
 			masterGainDb: validated.audio?.masterGainDb,
+			width: outputWidth,
+			height: outputHeight,
+			quality,
 		});
+		const qualityResult = await inspectRenderArtifact({
+			jobId: job.id,
+			episodeId: job.episode_id,
+			planId: job.plan_id,
+			planVersion: job.plan_version,
+			planSha256: version.manifest_hash,
+			plan: validated,
+			output,
+			captionTrack: caption?.track ?? null,
+			narrationExpected: Boolean(narrationInput),
+			hasAudioExpected: Boolean(narrationInput || audioInputs.length),
+			outputProfile,
+			quality,
+		});
+		const qualityReport = await recordQualityReport({
+			adminDb: admin,
+			ownerId: job.owner_id,
+			jobId: job.id,
+			episodeId: job.episode_id,
+			planId: job.plan_id,
+			planVersion: job.plan_version,
+			artifactSha256: output.sha256,
+			reportSha256: qualityResult.reportSha256,
+			report: qualityResult.report,
+		});
+		if (qualityResult.status === 'BLOCKED') {
+			const blocked = qualityResult.report.checks.find((check) => check.status === 'BLOCKED');
+			throw Object.assign(new Error(`QA_BLOCKED:${blocked?.id ?? 'UNKNOWN'}`), {
+				code: 'QA_BLOCKED',
+			});
+		}
 		const objectKey = `renders/${job.owner_id}/${job.episode_id}/${job.id}/output.mp4`;
 		const localOutput = process.env.WORKER_LOCAL_OUTPUT_DIR;
-		if (localOutput) {
-			await mkdir(localOutput, { recursive: true });
-			await copyFile(output.path, join(localOutput, 'output.mp4'));
+		const localArtifactPath = localOutput ? join(localOutput, `${job.id}.mp4`) : null;
+		if (localArtifactPath) {
+			await mkdir(localOutput!, { recursive: true });
+			await copyFile(output.path, localArtifactPath);
 		} else {
 			if (!r2 || !bucket) throw new Error('render_upload_unavailable');
 			await r2.send(
@@ -358,6 +399,11 @@ async function main() {
 					Body: createReadStream(output.path),
 					ContentType: 'video/mp4',
 					CacheControl: 'private, no-store',
+					Metadata: {
+						sha256: output.sha256,
+						plan: version.manifest_hash,
+						qualityStatus: qualityResult.status,
+					},
 				}),
 			);
 		}
@@ -366,8 +412,25 @@ async function main() {
 			jobId: job.id,
 			planId: job.plan_id,
 			planVersion: job.plan_version,
+			outputProfile,
+			quality,
+			qa: {
+				status: qualityReport.status,
+				reportId: qualityReport.id,
+				reportSha256: qualityReport.reportSha256,
+				summary: qualityResult.report.summary,
+			},
+			captionsOmitted: validated.captions.template !== 'none' && !caption,
+			cta: validated.cta?.enabled
+				? {
+						enabled: true,
+						text: validated.cta.text,
+						startMs: validated.cta.startMs,
+						endMs: validated.cta.endMs,
+					}
+				: null,
 			bucket: localOutput ? 'local-test' : bucket,
-			objectKey: localOutput ? join(localOutput, 'output.mp4') : objectKey,
+			objectKey: localArtifactPath ?? objectKey,
 			durationMs: output.durationMs,
 			width: output.width,
 			height: output.height,
