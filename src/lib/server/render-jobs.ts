@@ -112,9 +112,9 @@ export async function enqueueRenderJob(input: {
 		.maybeSingle();
 	if (planError || !planRow)
 		throw new RenderJobError(409, 'RENDER_PLAN_NOT_FOUND', 'Plano de edição não encontrado.');
-	const template = (planRow.plan as { captions?: { template?: string } } | null)?.captions
-		?.template;
-	if (template && template !== 'none') {
+	const template =
+		(planRow.plan as { captions?: { template?: string } } | null)?.captions?.template ?? 'clean';
+	if (template !== 'none') {
 		let captionQuery = input.adminDb
 			.from('caption_tracks')
 			.select('id')
