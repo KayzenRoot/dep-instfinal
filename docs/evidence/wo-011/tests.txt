@@ -10,17 +10,17 @@ Date: 2026-11-18 (America/Sao_Paulo)
 
 ## Unit / integration
 
-- `platform-preview.test.ts`: 6/6
+- `platform-preview.test.ts`: 9/9
 - `captions.test.ts`: 27/27
 - `video-edit-plan.test.ts`: 12/12
 - FFmpeg caption burn-in integration: 2/2, including a positioned caption box
   measured in a real frame (x 250–830, y 560–840)
-- Full local suite: 26 files passed, 3 skipped; **188 tests passed + 3 skipped**
+- Full local suite: 26 files passed, 3 skipped; **191 tests passed + 3 skipped**
   (188.3 s), including the 120 s FFmpeg integration and the positioned-caption burn-in.
 
 ## E2E
 
-- `e2e/timeline.spec.ts`: 1/1 (3.0 min). Flow: 15 synthetic clips, director,
+- `e2e/timeline.spec.ts`: 1/1 (11.8 min on the last local run). Flow: 15 synthetic clips, director,
   editor collision HIGH blocked save, corrected caption box, reorder, crossfade,
   master gain, save/reload, narration/captions, real worker READY.
 - `e2e/owner-boundary.spec.ts -g "authenticated studio pages fit"`: 1/1 (42.9 s)

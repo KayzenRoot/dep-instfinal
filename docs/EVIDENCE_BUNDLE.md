@@ -35,7 +35,7 @@
 | Policy       | PASS         | 27 invariantes / 24 tabelas (sem migração)                                                                          |
 | E2E          | PASS         | CI: 13/13 (3,3m); timeline com 3 pontos + relogin, aplicar/reverter, worker READY                                   |
 | PgTAP        | PASS         | 131/131; sem migração nova                                                                                          |
-| CI           | PASS         | run `44190122840`: baseline, unit 188+3, policy, PgTAP, E2E 13/13, Sonar/Socket/Vercel                              |
+| CI           | PASS         | run `44190122840`: baseline, unit 191+3, policy, PgTAP, E2E 13/13, Sonar/Socket/Vercel                              |
 | ARM64        | PASS         | run `44190122832`: 7,738 s wall / 165.948 KiB RSS no mix de 120 s                                                   |
 | Auditoria    | PASS c/ res. | round 2 **APPROVED WITH RESIDUALS**; H1 corrigido; residuais M3/M4 documentados                                     |
 | Amostras     | PASS local   | `docs/evidence/wo-010/review/`: slow-burn/reveal/found-footage 12 s; aceitação humana pendente                      |
