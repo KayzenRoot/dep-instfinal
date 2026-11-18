@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(152);
+select plan(155);
 
 do $$
 declare
@@ -1906,6 +1906,47 @@ select throws_ok(
     );$$,
   '23514', 'quality_report_not_acknowledgeable',
   'a BLOCKED report cannot be acknowledged'
+);
+insert into public.render_jobs (
+  owner_id, episode_id, plan_id, plan_version, idempotency_key, status,
+  output_manifest, finished_at
+)
+select owner_id, episode_id, plan_id, plan_version, 'wo013-bytes-quota', 'READY',
+  '{"byteSize":2147483648,"sha256":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}'::jsonb,
+  now()
+from public.render_jobs
+where id = (select id from test_render_jobs where name = 'job3');
+select throws_ok(
+  $$select public.enqueue_render_job(
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      'wo013-bytes-attempt', 50::smallint, null, '1080p', 'standard'
+    );$$,
+  '23514', 'render_daily_bytes_quota',
+  'daily output-byte quota blocks a new job'
+);
+delete from public.render_jobs
+where owner_id = '11111111-1111-4111-8111-111111111111'
+  and idempotency_key = 'wo013-bytes-quota';
+insert into public.render_jobs (
+  owner_id, episode_id, plan_id, plan_version, idempotency_key, status, finished_at
+)
+select owner_id, episode_id, plan_id, plan_version, 'wo013-jobs-quota-' || series, 'FAILED', now()
+from public.render_jobs
+cross join generate_series(1, 20) as series
+where id = (select id from test_render_jobs where name = 'job3');
+select throws_ok(
+  $$select public.enqueue_render_job(
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6',
+      'wo013-jobs-attempt', 50::smallint, null, '1080p', 'standard'
+    );$$,
+  '23514', 'render_daily_job_quota',
+  'daily job-count quota blocks a new job'
+);
+select is(
+  jsonb_typeof(public.render_queue_health()), 'object',
+  'queue health returns a sanitized JSON object'
 );
 reset role;
 

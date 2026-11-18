@@ -58,6 +58,12 @@ const qualityMigration = await readFile(
 	'supabase/migrations/20261118150000_v2_wo012_quality_reports.sql',
 	'utf8',
 );
+const hardeningMigration = await readFile(
+	'supabase/migrations/20261118170000_v2_wo013_hardening.sql',
+	'utf8',
+);
+const retentionScript = await readFile('scripts/retention.mjs', 'utf8');
+const restoreScript = await readFile('scripts/restore-metadata.mjs', 'utf8');
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -322,6 +328,21 @@ const checks = [
 			qualityMigration.includes('output_profile in') &&
 			qualityMigration.includes('quality in') &&
 			qualityMigration.includes("left(p_error_code, 3) = 'QA_'"),
+	],
+	[
+		'render quotas, health and ops scripts are server-only and dry-run first',
+		hardeningMigration.includes('render_daily_job_quota') &&
+			hardeningMigration.includes('render_daily_bytes_quota') &&
+			hardeningMigration.includes('render_queue_health') &&
+			hardeningMigration.includes('revoke all on function public.render_queue_health') &&
+			hardeningMigration.includes(
+				'grant execute on function public.render_queue_health() to service_role',
+			) &&
+			hardeningMigration.includes('grant select on table') &&
+			hardeningMigration.includes('public.render_quality_reports') &&
+			retentionScript.includes('--delete-local requires --confirm') &&
+			retentionScript.includes('Refusing to delete while render jobs are active') &&
+			restoreScript.includes('Refusing to restore into a non-disposable database name'),
 	],
 	[
 		'video storage is private, multipart and short-lived signed',

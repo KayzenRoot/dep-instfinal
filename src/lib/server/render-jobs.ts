@@ -34,6 +34,13 @@ export interface RenderJob {
 
 function mapRpcError(error: { code?: string; message?: string }): RenderJobError {
 	const message = error.message ?? '';
+	if (message.includes('render_daily_job_quota') || message.includes('render_daily_bytes_quota')) {
+		return new RenderJobError(
+			429,
+			'RENDER_DAILY_QUOTA',
+			'O limite diário de renders foi atingido. Tente novamente amanhã.',
+		);
+	}
 	if (message.includes('render_queue_full') || message.includes('render_episode_queue_full')) {
 		return new RenderJobError(
 			429,
