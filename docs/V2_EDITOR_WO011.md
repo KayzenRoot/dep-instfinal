@@ -1,6 +1,6 @@
 # DIF-V2-WO-011 — Editor visual, preview e safe zones
 
-**Status:** implementação completa, primeira auditoria corrigida e segunda rodada de correções (H3 + M1–M4) aplicada em `feat/dif-v2-wo-011`; testes focados, typecheck, lint, E2E local, burn-in FFmpeg e CI hosted **PASS** (`44314422937` em `e1599fb`); reauditoria e aceitação humana **PENDENTES**. **Não merged**, **sem deploy de produção**, checkpoint apenas **PROPOSED**.
+**Status:** implementação completa, primeira auditoria corrigida e segunda rodada de correções (H3 + M1–M4) aplicada em `feat/dif-v2-wo-011`; testes focados, typecheck, lint, E2E local, burn-in FFmpeg e CI hosted **PASS** (`44334200966` em `7c1925c`, unit 194+3, E2E 13/13); reauditoria independente e aceitação humana **PENDENTES**. **Não merged**, **sem deploy de produção**, checkpoint apenas **PROPOSED**.
 **Base:** `main` `95e5d16` (checkpoint WO-010 promovido).
 **Escopo:** WO-011 (#28) + addendum ENH-07 (prévia de safe zones TikTok/Reels), dependente de WO-003–WO-010.
 
@@ -39,13 +39,14 @@
 
 ## Testes
 
-- `platform-preview.test.ts` **9/9**: perfis, defaults sem colisão, colisão com UI, overlap, persistência, limites, fallback legado, fit de texto.
+- `platform-preview.test.ts` **11/11**: perfis, defaults sem colisão, colisão com UI, overlap, persistência, limites, legado sem preview, flags desativadas, fit de texto e regressão de cue legado.
 - `captions.test.ts` **27/27**: regressão de CTA/ASS e novas posições.
-- `video-edit-plan.test.ts` **12/12**.
+- `video-edit-plan.test.ts` **13/13**: inclui caixas desativadas fora da validação.
 - Burn-in FFmpeg: **2/2**, incluindo caixa de legenda posicionada em frame real.
-- Suíte unit completa: **191 PASS + 3 skipped** (26 arquivos), incluindo as integrações FFmpeg reais.
-- E2E local `owner-boundary.spec.ts` **2/2**: jornada owner 6,3 min e checagem responsiva 360/768/1440 em 1,7 min; `timeline.spec.ts` coberto no CI.
-- CI hosted `44314422937` em `e1599fb` **PASS**: baseline, PgTAP, E2E 13/13, Sonar, Socket e Vercel.
+- Suíte unit completa: **194 PASS + 3 skipped** (26 arquivos), incluindo as integrações FFmpeg reais.
+- E2E CI `44334200966` **13/13** em 4,9 min, incluindo timeline e responsivo.
+- Responsivo local 360/768/1440 **PASS** com `/app/video` e `/app/timeline` incluídos; a jornada owner local passou em execuções anteriores e é validada no CI.
+- CI hosted `44334200966` em `7c1925c` **PASS**: baseline, PgTAP, E2E 13/13, Sonar, Socket e Vercel.
 - Typecheck **0/0**, lint PASS, build PASS.
 
 ## Riscos e residuais
