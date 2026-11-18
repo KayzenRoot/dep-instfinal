@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-011` · issue #28 · epic #17 · addendum ENH-07
 - **Base:** `main` `95e5d16`; branch `feat/dif-v2-wo-011`
-- **Status:** implementação completa; platform/captions/plan tests, burn-in FFmpeg, typecheck, lint e E2E local **PASS**; CI, auditoria independente e aceitação humana **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
+- **Status:** implementação completa; platform/captions/plan tests, burn-in FFmpeg, typecheck, lint, E2E local (owner-boundary 2/2) e CI hosted `44314422937` em `e1599fb` **PASS**; auditoria independente e aceitação humana **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
 
 | Check      | Result     | Evidence                                                                                                |
 | ---------- | ---------- | ------------------------------------------------------------------------------------------------------- |
@@ -12,9 +12,11 @@
 | Layout     | PASS local | caixas canônicas no plano, limites, overlap e colisão com UI; save bloqueado em HIGH                    |
 | ASS/render | PASS local | CAPTION/CTA recebem `\an5\pos`; burn-in real mede a caixa de legenda no frame                           |
 | Editor UI  | PASS local | preview, overlay, quatro correções, mapa de faixas, waveform opt-in, fila e versões                     |
-| E2E        | PASS local | timeline 1/1 com colisão HIGH → correção → save → reload → render READY; owner-boundary responsivo 1/1  |
+| E2E        | PASS local | owner-boundary jornada 6,3 min + responsivo 360/768/1440 1,7 min; CI E2E 13/13                          |
+| Responsivo | PASS       | overflow de selects em 360px reproduzido em `8248546`, corrigido em `e1599fb` (`src/app.css`)           |
+| Unit       | PASS local | 191 passed + 3 skipped, incluindo integrações FFmpeg reais                                              |
 | Type/lint  | PASS local | `svelte-check` 0/0, eslint 0 warnings                                                                   |
-| CI         | PENDENTE   | será registrado após push do PR Draft                                                                   |
+| CI         | PASS       | run `44314422937` em `e1599fb`: baseline, PgTAP, E2E 13/13, Sonar, Socket e Vercel                      |
 | Auditoria  | PENDENTE   | revisão independente obrigatória antes de merge                                                         |
 | Limites    | —          | preview é clipe selecionado; crop capa/feed, undo ilimitado e render composto na prévia ficam residuais |
 

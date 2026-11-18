@@ -210,6 +210,27 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner authorized merge/promotion on 2026-11-14; PR #55 squash-merged at `326c576`; issue #24 closed; checkpoint **PROMOTED**. WO-008 (#25) is next.
 
+## V2 Context Lock — WO-011 (#28) + ENH-07
+
+- **Base revalidated:** `main` `95e5d16` (checkpoint WO-010 promoted). Branch: `feat/dif-v2-wo-011`.
+- **Issue inventory:** WO-001–010 **MERGED/CLOSED/PROMOTED**; WO-011/#28 em execução; WO-012+ remain gated.
+- **Scope:** editor visual owner-only com prévia do clipe, safe zones TikTok/Reels/clean versionadas, caixas de legenda/CTA no plano, colisão com severidade, ASS posicionado por papel, quatro correções persistidas e checagem responsiva 360/768/1440. Sem segundo editor, sem drag obrigatório, sem API social.
+- **Delivered locally:** `PlatformPreviewProfile` + `EditPlanPreview` validados no save/render; `caption-metrics` compartilhado; `/app/editor`; worker/exportação ASS usam o layout do plano; overlay é DOM e não entra no MP4; correção responsiva global de selects em `e1599fb`.
+- **Tests:** unit **191 + 3 skipped**; typecheck 0/0; lint PASS; burn-in FFmpeg 2/2; E2E local owner-boundary 2/2 (jornada 6,3 min; responsivo 1,7 min); CI hosted `44314422937` em `e1599fb` PASS (PgTAP, E2E 13/13, Sonar/Socket/Vercel).
+- **Gate:** auditoria independente e autorização do owner; checkpoint **PROPOSED**; sem merge/deploy. WO-012 (#29) depende deste gate.
+
+### Fingerprints no base `95e5d16`
+
+| Fonte canônica                         | SHA-256                                                            |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| `docs/CHECKPOINT_DELTA.md`             | `a6bfea3398ebba3724c6a5ffaa7c92da3ad97752cb17c3b3b888e6d068458003` |
+| `docs/SOURCE_PACK.md`                  | `ccac8b33f2d83c578f2a0ca3549f03d0c791980acfbedd3f1b06c5ca2257dd1c` |
+| `docs/ADR_V2_002_STORAGE.md`           | `9e39af92e6ea71ad234900c6e7d5d9a2290cc32c393177ad45db9b472510966e` |
+| `docs/V2_EXECUTION_PLAN.md`            | `e5c256b493c718fdd7dad28207e3b0414ca202195b058f6c75ea6a87fdb08e1e` |
+| `docs/CONTEXT_LOCK.md`                 | `bb9926ab1c1988ae91bc4589ebdf077b0fc011a42c11bc5efc384791e641a150` |
+| `src/lib/schemas/video-edit-plan.ts`   | `680eeb853467cf8891464564fd9c6623623efd8fadeb950ba8d2e3b8716a21ba` |
+| `src/lib/domain/render-composition.ts` | `ff76a92ef01cc9503eea36543ac199d9d5604a6d83ecc67993603fa9af18bc24` |
+
 ## V2 Context Lock — WO-009 (#26)
 
 - **Base revalidated:** `main` `7d6af5e` (checkpoint WO-008 promoted). Branch: `feat/dif-v2-wo-009`.

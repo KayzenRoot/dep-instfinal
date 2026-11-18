@@ -20,11 +20,14 @@ Date: 2026-11-18 (America/Sao_Paulo)
 
 ## E2E
 
-- `e2e/timeline.spec.ts`: 1/1 (11.8 min on the last local run). Flow: 15 synthetic clips, director,
-  editor collision HIGH blocked save, corrected caption box, reorder, crossfade,
-  master gain, save/reload, narration/captions, real worker READY.
-- `e2e/owner-boundary.spec.ts -g "authenticated studio pages fit"`: 1/1 (42.9 s)
-  at 360, 768 and 1440 px, including `/app/editor` and `/app/director`.
+- `e2e/timeline.spec.ts`: 1/1 in CI run `44314422937` (flow: 15 synthetic clips,
+  director, editor collision HIGH blocked save, corrected caption box, reorder,
+  crossfade, master gain, save/reload, narration/captions, real worker READY).
+- `e2e/owner-boundary.spec.ts -g "owner completes series|authenticated studio pages"`:
+  2/2 locally at `e1599fb` (journey 6.3 min; responsive 1.7 min at 360, 768 and 1440 px).
+- The same responsive test failed at `8248546` with
+  `/app/editor should not overflow at 360px`; after the fix at `e1599fb` it also
+  covers `/app/director` and `/app/video` selectors without overflow.
 - Anonymous private endpoints returned 401 in the focused owner-boundary run.
 
 ## Limits verified

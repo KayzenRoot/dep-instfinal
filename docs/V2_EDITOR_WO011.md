@@ -1,6 +1,6 @@
 # DIF-V2-WO-011 — Editor visual, preview e safe zones
 
-**Status:** implementação completa e correções da primeira auditoria aplicadas em `feat/dif-v2-wo-011`; testes focados, typecheck, lint, E2E local e burn-in FFmpeg **PASS**; reauditoria, CI e aceitação humana **PENDENTES**. **Não merged**, **sem deploy de produção**, checkpoint apenas **PROPOSED**.
+**Status:** implementação completa e correções da primeira auditoria aplicadas em `feat/dif-v2-wo-011`; testes focados, typecheck, lint, E2E local, burn-in FFmpeg e CI hosted **PASS** (`44314422937` em `e1599fb`); auditoria independente e aceitação humana **PENDENTES**. **Não merged**, **sem deploy de produção**, checkpoint apenas **PROPOSED**.
 **Base:** `main` `95e5d16` (checkpoint WO-010 promovido).
 **Escopo:** WO-011 (#28) + addendum ENH-07 (prévia de safe zones TikTok/Reels), dependente de WO-003–WO-010.
 
@@ -43,9 +43,10 @@
 - `captions.test.ts` **27/27**: regressão de CTA/ASS e novas posições.
 - `video-edit-plan.test.ts` **12/12**.
 - Burn-in FFmpeg: **2/2**, incluindo caixa de legenda posicionada em frame real.
-- E2E `timeline.spec.ts` **1/1** (11,8 min na última execução local): quatro correções, reload, aprovação, render READY.
-- E2E `owner-boundary.spec.ts` responsivo **1/1** (42,9 s).
-- Typecheck **0/0**, lint PASS.
+- Suíte unit completa: **191 PASS + 3 skipped** (26 arquivos), incluindo as integrações FFmpeg reais.
+- E2E local `owner-boundary.spec.ts` **2/2**: jornada owner 6,3 min e checagem responsiva 360/768/1440 em 1,7 min; `timeline.spec.ts` coberto no CI.
+- CI hosted `44314422937` em `e1599fb` **PASS**: baseline, PgTAP, E2E 13/13, Sonar, Socket e Vercel.
+- Typecheck **0/0**, lint PASS, build PASS.
 
 ## Riscos e residuais
 
@@ -64,6 +65,14 @@ A primeira auditoria independente retornou **CORRECTION REQUIRED** (H1 bypass po
 - `caption-metrics` compartilhado valida largura/altura real em plan, save/approval de legendas e ASS; CTA é rechunked pela largura da caixa e falha fechado quando não cabe.
 - Crop capa/feed 4:5 e relatório TikTok/Reels no preview; CTA/legendas desativadas não bloqueiam save; severidade HIGH/MEDIUM exibida.
 - Avisos de plano preso a revisão anterior e de reaprovação de legendas; waveform com timeout/reset; fonte/versão do perfil visível; manifesto registra perfil e layout hash.
+
+## Correções pós-CI
+
+O CI hosted `44295516685` em `8248546` falhou apenas no gate responsivo: `/app/editor should not overflow at 360px`. A captura do artefato mostrou o `<select>` de episódio dimensionado pelo título mais longo. A mesma causa afetava `/app/director` (mascarada porque o teste aborta na primeira rota). Corrigido em `e1599fb`:
+
+- Regra global em `src/app.css` para `.episode-picker select` (`min-width: min(34rem, 100%)`) e `.field select` (`min-width: 0; max-width: 100%`), cobrindo editor, director, timeline, captions, narration e video.
+- Inputs do editor recebem `min-width: 0`/`width: 100%` dentro dos grids para não estourar em 360px com plano carregado.
+- Reprodução local confirmou o erro antes e depois: responsivo **FAIL** em `8248546`, **PASS** em `e1599fb`; CI `44314422937` **PASS**.
 
 ## Gate
 
