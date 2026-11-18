@@ -31,6 +31,7 @@ export interface RenderCompositionOptions {
 	width?: number;
 	height?: number;
 	quality?: 'standard' | 'high';
+	threads?: number;
 	vhsIntensity?: 0 | 1 | 2 | 3;
 	/** ASS filename relative to the working directory chosen by the renderer. */
 	captionAssFile?: string;
@@ -144,6 +145,9 @@ export function buildRenderCommand(
 		);
 	if (quality !== 'standard' && quality !== 'high')
 		throw new RenderCompositionError('RENDER_QUALITY_UNSUPPORTED', 'Qualidade de render inválida.');
+	const threads = options.threads ?? 2;
+	if (!Number.isInteger(threads) || threads < 1 || threads > 8)
+		throw new RenderCompositionError('RENDER_THREADS_INVALID', 'Limite de threads inválido.');
 	const vhs = options.vhsIntensity ?? 1;
 	const clips = normalizedClips(plan, inputs);
 	if (clips.length === 0)
@@ -252,6 +256,8 @@ export function buildRenderCommand(
 		quality === 'high' ? 'slow' : 'veryfast',
 		'-crf',
 		quality === 'high' ? '18' : '23',
+		'-threads',
+		String(threads),
 		'-pix_fmt',
 		'yuv420p',
 		'-r',

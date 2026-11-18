@@ -103,6 +103,7 @@ test('private narration endpoints reject anonymous visitors', async ({ request }
 		'/api/captions/11111111-1111-4111-8111-111111111111/srt',
 		'/api/captions/11111111-1111-4111-8111-111111111111/ass',
 		'/api/render-jobs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/download',
+		'/api/render-jobs/health',
 		'/api/audio/11111111-1111-4111-8111-111111111111',
 	]) {
 		const response = await request.get(path, { maxRedirects: 0 });
@@ -753,6 +754,25 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 			});
 		}
 	}
+});
+
+test('owner reads sanitized render queue health', async ({ page }) => {
+	test.skip(!process.env.E2E_OWNER_EMAIL, 'requires a synthetic owner in local Supabase');
+	await page.goto('/login');
+	await page.getByLabel('E-mail do proprietário').fill(process.env.E2E_OWNER_EMAIL!);
+	await page.getByLabel('Senha').fill(process.env.E2E_OWNER_PASSWORD!);
+	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	const response = await page.request.get('/api/render-jobs/health');
+	expect(response.status()).toBe(200);
+	const payload = (await response.json()) as {
+		health: { queued: number; running: number; failed: number };
+		concurrency: number;
+	};
+	expect(payload.concurrency).toBe(1);
+	expect(payload.health.queued).toBeGreaterThanOrEqual(0);
+	expect(payload.health.running).toBeGreaterThanOrEqual(0);
+	expect(JSON.stringify(payload)).not.toContain('service_role');
 });
 
 test('a valid non-owner Supabase identity is rejected', async ({ page }) => {

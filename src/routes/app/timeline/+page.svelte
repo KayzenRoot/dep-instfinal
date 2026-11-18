@@ -21,6 +21,17 @@
 	let renderBusy = $state(false);
 	let renderProfile = $state<'1080p' | '720p'>('1080p');
 	let renderQuality = $state<'standard' | 'high'>('standard');
+	type RenderHealth = {
+		queued: number;
+		claimed: number;
+		running: number;
+		ready: number;
+		failed: number;
+		oldestQueuedSeconds: number;
+		activeWorker: string | null;
+		lastHeartbeatAt: string | null;
+	};
+	let renderHealth = $state<RenderHealth | null>(null);
 
 	$effect(() => {
 		const key = `${data.selectedEpisode?.id ?? ''}:${data.storedPlan?.currentVersion ?? 0}:${data.plan?.episodeId ?? ''}`;
@@ -37,6 +48,7 @@
 		if (key !== renderEpisodeKey) {
 			renderEpisodeKey = key;
 			renderJobs = [...(data.renderJobs ?? [])];
+			void refreshRenderHealth();
 		}
 	});
 
@@ -313,6 +325,14 @@
 		if (!response.ok) return;
 		const payload = (await response.json()) as { jobs?: RenderJob[] };
 		renderJobs = payload.jobs ?? [];
+		void refreshRenderHealth();
+	}
+
+	async function refreshRenderHealth() {
+		const response = await fetch('/api/render-jobs/health');
+		if (!response.ok) return;
+		const payload = (await response.json()) as { health?: RenderHealth };
+		renderHealth = payload.health ?? null;
 	}
 
 	async function enqueueRender() {
@@ -779,6 +799,18 @@
 			<div>
 				<h2>Render</h2>
 				<p class="meta-label">Fila owner-only, 1 job simultâneo, lease e retry.</p>
+				{#if renderHealth}
+					<p class="meta-label">
+						Fila: {renderHealth.queued} na fila · {renderHealth.running} executando ·
+						{renderHealth.failed} falha(s){renderHealth.oldestQueuedSeconds > 0
+							? ` · mais antigo ${Math.round(renderHealth.oldestQueuedSeconds)}s`
+							: ''}{renderHealth.activeWorker
+							? ` · worker ${renderHealth.activeWorker}`
+							: renderHealth.queued > 0
+								? ' · worker sem lease'
+								: ''}
+					</p>
+				{/if}
 				{#if data.narration?.status === 'APPROVED' && data.narration.takeId}
 					<p class="meta-label narration-ok">
 						Narração aprovada v{data.narration.currentVersion} · take

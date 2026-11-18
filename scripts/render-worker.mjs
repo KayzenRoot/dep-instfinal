@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
+import { assertDiskReserve, clampThreads } from './worker-limits.mjs';
 
 const url =
 	process.env.WORKER_SUPABASE_URL ?? process.env.SUPABASE_URL ?? process.env.PUBLIC_SUPABASE_URL;
@@ -19,6 +20,9 @@ const workerId = (process.env.WORKER_ID ?? `worker-${hostname()}-${process.pid}`
 const pollMs = Math.max(250, Math.min(30_000, Number(process.env.WORKER_POLL_MS ?? 1_000)));
 const leaseSeconds = Math.max(15, Math.min(600, Number(process.env.WORKER_LEASE_SECONDS ?? 60)));
 const maxJobs = Math.max(0, Math.min(1_000, Number(process.env.WORKER_MAX_JOBS ?? 0)));
+const diskReserveMb = Math.max(256, Number(process.env.WORKER_DISK_RESERVE_MB ?? 2_048));
+const ffmpegThreads = clampThreads(process.env.WORKER_FFMPEG_THREADS, 2);
+const diskCheckMs = Math.max(1_000, Number(process.env.WORKER_DISK_CHECK_MS ?? 15_000));
 const client = createClient(url, serviceKey, {
 	auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
 });
@@ -73,6 +77,7 @@ async function runRealRender(job, signal) {
 			...process.env,
 			RENDER_JOB_ID: job.id,
 			WORKER_RENDER_TMPDIR: jobTemp,
+			WORKER_FFMPEG_THREADS: String(ffmpegThreads),
 		},
 		detached: process.platform !== 'win32',
 		stdio: ['ignore', 'pipe', 'pipe'],
@@ -189,9 +194,15 @@ async function runJob(job) {
 }
 
 async function main() {
-	log('worker_started', { pollMs, leaseSeconds, maxJobs, stub });
+	log('worker_started', { pollMs, leaseSeconds, maxJobs, stub, diskReserveMb, ffmpegThreads });
+	let diskPaused = false;
 	while (!stopping && (maxJobs === 0 || jobsRun < maxJobs)) {
 		try {
+			await assertDiskReserve({ reserveMb: diskReserveMb });
+			if (diskPaused) {
+				log('worker_resumed', { reason: 'disk_reserve_ok' });
+				diskPaused = false;
+			}
 			await rpc('reconcile_render_jobs');
 			const job = await rpc('claim_render_job', {
 				p_worker_id: workerId,
@@ -204,6 +215,14 @@ async function main() {
 			await runJob(job);
 			jobsRun += 1;
 		} catch (cause) {
+			if (cause?.code === 'WORKER_DISK_RESERVED') {
+				if (!diskPaused) {
+					log('worker_paused', { code: 'WORKER_DISK_RESERVED', reserveMb: diskReserveMb });
+					diskPaused = true;
+				}
+				await sleep(diskCheckMs);
+				continue;
+			}
 			log('worker_error', {
 				message: cause instanceof Error ? cause.message.slice(0, 160) : 'unknown',
 			});
