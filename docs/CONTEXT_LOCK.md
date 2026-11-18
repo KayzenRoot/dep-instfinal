@@ -210,6 +210,27 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner authorized merge/promotion on 2026-11-14; PR #55 squash-merged at `326c576`; issue #24 closed; checkpoint **PROMOTED**. WO-008 (#25) is next.
 
+## V2 Context Lock — WO-012 (#29) + ENH-05
+
+- **Base revalidated:** `main` `b21afa3` (checkpoint WO-011 promoted). Branch: `feat/dif-v2-wo-012`.
+- **Issue inventory:** WO-001–011 **MERGED/CLOSED/PROMOTED**; WO-012/#29 em execução; WO-013+ remain gated.
+- **Scope:** export MP4 final com opções 1080p/720p e qualidade, download privado autenticado, manifest e Quality Inspector técnico versionado por plano+artefato. Sem publish social, GPU ou API paga.
+- **Delivered locally:** `render_quality_reports` imutável com RLS owner-only e ack de WARN; QA no worker antes do upload; gate BLOCKED/WARN/NOT_TESTED; `/app/export` com laudo JSON, SRT e checklist humano; PgTAP 144/144; unit 205+3.
+- **Gate:** CI, auditoria independente e autorização do owner; checkpoint **PROPOSED**; sem merge/deploy. WO-013 (#30) é a próxima.
+
+### Fingerprints no base `b21afa3`
+
+| Fonte canônica                         | SHA-256                                                            |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| `docs/CHECKPOINT_DELTA.md`             | `ed2e4c43c7335eb9565ad4617531cb7be25832af5e53aa99f196fc08241f49b5` |
+| `docs/SOURCE_PACK.md`                  | `ccac8b33f2d83c578f2a0ca3549f03d0c791980acfbedd3f1b06c5ca2257dd1c` |
+| `docs/ADR_V2_002_STORAGE.md`           | `9e39af92e6ea71ad234900c6e7d5d9a2290cc32c393177ad45db9b472510966e` |
+| `docs/V2_EXECUTION_PLAN.md`            | `b87662842db51763ae4e76aad5bae5438fc52d5cb10656d9354fd53bc1f0d27d` |
+| `docs/CONTEXT_LOCK.md`                 | `9f4c76ba81ed9276f5e5bd5220d6929ac3cf58993ba866cd8c661ce56e4207a3` |
+| `src/lib/schemas/video-edit-plan.ts`   | `ae4b4edcb23e888e1da2fb25bc37c475dd7c737731db78c482eefb1dc45de406` |
+| `src/lib/domain/render-composition.ts` | `ff76a92ef01cc9503eea36543ac199d9d5604a6d83ecc67993603fa9af18bc24` |
+| `src/lib/server/render-jobs.ts`        | `0256453566a54f8696489f2a7694dcda587456b326294cd209ebc2a0440764d7` |
+
 ## V2 Context Lock — WO-011 (#28) + ENH-07
 
 - **Base revalidated:** `main` `95e5d16` (checkpoint WO-010 promoted). Branch: `feat/dif-v2-wo-011`.

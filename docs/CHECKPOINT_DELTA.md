@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-012 — Export MP4, download privado e Quality Inspector (2026-11-18) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; implementação completa em `feat/dif-v2-wo-012`; unit 205+3, PgTAP 144/144, policy 28/25, E2E timeline 1/1 e responsivo 1/1 PASS; CI/auditoria pendentes. Sem merge/deploy.
+- **Base:** `main` `b21afa3` (checkpoint WO-011 promovido); branch `feat/dif-v2-wo-012`.
+- **Delivered:** opções de saída/qualidade no render; relatório imutável de QA por job+artefato com RLS owner-only; Quality Inspector no worker (hash, plano, codec/geometria/duração, AAC, drift, decode, black/freeze/silence/pico, safe area, legendas/CTA); gate BLOCKED/WARN; download owner-only com metadata R2 conferida; `/app/export` com QA, ack, MP4, SRT e laudo JSON.
+- **Limits:** QA heurístico, sem OCR/semântica/copyright; checklist humano no JSON sem assinatura separada para PASS; renderizadores anteriores sem relatório exigem re-render; worker ainda com service role ampla (WO-013).
+- **Gate:** CI + auditoria independente + autorização do owner. WO-013 (#30) e WO-014 (#31) dependem deste gate.
+
 ## DIF-V2-WO-011 — Editor visual, preview e safe zones (2026-11-18) — PROMOTED
 
 - **Status:** **PROMOTED**; correções das auditorias 1 e 2 aplicadas; CI hosted `44336803686` em `e29afb9` PASS (unit 194+3, E2E 13/13 em 4,9 min, PgTAP, Sonar/Socket/Vercel); reauditoria **APPROVED WITH RESIDUALS**; owner autorizou continuação em 2026-11-18 (“continue de onde parou”); squash-merged em `d4a6a80` (PR #59); issue #28 fechada.
