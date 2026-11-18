@@ -1,5 +1,15 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-011 — Editor visual, preview e safe zones (2026-11-18) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; implementação completa em `feat/dif-v2-wo-011`; correções das auditorias 1 e 2 aplicadas; CI hosted `44334200966` em `7c1925c` PASS (unit 194+3, E2E 13/13); reauditoria/aceitação pendentes. Sem merge/deploy.
+- **Base:** `main` `95e5d16` (checkpoint WO-010 promovido); branch `feat/dif-v2-wo-011`.
+- **Delivered:** perfis versionados TikTok/Reels/clean com áreas seguras e UI simulada; `EditPlanPreview` com caixas canônicas; detecção de colisão e bloqueio de save; ASS posicionado por papel CAPTION/CTA; `/app/editor` com preview, quatro correções, mapa de faixas, waveform opt-in e fila; E2E de colisão/correção/reload/render.
+- **CI correction (`e1599fb`):** o primeiro CI falhou em `/app/editor` a 360px por selects dimensionados pelo título do episódio; regra global em `src/app.css` para `.episode-picker`/`.field select` e inputs do editor, com o mesmo defeito corrigido em `/app/director`; responsivo local e CI PASS.
+- **Audit corrections (`7c1925c`):** plano sem `preview` mantém o ASS histórico (880 px) em vez de falhar na caixa default de 810 px; manifesto com `layoutSource`; placeholder, cue CTA, flags de caixa desativada e seek de trim alinhados entre preview, save e render.
+- **Limits:** preview é o clipe selecionado, não o render composto; crop de capa/feed e undo ilimitado não implementados; perfis são estimativas e exigem revisão no aparelho; legendas reaprovadas após mudança de plano; render sem track aprovada segue video-only até WO-012.
+- **Gate:** reauditoria independente + autorização do owner; WO-012 (#29) depende deste gate.
+
 ## DIF-V2-WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROMOTED
 
 - **Status:** **PROMOTED**; unit 181+3, PgTAP 131/131, E2E 13/13, CI `44190122840`/`44191794064`, Sonar, Socket e ARM64 PASS; auditoria round 2 **APPROVED WITH RESIDUALS**; owner autorizou continuidade/merge em 2026-11-18 (“continue de onde parou”); squash-merged at `1824061` (PR #58); issue #27 closed. Sem deploy de produção.

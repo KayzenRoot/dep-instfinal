@@ -13,11 +13,8 @@ import {
 	setVideoEditPlanStatus,
 	VideoEditPlanError,
 } from '#lib/server/video-edit-plans.js';
-import {
-	editPlanRestoreSchema,
-	editPlanStatusSchema,
-	videoEditPlanSchema,
-} from '#lib/schemas/video-edit-plan.js';
+import { editPlanRestoreSchema, editPlanStatusSchema } from '#lib/schemas/video-edit-plan.js';
+import { savePlanFromForm } from '#lib/server/plan-actions.js';
 import { EditPlanError } from '#lib/domain/video-edit-plan.js';
 import { loadVoicePlan } from '#lib/server/narration.js';
 import { listAudioAssets } from '#lib/server/audio-library.js';
@@ -27,17 +24,6 @@ function messageFor(cause: unknown): { status: number; message: string } {
 	if (cause instanceof VideoEditPlanError) return { status: cause.status, message: cause.message };
 	if (cause instanceof EditPlanError) return { status: 400, message: cause.message };
 	return { status: 503, message: 'Não foi possível processar o plano de edição.' };
-}
-
-function parsePlan(raw: string) {
-	let value: unknown;
-	try {
-		value = JSON.parse(raw);
-	} catch {
-		return null;
-	}
-	const parsed = videoEditPlanSchema.safeParse(value);
-	return parsed.success ? parsed.data : null;
 }
 
 export const load: PageServerLoad = async (event) => {
@@ -178,31 +164,13 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	save: async (event) => {
-		const { db, owner } = ownerDatabase(event);
-		const form = await event.request.formData();
-		const episodeId = readFormText(form, 'episodeId');
-		const expectedVersion = Number.parseInt(readFormText(form, 'expectedVersion'), 10);
-		const plan = parsePlan(readFormText(form, 'plan'));
-		if (!plan) return fail(400, { message: 'Plano de edição inválido.' });
-		if (!episodeId || plan.episodeId !== episodeId)
-			return fail(400, { message: 'O plano pertence a outro episódio.' });
-		if (!Number.isInteger(expectedVersion) || expectedVersion < 0)
-			return fail(400, { message: 'Versão esperada inválida.' });
-		try {
-			const version = await saveVideoEditPlan({
-				db,
-				adminDb: createSupabaseAdminClient(),
-				owner,
-				episodeId,
-				expectedVersion,
-				plan,
-				changeNote: readFormText(form, 'changeNote'),
-			});
-			return { success: true, version };
-		} catch (cause) {
-			const errorInfo = messageFor(cause);
-			return fail(errorInfo.status, { message: errorInfo.message });
-		}
+		const result = await savePlanFromForm(event, {
+			invalidMessage: 'Plano de edição inválido.',
+			defaultNote: '',
+		});
+		return result.ok
+			? { success: true, version: result.version }
+			: fail(result.status, { message: result.message });
 	},
 	restore: async (event) => {
 		const { db, owner } = ownerDatabase(event);

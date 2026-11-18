@@ -1,0 +1,39 @@
+# WO-011 — local evidence
+
+Date: 2026-11-18 (America/Sao_Paulo)
+
+## Static
+
+- `npm run check`: `svelte-check found 0 errors and 0 warnings`
+- `npm run lint`: PASS (`eslint . --max-warnings=0`)
+- `npm run build`: PASS (`@sveltejs/adapter-node`)
+
+## Unit / integration
+
+- `platform-preview.test.ts`: 11/11 (includes legacy cue regression and disabled-box flags)
+- `captions.test.ts`: 27/27
+- `video-edit-plan.test.ts`: 13/13 (includes disabled caption/CTA boxes)
+- FFmpeg caption burn-in integration: 2/2, including a positioned caption box
+  measured in a real frame (x 250–830, y 560–840)
+- Full local suite (CI `44334200966`): 26 files passed, 3 skipped;
+  **194 tests passed + 3 skipped**, including the 120 s FFmpeg integration and
+  the positioned-caption burn-in.
+
+## E2E
+
+- CI run `44334200966`: **13/13** in 4.9 min, including `timeline.spec.ts`
+  (15 synthetic clips, director, editor collision HIGH blocked save, corrected
+  caption box, reorder, crossfade, master gain, save/reload, narration/captions,
+  real worker READY) and the responsive owner-boundary test.
+- Responsive local 360/768/1440 **PASS** with `/app/video` and `/app/timeline`
+  added to the route list.
+- The same responsive test failed at `8248546` with
+  `/app/editor should not overflow at 360px`; after the fix at `e1599fb` it also
+  covers `/app/director`, `/app/video` and `/app/timeline` without overflow.
+- Anonymous private endpoints returned 401 in the focused owner-boundary run.
+
+## Limits verified
+
+- The preview video is the selected clip, not a composed render.
+- UI safe-zone overlay is DOM/CSS and never written into the ASS/MP4.
+- Caption/CTA positions are persisted as canonical 1080x1920 boxes in the plan.

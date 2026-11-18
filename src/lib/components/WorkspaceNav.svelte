@@ -13,6 +13,12 @@
 		{ path: '/app/series', href: resolve('/app/series'), label: 'Séries', glyph: 'book' },
 		{ path: '/app/episodes', href: resolve('/app/episodes'), label: 'Episódios', glyph: 'film' },
 		{
+			path: '/app/editor',
+			href: resolve('/app/editor'),
+			label: 'Editor',
+			glyph: 'frames',
+		},
+		{
 			path: '/app/storyboard',
 			href: resolve('/app/storyboard'),
 			label: 'Storyboard',

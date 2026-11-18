@@ -10,6 +10,8 @@ import {
 	type AsrWordInput,
 	type ScriptSegment,
 } from '#lib/domain/captions.js';
+import { captionTextFitsBox } from '#lib/domain/caption-metrics.js';
+import { layoutFromPlan, resolvePreviewLayout } from '#lib/domain/platform-preview.js';
 import { captionTrackSchema, type CaptionStyle, type CaptionTrack } from '#lib/schemas/captions.js';
 import { videoEditPlanSchema, type VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
 
@@ -259,6 +261,7 @@ function validateTrackAgainstContext(track: CaptionTrack, context: CaptionContex
 		throw new CaptionServiceError(409, 'CAPTION_TAKE_MISMATCH', 'A legenda usa outra narração.');
 	if (track.audioSha256 && context.audioSha256 && track.audioSha256 !== context.audioSha256)
 		throw new CaptionServiceError(409, 'CAPTION_AUDIO_MISMATCH', 'O áudio da legenda mudou.');
+	const previewLayout = resolvePreviewLayout(context.plan.preview);
 	for (const cue of track.cues) {
 		if (cue.endMs > context.durationMs)
 			throw new CaptionServiceError(
@@ -274,6 +277,13 @@ function validateTrackAgainstContext(track: CaptionTrack, context: CaptionContex
 					'Uma linha da legenda excede a largura segura da safe zone.',
 				);
 		}
+		const box = cue.role === 'CTA' ? previewLayout.ctaBox : previewLayout.captionBox;
+		if (!captionTextFitsBox(cue.text, box))
+			throw new CaptionServiceError(
+				400,
+				'CAPTION_BOX_OVERFLOW',
+				'O texto não cabe na caixa segura do perfil atual.',
+			);
 	}
 	return track;
 }
@@ -437,6 +447,7 @@ export async function generateCaptionTrack(input: {
 		style: input.style,
 		safeZone: input.safeZone,
 		audioSha256: context.audioSha256,
+		maxWidth: resolvePreviewLayout(context.plan.preview).captionBox.width - 20,
 	});
 	if (context.plan.cta?.enabled && context.plan.cta.text) {
 		try {
@@ -446,6 +457,7 @@ export async function generateCaptionTrack(input: {
 				startMs: context.plan.cta.startMs,
 				endMs: context.plan.cta.endMs,
 				durationMs: context.durationMs,
+				maxWidth: resolvePreviewLayout(context.plan.preview).ctaBox.width - 20,
 			});
 		} catch (cause) {
 			if (cause instanceof CaptionError)
@@ -544,9 +556,10 @@ export async function getCaptionExports(input: {
 		context.narrationTakeId,
 	);
 	if (!stored) return null;
+	const layout = layoutFromPlan(context.plan);
 	return {
 		srt: buildCaptionSrt(stored.track.cues),
-		ass: buildCaptionAss(stored.track),
+		ass: buildCaptionAss(stored.track, layout ?? undefined),
 	};
 }
 

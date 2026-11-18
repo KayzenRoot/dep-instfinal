@@ -1,6 +1,22 @@
 import { createHash } from 'node:crypto';
 import { formatSrtTime } from './timeline.js';
 import type { CaptionCue, CaptionStyle, CaptionTrack, CaptionWord } from '#lib/schemas/captions.js';
+import type { PreviewBox } from '#lib/schemas/platform-preview.js';
+import {
+	CAPTION_SAFE_WIDTH,
+	captionTextFitsBox,
+	MAX_LINES,
+	wrapCtaText,
+	wrapCueLine,
+	wrapLines,
+} from './caption-metrics.js';
+
+export { estimateCaptionWidth, wrapCtaText } from './caption-metrics.js';
+
+export interface CaptionLayout {
+	captionBox: PreviewBox;
+	ctaBox: PreviewBox;
+}
 
 export class CaptionError extends Error {
 	constructor(
@@ -31,52 +47,7 @@ interface Token {
 	segmentIndex: number;
 }
 
-const MAX_LINE_CHARS = 42;
-const MAX_LINES = 2;
 const MAX_CUE_MS = 7_000;
-const CAPTION_FONT_SIZE = 58;
-const CAPTION_SAFE_WIDTH = 880;
-
-function isEmoji(code: number): boolean {
-	return (
-		(code >= 0x1f300 && code <= 0x1faff) ||
-		(code >= 0x2600 && code <= 0x27bf) ||
-		(code >= 0x1f000 && code <= 0x1f2ff)
-	);
-}
-
-function isWide(code: number): boolean {
-	return (
-		(code >= 0x1100 && code <= 0x115f) ||
-		(code >= 0x2e80 && code <= 0xa4cf) ||
-		(code >= 0xac00 && code <= 0xd7a3) ||
-		(code >= 0xf900 && code <= 0xfaff) ||
-		(code >= 0xfe30 && code <= 0xfe4f) ||
-		(code >= 0xff00 && code <= 0xff60) ||
-		(code >= 0xffe0 && code <= 0xffe6) ||
-		(code >= 0x20000 && code <= 0x3fffd)
-	);
-}
-
-function characterWidth(character: string): number {
-	const code = character.codePointAt(0) ?? 0;
-	if (code === 0xfe0f || code === 0x200d) return 0;
-	if (isEmoji(code)) return 1.1;
-	if (isWide(code)) return 1;
-	if (/\s/u.test(character)) return 0.32;
-	if (/[ilI.,'!|:;]/u.test(character)) return 0.28;
-	if (/[fjrt()\-[\]]/u.test(character)) return 0.36;
-	if (/[MW@%&ÆŒæœ]/u.test(character)) return 0.92;
-	if (/[A-ZÀ-Ý]/u.test(character)) return 0.68;
-	if (/\d/u.test(character)) return 0.6;
-	return 0.55;
-}
-
-export function estimateCaptionWidth(text: string, fontSize = CAPTION_FONT_SIZE): number {
-	let width = 0;
-	for (const character of text) width += characterWidth(character);
-	return width * fontSize;
-}
 
 export function normalizeCaptionToken(value: string): string {
 	return value
@@ -243,54 +214,6 @@ function interpolatedWords(
 	return { words: result, compressed };
 }
 
-function splitWordToWidth(word: string, maxWidth: number, maxChars = MAX_LINE_CHARS): string[] {
-	const pieces: string[] = [];
-	let current = '';
-	for (const character of word) {
-		const next = `${current}${character}`;
-		if (current && (estimateCaptionWidth(next) > maxWidth || current.length >= maxChars)) {
-			pieces.push(current);
-			current = character;
-		} else {
-			current = next;
-		}
-	}
-	if (current) pieces.push(current);
-	return pieces.length ? pieces : [word];
-}
-
-function wrapLines(words: CaptionWord[]): string[][] {
-	const lines: string[][] = [];
-	let current: string[] = [];
-	let length = 0;
-	let width = 0;
-	for (const word of words) {
-		const pieces = splitWordToWidth(word.text, CAPTION_SAFE_WIDTH);
-		for (const piece of pieces) {
-			const pieceWidth = estimateCaptionWidth(piece);
-			const addition = current.length ? 1 + piece.length : piece.length;
-			const widthAddition = current.length
-				? width + estimateCaptionWidth(' ') + pieceWidth
-				: pieceWidth;
-			if (
-				current.length &&
-				(length + addition > MAX_LINE_CHARS || widthAddition > CAPTION_SAFE_WIDTH)
-			) {
-				lines.push(current);
-				current = [piece];
-				length = piece.length;
-				width = pieceWidth;
-			} else {
-				current.push(piece);
-				length += addition;
-				width = widthAddition;
-			}
-		}
-	}
-	if (current.length) lines.push(current);
-	return lines;
-}
-
 function clipWordText(text: string): string {
 	let result = '';
 	for (const character of text) {
@@ -315,8 +238,12 @@ function clampCueWords(cue: CaptionCue): CaptionCue {
 	return cue;
 }
 
-function splitIntoCaptionCues(words: CaptionWord[], nextStartMs: number): CaptionCue[] {
-	const lines = wrapLines(words);
+function splitIntoCaptionCues(
+	words: CaptionWord[],
+	nextStartMs: number,
+	maxWidth = CAPTION_SAFE_WIDTH,
+): CaptionCue[] {
+	const lines = wrapLines(words, maxWidth);
 	const chunks: string[][][] = [];
 	let chunk: string[][] = [];
 	for (const line of lines) {
@@ -365,6 +292,7 @@ export function alignScriptToAsr(input: {
 	segments: ScriptSegment[];
 	asrWords: AsrWordInput[];
 	durationMs: number;
+	maxWidth?: number;
 }): {
 	cues: CaptionCue[];
 	alignmentScore: number;
@@ -426,7 +354,7 @@ export function alignScriptToAsr(input: {
 				.filter(([index]) => index > segment.index)
 				.map(([, list]) => list[0]!.startMs)
 				.sort((left, right) => left - right)[0] ?? input.durationMs;
-		for (const cue of splitIntoCaptionCues(segmentWords, nextStart)) {
+		for (const cue of splitIntoCaptionCues(segmentWords, nextStart, input.maxWidth)) {
 			const previous = cues.at(-1);
 			if (previous && cue.startMs < previous.endMs) cue.startMs = previous.endMs;
 			if (cue.endMs - cue.startMs > MAX_CUE_MS) cue.endMs = cue.startMs + MAX_CUE_MS;
@@ -504,11 +432,13 @@ export function buildCaptionTrack(input: {
 	style?: CaptionStyle;
 	safeZone?: CaptionTrack['safeZone'];
 	audioSha256?: string | null;
+	maxWidth?: number;
 }): CaptionTrack {
 	const aligned = alignScriptToAsr({
 		segments: input.segments,
 		asrWords: input.asrWords,
 		durationMs: input.durationMs,
+		maxWidth: input.maxWidth,
 	});
 	return {
 		schemaVersion: 1,
@@ -565,40 +495,19 @@ function assStyle(style: CaptionStyle, safeZone: CaptionTrack['safeZone']): stri
 	return `Style: Default,DejaVu Sans,58,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,1,2,90,90,${marginV},1`;
 }
 
-function wrapCueLine(line: string): string[] {
-	const words = line
-		.trim()
-		.split(/\s+/u)
-		.filter(Boolean)
-		.map((text) => ({ text, startMs: 0, endMs: 0, confidence: null }));
-	return wrapLines(words).map((parts) => parts.join(' '));
-}
-
-export function wrapCtaText(text: string): string[] {
-	const words = text
-		.trim()
-		.split(/\s+/u)
-		.filter(Boolean)
-		.map((value) => ({ text: value, startMs: 0, endMs: 0, confidence: null }));
-	const lines = wrapLines(words).map((parts) => parts.join(' '));
-	const chunks: string[] = [];
-	for (let index = 0; index < lines.length; index += MAX_LINES)
-		chunks.push(lines.slice(index, index + MAX_LINES).join('\n'));
-	return chunks;
-}
-
 export function appendCtaCues(input: {
 	cues: CaptionCue[];
 	text: string;
 	startMs: number;
 	endMs: number;
 	durationMs: number;
+	maxWidth?: number;
 }): CaptionCue[] {
 	const previous = input.cues.at(-1);
 	const startMs = Math.max(previous?.endMs ?? input.startMs, input.startMs);
 	const endMs = Math.min(input.durationMs, input.endMs);
 	if (startMs >= endMs || endMs - startMs < 300) return input.cues;
-	const chunks = wrapCtaText(input.text);
+	const chunks = wrapCtaText(input.text, input.maxWidth);
 	if (!chunks.length) return input.cues;
 	if (endMs - startMs < chunks.length * 300)
 		throw new CaptionError(
@@ -612,13 +521,20 @@ export function appendCtaCues(input: {
 		const cueStart = Math.max(cursor, startMs + index * slot);
 		const cueEnd = Math.min(endMs, cueStart + slot);
 		if (cueEnd - cueStart < 300) break;
-		cues.push({ id: crypto.randomUUID(), startMs: cueStart, endMs: cueEnd, text, words: [] });
+		cues.push({
+			id: crypto.randomUUID(),
+			startMs: cueStart,
+			endMs: cueEnd,
+			text,
+			role: 'CTA',
+			words: [],
+		});
 		cursor = cueEnd;
 	}
 	return cues;
 }
 
-export function buildCaptionAss(track: CaptionTrack): string {
+export function buildCaptionAss(track: CaptionTrack, layout?: CaptionLayout): string {
 	const lines = [
 		'[Script Info]',
 		'ScriptType: v4.00+',
@@ -635,11 +551,25 @@ export function buildCaptionAss(track: CaptionTrack): string {
 		'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
 	];
 	for (const cue of track.cues) {
-		const cueLines = cue.text.split('\n').flatMap(wrapCueLine);
+		let box: PreviewBox | null = null;
+		if (layout) box = cue.role === 'CTA' ? layout.ctaBox : layout.captionBox;
+		if (box && !captionTextFitsBox(cue.text, box))
+			throw new CaptionError(
+				'CAPTION_BOX_OVERFLOW',
+				'O texto da legenda/CTA não cabe na caixa segura configurada.',
+			);
+		const cueLines = cue.text
+			.split('\n')
+			.flatMap((line) => wrapCueLine(line, box ? Math.max(320, box.width - 20) : undefined));
 		let text = cueLines.map(escapeAssLine).join('\\N');
+		const position = box
+			? String.raw`\an5\pos(${Math.round(box.x + box.width / 2)},${Math.round(box.y + box.height / 2)})`
+			: '';
 		if (track.style === 'highlight') {
 			const [first, ...rest] = text.split('\\N');
-			text = `{\\c&H0000FFFF&\\b1}${first}{\\r}${rest.length ? `\\N${rest.join('\\N')}` : ''}`;
+			text = `{${position}${String.raw`\c&H0000FFFF&\b1`}}${first}{\\r}${rest.length ? `\\N${rest.join('\\N')}` : ''}`;
+		} else if (position) {
+			text = `{${position}}${text}`;
 		}
 		lines.push(`Dialogue: 0,${assTime(cue.startMs)},${assTime(cue.endMs)},Default,,0,0,0,,${text}`);
 	}

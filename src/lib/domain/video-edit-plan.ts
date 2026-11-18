@@ -1,4 +1,6 @@
 import type { EditPlanClip, VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
+import { assertPreviewLayout, defaultPreview, PlatformPreviewError } from './platform-preview.js';
+import { captionTextFitsBox, wrapCtaText } from './caption-metrics.js';
 
 export class EditPlanError extends Error {
 	constructor(
@@ -102,6 +104,7 @@ export function buildDefaultEditPlan(context: EditPlanContext): VideoEditPlan {
 		captions: { template: 'clean' },
 		cta: null,
 		audio: { masterGainDb: 0, events: [] },
+		preview: defaultPreview(),
 	};
 }
 
@@ -148,6 +151,45 @@ export function trimClip(
 	if (sourceOutMs <= sourceInMs)
 		throw new EditPlanError('EDIT_PLAN_TRIM_INVALID', 'O fim do trim deve ser depois do início.');
 	return { ...clip, sourceInMs, sourceOutMs };
+}
+
+/** Reorders clips, forces a clean cut at position 0 and retimes the whole track. */
+export function moveClips(clips: EditPlanClip[], from: number, to: number): EditPlanClip[] {
+	const ordered = reorderClips(clips, from, to).map((clip, position) =>
+		position === 0 ? { ...clip, transition: 'cut' as const, transitionMs: 0 } : clip,
+	);
+	return retimeClips(ordered);
+}
+
+/** Applies a trim to one clip and retimes the whole track. */
+export function trimClips(
+	clips: EditPlanClip[],
+	index: number,
+	sourceInMs: number,
+	sourceOutMs: number,
+): EditPlanClip[] {
+	const trimmed = clips.map((clip, position) =>
+		position === index ? trimClip(clip, sourceInMs, sourceOutMs) : clip,
+	);
+	return retimeClips(trimmed);
+}
+
+/** Applies a cut/crossfade transition to one clip and retimes the whole track. */
+export function setClipTransition(
+	clips: EditPlanClip[],
+	index: number,
+	transition: 'cut' | 'crossfade',
+): EditPlanClip[] {
+	const next = clips.map((clip, position) => {
+		if (position !== index) return clip;
+		const duration = clip.sourceOutMs - clip.sourceInMs;
+		return {
+			...clip,
+			transition,
+			transitionMs: transition === 'cut' ? 0 : Math.max(1, Math.min(500, Math.floor(duration / 4))),
+		};
+	});
+	return retimeClips(next);
 }
 
 export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext): VideoEditPlan {
@@ -282,6 +324,29 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 					'EDIT_PLAN_DIRECTOR_RANGE',
 					'Evento do diretor excede a duração do episódio.',
 				);
+		}
+	}
+
+	if (plan.preview) {
+		const captionEnabled = plan.captions.template !== 'none';
+		const ctaEnabled = Boolean(plan.cta?.enabled);
+		try {
+			const previewLayout = assertPreviewLayout(plan.preview, {
+				caption: captionEnabled,
+				cta: ctaEnabled,
+			});
+			if (ctaEnabled && captionEnabled) {
+				for (const chunk of wrapCtaText(plan.cta!.text, previewLayout.ctaBox.width - 20))
+					if (!captionTextFitsBox(chunk, previewLayout.ctaBox))
+						throw new EditPlanError(
+							'EDIT_PLAN_CTA_OVERFLOW',
+							'O texto da CTA não cabe na caixa segura do perfil.',
+						);
+			}
+		} catch (cause) {
+			if (cause instanceof PlatformPreviewError)
+				throw new EditPlanError('EDIT_PLAN_PREVIEW_INVALID', cause.message);
+			throw cause;
 		}
 	}
 
