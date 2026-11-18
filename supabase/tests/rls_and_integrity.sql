@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(160);
+select plan(161);
 
 do $$
 declare
@@ -1960,6 +1960,19 @@ select lives_ok(
     from public.render_jobs
     where id = (select id from test_render_jobs where name = 'job3');$$,
   'service role stores a hook variant patch'
+);
+select throws_ok(
+  $$insert into public.hook_variants (
+      owner_id, episode_id, plan_id, plan_version, variant_key, label, objective,
+      source_plan_hash, opening_clip_id, opening_asset_id, opening_clip_index,
+      opening_start_ms, opening_end_ms, premise, score, reasons
+    )
+    select owner_id, episode_id, plan_id, plan_version, variant_key, label, objective,
+      source_plan_hash, opening_clip_id, opening_asset_id, opening_clip_index,
+      opening_start_ms, opening_end_ms, premise, score, reasons
+    from public.hook_variants limit 1;$$,
+  '23505', null,
+  'hook variants are unique per plan version and key'
 );
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);

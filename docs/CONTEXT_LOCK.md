@@ -215,7 +215,7 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Base revalidated:** `main` `9862f8c` (checkpoint WO-013 core promoted). Branch: `feat/dif-v2-wo-015`.
 - **Issue inventory:** WO-001–013 **MERGED/CLOSED/PROMOTED (core)**; WO-015/#32 em execução; WO-014 blocked by 015–021.
 - **Scope:** Hook Lab determinístico com até três aberturas usando clipes/áudio/legendas existentes, patch imutável versionado, aplicar como nova versão, reverter e metadados para análise manual.
-- **Delivered locally:** `hook_variants` RLS owner-only/service writes; engine cold open/intriguing line/sound entry; `/app/hooks` A/B/C; aplicação/reversão versionada; PgTAP 160/160.
+- **Delivered locally:** `hook_variants` RLS owner-only/service writes; engine cold open/intriguing line/sound entry; `/app/hooks` A/B/C; aplicação/reversão versionada; PgTAP 161/161.
 - **Gate:** CI, auditoria independente e autorização do owner; checkpoint **PROPOSED**. WO-016 (#33) é a próxima.
 
 ### Fingerprints no base `9862f8c`

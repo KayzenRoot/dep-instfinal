@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-015` · issue #32 · epic #17
 - **Base:** `main` `9862f8c` (checkpoint WO-013 núcleo promovido); branch `feat/dif-v2-wo-015`
-- **Status:** implementação completa; unit **213+3**, PgTAP **160/160**, policy **30/26**, E2E timeline **1/1** (4,3 min) e responsivo **1/1** PASS; CI/auditoria **PENDENTES**. Checkpoint **PROPOSED**.
+- **Status:** implementação completa; unit **213+3**, PgTAP **161/161**, policy **30/26**, E2E timeline **1/1** (4,3 min) e responsivo **1/1** PASS; CI/auditoria **PENDENTES**. Checkpoint **PROPOSED**.
 
 | Check     | Result     | Evidence                                                                                                       |
 | --------- | ---------- | -------------------------------------------------------------------------------------------------------------- |
@@ -12,7 +12,7 @@
 | Engine    | PASS local | 3/3 unit: cold open por tensão, fala interrogativa, entrada por áudio; fallback honesto                        |
 | Apply     | PASS local | aplica como nova versão sem duplicar clipes; reverter restaura a versão base                                   |
 | UI        | PASS local | `/app/hooks` com cards A/B/C, preview do clipe, score, motivos, aplicar/reverter e link no workspace           |
-| PgTAP     | PASS       | 160/160, incluindo RLS owner-only, escrita service-only e unicidade                                            |
+| PgTAP     | PASS       | 161/161, incluindo RLS owner-only, escrita service-only e unicidade                                            |
 | E2E       | PASS local | timeline real 4,3 min com geração, aplicação e reversão; responsivo 360/768/1440 inclui `/app/hooks`           |
 | CI        | PENDENTE   | será registrado após push do PR Draft                                                                          |
 | Auditoria | PENDENTE   | revisão independente obrigatória antes de merge                                                                |

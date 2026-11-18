@@ -80,6 +80,7 @@ const tableNames = [
 	'caption_tracks',
 	'audio_assets',
 	'render_quality_reports',
+	'hook_variants',
 ];
 const counts = {};
 for (const table of tableNames) {

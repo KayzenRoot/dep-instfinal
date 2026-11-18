@@ -214,6 +214,8 @@ export async function applyVariantAsPlan(input: {
 	const variant = await loadVariantRow(input.db, input.owner.id, input.episodeId, input.variantId);
 	const stored = await loadEditPlan(input.db, input.owner, input.episodeId);
 	if (!stored.plan) throw new HookLabError(409, 'HOOK_PLAN_MISSING', 'Plano atual não encontrado.');
+	if (variant.status === 'APPLIED' && variant.appliedVersion === stored.plan.current_version)
+		return variant.appliedVersion;
 	const { data: sourceVersion } = await input.db
 		.from('video_edit_plan_versions')
 		.select('plan')
@@ -286,6 +288,16 @@ export async function revertHookVariant(input: {
 	const variant = await loadVariantRow(input.db, input.owner.id, input.episodeId, input.variantId);
 	const stored = await loadEditPlan(input.db, input.owner, input.episodeId);
 	if (!stored.plan) throw new HookLabError(409, 'HOOK_PLAN_MISSING', 'Plano atual não encontrado.');
+	if (
+		variant.status !== 'APPLIED' ||
+		variant.appliedVersion === null ||
+		variant.appliedVersion !== stored.plan.current_version
+	)
+		throw new HookLabError(
+			409,
+			'HOOK_NOT_APPLIED',
+			'A abertura não está aplicada na versão atual; recarregue o Hook Lab.',
+		);
 	const version = await restoreVideoEditPlan({
 		db: input.db,
 		adminDb: input.adminDb,

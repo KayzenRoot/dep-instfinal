@@ -43,11 +43,16 @@
 	</p>
 {:else if form?.success === 'applied'}
 	<p class="notice success" role="status">
-		Abertura aplicada como nova versão {form.version}. A versão anterior continua no histórico.
+		Abertura aplicada como nova versão {form.version}. A versão anterior continua no histórico. O
+		novo plano está DRAFT: aprove-o e
+		<a href={resolve(`/app/captions?episodeId=${data.selectedEpisode?.id}`)}>reaprove as legendas</a
+		>
+		antes do render.
 	</p>
 {:else if form?.success === 'reverted'}
 	<p class="notice success" role="status">
-		Edição original restaurada na versão {form.version}.
+		Edição original restaurada na versão {form.version}. Aprove o plano e reaprove as legendas para
+		esta versão antes do render.
 	</p>
 {/if}
 
@@ -62,8 +67,9 @@
 				{data.sourcePlanVersion ?? 'nenhuma'}
 			</p>
 			<p class="hint">
-				As variantes reordenam o primeiro bloco do vídeo; narração, legendas, SFX e CTA permanecem
-				na linha do tempo. Nada é publicado nem enviado a IA.
+				As variantes reordenam o primeiro bloco do vídeo; narração, SFX e CTA permanecem na linha do
+				tempo. A nova versão exige reaprovar as legendas antes do render. Nada é publicado nem
+				enviado a IA.
 			</p>
 		</div>
 		<form method="POST" action="?/generate">
@@ -131,6 +137,9 @@
 						{/if}
 						<a href={resolve(`/app/timeline?episodeId=${data.selectedEpisode?.id}`)}
 							>Ver no timeline</a
+						>
+						<a href={resolve('/api/hooks/[variantId]/export', { variantId: variant.id })}
+							>Exportar variante (JSON)</a
 						>
 					</div>
 				</article>
