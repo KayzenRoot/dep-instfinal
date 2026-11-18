@@ -1,37 +1,16 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { ownerDatabase, readFormText } from '#lib/server/authorized.js';
-import { createSupabaseAdminClient } from '#lib/server/supabase.js';
+import { ownerDatabase } from '#lib/server/authorized.js';
 import { loadOwnerEpisodeOptions } from '#lib/server/episode-options.js';
 import {
 	defaultEditPlan,
 	loadEditPlan,
 	loadEditPlanContext,
-	saveVideoEditPlan,
-	VideoEditPlanError,
 } from '#lib/server/video-edit-plans.js';
-import { videoEditPlanSchema } from '#lib/schemas/video-edit-plan.js';
-import { EditPlanError } from '#lib/domain/video-edit-plan.js';
 import { loadVoicePlan } from '#lib/server/narration.js';
 import { loadCaptionTrack } from '#lib/server/captions.js';
 import { listRenderJobs } from '#lib/server/render-jobs.js';
-
-function parsePlan(raw: string) {
-	let value: unknown;
-	try {
-		value = JSON.parse(raw);
-	} catch {
-		return null;
-	}
-	const parsed = videoEditPlanSchema.safeParse(value);
-	return parsed.success ? parsed.data : null;
-}
-
-function messageFor(cause: unknown): { status: number; message: string } {
-	if (cause instanceof VideoEditPlanError) return { status: cause.status, message: cause.message };
-	if (cause instanceof EditPlanError) return { status: 400, message: cause.message };
-	return { status: 503, message: 'Não foi possível salvar o editor.' };
-}
+import { savePlanFromForm } from '#lib/server/plan-actions.js';
 
 export const load: PageServerLoad = async (event) => {
 	const { db, owner } = ownerDatabase(event);
@@ -120,30 +99,12 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	save: async (event) => {
-		const { db, owner } = ownerDatabase(event);
-		const form = await event.request.formData();
-		const episodeId = readFormText(form, 'episodeId');
-		const expectedVersion = Number.parseInt(readFormText(form, 'expectedVersion'), 10);
-		const plan = parsePlan(readFormText(form, 'plan'));
-		if (!plan) return fail(400, { message: 'Plano do editor inválido.' });
-		if (!episodeId || plan.episodeId !== episodeId)
-			return fail(400, { message: 'O plano pertence a outro episódio.' });
-		if (!Number.isInteger(expectedVersion) || expectedVersion < 0)
-			return fail(400, { message: 'Versão esperada inválida.' });
-		try {
-			const version = await saveVideoEditPlan({
-				db,
-				adminDb: createSupabaseAdminClient(),
-				owner,
-				episodeId,
-				expectedVersion,
-				plan,
-				changeNote: readFormText(form, 'changeNote') || 'Correções no editor visual',
-			});
-			return { success: true, version };
-		} catch (cause) {
-			const mapped = messageFor(cause);
-			return fail(mapped.status, { message: mapped.message });
-		}
+		const result = await savePlanFromForm(event, {
+			invalidMessage: 'Plano do editor inválido.',
+			defaultNote: 'Correções no editor visual',
+		});
+		return result.ok
+			? { success: true, version: result.version }
+			: fail(result.status, { message: result.message });
 	},
 };
