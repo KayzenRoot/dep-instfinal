@@ -294,5 +294,11 @@ export async function revertHookVariant(input: {
 		expectedVersion: stored.plan.current_version,
 		changeNote: `Hook Lab: reverter para a versão base da abertura ${variant.label}`,
 	});
+	if (input.adminDb)
+		await input.adminDb
+			.from('hook_variants')
+			.update({ status: 'DRAFT', applied_version: null, applied_at: null })
+			.eq('owner_id', input.owner.id)
+			.eq('id', variant.id);
 	return version;
 }
