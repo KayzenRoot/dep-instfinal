@@ -1,12 +1,20 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-013 — Hardening operacional (2026-11-18) — PROPOSED
+## DIF-V2-WO-013 — Hardening operacional (2026-11-18) — PROMOTED (core)
 
-- **Status:** **PROPOSED — NOT PROMOTED**; núcleo implementado em `feat/dif-v2-wo-013`; unit 210+3, PgTAP 155/155, policy 29/25, restore local, retenção dry-run e E2E PASS; CI/auditoria pendentes. Sem merge/deploy.
+- **Status:** **PROMOTED (núcleo)**; unit 210+3, PgTAP 155/155, policy 29/25, E2E 14/14; CI `44410994788` e ARM64 `44410995020` em `fa236af` PASS; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b1a1eaf` (PR #61); issue #30 fechada. Extensões OPS das WOs 015–021 continuam pendentes.
 - **Base:** `main` `7d15076` (checkpoint WO-012 promovido); branch `feat/dif-v2-wo-013`.
 - **Delivered:** quotas diárias 20 jobs/2 GiB com 429; worker com reserva de disco, pausa sem claim, threads FFmpeg 1–8; `render_queue_health` + health owner-only e painel na timeline; backup/restore de metadados com SHA, verificação de contagens/join/QA e sinalização de blob ausente; retenção dry-run com `--confirm` e proteção de jobs ativos; grants de leitura service role.
 - **Limits:** R2 lifecycle/GC manual; Auth users e bytes de mídia não entram no backup; restore automatizado só em banco local descartável; quotas fixas (teto de bytes soft); sem cgroup/benchmark de CPU/RAM; scripts exigem caminhos absolutos por env; extensões OPS das WOs 015–021 pendentes.
-- **Gate:** CI + auditoria independente + autorização do owner; WO-014 (#31) depende deste gate e das WOs 015–021.
+- **Gate:** atendido para o núcleo; WO-014 (#31) continua dependendo das WOs 015–021 e das extensões OPS. Sem deploy de worker/VPS.
+
+## V2 checkpoint promotion — WO-013 (2026-11-18)
+
+- **Owner decision:** “continue de onde parou” recorded as continuity/merge authorization; PR #61 squash-merged at `b1a1eaf`; issue #30 closed for the core scope.
+- **Audit:** first round **CORRECTION REQUIRED** (F1–F11), final re-audit **APPROVED WITH RESIDUALS**, no HIGH/CRITICAL.
+- **Evidence:** unit 210+3, PgTAP 155/155, policy 29/25, E2E 14/14, CI `44410994788`, ARM64 `44410995020`, Sonar/Socket/Vercel PASS at `fa236af`; verified restore with 2 blobs SHA.
+- **Residuals:** R2 lifecycle manual; Auth/mídia fora do backup; quotas fixas/soft; sem cgroup/benchmark CPU/RAM; scripts exigem paths absolutos; extensões OPS 015–021 pendentes.
+- **Next:** WO-015 (#32) Hook Lab; WO-014 release permanece bloqueada por 015–021.
 
 ## DIF-V2-WO-012 — Export MP4, download privado e Quality Inspector (2026-11-18) — PROMOTED
 

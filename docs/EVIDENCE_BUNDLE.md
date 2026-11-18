@@ -1,10 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-013 — Hardening operacional (2026-11-18) — PROPOSED
+## V2 WO-013 — Hardening operacional (2026-11-18) — PROMOTED (core)
 
 - **Work Order:** `DIF-V2-WO-013` · issue #30 · epic #17
-- **Base:** `main` `7d15076` (checkpoint WO-012 promovido); branch `feat/dif-v2-wo-013`
-- **Status:** implementação completa do núcleo; unit **210+3**, PgTAP **155/155**, policy **29/25**, restore local e retenção dry-run **PASS**; CI/auditoria **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
+- **Base:** `main` `7d15076`; branch `feat/dif-v2-wo-013`; merge `b1a1eaf`
+- **Status:** **PROMOTED (núcleo)**; unit **210+3**, PgTAP **155/155**, policy **29/25**, E2E **14/14**; CI `44410994788` e ARM64 `44410995020` em `fa236af` PASS; reauditoria **APPROVED WITH RESIDUALS**; PR #61 squash-merged em `b1a1eaf`; issue #30 fechada. Extensões OPS 015–021 pendentes.
 
 | Check      | Result     | Evidence                                                                                                     |
 | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------ |

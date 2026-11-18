@@ -1,6 +1,6 @@
 # DIF-V2-WO-013 — Hardening operacional: quotas, backup, retenção e recuperação
 
-**Status:** implementação completa e correções da auditoria em `feat/dif-v2-wo-013`; unit 210+3, PgTAP 155/155, policy 29/25, restore local e retenção dry-run PASS; CI final e reauditoria **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** **PROMOTED (núcleo)**; unit **210+3**, PgTAP **155/155**, policy **29/25**, E2E **14/14**; CI `44410994788` e ARM64 `44410995020` em `fa236af` PASS; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b1a1eaf` (PR #61); issue #30 fechada. Extensões OPS das WOs 015–021 permanecem obrigações posteriores. Sem deploy de worker/VPS.
 **Base:** `main` `7d15076` (checkpoint WO-012 promovido).
 **Escopo:** WO-013 (#30) — núcleo operacional (quotas, limites de worker, saúde, backup/restore, retenção dry-run). As extensões OPS-2026-11-12 ligadas às WOs 015–021 ficam registradas como obrigações posteriores, sem infraestrutura duplicada.
 
@@ -78,4 +78,4 @@ A primeira auditoria independente retornou **CORRECTION REQUIRED** (F1–F11). A
 
 ## Gate
 
-CI hosted, PgTAP, Evidence Bundle, Checkpoint Delta PROPOSED, auditoria independente e autorização do owner antes de merge/promoção. **Sem merge/deploy.**
+CI hosted, PgTAP, Evidence Bundle, auditoria independente **APPROVED WITH RESIDUALS** e autorização do owner (“continue de onde parou”, 2026-11-18) atendidos; PR #61 squash-merged em `b1a1eaf`; issue #30 fechada; checkpoint **PROMOTED** para o núcleo. As extensões OPS das WOs 015–021 continuam pendentes e serão auditadas após essas WOs. WO-015 (#32) é a próxima feature.
