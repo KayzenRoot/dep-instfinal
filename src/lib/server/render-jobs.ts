@@ -19,6 +19,8 @@ export interface RenderJob {
 	plan_id: string;
 	plan_version: number;
 	narration_take_id: string | null;
+	output_profile: '1080p' | '720p';
+	quality: 'standard' | 'high';
 	status: 'QUEUED' | 'CLAIMED' | 'RUNNING' | 'READY' | 'FAILED' | 'CANCELED';
 	priority: number;
 	attempts: number;
@@ -72,6 +74,8 @@ export async function enqueueRenderJob(input: {
 	episodeId: string;
 	idempotencyKey?: string;
 	priority?: number;
+	outputProfile?: '1080p' | '720p';
+	quality?: 'standard' | 'high';
 }): Promise<{ jobId: string }> {
 	if (!input.adminDb)
 		throw new RenderJobError(
@@ -99,6 +103,8 @@ export async function enqueueRenderJob(input: {
 		p_idempotency_key: idempotencyKey,
 		p_priority: input.priority ?? 50,
 		p_narration_take_id: narrationTakeId,
+		p_output_profile: input.outputProfile ?? '1080p',
+		p_quality: input.quality ?? 'standard',
 	});
 	if (error) throw mapRpcError(error);
 	if (typeof data !== 'string')
@@ -114,7 +120,7 @@ export async function listRenderJobs(input: {
 	const { data, error } = await input.db
 		.from('render_jobs')
 		.select(
-			'id,owner_id,episode_id,plan_id,plan_version,narration_take_id,status,priority,attempts,max_attempts,error_code,output_manifest,created_at,started_at,finished_at',
+			'id,owner_id,episode_id,plan_id,plan_version,narration_take_id,output_profile,quality,status,priority,attempts,max_attempts,error_code,output_manifest,created_at,started_at,finished_at',
 		)
 		.eq('owner_id', input.owner.id)
 		.eq('episode_id', input.episodeId)
@@ -133,7 +139,7 @@ export async function getRenderJob(input: {
 	const { data, error } = await input.db
 		.from('render_jobs')
 		.select(
-			'id,owner_id,episode_id,plan_id,plan_version,narration_take_id,status,priority,attempts,max_attempts,error_code,output_manifest,created_at,started_at,finished_at',
+			'id,owner_id,episode_id,plan_id,plan_version,narration_take_id,output_profile,quality,status,priority,attempts,max_attempts,error_code,output_manifest,created_at,started_at,finished_at',
 		)
 		.eq('owner_id', input.owner.id)
 		.eq('id', input.jobId)

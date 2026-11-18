@@ -54,6 +54,10 @@ const audioMigration = await readFile(
 	'supabase/migrations/20261114130000_v2_wo009_audio.sql',
 	'utf8',
 );
+const qualityMigration = await readFile(
+	'supabase/migrations/20261118150000_v2_wo012_quality_reports.sql',
+	'utf8',
+);
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
 const mediaUpload = await readFile('src/routes/api/media/upload/+server.ts', 'utf8');
@@ -86,9 +90,10 @@ const tables = [
 	...narrationMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...captionMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...audioMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...qualityMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['24 owner-scoped public tables', tables.length === 24],
+	['25 owner-scoped public tables', tables.length === 25],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -301,6 +306,22 @@ const checks = [
 			) &&
 			audioMigration.includes('audio_verified_license_requires_rights') &&
 			audioMigration.includes('license_status in'),
+	],
+	[
+		'quality reports are owner-read, immutable and acknowledgement-gated',
+		qualityMigration.includes('render_quality_reports') &&
+			qualityMigration.includes('force row level security') &&
+			qualityMigration.includes('revoke all on table public.render_quality_reports') &&
+			qualityMigration.includes(
+				'grant select, insert, update, delete on table public.render_quality_reports to service_role',
+			) &&
+			qualityMigration.includes('guard_quality_report_mutation') &&
+			qualityMigration.includes('quality_report_findings_are_immutable') &&
+			qualityMigration.includes('acknowledge_render_quality_report') &&
+			qualityMigration.includes('blocked_quality_report_cannot_be_acknowledged') &&
+			qualityMigration.includes('output_profile in') &&
+			qualityMigration.includes('quality in') &&
+			qualityMigration.includes("p_error_code like 'QA_%'"),
 	],
 	[
 		'video storage is private, multipart and short-lived signed',
