@@ -645,19 +645,20 @@ export function buildCaptionAss(track: CaptionTrack, layout?: CaptionLayout): st
 		'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
 	];
 	for (const cue of track.cues) {
-		const box = layout ? (cue.role === 'CTA' ? layout.ctaBox : layout.captionBox) : null;
+		let box: PreviewBox | null = null;
+		if (layout) box = cue.role === 'CTA' ? layout.ctaBox : layout.captionBox;
 		const cueLines = cue.text
 			.split('\n')
 			.flatMap((line) => wrapCueLine(line, box ? Math.max(320, box.width - 20) : undefined));
 		let text = cueLines.map(escapeAssLine).join('\\N');
+		const position = box
+			? String.raw`\an5\pos(${Math.round(box.x + box.width / 2)},${Math.round(box.y + box.height / 2)})`
+			: '';
 		if (track.style === 'highlight') {
 			const [first, ...rest] = text.split('\\N');
-			const position = box
-				? `\\an5\\pos(${Math.round(box.x + box.width / 2)},${Math.round(box.y + box.height / 2)})`
-				: '';
-			text = `{${position}\\c&H0000FFFF&\\b1}${first}{\\r}${rest.length ? `\\N${rest.join('\\N')}` : ''}`;
-		} else if (box) {
-			text = `{\\an5\\pos(${Math.round(box.x + box.width / 2)},${Math.round(box.y + box.height / 2)})}${text}`;
+			text = `{${position}${String.raw`\c&H0000FFFF&\b1`}}${first}{\\r}${rest.length ? `\\N${rest.join('\\N')}` : ''}`;
+		} else if (position) {
+			text = `{${position}}${text}`;
 		}
 		lines.push(`Dialogue: 0,${assTime(cue.startMs)},${assTime(cue.endMs)},Default,,0,0,0,,${text}`);
 	}

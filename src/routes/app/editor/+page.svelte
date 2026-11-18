@@ -7,7 +7,7 @@
 		PlatformProfileId,
 		PreviewBox,
 	} from '#lib/schemas/platform-preview.js';
-	import { reorderClips, retimeClips, trimClip } from '#lib/domain/video-edit-plan.js';
+	import { moveClips, setClipTransition, trimClips } from '#lib/domain/video-edit-plan.js';
 	import {
 		detectPreviewCollisions,
 		PLATFORM_PREVIEW_PROFILES,
@@ -73,7 +73,14 @@
 			: null,
 	);
 	const expectedVersion = $derived(data.storedPlan?.currentVersion ?? 0);
-	const canSave = $derived(Boolean(planForSave) && collisions.length === 0);
+	const canSave = $derived(
+		Boolean(planForSave) &&
+			collisions.length === 0 &&
+			layout.captionBox.width >= 600 &&
+			layout.captionBox.height >= 140 &&
+			layout.ctaBox.width >= 500 &&
+			layout.ctaBox.height >= 120,
+	);
 	const currentCue = $derived.by(() => {
 		const cues = data.captions?.track.cues ?? [];
 		return cues.find((cue) => playheadMs >= cue.startMs && playheadMs < cue.endMs) ?? null;
@@ -97,29 +104,27 @@
 		const value = Number(raw);
 		if (!Number.isFinite(value)) return;
 		const current = preview[kind] ?? layout[kind];
-		const box: PreviewBox = { ...current, [field]: Math.max(0, Math.round(value)) };
-		if (box.x + box.width > 1_080) box.width = 1_080 - box.x;
-		if (box.y + box.height > 1_920) box.height = 1_920 - box.y;
+		const minimumWidth = kind === 'captionBox' ? 600 : 500;
+		const minimumHeight = kind === 'captionBox' ? 140 : 120;
+		const box: PreviewBox = {
+			...current,
+			[field]: Math.max(0, Math.round(value)),
+		};
+		if (field === 'x') box.x = Math.min(box.x, 1_080 - minimumWidth);
+		if (field === 'y') box.y = Math.min(box.y, 1_920 - minimumHeight);
+		if (field === 'width') box.width = Math.max(minimumWidth, Math.min(1_080 - box.x, box.width));
+		if (field === 'height')
+			box.height = Math.max(minimumHeight, Math.min(1_920 - box.y, box.height));
+		if (box.x + box.width > 1_080) box.width = Math.max(minimumWidth, 1_080 - box.x);
+		if (box.y + box.height > 1_920) box.height = Math.max(minimumHeight, 1_920 - box.y);
 		preview = { ...preview, [kind]: box };
-	}
-
-	function apply(next: EditPlanClip[]) {
-		try {
-			clips = retimeClips(next);
-			editError = null;
-		} catch (cause) {
-			editError = cause instanceof Error ? cause.message : 'Timeline inválida.';
-		}
 	}
 
 	function move(index: number, delta: number) {
 		const target = index + delta;
 		if (target < 0 || target >= clips.length) return;
 		try {
-			const ordered = reorderClips(clips, index, target).map((clip, position) =>
-				position === 0 ? { ...clip, transition: 'cut' as const, transitionMs: 0 } : clip,
-			);
-			clips = retimeClips(ordered);
+			clips = moveClips(clips, index, target);
 			selectedClipIndex = target;
 			editError = null;
 		} catch (cause) {
@@ -134,35 +139,20 @@
 		const sourceInMs = field === 'sourceInMs' ? value : clip.sourceInMs;
 		const sourceOutMs = field === 'sourceOutMs' ? value : clip.sourceOutMs;
 		try {
-			apply(
-				clips.map((entry, position) =>
-					position === index ? trimClip(entry, sourceInMs, sourceOutMs) : entry,
-				),
-			);
+			clips = trimClips(clips, index, sourceInMs, sourceOutMs);
+			editError = null;
 		} catch (cause) {
 			editError = cause instanceof Error ? cause.message : 'Trim inválido.';
 		}
 	}
 
 	function updateTransition(index: number, value: string) {
-		const transition = value === 'crossfade' ? 'crossfade' : 'cut';
-		apply(
-			clips.map((clip, position) =>
-				position === index
-					? {
-							...clip,
-							transition,
-							transitionMs:
-								transition === 'cut'
-									? 0
-									: Math.max(
-											1,
-											Math.min(500, Math.floor((clip.sourceOutMs - clip.sourceInMs) / 4)),
-										),
-						}
-					: clip,
-			),
-		);
+		try {
+			clips = setClipTransition(clips, index, value === 'crossfade' ? 'crossfade' : 'cut');
+			editError = null;
+		} catch (cause) {
+			editError = cause instanceof Error ? cause.message : 'Transição inválida.';
+		}
 	}
 
 	function updatePlayhead(event: Event) {

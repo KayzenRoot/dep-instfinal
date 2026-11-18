@@ -151,6 +151,45 @@ export function trimClip(
 	return { ...clip, sourceInMs, sourceOutMs };
 }
 
+/** Reorders clips, forces a clean cut at position 0 and retimes the whole track. */
+export function moveClips(clips: EditPlanClip[], from: number, to: number): EditPlanClip[] {
+	const ordered = reorderClips(clips, from, to).map((clip, position) =>
+		position === 0 ? { ...clip, transition: 'cut' as const, transitionMs: 0 } : clip,
+	);
+	return retimeClips(ordered);
+}
+
+/** Applies a trim to one clip and retimes the whole track. */
+export function trimClips(
+	clips: EditPlanClip[],
+	index: number,
+	sourceInMs: number,
+	sourceOutMs: number,
+): EditPlanClip[] {
+	const trimmed = clips.map((clip, position) =>
+		position === index ? trimClip(clip, sourceInMs, sourceOutMs) : clip,
+	);
+	return retimeClips(trimmed);
+}
+
+/** Applies a cut/crossfade transition to one clip and retimes the whole track. */
+export function setClipTransition(
+	clips: EditPlanClip[],
+	index: number,
+	transition: 'cut' | 'crossfade',
+): EditPlanClip[] {
+	const next = clips.map((clip, position) => {
+		if (position !== index) return clip;
+		const duration = clip.sourceOutMs - clip.sourceInMs;
+		return {
+			...clip,
+			transition,
+			transitionMs: transition === 'cut' ? 0 : Math.max(1, Math.min(500, Math.floor(duration / 4))),
+		};
+	});
+	return retimeClips(next);
+}
+
 export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext): VideoEditPlan {
 	if (plan.episodeId !== context.episodeId)
 		throw new EditPlanError('EDIT_PLAN_EPISODE_MISMATCH', 'O plano pertence a outro episódio.');
