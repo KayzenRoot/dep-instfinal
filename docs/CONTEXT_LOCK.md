@@ -217,8 +217,8 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Scope:** editor visual owner-only com prévia do clipe, safe zones TikTok/Reels/clean versionadas, caixas de legenda/CTA no plano, colisão com severidade, ASS posicionado por papel, quatro correções persistidas e checagem responsiva 360/768/1440. Sem segundo editor, sem drag obrigatório, sem API social.
 - **Delivered locally:** `PlatformPreviewProfile` + `EditPlanPreview` validados no save/render; `caption-metrics` compartilhado; `/app/editor`; worker/exportação ASS usam o layout do plano; overlay é DOM e não entra no MP4; correção responsiva global de selects em `e1599fb`.
 - **Tests:** unit **194 + 3 skipped**; typecheck 0/0; lint PASS; burn-in FFmpeg 2/2; E2E CI **13/13** em 4,9 min; responsivo local 360/768/1440 com `/app/video` e `/app/timeline`; CI hosted `44334200966` em `7c1925c` PASS (baseline, PgTAP, E2E, Sonar/Socket/Vercel).
-- **Audit rounds:** rodada 1 CORRECTION REQUIRED (H1 bypass/H2 texto), rodada 2 CORRECTION REQUIRED (H3 legado 880→810 e M1–M4); correções aplicadas em `e1599fb`/`7c1925c`; reauditoria pendente.
-- **Gate:** reauditoria independente e autorização do owner; checkpoint **PROPOSED**; sem merge/deploy. WO-012 (#29) depende deste gate.
+- **Audit rounds:** rodada 1 CORRECTION REQUIRED (H1 bypass/H2 texto), rodada 2 CORRECTION REQUIRED (H3 legado 880→810 e M1–M4); correções aplicadas em `e1599fb`/`7c1925c`; reauditoria **APPROVED WITH RESIDUALS**.
+- **Gate:** atendido; owner autorizou continuação em 2026-11-18 (“continue de onde parou”); PR #59 squash-merged em `d4a6a80`; issue #28 fechada; checkpoint **PROMOTED**. WO-012 (#29) é a próxima.
 
 ### Fingerprints no base `95e5d16`
 

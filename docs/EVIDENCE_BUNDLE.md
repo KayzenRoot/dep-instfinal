@@ -1,25 +1,26 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-011 — Editor visual, preview e safe zones (2026-11-18) — PROPOSED
+## V2 WO-011 — Editor visual, preview e safe zones (2026-11-18) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-011` · issue #28 · epic #17 · addendum ENH-07
-- **Base:** `main` `95e5d16`; branch `feat/dif-v2-wo-011`
-- **Status:** implementação completa, primeira auditoria corrigida e segunda rodada (H3 + M1–M4) aplicada; platform/captions/plan tests, burn-in FFmpeg, typecheck, lint e CI hosted `44334200966` em `7c1925c` **PASS** (unit 194+3, E2E 13/13); reauditoria independente e aceitação humana **PENDENTES**. Checkpoint **PROPOSED**; sem merge/deploy.
+- **Base:** `main` `95e5d16`; branch `feat/dif-v2-wo-011`; merge `d4a6a80`
+- **Status:** **PROMOTED**; correções das auditorias 1 e 2 aplicadas; CI hosted `44336803686` em `e29afb9` **PASS** (unit 194+3, E2E 13/13 em 4,9 min); reauditoria independente **APPROVED WITH RESIDUALS**; owner autorizou continuação em 2026-11-18 (“continue de onde parou”); squash-merged em `d4a6a80` (PR #59); issue #28 fechada.
 
-| Check      | Result     | Evidence                                                                                                |
-| ---------- | ---------- | ------------------------------------------------------------------------------------------------------- |
-| Profiles   | PASS local | TikTok/Reels/clean versionados, áreas/UI simuladas, disclaimers e defaults sem colisão                  |
-| Layout     | PASS local | caixas canônicas no plano, limites, overlap e colisão com UI; save bloqueado em HIGH                    |
-| Legacy     | PASS       | plano sem `preview` mantém ASS histórico de 880 px; manifesto registra `layoutSource: 'legacy'`         |
-| ASS/render | PASS local | CAPTION/CTA recebem `\an5\pos`; burn-in real mede a caixa de legenda no frame                           |
-| Editor UI  | PASS local | preview, overlay, quatro correções, mapa de faixas, waveform opt-in, fila e trim com seek               |
-| E2E        | PASS       | CI E2E 13/13 em 4,9 min; responsivo local 360/768/1440 inclui editor, director, video e timeline        |
-| Responsivo | PASS       | overflow de selects em 360px corrigido em `e1599fb`; rotas `/app/video` e `/app/timeline` incluídas     |
-| Unit       | PASS       | 194 passed + 3 skipped, incluindo integrações FFmpeg reais                                              |
-| Type/lint  | PASS local | `svelte-check` 0/0, eslint 0 warnings                                                                   |
-| CI         | PASS       | run `44334200966` em `7c1925c`: baseline, PgTAP, E2E 13/13, Sonar, Socket e Vercel                      |
-| Auditoria  | CORRIGIDA  | rodada 1 CORRECTION REQUIRED (H1/H2), rodada 2 CORRECTION REQUIRED (H3/M1–M4); correções aplicadas      |
-| Limites    | —          | preview é clipe selecionado; crop capa/feed, undo ilimitado e render composto na prévia ficam residuais |
+| Check      | Result       | Evidence                                                                                                       |
+| ---------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
+| Profiles   | PASS local   | TikTok/Reels/clean versionados, áreas/UI simuladas, disclaimers e defaults sem colisão                         |
+| Layout     | PASS local   | caixas canônicas no plano, limites, overlap e colisão com UI; save bloqueado em HIGH                           |
+| Legacy     | PASS         | plano sem `preview` mantém ASS histórico de 880 px; manifesto registra `layoutSource: 'legacy'`                |
+| ASS/render | PASS local   | CAPTION/CTA recebem `\an5\pos`; burn-in real mede a caixa de legenda no frame                                  |
+| Editor UI  | PASS local   | preview, overlay, quatro correções, mapa de faixas, waveform opt-in, fila e trim com seek                      |
+| E2E        | PASS         | CI E2E 13/13 em 4,9 min; responsivo local 360/768/1440 inclui editor, director, video e timeline               |
+| Responsivo | PASS         | overflow de selects em 360px corrigido em `e1599fb`; rotas `/app/video` e `/app/timeline` incluídas            |
+| Unit       | PASS         | 194 passed + 3 skipped, incluindo integrações FFmpeg reais                                                     |
+| Type/lint  | PASS local   | `svelte-check` 0/0, eslint 0 warnings                                                                          |
+| CI         | PASS         | run `44336803686` em `e29afb9`: baseline, PgTAP, E2E 13/13, Sonar, Socket e Vercel                             |
+| Auditoria  | PASS c/ res. | rodadas 1 e 2 CORRECTION REQUIRED (H1–H3/M1–M5), correções aplicadas; reauditoria APPROVED WITH RESIDUALS      |
+| Residuais  | LOW          | reaprovação de captions em plano legado, scrub/overshoot do preview, fit só da cue no playhead, teste M1/M2/M4 |
+| Limites    | —            | preview é clipe selecionado; crop capa/feed, undo ilimitado e render composto na prévia ficam residuais        |
 
 ## V2 WO-010 — Diretor de edição e curva de tensão (2026-11-17) — PROMOTED
 

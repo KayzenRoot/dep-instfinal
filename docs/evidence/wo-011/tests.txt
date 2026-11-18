@@ -1,6 +1,9 @@
 # WO-011 — local evidence
 
 Date: 2026-11-18 (America/Sao_Paulo)
+Final CI: run 44336803686 at e29afb9 (success)
+Audit: two CORRECTION REQUIRED rounds, then APPROVED WITH RESIDUALS
+Merge: d4a6a80 (PR #59)
 
 ## Static
 

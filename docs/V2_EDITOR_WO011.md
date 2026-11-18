@@ -1,6 +1,6 @@
 # DIF-V2-WO-011 — Editor visual, preview e safe zones
 
-**Status:** implementação completa, primeira auditoria corrigida e segunda rodada de correções (H3 + M1–M4) aplicada em `feat/dif-v2-wo-011`; testes focados, typecheck, lint, E2E local, burn-in FFmpeg e CI hosted **PASS** (`44334200966` em `7c1925c`, unit 194+3, E2E 13/13); reauditoria independente e aceitação humana **PENDENTES**. **Não merged**, **sem deploy de produção**, checkpoint apenas **PROPOSED**.
+**Status:** **PROMOTED**; implementação completa, correções das auditorias 1 e 2 aplicadas, CI hosted `44336803686` em `e29afb9` **PASS** (unit 194+3, E2E 13/13) e reauditoria independente **APPROVED WITH RESIDUALS**; squash-merged em `d4a6a80` (PR #59); issue #28 fechada. Sem deploy de worker/VPS; o Vercel segue `main`.
 **Base:** `main` `95e5d16` (checkpoint WO-010 promovido).
 **Escopo:** WO-011 (#28) + addendum ENH-07 (prévia de safe zones TikTok/Reels), dependente de WO-003–WO-010.
 
@@ -91,4 +91,11 @@ A segunda auditoria independente (HEAD de código `e1599fb`) retornou **CORRECTI
 
 ## Gate
 
-Unit/PgTAP/E2E/CI, Evidence Bundle, Checkpoint Delta PROPOSED, auditoria independente e autorização do owner antes de merge/promoção. **Sem merge/deploy.**
+CI hosted, Evidence Bundle, Checkpoint Delta, auditoria independente **APPROVED WITH RESIDUALS** e autorização do owner (“continue de onde parou”, 2026-11-18) atendidos; PR #59 squash-merged em `d4a6a80`; issue #28 fechada; checkpoint **PROMOTED**. WO-012 (#29) é a próxima.
+
+### Residuais aceitos
+
+- Re-salvar/reaprovar legendas em plano legado sem `preview` ainda valida a caixa default de 810 px e pode falhar; render/exportação usam o ASS histórico de 880 px. Workaround: salvar o plano com safe zones antes de reaprovar.
+- Scrub nativo do preview para antes de `sourceInMs` não é clampado; a parada em `sourceOutMs` pode ter overshoot de até ~250 ms.
+- `fitIssues` valida apenas a cue no playhead; cues fora dele falham fechado na aprovação/render.
+- Sem regressão automatizada dedicada para M1/M2/M4 e para `cta: false` isolado.
