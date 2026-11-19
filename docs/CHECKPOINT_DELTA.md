@@ -1,12 +1,20 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-017 — Continuidade visual e Character Identity Kit (2026-11-19) — PROPOSED
+## DIF-V2-WO-017 — Continuidade visual e Character Identity Kit (2026-11-19) — PROMOTED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 183/183, policy 31/29, CI `44580197679` PASS em `6c421f2`; auditoria final **APPROVED WITH RESIDUALS**; correções finais em `6c421f2` com CI final em validação. Sem merge/deploy.
+- **Status:** **PROMOTED**; PgTAP 183/183, policy 31/29, CI `44580197679` PASS em `6c421f2` (269+3, E2E 15/15); auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `ddaf0d2` (PR #64); issue #34 fechada.
 - **Base:** `main` `174e045` (checkpoint WO-016 promovido); branch `feat/dif-v2-wo-017`.
 - **Delivered:** perfis de identidade versionados por personagem existente; looks por episódio; referências owner-only; anchors/checklists/prompts Flow determinísticos; inspetor pós-Flow com frames privados, observações e decisões append-only; export JSON/Markdown e arquivos no ZIP Flow; gate apenas para BLOCKING explícito; quotas/retenção service-only; validação de schema antes do hash.
 - **Limits:** sem extração de frame do meio do vídeo; matching textual conservador; pixel stats não semânticos; sem integração WO-024; relatório sob demanda; export DRAFT com warning; frescor é warning.
-- **Gate:** CI final + auditoria **APPROVED WITH RESIDUALS** + autorização contínua do owner; WO-018 (#35) é a próxima.
+- **Gate:** atendido; WO-018 (#35) é a próxima. Sem deploy de worker/VPS.
+
+## V2 checkpoint promotion — WO-017 (2026-11-19)
+
+- **Owner decision:** “continue de onde parou” registrado como continuidade/autorização; PR #64 squash-merged em `ddaf0d2`; issue #34 fechada.
+- **Audit:** três rodadas independentes; C1 (hash com stats), H1 (limites), look aberto e merge amplo corrigidos; veredito final **APPROVED WITH RESIDUALS**.
+- **Evidence:** unit 269+3, PgTAP 183/183, policy 31/29, E2E 15/15, Sonar PASS; CI `44580197679`; migrations 130000/131000/132000.
+- **Residuals:** sem extração de frame do vídeo; matching textual; quotas/retenção service-only sem UI; frescor parcial; GUC de poda restrito ao service_role; revisões/perfis legados fora dos limites exigem remediação administrativa; export standalone DRAFT sem warning separado.
+- **Next:** WO-018 (#35) Capas, posters e cards; WO-014 release remains blocked by 018–021 and OPS extensions.
 
 ## DIF-V2-WO-016 — Color Match e presets de terror (2026-11-19) — PROMOTED
 

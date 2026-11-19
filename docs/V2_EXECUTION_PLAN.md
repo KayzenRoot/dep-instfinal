@@ -2,8 +2,8 @@
 
 - **Work Order:** `DIF-V2-WO-001` · issue #18
 - **Epic:** #17 · issues #18–#45
-- **Base atual:** `main` `174e045` (checkpoint WO-016 promovido); WO-017 em execução; plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
-- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged** (`239f3ba`); WO-007 **APPROVED/merged** (`326c576`); WO-008 **APPROVED/merged** (`a633c3a`); WO-009 **APPROVED/merged** (`0b60321`); WO-010 **APPROVED/merged** (`1824061`); WO-011 **APPROVED WITH RESIDUALS/merged** (`d4a6a80`); WO-012 **APPROVED WITH RESIDUALS/merged** (`3edec2b`); WO-013 **APPROVED WITH RESIDUALS/merged (núcleo)** (`b1a1eaf`); WO-015 **APPROVED WITH RESIDUALS/merged** (`7c2ac4b`); WO-016 **APPROVED WITH RESIDUALS/merged** (`25089c3`); WO-017 em execução.
+- **Base atual:** `main` `ddaf0d2` (checkpoint WO-017 promovido); WO-018 é a próxima; plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
+- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged** (`239f3ba`); WO-007 **APPROVED/merged** (`326c576`); WO-008 **APPROVED/merged** (`a633c3a`); WO-009 **APPROVED/merged** (`0b60321`); WO-010 **APPROVED/merged** (`1824061`); WO-011 **APPROVED WITH RESIDUALS/merged** (`d4a6a80`); WO-012 **APPROVED WITH RESIDUALS/merged** (`3edec2b`); WO-013 **APPROVED WITH RESIDUALS/merged (núcleo)** (`b1a1eaf`); WO-015 **APPROVED WITH RESIDUALS/merged** (`7c2ac4b`); WO-016 **APPROVED WITH RESIDUALS/merged** (`25089c3`); WO-017 **APPROVED WITH RESIDUALS/merged** (`ddaf0d2`).
 - **Fonte viva:** os corpos atuais das issues #18–#45 prevalecem sobre este plano.
 
 ## Inventário — 28 WOs e 20 melhorias
@@ -26,7 +26,7 @@
 | WO-014 | #31   | Release V2: regressão, auditoria, deploy                | ELEVATED | WO-001–013 e WO-015–021; terminal                                 | PLANNED                                                |
 | WO-015 | #32   | Hook Lab: 3 aberturas A/B/C                             | STANDARD | WO-004; WO-010; WO-011; WO-012                                    | IN PROGRESS                                            |
 | WO-016 | #33   | Color Match e presets de terror                         | STANDARD | WO-002; WO-003; WO-006; WO-011; WO-012                            | APPROVED WITH RESIDUALS / MERGED                       |
-| WO-017 | #34   | Continuidade visual + Character Identity Kit            | ELEVATED | WO-003; WO-004; WO-011; WO-016 (quando disponível)                | IN PROGRESS                                            |
+| WO-017 | #34   | Continuidade visual + Character Identity Kit            | ELEVATED | WO-003; WO-004; WO-011; WO-016 (quando disponível)                | APPROVED WITH RESIDUALS / MERGED                       |
 | WO-018 | #35   | Capas, posters e cards                                  | STANDARD | WO-003; WO-004; WO-011; WO-012; WO-016                            | PLANNED                                                |
 | WO-019 | #36   | Finais A/B cinematográficos e CTA canônica              | STANDARD | WO-004; WO-010; WO-012 (proposta); V1 canon/choices               | PLANNED                                                |
 | WO-020 | #37   | Laboratório de retenção, métricas manuais               | STANDARD | WO-012; WO-015; WO-018; WO-019; WO-001; métricas V1 manuais       | PLANNED                                                |
