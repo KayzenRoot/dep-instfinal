@@ -46,7 +46,7 @@ test('owner generates, approves and downloads private covers', async ({ page, re
 	await page.getByRole('link', { name: 'Capas' }).click();
 	await expect(page).toHaveURL(/\/app\/covers/);
 	await page.locator('select[name="episodeId"]').selectOption(episodeId);
-	await expect(page).toHaveURL(new RegExp(`episodeId=${episodeId}`));
+	await expect(page.locator('select[name="episodeId"]')).toHaveValue(episodeId);
 	await expect(page.getByRole('heading', { name: 'Capas do episódio' })).toBeVisible();
 	await page.locator('input[name="title"]').fill(`A fita de ${suffix}`);
 	await page.locator('select[name="format"]').selectOption('4:5');
