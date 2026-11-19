@@ -1,44 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readZipTextEntry } from './zip.js';
 
-const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const anonKey = process.env.PUBLIC_SUPABASE_ANON_KEY;
-const ownerId = process.env.SUPABASE_OWNER_USER_ID;
-
-async function insertRow(
-	request: import('@playwright/test').APIRequestContext,
-	token: string,
-	table: string,
-	row: Record<string, unknown>,
-) {
-	if (!supabaseUrl || !serviceKey) throw new Error('missing local Supabase env');
-	const response = await request.post(`${supabaseUrl}/rest/v1/${table}`, {
-		headers: {
-			apikey: anonKey ?? serviceKey,
-			Authorization: `Bearer ${token}`,
-			'content-type': 'application/json',
-			Prefer: 'return=representation',
-		},
-		data: row,
-	});
-	expect(response.ok(), `${table}: ${await response.text()}`).toBeTruthy();
-}
-
-async function ownerAccessToken(
-	request: import('@playwright/test').APIRequestContext,
-): Promise<string> {
-	if (!supabaseUrl || !anonKey) throw new Error('missing local Supabase anon env');
-	const response = await request.post(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-		headers: { apikey: anonKey, 'content-type': 'application/json' },
-		data: {
-			email: process.env.E2E_OWNER_EMAIL,
-			password: process.env.E2E_OWNER_PASSWORD,
-		},
-	});
-	expect(response.ok(), await response.text()).toBeTruthy();
-	return ((await response.json()) as { access_token: string }).access_token;
-}
+import { insertRow, ownerAccessToken, ownerId, serviceKey, supabaseUrl } from './supabase.js';
 
 test('owner builds an identity kit and reviews visual continuity', async ({ page, request }) => {
 	test.setTimeout(600_000);
