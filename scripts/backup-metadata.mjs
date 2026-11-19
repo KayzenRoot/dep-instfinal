@@ -135,7 +135,7 @@ const artifacts = jobs
 		};
 	})
 	.filter(Boolean);
-const reports = await fetchAll('render_quality_reports', 'job_id,artifact_sha256,status');
+const reports = await fetchAll('render_quality_reports', 'id,job_id,artifact_sha256,status');
 
 const summary = {
 	schemaVersion: 1,

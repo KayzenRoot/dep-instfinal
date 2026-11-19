@@ -220,9 +220,7 @@ export function buildSceneIdentityPrompts(
 			}
 			const anchor = buildIdentityAnchor(character.profile, character.name, episodeNumber);
 			anchors.push(anchor);
-			checklist.push(
-				...buildContinuityChecklist(character.profile, character.name, episodeNumber),
-			);
+			checklist.push(...buildContinuityChecklist(character.profile, character.name, episodeNumber));
 			characterIds.push(character.characterId);
 			characterNames.push(character.name);
 		}
