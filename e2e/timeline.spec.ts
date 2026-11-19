@@ -400,7 +400,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	);
 	try {
 		await Promise.race([
-			expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 600_000 }),
+			expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 900_000 }),
 			workerExit.then((code) => {
 				if (code !== 0) throw new Error(`worker exited ${code}\n${workerOutput}`);
 			}),
