@@ -286,6 +286,32 @@ describe('visual continuity report', () => {
 		}
 	});
 
+	it('does not carry a non-blocking decision when the profile changes the expectation', () => {
+		const scenes = [scene(2, { characterNotes: 'Lara entra. FIGURINO: vestido vermelho' })];
+		const original = buildVisualContinuityReport(input(scenes));
+		const accepted = applyContinuityDecision(original, {
+			observationId: original.observations[0]!.id,
+			status: 'ACCEPTED',
+			rationale: 'Aceito com o figurino antigo.',
+			action: 'NONE',
+		});
+		const regenerated = buildVisualContinuityReport({
+			...input(scenes),
+			characters: [
+				{
+					id: characterId,
+					name: 'Lara',
+					version: 4,
+					profile: profile('vestido azul'),
+				},
+			],
+			previous: accepted,
+		});
+		expect(regenerated.observations[0]?.id).toBe(accepted.observations[0]?.id);
+		expect(regenerated.observations[0]?.status).toBe('NEEDS_REVIEW');
+		expect(regenerated.status).toBe('NEEDS_REVIEW');
+	});
+
 	it('preserves an explicit blocking decision when the evidence text changes', () => {
 		const original = buildVisualContinuityReport(
 			input([scene(2, { characterNotes: 'Lara entra. FIGURINO: vestido vermelho' })]),

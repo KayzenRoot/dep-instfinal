@@ -46,7 +46,7 @@
 - **Decisão bloqueante:** merge por `sceneId/entityType/attribute/characterId` quando o id muda por edição da nota, evitando liberar o export por mudança textual.
 - **Referências:** ativos já vinculados são carregados além dos 80 recentes; indisponíveis aparecem com aviso e não são removidos silenciosamente. Servidor aceita apenas REFERENCE/FRAME READY; restore histórico não revalida bytes.
 - **Frescor:** export calcula `CONTINUITY_REPORT_STALE` quando a revisão do episódio ou `scenes.updated_at` é posterior ao relatório; é warning, não bloqueio.
-- **Retenção/quota:** 500 revisões por episódio/perfil e RPCs service-only para podar histórico mantendo as mais recentes; o trigger de imutabilidade só permite poda com setting interno.
+- **Retenção/quota:** 500 revisões por episódio/perfil e RPCs service-only para podar histórico mantendo as mais recentes; o trigger de imutabilidade só permite poda com um GUC de sessão restrito ao service_role.
 - **Orçamento de frames:** amostragem limitada por `CONTINUITY_SAMPLING_BUDGET_MS` (default 60 s) e timeout de 15 s por imagem.
 - **UX/evidência:** status vazio não vira ACCEPTED; export avisa `IDENTITY_PROFILES_DRAFT`/`CONTINUITY_VISUAL_EMPTY`; thumbnails lazy e links JSON/Markdown; testes de 240→200 observações, cap de 10 limitações, roundtrip e decisões após mudança de nota (só BLOCKING é transportado por chave; ACCEPTED/EXCEPTION/RESOLVED de evidência diferente voltam a NEEDS_REVIEW).
 
@@ -61,23 +61,23 @@
 
 ## Critérios de aceitação
 
-| Critério                                                                            | Estado       | Evidência                                                                   |
-| ----------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------- |
-| Figurino contraditório gera alerta rastreável e decisão do owner                    | PASS         | domain test nota vs perfil/look; E2E registra decisão e histórico           |
-| Quadros e notas lado a lado sem vazamento de mídia                                  | PASS parcial | UI e `/api/media` owner-only; apenas frames vinculados são amostrados       |
-| Iluminação aparece como sugestão não conclusiva e admite exceção                    | PASS         | regra `PIXEL_STATS` + teste de exceção intencional                          |
-| Nenhum alerta altera lore/cânone/vídeo; revisão versionada no relatório             | PASS         | tabela append-only, RLS, testes PgTAP, nenhuma escrita em cenas/cânone      |
-| Fluxo utilizável sem modelo multimodal pago                                         | PASS         | apenas metadados, pixels e revisão humana                                   |
-| 2 personagens e 4 cenas geram prompts distintos com anchor estável                  | PASS         | domain test com 2 perfis/4 cenas; anchor por episódio e look                |
-| Mudança de figurino autorizada não gera erro permanente                             | PASS         | look com intervalo; decisão `EXCEPTION`; restore DRAFT                      |
-| Owner edita/rejeita âncora e restaura versão sem alterar cânone                     | PASS         | override, DRAFT/APPROVED, restore append-only; E2E                          |
-| Export inclui nomes/aliases, referências owner-only e instruções sem URL permanente | PASS         | E2E JSON/ZIP verifica anchors/checklist/report                              |
-| Alertas pós-Flow têm evidência, admitem desconhecido e revisão humana               | PASS         | método/confiança observáveis, `NEEDS_REVIEW`, decisão com justificativa     |
-| Relatório persistido é sempre legível e com hash verificável                        | PASS         | schema com `frameCount`, stats arredondados, parse antes do save, roundtrip |
+| Critério                                                                            | Estado       | Evidência                                                                         |
+| ----------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------- |
+| Figurino contraditório gera alerta rastreável e decisão do owner                    | PASS         | domain test nota vs perfil/look; E2E registra decisão e histórico                 |
+| Quadros e notas lado a lado sem vazamento de mídia                                  | PASS parcial | UI e `/api/media` owner-only; apenas frames vinculados são amostrados             |
+| Iluminação aparece como sugestão não conclusiva e admite exceção                    | PASS         | regra `PIXEL_STATS` + teste de exceção intencional                                |
+| Nenhum alerta altera lore/cânone/vídeo; revisão versionada no relatório             | PASS         | tabela append-only, RLS, testes PgTAP, nenhuma escrita em cenas/cânone            |
+| Fluxo utilizável sem modelo multimodal pago                                         | PASS         | apenas metadados, pixels e revisão humana                                         |
+| 2 personagens e 4 cenas geram prompts distintos com anchor estável                  | PASS         | domain test com 2 perfis/4 cenas; anchor por episódio e look                      |
+| Mudança de figurino autorizada não gera erro permanente                             | PASS         | look com intervalo; decisão `EXCEPTION`; restore DRAFT                            |
+| Owner edita/rejeita âncora e restaura versão sem alterar cânone                     | PASS         | override, DRAFT/APPROVED, restore append-only; E2E                                |
+| Export inclui nomes/aliases, referências owner-only e instruções sem URL permanente | PASS         | E2E JSON/ZIP verifica anchors/checklist/report                                    |
+| Alertas pós-Flow têm evidência, admitem desconhecido e revisão humana               | PASS         | método/confiança observáveis, `NEEDS_REVIEW`, decisão com justificativa           |
+| Relatório persistido é legível e verificável em novas gravações                     | PASS         | schema com `frameCount`, stats arredondados, caps, parse antes do save, roundtrip |
 
 ## Testes planejados/executados
 
-- Unit: perfis/anchors/looks/aliases/UTF-8/homônimos/sem imagem, matching 2×4, composição de prompt; relatório com contradição, frame ausente, luz, locação/tempo, merge de decisões, bloqueio explícito, roundtrip de stats, limites 200/201 e Markdown sem URLs.
+- Unit: perfis/anchors/looks/aliases/UTF-8/homônimos/sem imagem, matching 2×4, composição de prompt; relatório com contradição, frame ausente, luz, locação/tempo, merge de decisões, bloqueio explícito, roundtrip de stats, cap 240→200, limite de 10 limitações e Markdown sem URLs.
 - Actions: parsing do perfil, referências/foto-chave, DRAFT/approve/restore, redirect 303 e mapeamento 409; gerar/decidir relatório, regeneração e erros.
 - PgTAP 183: RLS owner-read, escrita direta negada, isolamento de segundo owner, conflito de versão/revisão, histórico imutável, EXECUTE negado a authenticated, quota/retenção e relatório bloqueante.
 - E2E: perfil salvo/aprovado/restaurado, export JSON, relatório gerado, decisão BLOCKING bloqueia ZIP, RESOLVED libera ZIP e inclui identity/continuity no pacote.
@@ -97,7 +97,7 @@
 - Export ZIP inclui perfis DRAFT com warning; a UI explicita o status. O export standalone JSON/MD inclui o status, mas não um warning separado.
 - Relatórios antigos podem ser podados por RPC service-only; o latest preserva decisões. Uma revisão latest legada acima dos limites do schema (se existir) precisaria de remediação administrativa.
 - A poda usa um GUC de sessão permitido apenas ao service_role; a imutabilidade deixa de ser absoluta para esse role confiável.
-- O gate de frescor é warning, não bloqueio; um relatório desatualizado ainda libera o ZIP se não tiver BLOCKING. Revisão nula vs. atual e mudanças de perfil/bytes de mídia podem não ser sinalizadas.
+- O gate de frescor é warning, não bloqueio; um relatório desatualizado ainda libera o ZIP se não tiver BLOCKING. Revisão nula vs. atual agora é sinalizada; mudanças de perfil/look e bytes de mídia ainda podem não ser comparadas.
 - Quotas de 500 revisões retornam 409 com mensagem operacional, mas a poda não tem UI; é um runbook service-only.
 
 ## Gate

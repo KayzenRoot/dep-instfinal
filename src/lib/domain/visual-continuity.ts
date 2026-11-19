@@ -370,15 +370,19 @@ export function mergePreviousDecisions(
 		previous.observations.map((observation) => [keyFor(observation), observation] as const),
 	);
 	const observations = report.observations.map((observation) => {
-		const byId = decisions.get(observation.id);
-		const byKey = decisionsByKey.get(keyFor(observation));
-		const decision =
-			byId ??
-			(byKey &&
-			(byKey.status === 'BLOCKING' ||
-				(byKey.expected === observation.expected && byKey.observed === observation.observed))
-				? byKey
-				: undefined);
+		const sameEvidence = (candidate: ContinuityObservation) =>
+			candidate.expected === observation.expected && candidate.observed === observation.observed;
+		const byIdCandidate = decisions.get(observation.id);
+		const byId =
+			byIdCandidate && (byIdCandidate.status === 'BLOCKING' || sameEvidence(byIdCandidate))
+				? byIdCandidate
+				: undefined;
+		const byKeyCandidate = decisionsByKey.get(keyFor(observation));
+		const byKey =
+			byKeyCandidate && (byKeyCandidate.status === 'BLOCKING' || sameEvidence(byKeyCandidate))
+				? byKeyCandidate
+				: undefined;
+		const decision = byId ?? byKey;
 		if (!decision || (decision.status === 'NEEDS_REVIEW' && !decision.decisionNote))
 			return observation;
 		return {

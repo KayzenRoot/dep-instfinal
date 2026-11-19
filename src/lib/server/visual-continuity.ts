@@ -93,6 +93,12 @@ function mapRpcError(error: { code?: string; message?: string }): VisualContinui
 		);
 	if (error.code === '42501')
 		return new VisualContinuityError(403, 'CONTINUITY_FORBIDDEN', 'Acesso não autorizado.');
+	if (error.code === '23514' && error.message?.includes('continuity_revision_quota'))
+		return new VisualContinuityError(
+			409,
+			'CONTINUITY_REVISION_QUOTA',
+			'Limite de 500 revisões do relatório atingido. Um operador pode podar o histórico antigo.',
+		);
 	if (error.code === '23514')
 		return new VisualContinuityError(
 			400,
