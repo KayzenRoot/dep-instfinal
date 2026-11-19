@@ -1,6 +1,6 @@
 # DIF-V2-WO-017 — Continuidade visual e Character Identity Kit
 
-**Status:** implementação e correções finais em `feat/dif-v2-wo-017`; code/test `2cd9c9d` com CI PASS (266+3, PgTAP 183, E2E 15/15), correções finais `6c421f2` com CI em validação; auditoria **APPROVED WITH RESIDUALS**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** implementação e correções finais em `feat/dif-v2-wo-017`; code/test `6c421f2` com CI PASS (269+3, PgTAP 183, E2E 15/15), docs `9d21099`; auditoria **APPROVED WITH RESIDUALS**. Sem merge/deploy; checkpoint **PROPOSED**.
 **Base:** `main` `174e045` (checkpoint WO-016 promovido).
 **Escopo:** WO-017 (#34) + adendo ENH-16; depende de WO-001/003/004/011/016.
 

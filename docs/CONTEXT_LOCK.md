@@ -218,7 +218,7 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Delivered locally:** `character_identity_profiles` + versões imutáveis; `visual_continuity_reports`; RPCs service-only; `/app/identity` e `/app/continuity/visual`; export JSON/MD e ZIP; E2E 1/1; PgTAP 183/183; policy 31/29; quotas/retenção service-only.
 - **Correções durante a implementação:** look selecionado pelo número do episódio (não pelo índice da cena), redirects fora do catch, mocks de formulário e grants de backup.
 - **Correções de auditoria:** `frameCount`/rounding/parse antes do hash, caps de relatório, merge de BLOCKING por chave, referências preservadas, stale/DRAFT/empty warnings, quota/retenção e orçamento de amostragem.
-- **Gate:** CI PASS em `2cd9c9d` (quality `44573637241`), CI final em `6c421f2` pendente; auditoria **APPROVED WITH RESIDUALS**; checkpoint **PROPOSED**. WO-018 (#35) é a próxima.
+- **Gate:** CI PASS em `6c421f2` (quality `44580197679`); auditoria **APPROVED WITH RESIDUALS**; checkpoint **PROPOSED**. WO-018 (#35) é a próxima.
 
 ## V2 Context Lock — WO-016 (#33)
 
