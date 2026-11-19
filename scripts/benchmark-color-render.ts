@@ -11,6 +11,11 @@ const HEIGHT = 960;
 const ASSET_ID = '22222222-2222-4222-8222-222222222222';
 const CLIP_ID = '33333333-3333-4333-8333-333333333333';
 const SCENE_ID = '44444444-4444-4444-8444-444444444444';
+const ffmpegBinary =
+	process.env.FFMPEG_PATH ??
+	(process.platform === 'win32'
+		? join(process.env.LOCALAPPDATA ?? 'C:\\Windows', 'Microsoft', 'WinGet', 'Links', 'ffmpeg.exe')
+		: '/usr/bin/ffmpeg');
 
 function plan(color: ColorGrade | null) {
 	return {
@@ -62,7 +67,7 @@ const grade: ColorGrade = {
 
 const enabled = (() => {
 	try {
-		execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+		execFileSync(ffmpegBinary, ['-version'], { stdio: 'ignore' });
 		return true;
 	} catch {
 		return false;
@@ -78,7 +83,7 @@ const workspace = await mkdtemp(join(tmpdir(), 'dif-color-bench-'));
 try {
 	const source = join(workspace, 'source.mp4');
 	execFileSync(
-		'ffmpeg',
+		ffmpegBinary,
 		[
 			'-y',
 			'-hide_banner',
@@ -129,7 +134,7 @@ try {
 				argument === 'error' ? 'info' : argument,
 			);
 			const startedAt = process.hrtime.bigint();
-			const result = spawnSync('ffmpeg', args, {
+			const result = spawnSync(ffmpegBinary, args, {
 				encoding: 'utf8',
 				timeout: 600_000,
 				windowsHide: true,
