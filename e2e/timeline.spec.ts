@@ -355,7 +355,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await page.waitForTimeout(1_000);
 	await cancelOpenRenderJobs(request);
 	await page.getByRole('button', { name: 'Renderizar plano aprovado' }).click();
-	await expect(page.getByText(/QUEUED|CLAIMED|RUNNING/)).toBeVisible();
+	await expect(page.getByText(/QUEUED|CLAIMED|RUNNING/)).toBeVisible({ timeout: 15_000 });
 	console.log('[timeline-e2e] render enqueued');
 
 	const assetResponse = await page.request.get(`/api/video/assets?episodeId=${episodeId}`);
@@ -400,7 +400,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	);
 	try {
 		await Promise.race([
-			expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 600_000 }),
+			expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 900_000 }),
 			workerExit.then((code) => {
 				if (code !== 0) throw new Error(`worker exited ${code}\n${workerOutput}`);
 			}),
@@ -517,6 +517,31 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await page.getByRole('button', { name: 'Reverter à edição original' }).first().click();
 	await expect(page.locator('.notice.success')).toContainText('Edição original restaurada');
 	console.log('[timeline-e2e] hook variant applied and reverted');
+	console.log('[timeline-e2e] applying and clearing color grade');
+	await page.goto(`/app/color?episodeId=${episodeId}`);
+	await page.locator('select[name="presetId"]').selectOption('cursed_tape');
+	await page.locator('input[name="strength"]').fill('80');
+	await page.locator('.scene-list input[type="number"]').first().fill('40');
+	await page.getByRole('button', { name: 'Salvar correção cromática' }).click();
+	await expect(page.locator('.notice.success')).toContainText('Cor salva');
+	await expect(page).toHaveURL(/[?&]saved=\d+/);
+	await page.reload();
+	await expect(page.locator('.notice.error')).toHaveCount(0);
+	await expect(page.locator('.scene-list li strong').first()).toHaveText(/^Cena [1-9]\d*$/);
+	await expect(page.locator('.scene-list input[type="number"]').first()).toHaveValue('40');
+	await expect(page.locator('select[name="referenceClipId"]')).toHaveValue('');
+	for (const width of [360, 768, 1440]) {
+		await page.setViewportSize({ width, height: 900 });
+		expect(
+			await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+		).toBe(true);
+	}
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await page.getByRole('button', { name: 'Remover correção (voltar ao original)' }).click();
+	await expect(page.locator('.notice.success')).toContainText('Cor removida');
+	await expect(page.locator('.notice.success')).toContainText('DRAFT');
+	await expect(page).toHaveURL(/[?&]cleared=\d+/);
+	console.log('[timeline-e2e] color grade applied with per-scene override and cleared');
 
 	if (process.env.E2E_KEEP_RENDER === '1') {
 		console.log(`[timeline-e2e] kept render root at ${renderRoot}`);

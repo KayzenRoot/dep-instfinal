@@ -5,6 +5,9 @@ export default defineConfig({
 	fullyParallel: true,
 	forbidOnly: Boolean(process.env.CI),
 	retries: process.env.CI ? 1 : 0,
+	// Local Vite compiles the first server action on demand; a 5s default flakes
+	// on a cold dev server. Individual journeys still have their own bounds.
+	expect: { timeout: 15_000 },
 	// The video ingest and timeline journeys each saturate the disposable local
 	// PostgREST/R2 pipeline; serial execution avoids artificial pool timeouts.
 	workers: 1,

@@ -210,6 +210,28 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner authorized merge/promotion on 2026-11-14; PR #55 squash-merged at `326c576`; issue #24 closed; checkpoint **PROMOTED**. WO-008 (#25) is next.
 
+## V2 Context Lock — WO-016 (#33)
+
+- **Base revalidated:** `main` `d96ed00` (checkpoint WO-015 promoted). Branch: `feat/dif-v2-wo-016`.
+- **Issue inventory:** WO-001–015 **MERGED/CLOSED/PROMOTED**; WO-016/#33 em execução; WO-014 blocked by 016–021 + OPS.
+- **Scope:** presets de cor versionados, grade por plano com força/referência/overrides, filtro FFmpeg allowlisted e UI antes/depois. Sem GPU, IA ou alteração da fonte.
+- **Delivered locally:** `ColorGrade` no `VideoEditPlan`; 5 presets recalibrados para preservar sombras; filtro por id de clipe; `/app/color` com rótulo 1-based por `scene_index`; concorrência otimista (`expectedVersion`); redirect pós-save/clear; validação de overrides/ids; QA `COLOR_RANGE`; fixtures SDR; benchmark 720p/1080p; integração real FFmpeg; unit 241+3 (após correções).
+- **Correções pós-auditoria:** clipe certo no render, rótulo de cena 1-based, erros 400/404/409 reais, overrides inválidos com 400, clear sem versão vazia, referência nula preservada, erro de plano visível, `aria-label` por cena, refresh sem re-POST e prévia explicitando a camada VHS global.
+- **Gate:** CI PASS no code/test head `176ee68` (quality `44508653180`, Sonar, ARM64 `44508652844`); reauditoria final **APPROVED WITH RESIDUALS**; checkpoint **PROPOSED** até o merge. WO-017 (#34) é a próxima.
+
+### Fingerprints no base `d96ed00`
+
+| Fonte canônica                         | SHA-256                                                            |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| `docs/CHECKPOINT_DELTA.md`             | `bbf2e8059b81db86d4ace9d42d6154acd7c31aa7fba0d273fbc1af9ce813ed30` |
+| `docs/SOURCE_PACK.md`                  | `ccac8b33f2d83c578f2a0ca3549f03d0c791980acfbedd3f1b06c5ca2257dd1c` |
+| `docs/ADR_V2_002_STORAGE.md`           | `9e39af92e6ea71ad234900c6e7d5d9a2290cc32c393177ad45db9b472510966e` |
+| `docs/V2_EXECUTION_PLAN.md`            | `b8b82dfec455e84d7b9d4c8e4907f12430542e93a1dc5cd4b8edfd4cbaf4be2e` |
+| `docs/CONTEXT_LOCK.md`                 | `adfd825010f0665ff9c831a995f1c77bb374047449873457df4326b16f57ed52` |
+| `src/lib/schemas/video-edit-plan.ts`   | `ae4b4edcb23e888e1da2fb25bc37c475dd7c737731db78c482eefb1dc45de406` |
+| `src/lib/domain/render-composition.ts` | `cf4dd716665ec4dc7ad32398c7dacef8b27b685ffc1bb42831c0ecaf95f15b3f` |
+| `src/lib/server/render-compose.ts`     | `1662274f9a9ec6932f33dc315161accc57ea98c3a6b409777a0e200418890423` |
+
 ## V2 Context Lock — WO-015 (#32)
 
 - **Base revalidated:** `main` `9862f8c` (checkpoint WO-013 core promoted). Branch: `feat/dif-v2-wo-015`.

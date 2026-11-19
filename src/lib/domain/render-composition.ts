@@ -6,6 +6,7 @@ import type {
 } from '#lib/schemas/audio-library.js';
 import { acceptedDirectorEvents } from './edit-director.js';
 import { narrationDurationPolicy } from './voice-direction.js';
+import { buildColorFilter } from './color-grade.js';
 
 export class RenderCompositionError extends Error {
 	constructor(
@@ -46,6 +47,7 @@ export interface RenderCommand {
 
 interface NormalizedClip {
 	planIndex: number;
+	clipId: string;
 	inputIndex: number;
 	durationMs: number;
 	sourceInMs: number;
@@ -100,6 +102,7 @@ function normalizedClips(plan: VideoEditPlan, inputs: RenderAssetInput[]): Norma
 				);
 			return {
 				planIndex,
+				clipId: clip.id,
 				inputIndex: input.index,
 				durationMs,
 				sourceInMs: clip.sourceInMs,
@@ -172,8 +175,9 @@ export function buildRenderCommand(
 	for (const clip of clips) {
 		const sourceIn = (clip.sourceInMs / 1000).toFixed(3);
 		const duration = (clip.durationMs / 1000).toFixed(3);
+		const color = buildColorFilter(plan.color, clip.clipId);
 		filters.push(
-			`[${clip.inputIndex}:v]trim=start=${sourceIn}:duration=${duration},setpts=PTS-STARTPTS,fps=${fps},scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,format=yuv420p,settb=1/${fps}[v${clip.planIndex}]`,
+			`[${clip.inputIndex}:v]trim=start=${sourceIn}:duration=${duration},setpts=PTS-STARTPTS,fps=${fps},scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,format=yuv420p${color ? `,${color}` : ''},settb=1/${fps}[v${clip.planIndex}]`,
 		);
 	}
 	const segmentLabels: string[] = [];

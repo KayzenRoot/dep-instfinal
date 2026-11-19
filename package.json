@@ -42,7 +42,8 @@
 		"tts:local": "tsx scripts/narration-tts.ts",
 		"benchmark:audio-mix": "tsx scripts/benchmark-audio-mix.ts",
 		"test:tts": "vitest run src/lib/server/narration-tts.integration.test.ts",
-		"captions:align": "tsx scripts/caption-align.ts"
+		"captions:align": "tsx scripts/caption-align.ts",
+		"benchmark:color-render": "tsx scripts/benchmark-color-render.ts"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "3.1167.0",

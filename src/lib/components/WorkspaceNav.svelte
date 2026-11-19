@@ -55,6 +55,12 @@
 			glyph: 'branch',
 		},
 		{
+			path: '/app/color',
+			href: resolve('/app/color'),
+			label: 'Cor',
+			glyph: 'frames',
+		},
+		{
 			path: '/app/narration',
 			href: resolve('/app/narration'),
 			label: 'Narração',

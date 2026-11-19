@@ -1,5 +1,27 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-016 — Color Match e presets de terror (2026-11-19) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-016` · issue #33 · epic #17
+- **Base:** `main` `d96ed00` (checkpoint WO-015 promovido); branch `feat/dif-v2-wo-016`
+- **Status:** implementação + correções de auditoria; code/test head `176ee68`; unit/integração **241+3**, policy **30/26**, PgTAP PASS, E2E **14/14** (5,6 min), Sonar **PASS** (0% duplicação, Security A), ARM64 color benchmark PASS. Checkpoint **PROPOSED**.
+- **Auditoria:** rodada 1 **CORRECTION REQUIRED** (clipe errado, rótulo, conflito, overrides); rodada 2 **CORRECTION REQUIRED** (off-by-one de cena, lacunas de prova, docs); rodada 3 final **APPROVED WITH RESIDUALS**, sem HIGH/MEDIUM, no head `176ee68`.
+- **Residuals aceitos:** notice por query param (owner-only, cosmético); teste de no-op compara fonte vs render (unit cobre o filtro); QA amostrado/não crítico; E2E de rótulo é format-only (unit cobre o valor); sem MP4 E2E de 15 clipes com cor; fallback PATH preexistente em outros módulos; benchmark local Windows/AMD.
+
+| Check     | Result                  | Evidence                                                                                                |
+| --------- | ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| Presets   | PASS                    | neutral/vhs_1987/police_archive/cctv/cursed_tape; parâmetros recalibrados para preservar sombras        |
+| Grade     | PASS                    | `ColorGrade` no plano: força 0–100, referência e override/exclusão por clipe; ids validados             |
+| Render    | PASS                    | filtro por id do clipe no grafo; integração FFmpeg real graduada; manifesto registra `color`            |
+| QA        | PASS                    | `COLOR_RANGE` mede luma/clipping no artefato graduado; WARN em clipping severo; PASS/WARN testados      |
+| Fixtures  | PASS                    | 7 renders em 4 fixtures SDR; grade não é no-op; sem crush; clipping 0,0 p.p.                            |
+| UI        | PASS                    | `/app/color`: `expectedVersion`, rótulo 1-based, override por cena, redirect pós-save, DRAFT            |
+| E2E       | PASS                    | CI `44508653180`: 14/14 em 5,6 min, timeline 2,2 min, responsivo populado 360/768/1440                  |
+| Benchmark | PASS                    | local 63,1→160,4 s/min (720p) e 111,0→375,2 (1080p); ARM64 `44508652844` 8,12→40,82 e 16,32→83,66       |
+| CI        | PASS                    | quality `44508653180`, Sonar PR 63, color-render `44508652844`                                          |
+| Auditoria | APPROVED WITH RESIDUALS | reauditoria final do head `176ee68`; sem HIGH/MEDIUM; docs/tolerance ajustados no commit final          |
+| Limites   | —                       | preset+força; preview CSS sem VHS global; HDR fora de escopo; QA amostrado e não crítico; parâmetros v1 |
+
 ## V2 WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-015` · issue #32 · epic #17

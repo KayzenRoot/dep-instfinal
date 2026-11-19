@@ -16,3 +16,14 @@ export async function loadOwnerEpisodeOptions(db: SupabaseClient, owner: User) {
 		};
 	});
 }
+
+export async function loadOwnerEpisodeSelection(
+	db: SupabaseClient,
+	owner: User,
+	requestedId: string | null,
+) {
+	const episodes = await loadOwnerEpisodeOptions(db, owner);
+	const selectedEpisode =
+		episodes.find((episode) => episode.id === requestedId) ?? episodes[0] ?? null;
+	return { episodes, selectedEpisode };
+}

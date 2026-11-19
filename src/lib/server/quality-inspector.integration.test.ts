@@ -24,7 +24,7 @@ afterAll(async () => {
 	await rm(scratch, { recursive: true, force: true });
 });
 
-function blackPlan(durationMs: number): VideoEditPlan {
+function plan(durationMs: number): VideoEditPlan {
 	return {
 		schemaVersion: 1,
 		episodeId: '11111111-1111-4111-8111-111111111111',
@@ -55,60 +55,99 @@ function blackPlan(durationMs: number): VideoEditPlan {
 	} as VideoEditPlan;
 }
 
+async function artifact(name: string, source: string): Promise<RenderOutput> {
+	const path = join(scratch, `${name}.mp4`);
+	execFileSync('ffmpeg', [
+		'-y',
+		'-hide_banner',
+		'-loglevel',
+		'error',
+		'-f',
+		'lavfi',
+		'-i',
+		source,
+		'-c:v',
+		'libx264',
+		'-preset',
+		'ultrafast',
+		'-pix_fmt',
+		'yuv420p',
+		'-an',
+		path,
+	]);
+	const bytes = await readFile(path);
+	return {
+		path,
+		durationMs: 3_000,
+		width: 720,
+		height: 1280,
+		fps: 30,
+		pixelFormat: 'yuv420p',
+		codec: 'h264',
+		container: 'mp4',
+		byteSize: (await stat(path)).size,
+		sha256: createHash('sha256').update(bytes).digest('hex'),
+		audio: null,
+	};
+}
+
+function inspect(output: RenderOutput, editPlan: VideoEditPlan, suffix: number) {
+	return inspectRenderArtifact({
+		jobId: `55555555-5555-4555-8555-55555555555${suffix}`,
+		episodeId: '11111111-1111-4111-8111-111111111111',
+		planId: `66666666-6666-4666-8666-66666666666${suffix}`,
+		planVersion: 1,
+		planSha256: 'a'.repeat(64),
+		plan: editPlan,
+		output,
+		captionTrack: null,
+		narrationExpected: false,
+		hasAudioExpected: false,
+		outputProfile: '720p',
+		quality: 'standard',
+	});
+}
+
+const color = {
+	presetId: 'cursed_tape' as const,
+	presetVersion: 1 as const,
+	strength: 80,
+	referenceClipId: null,
+	overrides: [],
+};
+
 describe.skipIf(!hasFfmpeg())('quality inspector integration', () => {
 	it('flags an unplanned black segment in a real H.264 artifact', async () => {
-		const path = join(scratch, 'black.mp4');
-		execFileSync('ffmpeg', [
-			'-y',
-			'-hide_banner',
-			'-loglevel',
-			'error',
-			'-f',
-			'lavfi',
-			'-i',
-			'color=c=black:s=720x1280:r=30:d=3',
-			'-c:v',
-			'libx264',
-			'-preset',
-			'ultrafast',
-			'-pix_fmt',
-			'yuv420p',
-			'-an',
-			path,
-		]);
-		const bytes = await readFile(path);
-		const output: RenderOutput = {
-			path,
-			durationMs: 3_000,
-			width: 720,
-			height: 1280,
-			fps: 30,
-			pixelFormat: 'yuv420p',
-			codec: 'h264',
-			container: 'mp4',
-			byteSize: (await stat(path)).size,
-			sha256: createHash('sha256').update(bytes).digest('hex'),
-			audio: null,
-		};
-		const result = await inspectRenderArtifact({
-			jobId: '55555555-5555-4555-8555-555555555555',
-			episodeId: '11111111-1111-4111-8111-111111111111',
-			planId: '66666666-6666-4666-8666-666666666666',
-			planVersion: 1,
-			planSha256: 'a'.repeat(64),
-			plan: blackPlan(3_000),
-			output,
-			captionTrack: null,
-			narrationExpected: false,
-			hasAudioExpected: false,
-			outputProfile: '720p',
-			quality: 'standard',
-		});
+		const result = await inspect(
+			await artifact('black', 'color=c=black:s=720x1280:r=30:d=3'),
+			plan(3_000),
+			5,
+		);
 		expect(result.status).toBe('WARN');
 		const black = result.report.checks.find((check) => check.id === 'BLACK_FRAMES');
 		expect(black?.status).toBe('WARN');
 		expect(black?.evidence[0]).toMatchObject({ startMs: 0 });
 		expect(result.report.checks.find((check) => check.id === 'DECODE')?.status).toBe('PASS');
 		expect(result.report.checks.find((check) => check.id === 'CONTAINER')?.status).toBe('PASS');
+	}, 60_000);
+
+	it('reports the tonal range for a plan with Color Match', async () => {
+		const result = await inspect(
+			await artifact('graded', 'testsrc2=s=720x1280:r=30:d=3'),
+			{ ...plan(3_000), color },
+			6,
+		);
+		const range = result.report.checks.find((check) => check.id === 'COLOR_RANGE');
+		expect(range?.status).toBe('PASS');
+		expect(range?.evidence.length).toBeGreaterThanOrEqual(2);
+	}, 60_000);
+
+	it('warns when a Color Match plan clips most of the frame', async () => {
+		const result = await inspect(
+			await artifact('clipped', 'color=c=black:s=720x1280:r=30:d=3'),
+			{ ...plan(3_000), color },
+			7,
+		);
+		expect(result.report.checks.find((check) => check.id === 'COLOR_RANGE')?.status).toBe('WARN');
 	}, 60_000);
 });
