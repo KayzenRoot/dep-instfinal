@@ -37,8 +37,8 @@ describe('color presets', () => {
 	it('scales the filter with global strength and per-clip overrides', () => {
 		const full = buildColorFilter(grade({ strength: 100 }), clipA);
 		const half = buildColorFilter(grade({ strength: 50 }), clipA);
-		expect(full).toContain('eq=brightness=-0.020');
-		expect(half).toContain('eq=brightness=-0.010');
+		expect(full).toContain('eq=brightness=0.020');
+		expect(half).toContain('eq=brightness=0.010');
 		expect(half).not.toBe(full);
 		expect(buildColorFilter(grade({ strength: 0 }), clipA)).toBeNull();
 	});
@@ -53,7 +53,7 @@ describe('color presets', () => {
 		expect(effectiveColorStrength(value, clipA)).toBe(20);
 		expect(effectiveColorStrength(value, clipB)).toBe(0);
 		expect(buildColorFilter(value, clipB)).toBeNull();
-		expect(buildColorFilter(value, clipA)).toContain('eq=brightness=-0.004');
+		expect(buildColorFilter(value, clipA)).toContain('eq=brightness=0.004');
 		expect(colorPreviewCss(value)).toContain('brightness');
 	});
 });

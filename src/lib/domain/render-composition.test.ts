@@ -113,10 +113,34 @@ describe('render composition command', () => {
 			overrides: [{ clipId: plan.clips[1]!.id, strength: 80, exclude: true }],
 		};
 		const command = buildRenderCommand({ ...plan, color }, inputs(plan), '/tmp/out.mp4');
-		expect(command.filterGraph).toContain('eq=brightness=-0.016');
+		expect(command.filterGraph).toContain('eq=brightness=0.016');
 		const secondClipFilter =
 			command.filterGraph.split(';').find((segment) => segment.includes('[v1]')) ?? '';
 		expect(secondClipFilter).not.toContain('colorbalance=');
+	});
+
+	it('resolves per-clip color by clip id when plan.clips is out of order', () => {
+		const plan = buildDefaultEditPlan(context());
+		const chronologicalFirst = plan.clips[0]!;
+		const chronologicalSecond = plan.clips[1]!;
+		const shuffled = {
+			...plan,
+			clips: [chronologicalSecond, chronologicalFirst, ...plan.clips.slice(2)],
+			color: {
+				presetId: 'cursed_tape' as const,
+				presetVersion: 1 as const,
+				strength: 80,
+				referenceClipId: null,
+				overrides: [{ clipId: chronologicalFirst.id, strength: 80, exclude: true }],
+			},
+		};
+		const command = buildRenderCommand(shuffled, inputs(plan), '/tmp/out.mp4');
+		const filterFor = (label: string) =>
+			command.filterGraph
+				.split(';')
+				.find((segment) => segment.includes('trim=') && segment.includes(`[${label}]`)) ?? '';
+		expect(filterFor('v0')).not.toContain('colorbalance=');
+		expect(filterFor('v1')).toContain('colorbalance=');
 	});
 
 	it('supports the 720p fallback and the high quality tier', () => {

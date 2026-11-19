@@ -22,7 +22,7 @@
 		loadedKey = key;
 		presetId = data.color?.presetId ?? 'neutral';
 		strength = data.color?.strength ?? 60;
-		referenceClipId = data.color?.referenceClipId ?? data.clips[0]?.id ?? '';
+		referenceClipId = data.color?.referenceClipId ?? '';
 		overrides = data.color ? data.color.overrides.map((override) => ({ ...override })) : [];
 	});
 
@@ -54,6 +54,10 @@
 		const next = { ...current, ...patch };
 		const without = overrides.filter((override) => override.clipId !== clipId);
 		overrides = next.exclude || next.strength !== strength ? [...without, next] : without;
+	}
+
+	function clampStrength(value: number): number {
+		return Number.isFinite(value) ? Math.min(100, Math.max(0, Math.round(value))) : strength;
 	}
 </script>
 
@@ -87,13 +91,16 @@
 	</p>
 {:else if form?.success === 'cleared'}
 	<p class="notice success" role="status">
-		Cor removida na versão {form.version}. O vídeo original continua preservado no histórico.
+		Cor removida na versão {form.version}. A nova versão é DRAFT: aprove o plano e reaprove as
+		legendas antes do render. O vídeo original continua preservado no histórico.
 	</p>
 {/if}
 
 {#if !data.plan || !data.clips.length}
-	<p class="empty">Salve uma timeline com clipes READY antes de usar o Color Match.</p>
-	<a href={resolve('/app/timeline')}>Abrir timeline</a>
+	{#if !data.loadError}
+		<p class="empty">Salve uma timeline com clipes READY antes de usar o Color Match.</p>
+		<a href={resolve('/app/timeline')}>Abrir timeline</a>
+	{/if}
 {:else}
 	<div class="grid">
 		<section class="panel" aria-label="Prévia antes e depois">
@@ -137,7 +144,8 @@
 			{/if}
 			<p class="hint">
 				Prévia por CSS para comparação rápida; o FFmpeg aplica eq/colorbalance/noise/vignette no
-				render. A fonte nunca é alterada.
+				render e também mantém a camada VHS global do episódio, que não aparece nesta prévia. A
+				fonte nunca é alterada.
 			</p>
 		</section>
 
@@ -145,6 +153,7 @@
 			<h2>Preset</h2>
 			<form method="POST" action="?/save" class="grade-form">
 				<input type="hidden" name="episodeId" value={data.selectedEpisode?.id ?? ''} />
+				<input type="hidden" name="expectedVersion" value={data.plan?.version ?? 0} />
 				<input type="hidden" name="overrides" value={JSON.stringify(overrides)} />
 				<label>
 					Preset
@@ -162,7 +171,7 @@
 				<label>
 					Referência criativa
 					<select name="referenceClipId" bind:value={referenceClipId}>
-						<option value="">Primeira cena</option>
+						<option value="">Primeira cena (sem referência fixa)</option>
 						{#each data.clips as clip (clip.id)}
 							<option value={clip.id}>{clip.label}</option>
 						{/each}
@@ -182,6 +191,7 @@
 								<label class="check">
 									<input
 										type="checkbox"
+										aria-label={`Excluir ${clip.label} da correção`}
 										checked={override?.exclude ?? false}
 										onchange={(event) =>
 											updateOverride(clip.id, { exclude: event.currentTarget.checked })}
@@ -194,11 +204,16 @@
 										type="number"
 										min="0"
 										max="100"
+										aria-label={`Força da correção em ${clip.label}`}
 										value={override?.strength ?? strength}
-										onchange={(event) =>
-											updateOverride(clip.id, {
-												strength: Number(event.currentTarget.value),
-											})}
+										onchange={(event) => {
+											const raw = event.currentTarget.value;
+											if (raw.trim() === '') {
+												event.currentTarget.value = String(override?.strength ?? strength);
+												return;
+											}
+											updateOverride(clip.id, { strength: clampStrength(Number(raw)) });
+										}}
 									/>
 								</label>
 							</li>
@@ -211,10 +226,12 @@
 			</form>
 			<form method="POST" action="?/clear" class="clear-form">
 				<input type="hidden" name="episodeId" value={data.selectedEpisode?.id ?? ''} />
-				<button type="submit">Remover correção (voltar ao original)</button>
+				<input type="hidden" name="expectedVersion" value={data.plan?.version ?? 0} />
+				<button type="submit" disabled={!data.color}>Remover correção (voltar ao original)</button>
 			</form>
 			<p class="hint">
-				Salvar cria nova versão DRAFT; aprove o plano e reaprove as legendas antes de renderizar.
+				Salvar ou remover cria nova versão DRAFT; aprove o plano e reaprove as legendas antes de
+				renderizar.
 			</p>
 		</section>
 	</div>

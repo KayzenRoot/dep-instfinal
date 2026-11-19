@@ -521,11 +521,20 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await page.goto(`/app/color?episodeId=${episodeId}`);
 	await page.locator('select[name="presetId"]').selectOption('cursed_tape');
 	await page.locator('input[name="strength"]').fill('80');
+	await page.locator('.scene-list input[type="number"]').first().fill('40');
 	await page.getByRole('button', { name: 'Salvar correção cromática' }).click();
 	await expect(page.locator('.notice.success')).toContainText('Cor salva');
+	await page.reload();
+	await expect(page.locator('.scene-list input[type="number"]').first()).toHaveValue('40');
+	await page.setViewportSize({ width: 360, height: 900 });
+	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+		true,
+	);
+	await page.setViewportSize({ width: 1280, height: 900 });
 	await page.getByRole('button', { name: 'Remover correção (voltar ao original)' }).click();
 	await expect(page.locator('.notice.success')).toContainText('Cor removida');
-	console.log('[timeline-e2e] color grade applied and cleared');
+	await expect(page.locator('.notice.success')).toContainText('DRAFT');
+	console.log('[timeline-e2e] color grade applied with per-scene override and cleared');
 
 	if (process.env.E2E_KEEP_RENDER === '1') {
 		console.log(`[timeline-e2e] kept render root at ${renderRoot}`);

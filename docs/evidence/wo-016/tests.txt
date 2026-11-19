@@ -1,36 +1,66 @@
 # WO-016 — local evidence
 
 Date: 2026-11-19 (America/Sao_Paulo)
+Branch: `feat/dif-v2-wo-016` (base `main` `d96ed00`)
 
 ## Static
 
-- `npm run check`: `svelte-check found 0 errors and 0 warnings`
+- `npm run check`: 0 errors / 0 warnings
 - `npm run lint`: PASS (`eslint . --max-warnings=0`)
 - `npm run audit:policy`: 30 invariants / 26 tables PASS (no migration)
 
 ## Unit / integration
 
-- `color-grade.test.ts`: 3/3 — presets distinct, neutral no-op, strength scaling,
+- Full local suite after corrections: **239 passed + 3 skipped** (37 files passed, 3 skipped; 698 s).
+- `color-grade.test.ts`: 3/3 — presets distintos, neutro no-op, strength scaling,
   per-clip override/exclusion, CSS approximation.
-- `render-composition.test.ts`: 13/13 — color filter per clip, exclusion respected.
+- `schemas/color-grade.test.ts`: 3/3 — bounds, invalid preset/version, override shape,
+  60-scene ceiling.
+- `color-quality.test.ts`: 4/4 — RGB luma percentiles, clipping/saturation, WARN
+  threshold, before/after comparison.
+- `render-composition.test.ts`: 14/14 — color filter per clip, exclusion, and
+  out-of-order `plan.clips` resolved by clip id.
+- `server/color-grade.test.ts`: 6/6 — `expectedVersion` propagation, unknown/duplicate
+  targets, invalid grade, missing plan, clear removes `color`, empty clear refused.
+- `routes/app/color/color-actions.test.ts`: 5/5 — missing version, invalid
+  strength/overrides, parsed grade forwarding, 409 mapping, clear mapping.
+- `quality-inspector.integration.test.ts`: 2/2 — black WARN and `COLOR_RANGE` PASS on
+  a graded artifact.
 - `render-compose.integration.test.ts`: 7/7 — real FFmpeg 4 s graded render with
   eq/colorbalance/noise/vignette, H.264 output and duration ≥3.5 s.
-- Full local suite: **218 passed + 3 skipped** (32 files).
+- `color-quality.integration.test.ts`: 1/1 — 7 real renders at 720p across 4 SDR
+  fixtures (low light, backlight, tonal ramp, extreme RGB) and 4 presets at 100%:
+  no shadow crush, no highlight crush, clipping growth 0.0 p.p. (local samples:
+  low-light p05 6→14 cursed, 6→8 VHS, 6→11 police, 6→14 CCTV).
 
 ## E2E
 
-- `e2e/timeline.spec.ts`: 1/1 (12.6 min on this host) — after render/Hook Lab, the
-  owner opens `/app/color`, selects `cursed_tape`, sets 80% intensity, saves the
-  new version and removes the correction; both success notices appear.
-- `e2e/owner-boundary.spec.ts -g "authenticated studio pages|private narration endpoints"`:
-  2/2 (2.9 min), responsive 360/768/1440 includes `/app/color`.
+- `e2e/timeline.spec.ts`: pending rerun after the post-audit UI changes.
+  Previous run (12.6 min) applied/cleared `cursed_tape@80`; the updated test now also
+  persists a 40% per-scene override, reloads it, checks the populated page at 360 px
+  and asserts the DRAFT notice on clear.
+- `e2e/owner-boundary.spec.ts`: pending rerun; responsive route now includes
+  `/app/color?episodeId=...` so the populated UI is exercised when an episode exists.
+
+## QA and cost
+
+- `COLOR_RANGE` is emitted only for plans with `color`; sampled RGB stats are stored
+  as evidence and clipping ≥20% at either extreme becomes WARN (never BLOCKED).
+- `docs/evidence/wo-016/benchmark-color.json` (Windows 11, Ryzen 5 2500U, FFmpeg 9.0.2):
+  - 720p plain: 63.1 s per footage minute, 18.2 CPU s, 158 MiB RSS.
+  - 720p `cursed_tape@80`: 160.4 s per footage minute, 61.8 CPU s, 172 MiB RSS.
+  - 1080p plain: 111.0 s per footage minute, 34.7 CPU s, 275 MiB RSS.
+  - 1080p `cursed_tape@80`: 375.2 s per footage minute, 133.2 CPU s, 301 MiB RSS.
+  - The ARM64 workflow `color-render-benchmark` repeats the same measurement in CI.
 
 ## Limits verified
 
 - Color Match is preset + strength + per-scene override, not automatic histogram
   matching; the reference anchors the before/after comparison.
-- The side-by-side preview uses approximate CSS; the FFmpeg render is the
-  reference and may differ in color/contrast.
-- HDR/BT.2020 and automatic clipping detection are not implemented.
-- Saving color creates a DRAFT version; the owner must approve the plan and
-  reapprove captions before rendering.
+- The side-by-side preview uses approximate CSS; the FFmpeg render is the reference
+  and also applies the episode's global VHS layer, which the preview does not show.
+- HDR/BT.2020 is out of scope; the pipeline operates on SDR `yuv420p`.
+- Clipping is only signalled by post-render QA; there is no pre-render clipping
+  analysis or automatic lighter-preset fallback.
+- Saving or clearing color creates a DRAFT version; the owner must approve the plan
+  and reapprove captions before rendering.

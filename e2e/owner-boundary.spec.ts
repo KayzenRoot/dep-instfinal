@@ -719,6 +719,7 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 	const episodeLinks = page.locator('a[href^="/app/episodes/"]');
 	const episodeDetail =
 		(await episodeLinks.count()) > 0 ? await episodeLinks.first().getAttribute('href') : null;
+	const episodeId = episodeDetail?.match(/\/app\/episodes\/([0-9a-f-]{36})/)?.[1] ?? null;
 	const routes = [
 		'/app',
 		'/app/series',
@@ -735,7 +736,7 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 		'/app/editor',
 		'/app/director',
 		'/app/hooks',
-		'/app/color',
+		episodeId ? `/app/color?episodeId=${episodeId}` : '/app/color',
 		'/app/settings',
 		...(seriesDetail ? [seriesDetail] : []),
 		...(episodeDetail ? [episodeDetail] : []),

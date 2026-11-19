@@ -1,0 +1,45 @@
+{
+	"generatedAt": "2026-11-19T04:26:40.070Z",
+	"results": [
+		{
+			"profile": "720p",
+			"variant": "plain",
+			"footageSeconds": 10,
+			"wallSeconds": 10.52,
+			"secondsPerFootageMinute": 63.12,
+			"cpuSeconds": 18.203,
+			"ffmpegSeconds": 10.054,
+			"maxRssKib": 161516
+		},
+		{
+			"profile": "720p",
+			"variant": "cursed_tape@80",
+			"footageSeconds": 10,
+			"wallSeconds": 26.74,
+			"secondsPerFootageMinute": 160.44,
+			"cpuSeconds": 61.797000000000004,
+			"ffmpegSeconds": 26.363,
+			"maxRssKib": 176120
+		},
+		{
+			"profile": "1080p",
+			"variant": "plain",
+			"footageSeconds": 10,
+			"wallSeconds": 18.5,
+			"secondsPerFootageMinute": 111,
+			"cpuSeconds": 34.672,
+			"ffmpegSeconds": 18.113,
+			"maxRssKib": 281984
+		},
+		{
+			"profile": "1080p",
+			"variant": "cursed_tape@80",
+			"footageSeconds": 10,
+			"wallSeconds": 62.53,
+			"secondsPerFootageMinute": 375.17,
+			"cpuSeconds": 133.219,
+			"ffmpegSeconds": 62.189,
+			"maxRssKib": 308464
+		}
+	]
+}

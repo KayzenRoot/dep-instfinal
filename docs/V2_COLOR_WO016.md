@@ -1,6 +1,6 @@
 # DIF-V2-WO-016 — Color Match e presets de terror
 
-**Status:** implementação completa em `feat/dif-v2-wo-016`; unit **218+3**, render FFmpeg real, E2E timeline **1/1** e responsivo **1/1** PASS; CI e auditoria independente **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** implementação e correções pós-auditoria em `feat/dif-v2-wo-016`; unit/integração locais, PgTAP, policy, E2E e benchmark medidos; CI, reauditoria e merge **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
 **Base:** `main` `d96ed00` (checkpoint WO-015 promovido).
 **Escopo:** WO-016 (#33), dependente de WO-002/003/006/011/012.
 
@@ -8,43 +8,74 @@
 
 - Presets versionados `neutral`, `vhs_1987`, `police_archive`, `cctv` e `cursed_tape` com parâmetros declarativos allowlisted (`eq`, `colorbalance`, `noise`, `vignette`).
 - `ColorGrade` persistido no `VideoEditPlan`: preset/versão, intensidade global 0–100%, referência criativa e overrides por clipe (força própria ou exclusão).
-- `buildColorFilter` determinístico por clipe, escalando os parâmetros pela intensidade e retornando `null` para neutro/excluído; o render FFmpeg aplica o filtro após scale/crop/format e antes do concat/xfade.
-- `/app/color`: seletor de episódio, presets, intensidade, referência e ajuste por cena; comparação antes/depois lado a lado por CSS aproximado; salvar cria nova versão DRAFT e remover restaura o plano sem correção.
+- `buildColorFilter` determinístico por **id do clipe**, escalando os parâmetros pela intensidade e retornando `null` para neutro/excluído; o render FFmpeg aplica o filtro após scale/crop/format e antes do concat/xfade.
+- `/app/color`: seletor de episódio, presets, intensidade, referência e ajuste por cena rotulado pelo `scene_index` real; comparação antes/depois lado a lado por CSS aproximado; salvar cria nova versão DRAFT e remover restaura o plano sem correção.
 - Manifesto do worker registra o `color` aplicado; o hash do plano versionado cobre o grade.
+- QA de render em plano graduado adiciona o check `COLOR_RANGE` (amostragem RGB, percentis de luma e clipping); clipping severo gera WARN, não bloqueio.
 - Nenhuma GPU, rede neural, API paga ou alteração no clipe fonte.
+
+## Presets e preservação de sombras
+
+Os parâmetros foram recalibrados após fixtures de baixa luz, contraluz, rampa tonal e RGB extremo. A versão anterior de `cursed_tape` (contraste 1,15, gamma 0,97, vinheta PI/4) esmagava até 36% das sombras em cena escura; os presets agora usam contraste 1,05, gamma ≥ 1,1 e vinheta mais fraca (PI/9 a PI/10), preservando detalhe sem clipping nos fixtures.
+
+| Preset           | Eq (100%)                                             | Ruído | Vinheta |
+| ---------------- | ----------------------------------------------------- | ----- | ------- |
+| `vhs_1987`       | brilho +0,02 · contraste 1,05 · sat 1,12 · gamma 1,10 | 4     | PI/9    |
+| `police_archive` | brilho +0,02 · contraste 1,05 · sat 0,60 · gamma 1,15 | 3     | PI/9    |
+| `cctv`           | brilho +0,02 · contraste 1,05 · sat 0,45 · gamma 1,18 | 6     | PI/9    |
+| `cursed_tape`    | brilho +0,02 · contraste 1,05 · sat 0,85 · gamma 1,20 | 8     | PI/10   |
+
+## Correções pós-auditoria (2026-11-19)
+
+- **Clipe certo no render:** `NormalizedClip` carrega `clipId`; o filtro resolve por id e não pelo índice ordenado. Regressão cobre `plan.clips` fora de ordem cronológica.
+- **Rótulo de cena:** `/app/color` cruza `sceneId` com `scene_index` do contexto e ordena os clipes pela timeline; Hook Lab/reordenação não trocam mais “Cena N”.
+- **Concorrência otimista:** formulários enviam `expectedVersion` exibido; helpers usam essa versão no RPC e conflitos 409 chegam à UI.
+- **Erros reais:** `VideoEditPlanError` é mapeado para 400/404/409/503 em vez de 503 genérico.
+- **Overrides:** JSON/schema inválido retorna 400 (não descarta em silêncio); força é inteiro 0–100 no cliente e no servidor; referência/override com clipe inexistente ou duplicado retorna 400.
+- **Remover cor:** botão só habilita quando há cor; servidor recusa remoção vazia sem criar versão; mensagem avisa DRAFT e reaprovação de legendas.
+- **Referência nula:** `null` permanece “sem referência fixa” em vez de virar o primeiro clipe no próximo save.
+- **Plano inválido:** erro de hash/parse aparece como erro real, não como “salve uma timeline”.
+- **Acessibilidade:** controles por cena têm `aria-label` com o nome da cena.
+- **Prévia honesta:** UI e docs explicitam que a camada VHS global do render não aparece na prévia CSS.
+- **Testes:** adicionados schema, helpers de servidor, actions, regressão de ordem, fixtures de cor, QA `COLOR_RANGE` e benchmark 720p/1080p.
 
 ## Capacidade real versus planejada
 
 - O Color Match é **preset + intensidade + override por cena**, não uma correspondência automática de histograma entre clipes. A referência ancora a comparação antes/depois e a escolha criativa; não copia estatísticas de outra cena.
-- A prévia lado a lado usa CSS aproximado; o FFmpeg eq/colorbalance/noise/vignette é a referência de render e pode divergir em cor/contraste.
+- A prévia lado a lado usa CSS aproximado; o FFmpeg eq/colorbalance/noise/vignette é a referência de render e pode divergir em cor/contraste. A camada VHS global do episódio também não é simulada na prévia.
 - O render opera em `format=yuv420p` após scale/crop; fontes HDR/BT.2020 não foram testadas e não há promessa de tone mapping.
-- Não há análise automática de crushing/clipping por frame; os parâmetros são conservadores e a revisão visual no aparelho continua obrigatória.
-- O custo do filtro `noise` é medido no render de integração e no benchmark ARM64 disparado pela mudança de composição; não há fallback automático para preset leve ainda.
+- Não há análise de clipping antes do render; depois do render, o QA mede a faixa tonal e emite WARN quando sombras ou altas luzes passam de 20% dos pixels amostrados.
+- Os parâmetros dos presets são a definição v1; alterá-los exige bump de `presetVersion` e dispatch versionado (residual para WO-021).
+- O custo do Color Match foi medido localmente (Windows 11, Ryzen 5 2500U, FFmpeg 9.0.2): em 720p, 63,1 s de render por minuto de footage sem cor e 160,4 s com `cursed_tape@80` (2,54×); em 1080p, 111,0 s e 375,2 s (3,38×). CPU e RSS do FFmpeg também são reportados no artefato `docs/evidence/wo-016/benchmark-color.json`. O workflow ARM64 `color-render-benchmark` repete a medição no CI.
 
 ## Critérios de aceitação
 
-| Critério                                                              | Estado       | Evidência                                                                              |
-| --------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------- |
-| 15 clipes recebem preset comum e intensidade por cena, antes/depois   | PASS local   | UI `/app/color`; E2E aplica preset e limpa; preview CSS antes/depois                   |
-| Referência não altera fonte; reversão reprodutível; render compatível | PASS local   | grade no plano versionado; clear salva plano sem cor; filtro determinístico            |
-| Preserva sombras e evita clipping excessivo em fixtures               | PASS parcial | parâmetros conservadores; teste de render real; QA visual manual pendente              |
-| FPS/A/V intactos; custo por minuto medido e reportado                 | PASS parcial | integração FFmpeg verifica duração/codec; benchmark ARM64 no CI; sem per-minute report |
+| Critério                                                              | Estado     | Evidência                                                                                                               |
+| --------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 15 clipes recebem preset comum e intensidade por cena, antes/depois   | PASS local | E2E cria 15 clipes, aplica `cursed_tape@80`, persiste override 40 na cena 1 e remove; preview antes/depois              |
+| Referência não altera fonte; reversão reprodutível; render compatível | PASS local | grade no plano versionado; clear salva plano sem cor; hash/manifesto; filtro determinístico; legado sem `color` intacto |
+| Preserva sombras e evita clipping excessivo em fixtures; warning      | PASS local | 7 renders reais em 4 fixtures SDR; `p05`, clipping e percentis medidos; `COLOR_RANGE` WARN no QA                        |
+| FPS/A/V intactos; custo real por minuto medido e reportado            | PASS local | integração valida duração/codec/fps; benchmark 720p/1080p com s/min, CPU e RSS; job ARM64 no CI                         |
 
-## Testes planejados
+## Testes
 
-- Unit: presets distintos, neutro no-op, escala por força, override/exclusão, CSS aproximado.
-- Render: comando contém `eq`/`colorbalance` por clipe e respeita exclusão; integração FFmpeg real de clipe graduado.
-- E2E: aplicar preset/intensidade e remover correção, com nova versão.
-- Responsivo 360/768/1440 com `/app/color`.
+- Unit: schema (limites, preset inválido, override), presets distintos/neutro/escala, estatísticas de cor, assessment/comparação, helpers de servidor (versão, target, clear), actions (400/409, overrides, `expectedVersion`).
+- Render: filtro por clipe, exclusão e ordem fora de ordem; integração FFmpeg real de 4 s graduado.
+- Cor: integração FFmpeg com baixa luz, contraluz, rampa e RGB extremo; 4 presets na fixture escura; sem shadow crush nem crescimento de clipping > 5 p.p.
+- QA: artefato graduado recebe `COLOR_RANGE` PASS/WARN.
+- E2E: preset + override por cena persistido + remoção com DRAFT; responsivo 360/768/1440 com `/app/color` populado.
+- Benchmark: `npm run benchmark:color-render` (720p/1080p, com/sem cor, wall/CPU/RSS).
 
 ## Riscos e residuais
 
-- Sem histogram matching automático; sem detecção automática de clipping/crushing.
-- Preview CSS diverge do FFmpeg; revisão no MP4 final é obrigatória.
+- Sem histogram matching automático; sem detecção de clipping antes do render.
+- Preview CSS diverge do FFmpeg e não simula a camada VHS global; revisão no MP4 final é obrigatória.
 - HDR/BT.2020 não testado; comportamento documentado apenas para SDR.
-- `noise` pode elevar custo de render; fallback leve automático não implementado.
-- Aplicar cor cria nova versão DRAFT e exige aprovar plano + reaprovar legendas antes do render.
+- `noise` eleva o custo (2,5–3,4× no host local); fallback leve automático não implementado.
+- Parâmetros v1 são globais; mudanças futuras exigem versionamento real (WO-021).
+- Aplicar ou remover cor cria versão DRAFT e exige aprovar plano + reaprovar legendas antes do render.
+- Benchmark local usa host Windows/AMD; números ARM64 virão do workflow e podem divergir.
 
 ## Gate
 
-CI hosted, PgTAP, Evidence Bundle, Checkpoint Delta PROPOSED, auditoria independente e autorização do owner antes de merge/promoção. **Sem merge/deploy.**
+CI hosted, PgTAP, Evidence Bundle, Checkpoint Delta PROPOSED, reauditoria independente e autorização do owner antes de merge/promoção. **Sem merge/deploy.**

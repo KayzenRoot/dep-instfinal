@@ -5,6 +5,7 @@ import { stat } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { acceptedDirectorEvents } from '#lib/domain/edit-director.js';
 import { captionTextFitsBox, wrapCtaText } from '#lib/domain/caption-metrics.js';
+import { assessColorRange } from '#lib/domain/color-quality.js';
 import {
 	assertPreviewLayout,
 	PlatformPreviewError,
@@ -22,6 +23,7 @@ import {
 } from '#lib/schemas/quality-report.js';
 import type { VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
 import type { RenderOutput } from './render-compose.js';
+import { measureColorStats } from './color-quality.js';
 
 const execFileAsync = promisify(execFile);
 const MAX_LOG_CHARS = 1_000_000;
@@ -406,6 +408,37 @@ export async function inspectRenderArtifact(
 					: 'Sem áudio esperado; drift não se aplica.',
 			),
 		);
+	}
+
+	if (input.plan.color) {
+		try {
+			const stats = await measureColorStats(input.output.path, {
+				ffmpegPath: input.ffmpegPath,
+				timeoutMs: thresholds.decodeTimeoutMs,
+			});
+			const range = assessColorRange(stats);
+			checks.push(
+				check('COLOR_RANGE', 'Faixa tonal do Color Match', range.status, range.message, {
+					severity: range.severe ? 'MEDIUM' : undefined,
+					tolerance: 'clipping < 20% em sombras e altas luzes',
+					evidence: [
+						{ value: Number(stats.lowClipPct.toFixed(2)), unit: '%' },
+						{ value: Number(stats.highClipPct.toFixed(2)), unit: '%' },
+						{ value: Number(stats.p05Luma.toFixed(1)), unit: 'luma' },
+						{ value: Number(stats.p95Luma.toFixed(1)), unit: 'luma' },
+					],
+				}),
+			);
+		} catch {
+			checks.push(
+				check(
+					'COLOR_RANGE',
+					'Faixa tonal do Color Match',
+					'NOT_TESTED',
+					'Não foi possível medir a faixa tonal do render graduado.',
+				),
+			);
+		}
 	}
 
 	const detector = await runDetectors({

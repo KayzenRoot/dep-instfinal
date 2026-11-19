@@ -111,4 +111,67 @@ describe.skipIf(!hasFfmpeg())('quality inspector integration', () => {
 		expect(result.report.checks.find((check) => check.id === 'DECODE')?.status).toBe('PASS');
 		expect(result.report.checks.find((check) => check.id === 'CONTAINER')?.status).toBe('PASS');
 	}, 60_000);
+
+	it('reports the tonal range of a graded artifact', async () => {
+		const path = join(scratch, 'graded.mp4');
+		execFileSync('ffmpeg', [
+			'-y',
+			'-hide_banner',
+			'-loglevel',
+			'error',
+			'-f',
+			'lavfi',
+			'-i',
+			'testsrc2=s=720x1280:r=30:d=3',
+			'-c:v',
+			'libx264',
+			'-preset',
+			'ultrafast',
+			'-pix_fmt',
+			'yuv420p',
+			'-an',
+			path,
+		]);
+		const bytes = await readFile(path);
+		const output: RenderOutput = {
+			path,
+			durationMs: 3_000,
+			width: 720,
+			height: 1280,
+			fps: 30,
+			pixelFormat: 'yuv420p',
+			codec: 'h264',
+			container: 'mp4',
+			byteSize: (await stat(path)).size,
+			sha256: createHash('sha256').update(bytes).digest('hex'),
+			audio: null,
+		};
+		const plan = blackPlan(3_000);
+		const result = await inspectRenderArtifact({
+			jobId: '55555555-5555-4555-8555-555555555556',
+			episodeId: '11111111-1111-4111-8111-111111111111',
+			planId: '66666666-6666-4666-8666-666666666667',
+			planVersion: 1,
+			planSha256: 'a'.repeat(64),
+			plan: {
+				...plan,
+				color: {
+					presetId: 'cursed_tape',
+					presetVersion: 1,
+					strength: 80,
+					referenceClipId: null,
+					overrides: [],
+				},
+			},
+			output,
+			captionTrack: null,
+			narrationExpected: false,
+			hasAudioExpected: false,
+			outputProfile: '720p',
+			quality: 'standard',
+		});
+		const range = result.report.checks.find((check) => check.id === 'COLOR_RANGE');
+		expect(range?.status).toBe('PASS');
+		expect(range?.evidence.length).toBeGreaterThanOrEqual(2);
+	}, 60_000);
 });

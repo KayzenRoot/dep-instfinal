@@ -4,18 +4,22 @@
 
 - **Work Order:** `DIF-V2-WO-016` · issue #33 · epic #17
 - **Base:** `main` `d96ed00` (checkpoint WO-015 promovido); branch `feat/dif-v2-wo-016`
-- **Status:** implementação completa; unit **218+3**, policy **30/26**, render FFmpeg real, E2E timeline **1/1** (12,6 min) e responsivo **1/1** PASS; CI/auditoria **PENDENTES**. Checkpoint **PROPOSED**.
+- **Status:** implementação + correções pós-auditoria; unit/integração **239+3**, policy **30/26**, render FFmpeg real, fixtures SDR, benchmark 720p/1080p; E2E e CI **PENDENTES** nesta rodada. Checkpoint **PROPOSED**.
+- **Auditoria:** primeira rodada independente **CORRECTION REQUIRED** (clipe errado, rótulo de cena, conflito e overrides); correções aplicadas; reauditoria pendente.
 
-| Check     | Result     | Evidence                                                                                                        |
-| --------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
-| Presets   | PASS local | neutral/vhs_1987/police_archive/cctv/cursed_tape versionados com eq/colorbalance/noise/vignette                 |
-| Grade     | PASS local | `ColorGrade` no plano: força 0–100, referência e override/exclusão por clipe                                    |
-| Render    | PASS local | filtro por clipe no grafo; integração FFmpeg real de 4 s graduado; manifesto registra `color`                   |
-| UI        | PASS local | `/app/color` com antes/depois, presets, força, referência, ajuste por cena, salvar/remover e aviso DRAFT        |
-| E2E       | PASS local | timeline 12,6 min aplica e remove `cursed_tape`; responsivo 360/768/1440 inclui `/app/color`                    |
-| CI        | PENDENTE   | será registrado após push do PR Draft                                                                           |
-| Auditoria | PENDENTE   | revisão independente obrigatória antes de merge                                                                 |
-| Limites   | —          | preset+força, sem histogram matching; preview CSS aproximado; sem HDR/clipping automático; custo não por minuto |
+| Check     | Result     | Evidence                                                                                                   |
+| --------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
+| Presets   | PASS local | neutral/vhs_1987/police_archive/cctv/cursed_tape; parâmetros recalibrados para preservar sombras           |
+| Grade     | PASS local | `ColorGrade` no plano: força 0–100, referência e override/exclusão por clipe; ids validados                |
+| Render    | PASS local | filtro por id do clipe no grafo; integração FFmpeg real graduada; manifesto registra `color`               |
+| QA        | PASS local | `COLOR_RANGE` mede luma/clipping no artefato graduado; WARN em clipping severo; integração real            |
+| Fixtures  | PASS local | 7 renders em 4 fixtures SDR; sem shadow/highlight crush; clipping 0,0 p.p.                                 |
+| UI        | PASS local | `/app/color` com antes/depois, `expectedVersion`, rótulo por `scene_index`, override por cena, DRAFT       |
+| E2E       | PENDENTE   | timeline e responsivo serão reexecutados após as correções; evidência anterior de 12,6 min                 |
+| Benchmark | PASS local | 720p 63,1→160,4 s/min; 1080p 111,0→375,2 s/min; CPU/RSS em `docs/evidence/wo-016/benchmark-color.json`     |
+| CI        | PENDENTE   | quality, Sonar, benchmark de cor e E2E serão registrados no head final                                     |
+| Auditoria | PENDENTE   | reauditoria do head corrigido antes de merge                                                               |
+| Limites   | —          | preset+força; preview CSS aproximado e sem VHS global; HDR fora de escopo; QA só pós-render; parâmetros v1 |
 
 ## V2 WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROMOTED
 
