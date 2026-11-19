@@ -25,7 +25,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: npm ci --ignore-scripts
       - name: Render 10s 720p/1080p with and without Color Match
-        run: npm run benchmark:color-render | tee color-render-arm64.json
+        run: npm run --silent benchmark:color-render | tee color-render-arm64.json
       - uses: actions/upload-artifact@v6
         with:
           name: color-render-arm64-benchmark

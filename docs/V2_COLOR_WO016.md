@@ -46,7 +46,7 @@ Os parâmetros foram recalibrados após fixtures de baixa luz, contraluz, rampa 
 - O render opera em `format=yuv420p` após scale/crop; fontes HDR/BT.2020 não foram testadas e não há promessa de tone mapping.
 - Não há análise de clipping antes do render; depois do render, o QA mede a faixa tonal e emite WARN quando sombras ou altas luzes passam de 20% dos pixels amostrados.
 - Os parâmetros dos presets são a definição v1; alterá-los exige bump de `presetVersion` e dispatch versionado (residual para WO-021).
-- O custo do Color Match foi medido localmente (Windows 11, Ryzen 5 2500U, FFmpeg 9.0.2): em 720p, 63,1 s de render por minuto de footage sem cor e 160,4 s com `cursed_tape@80` (2,54×); em 1080p, 111,0 s e 375,2 s (3,38×). CPU e RSS do FFmpeg também são reportados no artefato `docs/evidence/wo-016/benchmark-color.json`. O workflow ARM64 `color-render-benchmark` repete a medição no CI.
+- O custo do Color Match foi medido localmente (Windows 11, Ryzen 5 2500U, FFmpeg 9.0.2): em 720p, 63,1 s de render por minuto de footage sem cor e 160,4 s com `cursed_tape@80` (2,54×); em 1080p, 111,0 s e 375,2 s (3,38×). CPU e, quando o FFmpeg reporta, RSS estão no artefato `docs/evidence/wo-016/benchmark-color.json`. No runner ARM64 do CI, o mesmo benchmark marcou 7,96→40,31 s/min em 720p e 16,20→83,57 s/min em 1080p (5,06× e 5,16×); o `maxrss` não é emitido pelo FFmpeg Linux. O workflow `color-render-benchmark` repete a medição a cada mudança de preset/composição.
 
 ## Critérios de aceitação
 

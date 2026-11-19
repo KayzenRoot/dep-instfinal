@@ -51,6 +51,9 @@ Branch: `feat/dif-v2-wo-016` (base `main` `d96ed00`)
   - 720p `cursed_tape@80`: 160.4 s per footage minute, 61.8 CPU s, 172 MiB RSS.
   - 1080p plain: 111.0 s per footage minute, 34.7 CPU s, 275 MiB RSS.
   - 1080p `cursed_tape@80`: 375.2 s per footage minute, 133.2 CPU s, 301 MiB RSS.
+  - ARM64 CI (`color-render` run 44461340719): 7.96→40.31 s/min at 720p and
+    16.20→83.57 s/min at 1080p; CPU 3.49/17.55 s and 7.21/38.67 s. Linux FFmpeg did
+    not emit `maxrss`, so RSS is null in the CI artifact.
   - The ARM64 workflow `color-render-benchmark` repeats the same measurement in CI.
 
 ## Limits verified
