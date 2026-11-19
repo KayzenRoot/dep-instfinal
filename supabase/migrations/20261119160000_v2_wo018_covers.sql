@@ -150,6 +150,54 @@ revoke all on function public.save_cover_revision(uuid, uuid, integer, jsonb, te
 grant execute on function public.save_cover_revision(uuid, uuid, integer, jsonb, text, text)
   to service_role;
 
+
+create or replace function public.prune_cover_revisions(
+  p_owner_id uuid,
+  p_episode_id uuid,
+  p_keep integer default 50
+)
+returns integer
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_deleted integer;
+begin
+  if p_owner_id is null or p_episode_id is null then
+    raise exception 'owner_auth_required' using errcode = '42501';
+  end if;
+  if p_keep is null or p_keep < 1 or p_keep > 500 then
+    raise exception 'cover_retention_invalid' using errcode = '23514';
+  end if;
+  if not exists (
+    select 1 from public.episodes e
+    where e.owner_id = p_owner_id and e.id = p_episode_id
+  ) then
+    raise exception 'episode_not_found' using errcode = 'P0002';
+  end if;
+  perform set_config('dif.cover_prune', 'on', true);
+  with doomed as (
+    select r.id from public.cover_revisions r
+    where r.owner_id = p_owner_id and r.episode_id = p_episode_id
+    order by r.revision_number desc
+    offset p_keep
+  )
+  delete from public.cover_revisions r using doomed d where r.id = d.id;
+  get diagnostics v_deleted = row_count;
+  perform set_config('dif.cover_prune', 'off', true);
+  return v_deleted;
+end;
+$$;
+
+revoke all on function public.prune_cover_revisions(uuid, uuid, integer)
+  from public, anon, authenticated;
+grant execute on function public.prune_cover_revisions(uuid, uuid, integer)
+  to service_role;
+
+comment on function public.prune_cover_revisions(uuid, uuid, integer) is
+  'Service-only owner-scoped retention for cover history; keeps the newest revisions.';
+
 revoke all on function public.reject_cover_revision_mutation() from public, anon, authenticated;
 revoke all on function public.enforce_cover_revision_quota() from public, anon, authenticated;
 

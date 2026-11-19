@@ -41,6 +41,11 @@ describe('cover templates', () => {
 			expect(layout.gridCrop.width).toBe(layout.width);
 			expect(layout.gridCrop.height).toBeLessThanOrEqual(layout.height);
 		}
+		const vertical = coverLayout('9:16');
+		expect(vertical.titleBox.x + vertical.titleBox.width).toBeLessThanOrEqual(900);
+		expect(vertical.titleBox.y + vertical.titleBox.height).toBeLessThanOrEqual(1620);
+		expect(vertical.badgeBox.y).toBeGreaterThanOrEqual(180);
+		expect(vertical.logoBox.x + vertical.logoBox.width).toBeLessThanOrEqual(900);
 	});
 
 	it('wraps and truncates long Unicode titles within the line budget', () => {
@@ -68,6 +73,20 @@ describe('cover templates', () => {
 		expect(svg).toContain('&lt;script&gt;');
 		expect(svg).not.toContain('<script>');
 		expect(svg).toContain('&amp;');
+	});
+
+	it('forces excessively wide title lines to fit and draws a contrast scrim', () => {
+		const config = coverConfigSchema.parse({
+			...base,
+			title: 'WWWWWWWWWWWWWWWWWWWW',
+		});
+		const svg = buildCoverSvg(config, COVER_TEMPLATE_LIST[0]!, coverLayout('9:16'), {
+			background: true,
+		});
+		expect(svg).toContain('textLength=');
+		expect(svg).toContain('lengthAdjust="spacingAndGlyphs"');
+		expect(svg).toContain('stroke="#000"');
+		expect(svg).toContain('opacity="0.32"');
 	});
 
 	it('hashes deterministically and builds a safe file name', () => {

@@ -4,8 +4,15 @@ import {
 	COVER_TEMPLATES,
 	buildCoverSvg,
 	coverLayout,
+	scaleCoverLayout,
 	type CoverLayout,
 } from '#lib/domain/cover.js';
+
+export const MAX_COVER_RESPONSE_BYTES = 4_000_000;
+
+export function coverResponseExceedsLimit(buffers: Buffer[]): boolean {
+	return buffers.reduce((total, buffer) => total + buffer.length, 0) > MAX_COVER_RESPONSE_BYTES;
+}
 
 export interface RenderedCover {
 	buffer: Buffer;
@@ -30,8 +37,9 @@ async function coverBase(
 			{ density: 72 },
 		);
 	const metadata = await sharp(source, { failOn: 'error', animated: false }).metadata();
-	const width = metadata.width ?? 1;
-	const height = metadata.height ?? 1;
+	const swapOrientation = [5, 6, 7, 8].includes(metadata.orientation ?? 1);
+	const width = (swapOrientation ? metadata.height : metadata.width) ?? 1;
+	const height = (swapOrientation ? metadata.width : metadata.height) ?? 1;
 	const scale = Math.max(layout.width / width, layout.height / height);
 	const resizedWidth = Math.max(layout.width, Math.ceil(width * scale));
 	const resizedHeight = Math.max(layout.height, Math.ceil(height * scale));
@@ -64,9 +72,10 @@ export async function renderCover(
 	source: Buffer | null,
 	format: CoverFormatId = config.format,
 	output: 'png' | 'jpeg' = 'png',
+	scale = 1,
 ): Promise<RenderedCover> {
 	const effectiveConfig = { ...config, format };
-	const layout = coverLayout(format);
+	const layout = scale === 1 ? coverLayout(format) : scaleCoverLayout(coverLayout(format), scale);
 	const template = COVER_TEMPLATES[config.templateId];
 	const overlay = Buffer.from(buildCoverSvg(effectiveConfig, template, layout));
 	const base = await coverBase(source, effectiveConfig, layout);

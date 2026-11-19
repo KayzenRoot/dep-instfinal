@@ -79,6 +79,8 @@ export const load: PageServerLoad = async (event) => {
 				selectedEpisode,
 				context: null,
 				defaultTitle: '',
+				defaultSubtitle: '',
+				defaultBadge: '',
 				notice: null,
 				loadError: cause.message,
 			};
@@ -95,11 +97,15 @@ export const load: PageServerLoad = async (event) => {
 				: Number.isSafeInteger(restored) && restored > 0
 					? { mode: 'restored' as const, value: restored }
 					: null;
+	const latestConfig = context?.revisions[0]?.config;
 	return {
 		episodes,
 		selectedEpisode,
 		context,
-		defaultTitle: context?.episode.title ?? '',
+		defaultTitle: latestConfig?.title ?? context?.episode.title ?? '',
+		defaultSubtitle: latestConfig?.subtitle ?? '',
+		defaultBadge:
+			latestConfig?.badge ?? `E${String(context?.episode.number ?? 1).padStart(2, '0')}`,
 		notice,
 		loadError: null,
 	};

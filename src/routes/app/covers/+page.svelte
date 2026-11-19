@@ -68,16 +68,12 @@
 				</label>
 				<label>
 					Subtítulo
-					<input name="subtitle" maxlength="200" value="" />
+					<input name="subtitle" maxlength="200" value={data.defaultSubtitle} />
 				</label>
 				<div class="two">
 					<label>
 						Selo
-						<input
-							name="badge"
-							maxlength="40"
-							value={`E${String(data.context.episode.number).padStart(2, '0')}`}
-						/>
+						<input name="badge" maxlength="40" value={data.defaultBadge} />
 					</label>
 					<label>
 						Formato
@@ -121,12 +117,26 @@
 				</fieldset>
 				<div class="two">
 					<label>
-						Foco horizontal: <span>{data.context.revisions[0]?.config.focusX ?? 0.5}</span>
-						<input type="range" name="focusX" min="0" max="1" step="0.05" value="0.5" />
+						Foco horizontal
+						<input
+							type="range"
+							name="focusX"
+							min="0"
+							max="1"
+							step="0.05"
+							value={data.context.revisions[0]?.config.focusX ?? 0.5}
+						/>
 					</label>
 					<label>
-						Foco vertical: <span>{data.context.revisions[0]?.config.focusY ?? 0.5}</span>
-						<input type="range" name="focusY" min="0" max="1" step="0.05" value="0.5" />
+						Foco vertical
+						<input
+							type="range"
+							name="focusY"
+							min="0"
+							max="1"
+							step="0.05"
+							value={data.context.revisions[0]?.config.focusY ?? 0.5}
+						/>
 					</label>
 				</div>
 				<label class="check">
@@ -147,12 +157,18 @@
 				<div class="revision-grid">
 					{#each data.context.revisions as revision (revision.id)}
 						<article class="revision" data-revision-id={revision.id}>
-							<img
-								src={`/api/covers/${revision.id}?format=${revision.format}`}
-								alt={`Capa ${templateLabel(revision.templateId)} ${revision.format}`}
-								loading="lazy"
-								decoding="async"
-							/>
+							<div class="cover-preview">
+								<img
+									src={`/api/covers/${revision.id}?format=${revision.format}&preview=1`}
+									alt={`Capa ${templateLabel(revision.templateId)} ${revision.format}`}
+									loading="lazy"
+									decoding="async"
+								/>
+								{#if revision.format === '9:16'}
+									<span class="grid-crop" title="Recorte central 4:5 do grid do Instagram">4:5</span
+									>
+								{/if}
+							</div>
 							<header>
 								<strong>v{revision.revision} · {templateLabel(revision.templateId)}</strong>
 								<span class:approved={revision.status === 'APPROVED'}>{revision.status}</span>
@@ -276,12 +292,30 @@
 		border-radius: var(--radius-sm);
 		background: #0b0b0b;
 	}
+	.cover-preview {
+		position: relative;
+		display: grid;
+	}
 	.revision img {
 		width: 100%;
 		aspect-ratio: 9 / 16;
 		object-fit: contain;
 		background-color: #000;
 		border-radius: var(--radius-sm);
+	}
+	.grid-crop {
+		position: absolute;
+		top: 14.8%;
+		left: 0;
+		right: 0;
+		height: 70.4%;
+		border-top: 1px dashed rgb(255 255 255 / 55%);
+		border-bottom: 1px dashed rgb(255 255 255 / 55%);
+		color: #fff;
+		font-size: 0.62rem;
+		text-align: right;
+		padding-right: 0.3rem;
+		pointer-events: none;
 	}
 	.revision header {
 		display: flex;

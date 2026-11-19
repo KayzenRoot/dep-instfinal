@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(191);
+select plan(193);
 
 do $$
 declare
@@ -2274,6 +2274,21 @@ select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-2222222
 select is(
   (select count(*) from public.cover_revisions), 0::bigint,
   'second owner cannot read cover revisions'
+);
+reset role;
+set local role service_role;
+select is(
+  public.prune_cover_revisions(
+    '11111111-1111-4111-8111-111111111111',
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    1
+  ), 1,
+  'service role prunes older cover revisions'
+);
+select is(
+  (select count(*) from public.cover_revisions
+   where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+  1::bigint, 'cover retention keeps the configured number of revisions'
 );
 reset role;
 

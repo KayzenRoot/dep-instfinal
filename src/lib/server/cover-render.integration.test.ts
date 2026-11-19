@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import sharp from 'sharp';
 import { coverConfigSchema, type CoverFormatId } from '#lib/schemas/cover.js';
-import { renderCover } from './cover-render.js';
+import {
+	MAX_COVER_RESPONSE_BYTES,
+	coverResponseExceedsLimit,
+	renderCover,
+} from './cover-render.js';
 
 const formats: CoverFormatId[] = ['9:16', '3:4', '4:5'];
 
@@ -57,6 +61,32 @@ describe('cover rendering with Sharp', () => {
 		expect(metadata.height).toBe(1920);
 		expect(metadata.format).toBe('jpeg');
 		expect(rendered.mimeType).toBe('image/jpeg');
+	}, 60_000);
+
+	it('renders a smaller preview variant for the grid', async () => {
+		const rendered = await renderCover(config('9:16', 'noir'), null, '9:16', 'png', 0.35);
+		const metadata = await sharp(rendered.buffer).metadata();
+		expect(metadata.width).toBe(378);
+		expect(metadata.height).toBe(672);
+		expect(rendered.buffer.length).toBeLessThan(MAX_COVER_RESPONSE_BYTES);
+	});
+
+	it('detects responses above the Vercel body budget', () => {
+		expect(coverResponseExceedsLimit([Buffer.alloc(1_000)])).toBe(false);
+		expect(coverResponseExceedsLimit([Buffer.alloc(MAX_COVER_RESPONSE_BYTES + 1)])).toBe(true);
+	});
+
+	it('auto-orients an EXIF-rotated source before cropping', async () => {
+		const source = await sharp({
+			create: { width: 400, height: 200, channels: 3, background: '#884422' },
+		})
+			.withMetadata({ orientation: 6 })
+			.png()
+			.toBuffer();
+		const rendered = await renderCover(config('9:16', 'noir'), source, '9:16');
+		const metadata = await sharp(rendered.buffer).metadata();
+		expect(metadata.width).toBe(1080);
+		expect(metadata.height).toBe(1920);
 	}, 60_000);
 
 	it('renders long titles and accents without throwing', async () => {

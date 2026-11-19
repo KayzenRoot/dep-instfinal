@@ -41,7 +41,7 @@ export const COVER_TEMPLATES: Record<CoverTemplateId, CoverTemplate> = {
 		id: 'vhs_polaroid',
 		label: 'VHS polaroid',
 		version: 1,
-		description: 'Calor analógico, rosa queimado, grão visual e selo de fita.',
+		description: 'Calor analógico, rosa queimado e selo de fita.',
 		treatment: { saturation: 1.08, brightness: 1.04, contrast: 1.02 },
 		background: ['#2b1022', '#09050b'],
 		overlayTop: 0.22,
@@ -56,7 +56,7 @@ export const COVER_TEMPLATES: Record<CoverTemplateId, CoverTemplate> = {
 		id: 'archive',
 		label: 'Arquivo classificado',
 		version: 1,
-		description: 'Sépia documental, carimbo de episódio e margens de arquivo.',
+		description: 'Sépia documental e selo de episódio.',
 		treatment: { saturation: 0.46, brightness: 0.96, contrast: 1.08 },
 		background: ['#241b12', '#080604'],
 		overlayTop: 0.28,
@@ -102,36 +102,39 @@ function round(value: number): number {
 
 export function coverLayout(format: CoverFormatId): CoverLayout {
 	const { width, height } = COVER_FORMATS[format];
-	const margin = round(width * 0.074);
-	const titleTop = round(height * 0.54);
-	const titleHeight = round(height * 0.28);
+	const left = round(width * 0.074);
+	const vertical = format === '9:16';
+	const top = vertical ? round(height * 0.099) : round(height * 0.076);
+	const right = vertical ? round(width * 0.167) : round(width * 0.074);
+	const titleTop = round(height * 0.56);
+	const titleHeight = round(height * 0.24);
 	const gridHeight = Math.min(height, round(width * 1.25));
 	return {
 		width,
 		height,
 		titleBox: {
-			x: margin,
+			x: left,
 			y: titleTop,
-			width: width - margin * 2,
+			width: width - left - right,
 			height: titleHeight,
 		},
 		subtitleBox: {
-			x: margin,
+			x: left,
 			y: titleTop + titleHeight,
-			width: width - margin * 2,
-			height: round(height * 0.07),
+			width: width - left - right,
+			height: round(height * 0.06),
 		},
 		badgeBox: {
-			x: margin,
-			y: round(height * 0.075),
-			width: round(width * 0.4),
-			height: round(height * 0.052),
+			x: left,
+			y: top,
+			width: round(width * 0.31),
+			height: round(height * 0.038),
 		},
 		logoBox: {
-			x: round(width * 0.62),
-			y: round(height * 0.075),
-			width: round(width * 0.31),
-			height: round(height * 0.052),
+			x: width - right - round(width * 0.28),
+			y: top,
+			width: round(width * 0.28),
+			height: round(height * 0.038),
 		},
 		gridCrop: {
 			x: 0,
@@ -139,6 +142,25 @@ export function coverLayout(format: CoverFormatId): CoverLayout {
 			width,
 			height: gridHeight,
 		},
+	};
+}
+
+export function scaleCoverLayout(layout: CoverLayout, scale: number): CoverLayout {
+	const factor = Math.min(1, Math.max(0.2, scale));
+	const scaleBox = (box: { x: number; y: number; width: number; height: number }) => ({
+		x: round(box.x * factor),
+		y: round(box.y * factor),
+		width: round(box.width * factor),
+		height: round(box.height * factor),
+	});
+	return {
+		width: round(layout.width * factor),
+		height: round(layout.height * factor),
+		titleBox: scaleBox(layout.titleBox),
+		subtitleBox: scaleBox(layout.subtitleBox),
+		badgeBox: scaleBox(layout.badgeBox),
+		logoBox: scaleBox(layout.logoBox),
+		gridCrop: scaleBox(layout.gridCrop),
 	};
 }
 
@@ -206,12 +228,16 @@ export function buildCoverSvg(
 	const badgeSize = round(layout.width * 0.03);
 	const seriesSize = round(layout.width * 0.026);
 	const titleStart = layout.titleBox.y + fontSize;
-	const badgeText = config.badge || 'EPISÓDIO';
+	const badgeText = wrapCoverText(config.badge || 'EPISÓDIO', 20, 1)[0] ?? 'EPISÓDIO';
 	const title = lines
-		.map(
-			(line, index) =>
-				`<text x="${layout.titleBox.x}" y="${titleStart + index * lineHeight}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="${template.titleColor}">${escapeXml(line)}</text>`,
-		)
+		.map((line, index) => {
+			const estimated = Array.from(line).length * fontSize * 0.8;
+			const fit =
+				estimated > layout.titleBox.width
+					? ` textLength="${layout.titleBox.width}" lengthAdjust="spacingAndGlyphs"`
+					: '';
+			return `<text x="${layout.titleBox.x}" y="${titleStart + index * lineHeight}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="${template.titleColor}" stroke="#000" stroke-opacity="0.55" stroke-width="2" paint-order="stroke"${fit}>${escapeXml(line)}</text>`;
+		})
 		.join('');
 	const subtitle = config.subtitle
 		? `<text x="${layout.subtitleBox.x}" y="${layout.subtitleBox.y + subtitleSize}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${subtitleSize}" fill="${template.subtitleColor}">${escapeXml(
@@ -226,7 +252,7 @@ export function buildCoverSvg(
 		? `<rect width="${layout.width}" height="${layout.height}" fill="url(#coverBg)"/>`
 		: '';
 	const watermark = config.watermark
-		? `<text x="${layout.logoBox.x}" y="${layout.logoBox.y + layout.logoBox.height * 0.7}" text-anchor="end" font-family="DejaVu Sans, Arial, sans-serif" font-size="${seriesSize}" fill="${template.accent}" opacity="0.85">DIF STUDIO</text>`
+		? `<text x="${layout.logoBox.x + layout.logoBox.width}" y="${layout.logoBox.y + layout.logoBox.height * 0.7}" text-anchor="end" font-family="DejaVu Sans, Arial, sans-serif" font-size="${seriesSize}" fill="${template.accent}" opacity="0.9">DIF STUDIO</text>`
 		: '';
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}">
 <defs>
@@ -236,16 +262,18 @@ export function buildCoverSvg(
 </linearGradient>
 <linearGradient id="coverShade" x1="0" y1="0" x2="0" y2="1">
 <stop offset="0" stop-color="#000" stop-opacity="${template.overlayTop}"/>
-<stop offset="0.52" stop-color="#000" stop-opacity="0.12"/>
+<stop offset="0.48" stop-color="#000" stop-opacity="0.5"/>
+<stop offset="0.62" stop-color="#000" stop-opacity="${Math.max(0.55, template.overlayBottom - 0.2)}"/>
 <stop offset="1" stop-color="#000" stop-opacity="${template.overlayBottom}"/>
 </linearGradient>
 </defs>
 ${background}
 <rect width="${layout.width}" height="${layout.height}" fill="url(#coverShade)"/>
+<rect x="${layout.titleBox.x - 24}" y="${layout.titleBox.y - 28}" width="${layout.titleBox.width + 48}" height="${layout.titleBox.height + round(layout.titleBox.height * 0.35)}" rx="${round(layout.width * 0.02)}" fill="#000" opacity="0.32"/>
 <rect x="${layout.badgeBox.x}" y="${layout.badgeBox.y}" width="${layout.badgeBox.width}" height="${layout.badgeBox.height}" rx="${round(layout.badgeBox.height / 2)}" fill="${template.badgeBackground}"/>
 <text x="${layout.badgeBox.x + round(layout.badgeBox.width * 0.04)}" y="${layout.badgeBox.y + round(layout.badgeBox.height * 0.68)}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${badgeSize}" font-weight="700" fill="${template.badgeColor}">${escapeXml(badgeText)}</text>
-<text x="${layout.badgeBox.x}" y="${layout.badgeBox.y - round(layout.badgeBox.height * 0.45)}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${seriesSize}" letter-spacing="2" fill="${template.accent}">${escapeXml(
-		config.seriesTitle.toUpperCase(),
+<text x="${layout.badgeBox.x}" y="${layout.badgeBox.y - round(layout.badgeBox.height * 0.42)}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${seriesSize}" letter-spacing="2" fill="${template.accent}" stroke="#000" stroke-opacity="0.4" stroke-width="1" paint-order="stroke">${escapeXml(
+		wrapCoverText(config.seriesTitle.toUpperCase(), 22, 1)[0] ?? '',
 	)}</text>
 ${title}
 ${subtitle}

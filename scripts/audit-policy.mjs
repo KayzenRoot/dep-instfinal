@@ -393,7 +393,9 @@ const checks = [
 			coverMigration.includes('grant execute on function public.save_cover_revision') &&
 			coverMigration.includes('cover_revision_is_immutable') &&
 			coverMigration.includes('cover_revision_conflict') &&
-			coverMigration.includes('cover_frame_asset_invalid'),
+			coverMigration.includes('cover_frame_asset_invalid') &&
+			coverMigration.includes('prune_cover_revisions') &&
+			coverMigration.includes('dif.cover_prune'),
 	],
 	[
 		'render quotas, health and ops scripts are server-only and dry-run first',

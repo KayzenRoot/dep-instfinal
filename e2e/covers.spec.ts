@@ -43,7 +43,10 @@ test('owner generates, approves and downloads private covers', async ({ page, re
 	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 
-	await page.goto(`/app/covers?episodeId=${episodeId}`);
+	await page.getByRole('link', { name: 'Capas' }).click();
+	await expect(page).toHaveURL(/\/app\/covers/);
+	await page.locator('select[name="episodeId"]').selectOption(episodeId);
+	await expect(page).toHaveURL(new RegExp(`episodeId=${episodeId}`));
 	await expect(page.getByRole('heading', { name: 'Capas do episódio' })).toBeVisible();
 	await page.locator('input[name="title"]').fill(`A fita de ${suffix}`);
 	await page.locator('select[name="format"]').selectOption('4:5');
@@ -73,7 +76,12 @@ test('owner generates, approves and downloads private covers', async ({ page, re
 	const zip = await page.request.get(`/api/covers/${revisionId}?format=zip&download=1`);
 	expect(zip.status()).toBe(200);
 	expect(zip.headers()['content-type']).toContain('application/zip');
+	const anonymous = await request.get(`/api/covers/${revisionId}?format=4:5`);
+	expect([401, 403, 404]).toContain(anonymous.status());
 
+	await page.goto(`/app/episodes/${episodeId}`);
+	await expect(page.locator('.approved-cover').first()).toBeVisible();
+	await page.goto(`/app/covers?episodeId=${episodeId}`);
 	await page.setViewportSize({ width: 360, height: 900 });
 	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
 		true,

@@ -406,6 +406,26 @@
 				href={resolve('/app/export/[episodeId]', { episodeId: data.episode.id })}
 				>Preparar pacote ZIP <span aria-hidden="true">↗</span></a
 			>
+			<a class="export-link" href={resolve(`/app/covers?episodeId=${data.episode.id}`)}>
+				Gerar capas e posters <span aria-hidden="true">↗</span>
+			</a>
+			{#if data.approvedCovers.length}
+				<div class="approved-covers">
+					<h3>Capa aprovada</h3>
+					<div class="approved-cover-list">
+						{#each data.approvedCovers as cover (cover.id)}
+							<figure class="approved-cover" data-cover-revision={cover.id}>
+								<img
+									src={`/api/covers/${cover.id}?format=${cover.format}`}
+									alt={`Capa aprovada ${cover.template_id} ${cover.format}`}
+									loading="lazy"
+								/>
+								<figcaption>v{cover.revision_number} · {cover.format}</figcaption>
+							</figure>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</Panel>
 		<Panel
 			eyebrow="CONTEXTO CANÔNICO"
@@ -1144,6 +1164,32 @@
 	.quiet-copy {
 		color: var(--muted);
 		font-size: 0.77rem;
+	}
+	.approved-covers {
+		display: grid;
+		gap: 0.35rem;
+	}
+	.approved-cover-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+	.approved-cover {
+		margin: 0;
+		width: 7.5rem;
+		display: grid;
+		gap: 0.2rem;
+	}
+	.approved-cover img {
+		width: 100%;
+		aspect-ratio: 9 / 16;
+		object-fit: cover;
+		border-radius: var(--radius-sm);
+		background: #050505;
+	}
+	.approved-cover figcaption {
+		color: var(--muted);
+		font-size: 0.65rem;
 	}
 	.export-link {
 		display: flex;
