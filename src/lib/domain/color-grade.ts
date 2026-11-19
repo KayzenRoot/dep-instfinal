@@ -66,6 +66,11 @@ export const COLOR_PRESETS: Record<ColorPresetId, ColorPreset> = {
 
 export const COLOR_PRESET_LIST = Object.values(COLOR_PRESETS);
 
+/** Scene indexes are stored 1-based; the fallback follows chronological order. */
+export function colorSceneLabel(sceneIndex: number | undefined, fallbackIndex: number): string {
+	return sceneIndex === undefined ? `Cena ${fallbackIndex + 1}` : `Cena ${sceneIndex}`;
+}
+
 function round(value: number): string {
 	return (Math.round(value * 1_000) / 1_000).toFixed(3);
 }

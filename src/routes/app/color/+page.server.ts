@@ -7,6 +7,7 @@ import {
 	loadEditPlanContext,
 	VideoEditPlanError,
 } from '#lib/server/video-edit-plans.js';
+import { colorSceneLabel } from '#lib/domain/color-grade.js';
 import { clearColorGrade, ColorGradeError, saveColorGrade } from '#lib/server/color-grade.js';
 import { createSupabaseAdminClient } from '#lib/server/supabase.js';
 import {
@@ -77,7 +78,7 @@ export const load: PageServerLoad = async (event) => {
 			return {
 				id: clip.id,
 				assetId: clip.assetId,
-				label: sceneIndex === undefined ? `Cena ${index + 1}` : `Cena ${sceneIndex}`,
+				label: colorSceneLabel(sceneIndex, index),
 				startMs: clip.timelineStartMs,
 				endMs: clip.timelineEndMs,
 			};

@@ -3,6 +3,7 @@ import {
 	COLOR_PRESET_LIST,
 	buildColorFilter,
 	colorPreviewCss,
+	colorSceneLabel,
 	effectiveColorStrength,
 } from './color-grade.js';
 import type { ColorGrade } from '#lib/schemas/color-grade.js';
@@ -41,6 +42,13 @@ describe('color presets', () => {
 		expect(half).toContain('eq=brightness=0.010');
 		expect(half).not.toBe(full);
 		expect(buildColorFilter(grade({ strength: 0 }), clipA)).toBeNull();
+	});
+
+	it('labels scenes with the stored 1-based index without adding one', () => {
+		expect(colorSceneLabel(1, 0)).toBe('Cena 1');
+		expect(colorSceneLabel(7, 3)).toBe('Cena 7');
+		expect(colorSceneLabel(undefined, 0)).toBe('Cena 1');
+		expect(colorSceneLabel(undefined, 4)).toBe('Cena 5');
 	});
 
 	it('supports excluding or attenuating a single scene', () => {

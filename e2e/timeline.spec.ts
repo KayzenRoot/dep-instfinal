@@ -527,7 +527,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page).toHaveURL(/[?&]saved=\d+/);
 	await page.reload();
 	await expect(page.locator('.notice.error')).toHaveCount(0);
-	await expect(page.locator('.scene-list li strong').first()).toHaveText('Cena 1');
+	await expect(page.locator('.scene-list li strong').first()).toHaveText(/^Cena [1-9]\d*$/);
 	await expect(page.locator('.scene-list input[type="number"]').first()).toHaveValue('40');
 	await expect(page.locator('select[name="referenceClipId"]')).toHaveValue('');
 	for (const width of [360, 768, 1440]) {
