@@ -51,12 +51,12 @@ Os parâmetros foram recalibrados após fixtures de baixa luz, contraluz, rampa 
 
 ## Critérios de aceitação
 
-| Critério                                                              | Estado     | Evidência                                                                                                               |
-| --------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
-| 15 clipes recebem preset comum e intensidade por cena, antes/depois   | PASS       | E2E CI cria 15 clipes, aplica `cursed_tape@80`, persiste override 40 na cena 1, confere “Cena 1” e remove; preview antes/depois |
-| Referência não altera fonte; reversão reprodutível; render compatível | PASS       | grade no plano versionado; clear salva plano sem cor; hash/manifesto; filtro determinístico; legado sem `color` intacto |
-| Preserva sombras e evita clipping excessivo em fixtures; warning      | PASS       | 7 renders reais em 4 fixtures SDR; p05 e clipping medidos; teste falha se o grade for no-op; `COLOR_RANGE` PASS/WARN     |
-| FPS/A/V intactos; custo real por minuto medido e reportado            | PASS       | integração verifica codec/duração/fps/geometria; benchmark 720p/1080p com s/min e CPU; job ARM64 no CI                  |
+| Critério                                                              | Estado | Evidência                                                                                                                       |
+| --------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| 15 clipes recebem preset comum e intensidade por cena, antes/depois   | PASS   | E2E CI cria 15 clipes, aplica `cursed_tape@80`, persiste override 40 na cena 1, confere “Cena 1” e remove; preview antes/depois |
+| Referência não altera fonte; reversão reprodutível; render compatível | PASS   | grade no plano versionado; clear salva plano sem cor; hash/manifesto; filtro determinístico; legado sem `color` intacto         |
+| Preserva sombras e evita clipping excessivo em fixtures; warning      | PASS   | 7 renders reais em 4 fixtures SDR; p05 e clipping medidos; teste falha se o grade for no-op; `COLOR_RANGE` PASS/WARN            |
+| FPS/A/V intactos; custo real por minuto medido e reportado            | PASS   | integração verifica codec/duração/fps/geometria; benchmark 720p/1080p com s/min e CPU; job ARM64 no CI                          |
 
 ## Testes
 
