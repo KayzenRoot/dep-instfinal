@@ -1,6 +1,6 @@
 # DIF-V2-WO-018 — Capas, posters e cards
 
-**Status:** implementação completa em `feat/dif-v2-wo-018`; unit/render/action, PgTAP, policy, build e E2E em validação; CI e auditoria independente **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** implementação completa em `feat/dif-v2-wo-018`; CI `44639723116` PASS no head `f0acc7b` (287+3 unit, PgTAP 196/196, E2E 16/16, Sonar PASS); auditoria independente final **APPROVED WITH RESIDUALS**. Sem merge/deploy; checkpoint **PROPOSED**.
 **Base:** `main` `2617b67` (checkpoint WO-017 promovido).
 **Escopo:** WO-018 (#35), dependente de WO-003/004/011/012/016.
 
@@ -23,7 +23,8 @@
 - **Frame indisponível:** config com frame vinculado mas source ausente retorna 409 em vez de cair silenciosamente no fundo do preset; erro de Sharp vira 502 seguro.
 - **EXIF:** dimensões são trocadas para orientations 5–8 antes do crop; teste com orientation 6.
 - **Hash/retenção:** hash inclui parâmetros do template e versão do renderer; RPC service-only `prune_cover_revisions` mantém as revisões mais recentes e é testada no PgTAP.
-- **Evidência:** E2E navega pela UI, verifica acesso anônimo negado e capa aprovada no episódio; testes de safe zone/scrim, tamanho, preview e EXIF adicionados.
+- **Evidência:** E2E navega pela UI, verifica acesso anônimo negado, capa aprovada no episódio com `naturalWidth > 0` e screenshots em 360/768/1440; testes de safe zone/scrim, contraste real, frame corrompido, fonte transparente e EXIF adicionados.
+- **Rodada final:** série movida para abaixo do selo e dentro do crop 4:5; subtítulo entrega duas linhas; PNG achata transparência em preto; `hash_version` lida e validada com hasher versionado; quota de 500 revisões exercitada no PgTAP; render determinístico (bytes idênticos) testado.
 
 ## Capacidade real versus planejada
 
@@ -37,21 +38,21 @@
 
 ## Critérios de aceitação
 
-| Critério                                                                                | Estado       | Evidência                                                                                   |
-| --------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------- |
-| Episódio Flow real/sintético: escolher frame e obter ≥3 estilos com identidade de série | PASS parcial | 4 presets; E2E gera 3 estilos sem frame; render com frame coberto por integração Sharp      |
-| Downloads 9:16, 3:4, 4:5 e prévias de corte; texto/logo legíveis nas safe zones         | PASS         | render testa os 3 formatos; layout seguro; ZIP 3 formatos; E2E confere 1080×1350 e download |
-| Editar título/preset/foco atualiza capa sem mudar frames/cânone; versões recuperáveis   | PASS         | config versionada, aprovar/restaurar, foco/crop; nenhuma escrita em cenas/cânone            |
-| Anon/non-owner não acessam frame/capa; export segue licença                             | PASS         | rota owner-only, RLS, PgTAP, sem URLs permanentes                                           |
-| Custo zero por geração de imagem                                                        | PASS         | render local Sharp sobre assets existentes; sem API paga/GPU                                |
+| Critério                                                                                | Estado        | Evidência                                                                                                             |
+| --------------------------------------------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Episódio Flow real/sintético: escolher frame e obter ≥3 estilos com identidade de série | PASS parcial  | 4 presets; E2E gera 3 estilos sem frame; render com frame coberto por integração Sharp                                |
+| Downloads 9:16, 3:4, 4:5 e prévias de corte; texto/logo legíveis nas safe zones         | PASS residual | render testa os 3 formatos; título/selo/série dentro do crop; ZIP 3 formatos com fallback JPEG; E2E confere 1080×1350 |
+| Editar título/preset/foco atualiza capa sem mudar frames/cânone; versões recuperáveis   | PASS          | config versionada, aprovar/restaurar, foco/crop, hash versionado; nenhuma escrita em cenas/cânone                     |
+| Anon/non-owner não acessam frame/capa; export segue licença                             | PASS          | rota owner-only, RLS, PgTAP, sem URLs permanentes                                                                     |
+| Custo zero por geração de imagem                                                        | PASS          | render local Sharp sobre assets existentes; sem API paga/GPU                                                          |
 
 ## Testes planejados/executados
 
-- Unit: 6 testes — 4 presets, dimensões/safe zones de UI, wrap Unicode/ellipsis, `textLength`/scrim, escape XML, hash com template/renderer e nome seguro.
-- Render: 6 testes — 12 combinações formato × preset, frame/foco/JPEG, EXIF orientation 6, preview 378×672, limite de 4 MB, título longo Unicode.
+- Unit: 5 testes — 4 presets, dimensões/safe zones de UI, wrap Unicode/ellipsis, `textLength`/scrim, subtítulo em duas linhas, escape XML, hash versionado e nome seguro.
+- Render: 10 testes — 12 combinações formato × preset, frame/foco/JPEG, EXIF orientation 6, preview 378×672, limite de 4 MB, contraste real em frame branco, frame corrompido, fonte transparente, determinismo byte a byte e título longo Unicode.
 - Actions: geração de 3 templates com revisão otimista, configuração inválida, approve/restore e redirects.
-- PgTAP 194: owner read, escrita direta negada, segundo owner isolado, RPC versionada e poda preservando APPROVED; o trigger de quota existe, mas atingir 500 revisões não é exercitado.
-- E2E: entrar pela nav, criar episódio sintético, gerar/aprovar, prévia PNG 4:5, download JPEG/ZIP, acesso anônimo negado, capa aprovada no episódio, responsivo 360.
+- PgTAP 196: owner read, escrita direta negada, segundo owner isolado, RPC versionada, poda preservando APPROVED e quota de 500 exercitada (501ª revisão bloqueada).
+- E2E: entrar pela nav, criar episódio sintético, gerar/aprovar, prévia PNG 4:5, download JPEG/ZIP, acesso anônimo negado, capa aprovada no episódio com `naturalWidth > 0`, screenshots 360/768/1440.
 - Policy: 32 invariantes / 30 tabelas; backup/restore atualizados.
 
 ## Riscos e residuais
@@ -64,8 +65,9 @@
 - Sem prévia de crop interativa por arraste; foco é controlado por ranges.
 - Nenhuma publicação, agendamento ou análise de performance social.
 - E2E usa fundo de preset (sem Cloudinary); composição com frame real é validada em integração Sharp, não E2E.
-- Contraste é garantido por scrim/stroke e layout, mas não há medição pixel-a-pixel em todos os frames; revisão visual permanece.
-- Fonte do ambiente (DejaVu/Arial) e hash do template/renderer exigem bump para mudanças visuais.
+- Contraste é garantido por scrim/stroke e layout, mas não há golden image pixel-a-pixel entre sistemas/fontes; revisão visual permanece.
+- Fonte do ambiente (DejaVu/Arial); hash usa `hash_version` gravada, mas só a versão 1 existe hoje; um bump visual deve adicionar hasher/renderer versionado.
+- ZIP PNG de frame muito detalhado pode exceder 4 MB e cair para JPEG; o guard evita truncamento, mas reduz a resolução de formato.
 
 ## Gate
 

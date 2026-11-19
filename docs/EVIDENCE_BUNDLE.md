@@ -4,8 +4,8 @@
 
 - **Work Order:** `DIF-V2-WO-018` · issue #35 · epic #17
 - **Base:** `main` `2617b67` (checkpoint WO-017 promovido); branch `feat/dif-v2-wo-018`
-- **Status:** implementação + correções de auditoria; unit/render/action, PgTAP **193/193**, policy 32/30, build e E2E em validação final; CI pendente. Checkpoint **PROPOSED**.
-- **Auditoria:** rodada 1 **CORRECTION REQUIRED** (descoberta/consumo, tamanho PNG/ZIP, safe zones/contraste, evidência); correções aplicadas; reauditoria pendente.
+- **Status:** code/test head `f0acc7b`; CI `44639723116` PASS (287+3 unit, PgTAP **196/196**, E2E 16/16, Sonar PASS); policy 32/30. Checkpoint **PROPOSED**.
+- **Auditoria:** rodada 1 **CORRECTION REQUIRED**; rodada 2 **APPROVED WITH RESIDUALS** em `922cf38`; rodada final incorpora série dentro do crop, `hash_version` lida, quota PgTAP, determinismo, transparência e screenshots 360/768/1440.
 
 | Check   | Result     | Evidence                                                                                  |
 | ------- | ---------- | ----------------------------------------------------------------------------------------- |
@@ -14,9 +14,9 @@
 | UI      | PASS local | `/app/covers` gera 3+ estilos, prévia, aprova/restaura e baixa PNG/JPEG/ZIP               |
 | Privacy | PASS local | `cover_revisions` owner-read/service-write; rota owner-only, no-store, sem URL permanente |
 | History | PASS local | revisões append-only, approve/restore como nova revisão, quota 500                        |
-| PgTAP   | PASS local | 191/191 com owner read, escrita negada, isolamento e RPC                                  |
+| PgTAP   | PASS       | 196/196 com owner read, escrita negada, isolamento, RPC, prune e quota 500                |
 | Policy  | PASS local | 32 invariantes / 30 tabelas; backup/restore incluem cover_revisions                       |
-| CI      | PENDENTE   | quality/Sonar/E2E finais no head do PR                                                    |
+| CI      | PASS       | `44639723116` em `f0acc7b`: quality/Sonar/E2E, 287+3 e Sonar PASS                         |
 | Limites | —          | sem frame do meio do vídeo; fonte do ambiente; render sob demanda; sem poda UI            |
 
 ## V2 WO-017 — Continuidade visual e Character Identity Kit (2026-11-19) — PROMOTED

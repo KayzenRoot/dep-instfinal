@@ -2,7 +2,7 @@
 
 ## DIF-V2-WO-018 — Capas, posters e cards (2026-11-19) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 193/193, policy 32/30; correções de auditoria aplicadas; CI/reauditoria final pendentes. Sem merge/deploy.
+- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 196/196, policy 32/30; CI `44639723116` PASS em `f0acc7b` (287+3, E2E 16/16, Sonar PASS); auditoria final **APPROVED WITH RESIDUALS**. Sem merge/deploy.
 - **Base:** `main` `2617b67` (checkpoint WO-017 promovido); branch `feat/dif-v2-wo-018`.
 - **Delivered:** configs de capa versionadas sobre frames privados existentes; 4 presets; 9:16/3:4/4:5 com safe zones; render Sharp sob demanda; `/app/covers`; aprovação/restauração; PNG/JPEG/ZIP owner-only; sem bytes gerados persistidos.
 - **Limits:** sem extração de frame do vídeo; fonte do ambiente; texto heurístico; render por demanda; quota 500 sem poda UI.

@@ -2,7 +2,8 @@
 
 Date: 2026-11-19 (America/Sao_Paulo)
 Branch: `feat/dif-v2-wo-018` (base `main` `2617b67`)
-Code/test head: `5ff73ee` (docs-only checkpoint follows)
+Code/test head: `f0acc7b` (docs-only checkpoint follows)
+CI: `44639723116` PASS
 
 ## Static
 
@@ -10,25 +11,26 @@ Code/test head: `5ff73ee` (docs-only checkpoint follows)
 - `npm run lint`: PASS
 - `npm run audit:policy`: 32 invariants / 30 tables PASS
 - `npm run build`: PASS (@sveltejs/adapter-node)
-- `npm run test:db`: **193/193** PgTAP PASS
+- `npm run test:db`: **196/196** PgTAP PASS
 
 ## Unit / action / render
 
-- Full CI suite (`quality` run `44613127238`): **283 passed + 3 skipped**
-  (44 files passed, 3 skipped).
-- `cover.test.ts`: 6/6 — four presets, UI-safe zones, Unicode wrap/ellipsis,
-  textLength/scrim, XML escaping, template/renderer hash, safe filename.
-- `cover-render.integration.test.ts`: 6/6 — 12 format×preset renders, frame crop/focus,
-  JPEG, EXIF orientation 6, preview 378×672, 4 MB response guard, long Unicode.
+- Final CI suite: **287 passed + 3 skipped** on `f0acc7b`.
+- `cover.test.ts`: 5/5 — four presets, UI-safe zones (series inside the 4:5 crop),
+  Unicode wrap/ellipsis, textLength/scrim, two-line subtitle, XML escaping,
+  versioned template/renderer hash, safe filename.
+- `cover-render.integration.test.ts`: 10/10 — 12 format×preset renders, frame crop/focus,
+  JPEG, EXIF orientation 6, preview 378×672, 4 MB response guard, white-frame contrast,
+  corrupted source, transparent-source flattening, byte-identical determinism and long Unicode.
 - `cover-actions.test.ts`: 3/3 — three templates/redirect, invalid config, approve/restore.
 
 ## E2E
 
-- CI: **16/16 passed in 4.3 min**, including `covers.spec.ts`.
-- `e2e/covers.spec.ts`: 4.2 s — login, discover via nav “Capas”, synthetic episode,
+- CI: **16/16 passed**, including `covers.spec.ts`.
+- `e2e/covers.spec.ts` — login, discover via nav “Capas”, synthetic episode,
   generate three 4:5 covers, preview PNG 1080×1350, approve v4, JPEG and ZIP downloads,
-  anonymous access denied, approved cover visible on the episode page, 360 px fit.
-- Responsive routes include `/app/covers` at 360/768/1440.
+  anonymous access denied, approved cover with `naturalWidth > 0` on the episode page,
+  and screenshots at 360/768/1440 (`test-results/screenshots/covers-*.png`).
 
 ## Rendering / limits measured locally
 
@@ -55,5 +57,8 @@ Code/test head: `5ff73ee` (docs-only checkpoint follows)
   with a linked frame that cannot be loaded returns 409 instead of silently substituting.
 - Fonts are environment DejaVu/Arial; text is heuristically wrapped and forced to fit, but
   no pixel golden comparison across hosts.
-- 500 revisions/episode quota with service-only prune RPC; UI shows the latest 30.
+- 500 revisions/episode quota with service-only prune preserving APPROVED; UI shows the latest 30.
+- PgTAP inserts 500 revisions and proves the 501st raises `cover_revision_quota`.
+- Hash is validated with the stored `hash_version`; only v1 exists, so future visual bumps must add a versioned hasher.
+- No golden image across hosts/fonts; E2E still uses preset backgrounds instead of a real Cloudinary frame.
 - No social publishing, scheduling, paid image API, GPU or viral prediction.
