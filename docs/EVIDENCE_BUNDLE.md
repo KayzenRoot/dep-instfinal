@@ -1,5 +1,22 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-016 — Color Match e presets de terror (2026-11-19) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-016` · issue #33 · epic #17
+- **Base:** `main` `d96ed00` (checkpoint WO-015 promovido); branch `feat/dif-v2-wo-016`
+- **Status:** implementação completa; unit **218+3**, policy **30/26**, render FFmpeg real, E2E timeline **1/1** (12,6 min) e responsivo **1/1** PASS; CI/auditoria **PENDENTES**. Checkpoint **PROPOSED**.
+
+| Check     | Result     | Evidence                                                                                                        |
+| --------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
+| Presets   | PASS local | neutral/vhs_1987/police_archive/cctv/cursed_tape versionados com eq/colorbalance/noise/vignette                 |
+| Grade     | PASS local | `ColorGrade` no plano: força 0–100, referência e override/exclusão por clipe                                    |
+| Render    | PASS local | filtro por clipe no grafo; integração FFmpeg real de 4 s graduado; manifesto registra `color`                   |
+| UI        | PASS local | `/app/color` com antes/depois, presets, força, referência, ajuste por cena, salvar/remover e aviso DRAFT        |
+| E2E       | PASS local | timeline 12,6 min aplica e remove `cursed_tape`; responsivo 360/768/1440 inclui `/app/color`                    |
+| CI        | PENDENTE   | será registrado após push do PR Draft                                                                           |
+| Auditoria | PENDENTE   | revisão independente obrigatória antes de merge                                                                 |
+| Limites   | —          | preset+força, sem histogram matching; preview CSS aproximado; sem HDR/clipping automático; custo não por minuto |
+
 ## V2 WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-015` · issue #32 · epic #17

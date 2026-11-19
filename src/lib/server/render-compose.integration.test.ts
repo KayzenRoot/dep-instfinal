@@ -166,6 +166,34 @@ describe.skipIf(!enabled)('FFmpeg composition integration', () => {
 });
 
 describe.skipIf(!enabled)('FFmpeg narration mux integration', () => {
+	it('renders a graded clip with the preset filter', async () => {
+		const local = await mkdtemp(join(tmpdir(), 'dif-render-color-'));
+		try {
+			const { plan, inputs } = twoClipPlan(local);
+			const graded = {
+				...plan,
+				color: {
+					presetId: 'cursed_tape' as const,
+					presetVersion: 1 as const,
+					strength: 80,
+					referenceClipId: null,
+					overrides: [{ clipId: plan.clips[1]!.id, strength: 80, exclude: true }],
+				},
+			};
+			const output = await renderPlanToFile({
+				plan: graded,
+				assets: inputs,
+				outputPath: join(local, 'graded.mp4'),
+				timeoutMs: 60_000,
+			});
+			expect(output.codec).toBe('h264');
+			expect(output.durationMs).toBeGreaterThan(3_500);
+			expect(output.audio).toBeNull();
+		} finally {
+			await rm(local, { recursive: true, force: true });
+		}
+	}, 120_000);
+
 	it('muxes a shorter narration as padded AAC and reports exact timing', async () => {
 		const workspace = await mkdtemp(join(tmpdir(), 'dif-narration-mux-'));
 		try {

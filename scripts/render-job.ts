@@ -423,6 +423,7 @@ async function main() {
 				reportSha256: qualityReport.reportSha256,
 				summary: qualityResult.report.summary,
 			},
+			color: validated.color ?? null,
 			captionsOmitted: validated.captions.template !== 'none' && !caption,
 			cta: validated.cta?.enabled
 				? {

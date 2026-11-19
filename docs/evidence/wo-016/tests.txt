@@ -1,0 +1,36 @@
+# WO-016 — local evidence
+
+Date: 2026-11-19 (America/Sao_Paulo)
+
+## Static
+
+- `npm run check`: `svelte-check found 0 errors and 0 warnings`
+- `npm run lint`: PASS (`eslint . --max-warnings=0`)
+- `npm run audit:policy`: 30 invariants / 26 tables PASS (no migration)
+
+## Unit / integration
+
+- `color-grade.test.ts`: 3/3 — presets distinct, neutral no-op, strength scaling,
+  per-clip override/exclusion, CSS approximation.
+- `render-composition.test.ts`: 13/13 — color filter per clip, exclusion respected.
+- `render-compose.integration.test.ts`: 7/7 — real FFmpeg 4 s graded render with
+  eq/colorbalance/noise/vignette, H.264 output and duration ≥3.5 s.
+- Full local suite: **218 passed + 3 skipped** (32 files).
+
+## E2E
+
+- `e2e/timeline.spec.ts`: 1/1 (12.6 min on this host) — after render/Hook Lab, the
+  owner opens `/app/color`, selects `cursed_tape`, sets 80% intensity, saves the
+  new version and removes the correction; both success notices appear.
+- `e2e/owner-boundary.spec.ts -g "authenticated studio pages|private narration endpoints"`:
+  2/2 (2.9 min), responsive 360/768/1440 includes `/app/color`.
+
+## Limits verified
+
+- Color Match is preset + strength + per-scene override, not automatic histogram
+  matching; the reference anchors the before/after comparison.
+- The side-by-side preview uses approximate CSS; the FFmpeg render is the
+  reference and may differ in color/contrast.
+- HDR/BT.2020 and automatic clipping detection are not implemented.
+- Saving color creates a DRAFT version; the owner must approve the plan and
+  reapprove captions before rendering.

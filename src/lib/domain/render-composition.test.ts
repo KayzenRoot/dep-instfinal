@@ -103,6 +103,22 @@ describe('render composition command', () => {
 		expect(command.filterGraph).toContain('[outv]');
 	});
 
+	it('applies per-clip color filters and respects scene exclusions', () => {
+		const plan = buildDefaultEditPlan(context());
+		const color = {
+			presetId: 'cursed_tape' as const,
+			presetVersion: 1 as const,
+			strength: 80,
+			referenceClipId: null,
+			overrides: [{ clipId: plan.clips[1]!.id, strength: 80, exclude: true }],
+		};
+		const command = buildRenderCommand({ ...plan, color }, inputs(plan), '/tmp/out.mp4');
+		expect(command.filterGraph).toContain('eq=brightness=-0.016');
+		const secondClipFilter =
+			command.filterGraph.split(';').find((segment) => segment.includes('[v1]')) ?? '';
+		expect(secondClipFilter).not.toContain('colorbalance=');
+	});
+
 	it('supports the 720p fallback and the high quality tier', () => {
 		const plan = buildDefaultEditPlan(context());
 		const command = buildRenderCommand(plan, inputs(plan), '/tmp/out.mp4', {

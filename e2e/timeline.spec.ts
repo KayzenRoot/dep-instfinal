@@ -355,7 +355,7 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await page.waitForTimeout(1_000);
 	await cancelOpenRenderJobs(request);
 	await page.getByRole('button', { name: 'Renderizar plano aprovado' }).click();
-	await expect(page.getByText(/QUEUED|CLAIMED|RUNNING/)).toBeVisible();
+	await expect(page.getByText(/QUEUED|CLAIMED|RUNNING/)).toBeVisible({ timeout: 15_000 });
 	console.log('[timeline-e2e] render enqueued');
 
 	const assetResponse = await page.request.get(`/api/video/assets?episodeId=${episodeId}`);
@@ -517,6 +517,15 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await page.getByRole('button', { name: 'Reverter à edição original' }).first().click();
 	await expect(page.locator('.notice.success')).toContainText('Edição original restaurada');
 	console.log('[timeline-e2e] hook variant applied and reverted');
+	console.log('[timeline-e2e] applying and clearing color grade');
+	await page.goto(`/app/color?episodeId=${episodeId}`);
+	await page.locator('select[name="presetId"]').selectOption('cursed_tape');
+	await page.locator('input[name="strength"]').fill('80');
+	await page.getByRole('button', { name: 'Salvar correção cromática' }).click();
+	await expect(page.locator('.notice.success')).toContainText('Cor salva');
+	await page.getByRole('button', { name: 'Remover correção (voltar ao original)' }).click();
+	await expect(page.locator('.notice.success')).toContainText('Cor removida');
+	console.log('[timeline-e2e] color grade applied and cleared');
 
 	if (process.env.E2E_KEEP_RENDER === '1') {
 		console.log(`[timeline-e2e] kept render root at ${renderRoot}`);

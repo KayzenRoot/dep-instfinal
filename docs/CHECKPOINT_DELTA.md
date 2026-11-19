@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-016 — Color Match e presets de terror (2026-11-19) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; unit 218+3, policy 30/26, render FFmpeg real, E2E PASS; CI/auditoria pendentes. Sem merge/deploy.
+- **Base:** `main` `d96ed00` (checkpoint WO-015 promovido); branch `feat/dif-v2-wo-016`.
+- **Delivered:** presets versionados; `ColorGrade` no plano com força global, referência e override/exclusão por clipe; filtro FFmpeg determinístico no render; `/app/color` com antes/depois CSS, salvar DRAFT e remover; manifesto registra o grade.
+- **Limits:** preset+força, sem histogram matching; preview CSS diverge do FFmpeg; HDR/clipping automático não implementados; custo por minuto não reportado; salvar exige reaprovar legendas.
+- **Gate:** CI + auditoria independente + autorização do owner; WO-017 (#34) é a próxima.
+
 ## DIF-V2-WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROMOTED
 
 - **Status:** **PROMOTED**; unit 213+3, PgTAP 161/161, policy 30/26, E2E 14/14; CI `44427960113` em `b3426ef` PASS; auditoria **APPROVED WITH RESIDUALS**; squash-merged em `7c2ac4b` (PR #62); issue #32 fechada.
