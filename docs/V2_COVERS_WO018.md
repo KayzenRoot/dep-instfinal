@@ -27,13 +27,13 @@
 
 ## Critérios de aceitação
 
-| Critério | Estado | Evidência |
-| --- | --- | --- |
-| Episódio Flow real/sintético: escolher frame e obter ≥3 estilos com identidade de série | PASS parcial | 4 presets; E2E gera 3 estilos sem frame; render com frame coberto por integração Sharp |
-| Downloads 9:16, 3:4, 4:5 e prévias de corte; texto/logo legíveis nas safe zones | PASS | render testa os 3 formatos; layout seguro; ZIP 3 formatos; E2E confere 1080×1350 e download |
-| Editar título/preset/foco atualiza capa sem mudar frames/cânone; versões recuperáveis | PASS | config versionada, aprovar/restaurar, foco/crop; nenhuma escrita em cenas/cânone |
-| Anon/non-owner não acessam frame/capa; export segue licença | PASS | rota owner-only, RLS, PgTAP, sem URLs permanentes |
-| Custo zero por geração de imagem | PASS | render local Sharp sobre assets existentes; sem API paga/GPU |
+| Critério                                                                                | Estado       | Evidência                                                                                   |
+| --------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------- |
+| Episódio Flow real/sintético: escolher frame e obter ≥3 estilos com identidade de série | PASS parcial | 4 presets; E2E gera 3 estilos sem frame; render com frame coberto por integração Sharp      |
+| Downloads 9:16, 3:4, 4:5 e prévias de corte; texto/logo legíveis nas safe zones         | PASS         | render testa os 3 formatos; layout seguro; ZIP 3 formatos; E2E confere 1080×1350 e download |
+| Editar título/preset/foco atualiza capa sem mudar frames/cânone; versões recuperáveis   | PASS         | config versionada, aprovar/restaurar, foco/crop; nenhuma escrita em cenas/cânone            |
+| Anon/non-owner não acessam frame/capa; export segue licença                             | PASS         | rota owner-only, RLS, PgTAP, sem URLs permanentes                                           |
+| Custo zero por geração de imagem                                                        | PASS         | render local Sharp sobre assets existentes; sem API paga/GPU                                |
 
 ## Testes planejados/executados
 
