@@ -266,6 +266,8 @@ export async function loadCoverRevision(
 	owner: User,
 	revisionId: string,
 ): Promise<CoverRevision | null> {
+	if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(revisionId))
+		return null;
 	const { data, error } = await db
 		.from('cover_revisions')
 		.select('id,episode_id,revision_number,template_id,format,status,config,config_hash,created_at')

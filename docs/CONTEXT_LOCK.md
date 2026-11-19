@@ -215,7 +215,7 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Base revalidated:** `main` `2617b67` (checkpoint WO-017 promoted). Branch: `feat/dif-v2-wo-018`.
 - **Issue inventory:** WO-001–017 **MERGED/CLOSED/PROMOTED**; WO-018/#35 em execução; WO-014 blocked by 019–021 + OPS.
 - **Scope:** capas/posters/cards determinísticos sobre frames privados; 4 presets; formatos 9:16/3:4/4:5; foco, safe zones, versões e downloads owner-only.
-- **Delivered locally:** `cover_revisions` service-write/owner-read; render Sharp on demand; `/app/covers`; approve/restore; PNG/JPEG/ZIP; policy 32/30; PgTAP 191/191.
+- **Delivered locally:** `cover_revisions` service-write/owner-read; render Sharp on demand; `/app/covers` na nav; approve/restore; PNG/JPEG/ZIP com guarda 4 MB; capa aprovada no episódio; policy 32/30; PgTAP 193/193.
 - **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROPOSED**. WO-019 (#36) é a próxima.
 
 ## V2 Context Lock — WO-017 (#34)

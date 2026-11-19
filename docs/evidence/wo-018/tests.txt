@@ -1,0 +1,59 @@
+# WO-018 — evidence
+
+Date: 2026-11-19 (America/Sao_Paulo)
+Branch: `feat/dif-v2-wo-018` (base `main` `2617b67`)
+Code/test head: `5ff73ee` (docs-only checkpoint follows)
+
+## Static
+
+- `npm run check`: 0 errors / 0 warnings
+- `npm run lint`: PASS
+- `npm run audit:policy`: 32 invariants / 30 tables PASS
+- `npm run build`: PASS (@sveltejs/adapter-node)
+- `npm run test:db`: **193/193** PgTAP PASS
+
+## Unit / action / render
+
+- Full CI suite (`quality` run `44613127238`): **283 passed + 3 skipped**
+  (44 files passed, 3 skipped).
+- `cover.test.ts`: 6/6 — four presets, UI-safe zones, Unicode wrap/ellipsis,
+  textLength/scrim, XML escaping, template/renderer hash, safe filename.
+- `cover-render.integration.test.ts`: 6/6 — 12 format×preset renders, frame crop/focus,
+  JPEG, EXIF orientation 6, preview 378×672, 4 MB response guard, long Unicode.
+- `cover-actions.test.ts`: 3/3 — three templates/redirect, invalid config, approve/restore.
+
+## E2E
+
+- CI: **16/16 passed in 4.3 min**, including `covers.spec.ts`.
+- `e2e/covers.spec.ts`: 4.2 s — login, discover via nav “Capas”, synthetic episode,
+  generate three 4:5 covers, preview PNG 1080×1350, approve v4, JPEG and ZIP downloads,
+  anonymous access denied, approved cover visible on the episode page, 360 px fit.
+- Responsive routes include `/app/covers` at 360/768/1440.
+
+## Rendering / limits measured locally
+
+- 1080×1920 PNG of a detailed/noisy frame reached **5.95 MB** and a photo-like frame
+  **4.17 MB**; the route now returns 413 above 4 MB with JPEG/individual-format guidance.
+- Six concurrent 4096² → 1080×1920 PNG renders took **4.64 s**, peak RSS **562 MB**;
+  the grid preview uses a 0.35 scale to reduce response size/CPU. No persistent cache.
+- EXIF orientation test: 400×200 + orientation 6 renders at 1080×1920 without distortion
+  in the crop pipeline.
+
+## Security / privacy
+
+- `cover_revisions` RLS owner-read/service-write; direct authenticated insert/update denied;
+  second owner sees zero rows; RPC service-only with expectedRevision.
+- `/api/covers/[revisionId]` owner-only, `private, no-store`, no permanent URL; anonymous
+  access denied in E2E; filename sanitized; SVG text XML-escaped.
+- No generated image bytes or URLs stored; only config/hash.
+- Backup/restore and backup manifest include `cover_revisions`.
+
+## Limits verified
+
+- Frames come from linked READY `media_assets`; no midpoint extraction from video.
+- Without Cloudinary/frame, the preset background is used for placeholder covers; a config
+  with a linked frame that cannot be loaded returns 409 instead of silently substituting.
+- Fonts are environment DejaVu/Arial; text is heuristically wrapped and forced to fit, but
+  no pixel golden comparison across hosts.
+- 500 revisions/episode quota with service-only prune RPC; UI shows the latest 30.
+- No social publishing, scheduling, paid image API, GPU or viral prediction.

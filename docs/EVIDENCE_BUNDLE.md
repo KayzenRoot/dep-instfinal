@@ -4,8 +4,8 @@
 
 - **Work Order:** `DIF-V2-WO-018` · issue #35 · epic #17
 - **Base:** `main` `2617b67` (checkpoint WO-017 promovido); branch `feat/dif-v2-wo-018`
-- **Status:** implementação local; unit/render/action, PgTAP 191, policy 32/30, build e E2E em validação; CI/auditoria pendentes. Checkpoint **PROPOSED**.
-- **Auditoria:** independente ainda não executada.
+- **Status:** implementação + correções de auditoria; unit/render/action, PgTAP **193/193**, policy 32/30, build e E2E em validação final; CI pendente. Checkpoint **PROPOSED**.
+- **Auditoria:** rodada 1 **CORRECTION REQUIRED** (descoberta/consumo, tamanho PNG/ZIP, safe zones/contraste, evidência); correções aplicadas; reauditoria pendente.
 
 | Check   | Result     | Evidence                                                                                  |
 | ------- | ---------- | ----------------------------------------------------------------------------------------- |

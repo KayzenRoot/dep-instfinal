@@ -48,10 +48,10 @@ export const GET: RequestHandler = async (event) => {
 			const archive = new ZipArchive({ zlib: { level: 6 } });
 			archive.on('error', (cause: Error) => stream.destroy(cause));
 			archive.pipe(stream);
+			const extension = output === 'jpeg' ? 'jpg' : 'png';
 			for (const [index, format] of FORMAT_IDS.entries()) {
-				const rendered = await renderCover(revision.config, source, format, output, scale);
-				archive.append(buffers[index] ?? rendered.buffer, {
-					name: `${base}-${format.replace(':', 'x')}.${rendered.extension}`,
+				archive.append(buffers[index]!, {
+					name: `${base}-${format.replace(':', 'x')}.${extension}`,
 				});
 			}
 			void archive.finalize();

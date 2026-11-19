@@ -15,6 +15,16 @@
 - Rota `/api/covers/[revisionId]`: owner-only, `private, no-store`, render on demand, download separado e ZIP; nunca expõe URL permanente.
 - Link no caderno do episódio; backup/restore e policy incluem `cover_revisions`.
 
+## Correções pós-auditoria independente
+
+- **Descoberta/consumo:** “Capas” entrou na navegação; o episódio consulta a última capa APPROVED e mostra a prévia com link para o estúdio. A aprovação deixa de ser estado sem consumidor.
+- **Safe zones/contraste:** título/selo/série/watermark usam margens conservadoras por formato, incluindo a faixa de UI do TikTok/Reels; scrim, stroke e `textLength` evitam texto claro sobre frame claro e cortes de glifos largos; selo/série são truncados.
+- **Tamanho de resposta:** PNG/JPEG/ZIP são medidos contra 4 MB e retornam 413 com instrução de JPEG/formato individual; preview usa escala 0.35 (378×672), reduzindo CPU/resposta.
+- **Frame indisponível:** config com frame vinculado mas source ausente retorna 409 em vez de cair silenciosamente no fundo do preset; erro de Sharp vira 502 seguro.
+- **EXIF:** dimensões são trocadas para orientations 5–8 antes do crop; teste com orientation 6.
+- **Hash/retenção:** hash inclui parâmetros do template e versão do renderer; RPC service-only `prune_cover_revisions` mantém as revisões mais recentes e é testada no PgTAP.
+- **Evidência:** E2E navega pela UI, verifica acesso anônimo negado e capa aprovada no episódio; testes de safe zone/scrim, tamanho, preview e EXIF adicionados.
+
 ## Capacidade real versus planejada
 
 - Frames vêm de `media_assets` READY (REFERENCE/FRAME) e dos vínculos `start_frame_asset_id`/`end_frame_asset_id`. Não há extração de frame do meio do vídeo na aplicação; isso exigiria worker/canvas e permanece futuro.
@@ -37,11 +47,11 @@
 
 ## Testes planejados/executados
 
-- Unit: 4 presets distintos, dimensões/safe zones, wrap Unicode/ellipsis, escape XML, hash determinístico, nome de arquivo seguro.
-- Render: 12 combinações formato × preset, composição sobre frame, foco, JPEG, título longo com acentos/emoji.
+- Unit: 6 testes — 4 presets, dimensões/safe zones de UI, wrap Unicode/ellipsis, `textLength`/scrim, escape XML, hash com template/renderer e nome seguro.
+- Render: 6 testes — 12 combinações formato × preset, frame/foco/JPEG, EXIF orientation 6, preview 378×672, limite de 4 MB, título longo Unicode.
 - Actions: geração de 3 templates com revisão otimista, configuração inválida, approve/restore e redirects.
-- PgTAP: owner read, escrita direta negada, segundo owner isolado, RPC versionada e quota.
-- E2E: criar episódio sintético, gerar 3 capas, aprovar, prévia PNG 4:5, download JPEG e ZIP, responsivo 360.
+- PgTAP 193: owner read, escrita direta negada, segundo owner isolado, RPC versionada, quota e poda.
+- E2E: entrar pela nav, criar episódio sintético, gerar/aprovar, prévia PNG 4:5, download JPEG/ZIP, acesso anônimo negado, capa aprovada no episódio, responsivo 360.
 - Policy: 32 invariantes / 30 tabelas; backup/restore atualizados.
 
 ## Riscos e residuais
@@ -50,10 +60,12 @@
 - Fonte depende do ambiente (DejaVu/Arial); render pode variar entre sistemas sem golden pixel.
 - Texto é heurístico (largura por caracteres), não medição tipográfica real; títulos longos truncam.
 - Render on demand consome CPU a cada prévia/download; sem cache persistente.
-- Histórico de 500 revisões sem poda na UI; operação service-only.
+- Histórico de 500 revisões com poda service-only; UI lista só as 30 mais recentes.
 - Sem prévia de crop interativa por arraste; foco é controlado por ranges.
 - Nenhuma publicação, agendamento ou análise de performance social.
 - E2E usa fundo de preset (sem Cloudinary); composição com frame real é validada em integração Sharp, não E2E.
+- Contraste é garantido por scrim/stroke e layout, mas não há medição pixel-a-pixel em todos os frames; revisão visual permanece.
+- Fonte do ambiente (DejaVu/Arial) e hash do template/renderer exigem bump para mudanças visuais.
 
 ## Gate
 
