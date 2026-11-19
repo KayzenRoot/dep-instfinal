@@ -45,7 +45,7 @@ const baseInput = {
 	adminDb: {} as never,
 	owner: { id: 'owner-id' } as never,
 	episodeId: 'episode-id',
-	expectedVersion: 3,
+	expectedVersion: 2,
 };
 
 describe('saveColorGrade', () => {
@@ -58,7 +58,7 @@ describe('saveColorGrade', () => {
 		await expect(saveColorGrade({ ...baseInput, grade: grade() })).resolves.toBe(4);
 		expect(planModule.saveVideoEditPlan).toHaveBeenCalledWith(
 			expect.objectContaining({
-				expectedVersion: 3,
+				expectedVersion: 2,
 				plan: expect.objectContaining({ color: grade() }),
 			}),
 		);
@@ -120,7 +120,7 @@ describe('clearColorGrade', () => {
 	it('removes the color field and keeps the optimistic version', async () => {
 		await expect(clearColorGrade(baseInput)).resolves.toBe(9);
 		const call = planModule.saveVideoEditPlan.mock.calls[0]?.[0];
-		expect(call).toMatchObject({ expectedVersion: 3 });
+		expect(call).toMatchObject({ expectedVersion: 2 });
 		expect(call.plan).not.toHaveProperty('color');
 	});
 

@@ -133,11 +133,16 @@ describe.skipIf(!enabled)('graded render color range', () => {
 			const after = await measureColorStats(output.path, { fps: 2, frames: 3 });
 			const comparison = compareColorRange(before, after);
 			const assessment = assessColorRange(after);
+			const changed =
+				Math.abs(after.meanLuma - before.meanLuma) >= 1 ||
+				Math.abs(after.meanSaturation - before.meanSaturation) >= 1;
 			console.log(
 				`${check.fixture}/${check.presetId}: p05 ${before.p05Luma}→${after.p05Luma}, ` +
 					`low ${before.lowClipPct.toFixed(1)}%→${after.lowClipPct.toFixed(1)}%, ` +
-					`high ${before.highClipPct.toFixed(1)}%→${after.highClipPct.toFixed(1)}%`,
+					`high ${before.highClipPct.toFixed(1)}%→${after.highClipPct.toFixed(1)}%, ` +
+					`luma ${before.meanLuma.toFixed(1)}→${after.meanLuma.toFixed(1)}`,
 			);
+			expect(changed, `${check.fixture}/${check.presetId} did not apply the grade`).toBe(true);
 			expect(comparison.shadowCrush, `${check.fixture}/${check.presetId} crushed shadows`).toBe(
 				false,
 			);

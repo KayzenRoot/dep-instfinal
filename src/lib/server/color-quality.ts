@@ -1,9 +1,15 @@
 import { execFile } from 'node:child_process';
+import { join } from 'node:path';
 import { summarizeRgbFrames, type ColorStats } from '#lib/domain/color-quality.js';
 
 const DEFAULT_WIDTH = 64;
 const DEFAULT_HEIGHT = 114;
 const MAX_BUFFER = 8 * 1024 * 1024;
+const defaultFfmpegBinary =
+	process.env.FFMPEG_PATH ??
+	(process.platform === 'win32'
+		? join(process.env.LOCALAPPDATA ?? 'C:\\Windows', 'Microsoft', 'WinGet', 'Links', 'ffmpeg.exe')
+		: '/usr/bin/ffmpeg');
 
 export interface MeasureColorOptions {
 	ffmpegPath?: string;
@@ -56,7 +62,7 @@ export async function measureColorStats(
 	options: MeasureColorOptions = {},
 ): Promise<ColorStats> {
 	const buffer = await decodeFrames(
-		options.ffmpegPath ?? 'ffmpeg',
+		options.ffmpegPath ?? defaultFfmpegBinary,
 		inputPath,
 		options.fps ?? 0.2,
 		options.frames ?? 12,

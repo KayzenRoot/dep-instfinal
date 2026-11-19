@@ -52,7 +52,7 @@ function event(fields: Record<string, string>) {
 function saveFields(overrides: Record<string, string> = {}) {
 	return {
 		episodeId,
-		expectedVersion: '3',
+		expectedVersion: '2',
 		presetId: 'cursed_tape',
 		strength: '80',
 		referenceClipId: clipId,
@@ -92,14 +92,14 @@ describe('color page actions', () => {
 	});
 
 	it('forwards the parsed grade and optimistic version', async () => {
-		await expect(actions.save(event(saveFields()))).resolves.toEqual({
-			success: 'saved',
-			version: 4,
+		await expect(actions.save(event(saveFields()))).rejects.toMatchObject({
+			status: 303,
+			location: `/app/color?episodeId=${episodeId}&saved=4`,
 		});
 		expect(color.saveColorGrade).toHaveBeenCalledWith(
 			expect.objectContaining({
 				episodeId,
-				expectedVersion: 3,
+				expectedVersion: 2,
 				grade: {
 					presetId: 'cursed_tape',
 					presetVersion: 1,
@@ -112,26 +112,28 @@ describe('color page actions', () => {
 	});
 
 	it('maps plan conflicts to their real status instead of 503', async () => {
-		color.saveColorGrade.mockRejectedValue(
-			new plans.VideoEditPlanError(
-				409,
-				'EDIT_PLAN_VERSION_CONFLICT',
-				'Recarregue antes de salvar.',
-			),
-		);
-		await expect(actions.save(event(saveFields()))).resolves.toMatchObject({
-			status: 409,
-			data: { message: 'Recarregue antes de salvar.' },
-		});
+		for (const [status, code, message] of [
+			[400, 'EDIT_PLAN_INVALID', 'Plano inválido.'],
+			[404, 'EDIT_PLAN_NOT_FOUND', 'Plano não encontrado.'],
+			[409, 'EDIT_PLAN_VERSION_CONFLICT', 'Recarregue antes de salvar.'],
+		] as const) {
+			color.saveColorGrade.mockRejectedValueOnce(
+				new plans.VideoEditPlanError(status, code, message),
+			);
+			await expect(actions.save(event(saveFields()))).resolves.toMatchObject({
+				status,
+				data: { message },
+			});
+		}
 	});
 
 	it('clears with the displayed version and maps domain errors', async () => {
-		await expect(actions.clear(event({ episodeId, expectedVersion: '3' }))).resolves.toEqual({
-			success: 'cleared',
-			version: 5,
+		await expect(actions.clear(event({ episodeId, expectedVersion: '2' }))).rejects.toMatchObject({
+			status: 303,
+			location: `/app/color?episodeId=${episodeId}&cleared=5`,
 		});
 		expect(color.clearColorGrade).toHaveBeenCalledWith(
-			expect.objectContaining({ episodeId, expectedVersion: 3 }),
+			expect.objectContaining({ episodeId, expectedVersion: 2 }),
 		);
 		color.clearColorGrade.mockRejectedValue(
 			new color.ColorGradeError(409, 'COLOR_ALREADY_CLEAR', 'Nada para remover.'),

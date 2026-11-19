@@ -46,6 +46,10 @@ describe('color frame statistics', () => {
 			status: 'WARN',
 			severe: true,
 		});
+		expect(assessColorRange(stats({ lowClipPct: 19, highClipPct: 19 }))).toMatchObject({
+			status: 'WARN',
+			severe: true,
+		});
 	});
 
 	it('flags shadow crush and clipping growth against a before fixture', () => {
@@ -58,9 +62,15 @@ describe('color frame statistics', () => {
 		expect(compareColorRange(stats({ p05Luma: 20 }), stats({ p05Luma: 1 }))).toMatchObject({
 			shadowCrush: true,
 		});
+		expect(compareColorRange(stats({ p05Luma: 20 }), stats({ p05Luma: 3 }))).toMatchObject({
+			shadowCrush: true,
+		});
 		expect(compareColorRange(stats({ lowClipPct: 2 }), stats({ lowClipPct: 14 }))).toMatchObject({
 			lowClipGrowth: 12,
 			shadowCrush: false,
+		});
+		expect(compareColorRange(stats({ p95Luma: 240 }), stats({ p95Luma: 255 }))).toMatchObject({
+			highlightCrush: true,
 		});
 	});
 });

@@ -85,14 +85,15 @@
 
 {#if form?.message}<p class="notice error" role="alert">{form.message}</p>{/if}
 {#if data.loadError}<p class="notice error" role="alert">{data.loadError}</p>{/if}
-{#if form?.success === 'saved'}
+{#if data.notice?.kind === 'saved'}
 	<p class="notice success" role="status">
-		Cor salva na versão {form.version}. Aprove o plano e reaprove as legendas antes do render.
+		Cor salva na versão {data.notice.version}. Aprove o plano e reaprove as legendas antes do
+		render.
 	</p>
-{:else if form?.success === 'cleared'}
+{:else if data.notice?.kind === 'cleared'}
 	<p class="notice success" role="status">
-		Cor removida na versão {form.version}. A nova versão é DRAFT: aprove o plano e reaprove as
-		legendas antes do render. O vídeo original continua preservado no histórico.
+		Cor removida na versão {data.notice.version}. A nova versão é DRAFT: aprove o plano e reaprove
+		as legendas antes do render. O vídeo original continua preservado no histórico.
 	</p>
 {/if}
 

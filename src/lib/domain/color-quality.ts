@@ -69,8 +69,11 @@ export function summarizeRgbFrames(buffer: Buffer, width: number, height: number
 
 /** Warn when a graded render spends too much of its range in the clipping extremes. */
 export function assessColorRange(stats: ColorStats): ColorRangeAssessment {
-	const severe = stats.lowClipPct >= CLIP_WARN_PCT || stats.highClipPct >= CLIP_WARN_PCT;
 	const combined = stats.lowClipPct + stats.highClipPct;
+	const severe =
+		stats.lowClipPct >= CLIP_WARN_PCT ||
+		stats.highClipPct >= CLIP_WARN_PCT ||
+		combined >= CLIP_WARN_PCT * 1.5;
 	return {
 		status: severe ? 'WARN' : 'PASS',
 		severe,
@@ -91,7 +94,7 @@ export function compareColorRange(
 	highClipGrowth: number;
 } {
 	return {
-		shadowCrush: before.p05Luma >= 4 && after.p05Luma <= 2,
+		shadowCrush: before.p05Luma > 2 && after.p05Luma <= Math.max(2, before.p05Luma * 0.35),
 		highlightCrush: before.p95Luma <= 251 && after.p95Luma >= 253,
 		lowClipGrowth: after.lowClipPct - before.lowClipPct,
 		highClipGrowth: after.highClipPct - before.highClipPct,

@@ -165,7 +165,7 @@ describe.skipIf(!enabled)('FFmpeg composition integration', () => {
 	}, 900_000);
 });
 
-describe.skipIf(!enabled)('FFmpeg narration mux integration', () => {
+describe.skipIf(!enabled)('FFmpeg graded render and narration integration', () => {
 	it('renders a graded clip with the preset filter', async () => {
 		const local = await mkdtemp(join(tmpdir(), 'dif-render-color-'));
 		try {
@@ -187,6 +187,10 @@ describe.skipIf(!enabled)('FFmpeg narration mux integration', () => {
 				timeoutMs: 60_000,
 			});
 			expect(output.codec).toBe('h264');
+			expect(output.width).toBe(1080);
+			expect(output.height).toBe(1920);
+			expect(output.fps).toBeGreaterThanOrEqual(29);
+			expect(output.fps).toBeLessThanOrEqual(31);
 			expect(output.durationMs).toBeGreaterThan(3_500);
 			expect(output.audio).toBeNull();
 		} finally {

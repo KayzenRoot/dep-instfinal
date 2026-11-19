@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { ownerDatabase } from '#lib/server/authorized.js';
 import { loadOwnerEpisodeSelection } from '#lib/server/episode-options.js';
@@ -50,6 +50,7 @@ export const load: PageServerLoad = async (event) => {
 			plan: null,
 			color: null,
 			clips: [],
+			notice: null,
 			loadError: 'Crie um episódio e salve a timeline antes de aplicar cor.',
 		};
 	let stored: Awaited<ReturnType<typeof loadEditPlan>> = { plan: null, versions: [] };
@@ -76,11 +77,19 @@ export const load: PageServerLoad = async (event) => {
 			return {
 				id: clip.id,
 				assetId: clip.assetId,
-				label: sceneIndex === undefined ? `Cena ${index + 1}` : `Cena ${sceneIndex + 1}`,
+				label: sceneIndex === undefined ? `Cena ${index + 1}` : `Cena ${sceneIndex}`,
 				startMs: clip.timelineStartMs,
 				endMs: clip.timelineEndMs,
 			};
 		});
+	const savedVersion = Number(event.url.searchParams.get('saved') ?? '');
+	const clearedVersion = Number(event.url.searchParams.get('cleared') ?? '');
+	const notice =
+		Number.isSafeInteger(savedVersion) && savedVersion > 0
+			? { kind: 'saved' as const, version: savedVersion }
+			: Number.isSafeInteger(clearedVersion) && clearedVersion > 0
+				? { kind: 'cleared' as const, version: clearedVersion }
+				: null;
 	return {
 		episodes,
 		selectedEpisode,
@@ -89,6 +98,7 @@ export const load: PageServerLoad = async (event) => {
 			: null,
 		color: stored.plan?.plan.color ?? null,
 		clips,
+		notice,
 		loadError,
 	};
 };
@@ -115,8 +125,9 @@ export const actions: Actions = {
 			return fail(400, { message: 'Ajustes por cena inválidos. Recarregue a página.' });
 		}
 		const referenceClipId = form.get('referenceClipId');
+		let version: number;
 		try {
-			const version = await saveColorGrade({
+			version = await saveColorGrade({
 				db,
 				adminDb: createSupabaseAdminClient(),
 				owner,
@@ -131,10 +142,10 @@ export const actions: Actions = {
 					overrides,
 				},
 			});
-			return { success: 'saved', version };
 		} catch (cause) {
 			return actionError(cause);
 		}
+		redirect(303, `/app/color?episodeId=${encodeURIComponent(episodeId)}&saved=${version}`);
 	},
 	clear: async (event) => {
 		const { db, owner } = ownerDatabase(event);
@@ -143,17 +154,18 @@ export const actions: Actions = {
 		const expectedVersion = readExpectedVersion(form);
 		if (!episodeId || expectedVersion === null)
 			return fail(400, { message: 'Episódio ou versão do plano inválidos. Recarregue a página.' });
+		let version: number;
 		try {
-			const version = await clearColorGrade({
+			version = await clearColorGrade({
 				db,
 				adminDb: createSupabaseAdminClient(),
 				owner,
 				episodeId,
 				expectedVersion,
 			});
-			return { success: 'cleared', version };
 		} catch (cause) {
 			return actionError(cause);
 		}
+		redirect(303, `/app/color?episodeId=${encodeURIComponent(episodeId)}&cleared=${version}`);
 	},
 };
