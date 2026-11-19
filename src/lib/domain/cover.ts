@@ -168,11 +168,7 @@ function hardWrap(word: string, maxChars: number): string[] {
 /** Word-wraps Unicode text and truncates to a bounded number of lines. */
 export function wrapCoverText(text: string, maxChars: number, maxLines: number): string[] {
 	const limit = Math.max(4, Math.floor(maxChars));
-	const words = text
-		.replaceAll(/\s+/g, ' ')
-		.trim()
-		.split(' ')
-		.filter(Boolean);
+	const words = text.replaceAll(/\s+/g, ' ').trim().split(' ').filter(Boolean);
 	const lines: string[] = [];
 	let current = '';
 	for (const word of words) {
@@ -191,7 +187,9 @@ export function wrapCoverText(text: string, maxChars: number, maxLines: number):
 	if (lines.length <= maxLines) return lines;
 	const truncated = lines.slice(0, maxLines);
 	const last = truncated[maxLines - 1] ?? '';
-	truncated[maxLines - 1] = `${Array.from(last).slice(0, Math.max(2, limit - 1)).join('')}…`;
+	truncated[maxLines - 1] = `${Array.from(last)
+		.slice(0, Math.max(2, limit - 1))
+		.join('')}…`;
 	return truncated;
 }
 
@@ -223,8 +221,11 @@ export function buildCoverSvg(
 		.join('');
 	const subtitle = config.subtitle
 		? `<text x="${layout.subtitleBox.x}" y="${layout.subtitleBox.y + subtitleSize}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${subtitleSize}" fill="${template.subtitleColor}">${escapeXml(
-				wrapCoverText(config.subtitle, Math.floor(layout.subtitleBox.width / (subtitleSize * 0.58)), 2)[0] ??
-					'',
+				wrapCoverText(
+					config.subtitle,
+					Math.floor(layout.subtitleBox.width / (subtitleSize * 0.58)),
+					2,
+				)[0] ?? '',
 			)}</text>`
 		: '';
 	const background = options.background
