@@ -502,6 +502,22 @@ test('owner edits a versioned timeline and restores an earlier version', async (
 	await expect(page.getByText('QUEUED', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Cancelar' }).first().click();
 	await expect(page.getByText('CANCELED', { exact: true })).toBeVisible();
+	console.log('[timeline-e2e] generating hook variants');
+	await page.goto(`/app/hooks?episodeId=${episodeId}`);
+	await page.getByRole('button', { name: 'Gerar aberturas' }).click();
+	await expect(page.locator('.card').first()).toBeVisible({ timeout: 30_000 });
+	const hookCount = await page.locator('.card').count();
+	expect(hookCount).toBeGreaterThanOrEqual(2);
+	await page
+		.locator('.card')
+		.first()
+		.getByRole('button', { name: 'Aplicar como abertura oficial' })
+		.click();
+	await expect(page.locator('.notice.success')).toContainText('Abertura aplicada');
+	await page.getByRole('button', { name: 'Reverter à edição original' }).first().click();
+	await expect(page.locator('.notice.success')).toContainText('Edição original restaurada');
+	console.log('[timeline-e2e] hook variant applied and reverted');
+
 	if (process.env.E2E_KEEP_RENDER === '1') {
 		console.log(`[timeline-e2e] kept render root at ${renderRoot}`);
 	} else {

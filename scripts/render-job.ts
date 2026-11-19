@@ -115,6 +115,7 @@ async function main() {
 				throw new Error('caption_take_mismatch');
 			caption = { id: captionRow.id, track: parsedCaption.data };
 		}
+		if (!caption) throw new Error('captions_not_approved');
 	}
 	let narration: {
 		id: string;

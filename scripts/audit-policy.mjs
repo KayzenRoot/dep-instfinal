@@ -62,6 +62,10 @@ const hardeningMigration = await readFile(
 	'supabase/migrations/20261118170000_v2_wo013_hardening.sql',
 	'utf8',
 );
+const hookMigration = await readFile(
+	'supabase/migrations/20261118200000_v2_wo015_hook_variants.sql',
+	'utf8',
+);
 const retentionScript = await readFile('scripts/retention.mjs', 'utf8');
 const restoreScript = await readFile('scripts/restore-metadata.mjs', 'utf8');
 const hook = await readFile('src/hooks.server.ts', 'utf8');
@@ -97,9 +101,10 @@ const tables = [
 	...captionMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...audioMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...qualityMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...hookMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['25 owner-scoped public tables', tables.length === 25],
+	['26 owner-scoped public tables', tables.length === 26],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -328,6 +333,18 @@ const checks = [
 			qualityMigration.includes('output_profile in') &&
 			qualityMigration.includes('quality in') &&
 			qualityMigration.includes("left(p_error_code, 3) = 'QA_'"),
+	],
+	[
+		'hook variants are owner-read patches applied as new plan versions',
+		hookMigration.includes('hook_variants') &&
+			hookMigration.includes('force row level security') &&
+			hookMigration.includes('revoke all on table public.hook_variants') &&
+			hookMigration.includes('grant select on table public.hook_variants to authenticated') &&
+			hookMigration.includes(
+				'grant select, insert, update, delete on table public.hook_variants to service_role',
+			) &&
+			hookMigration.includes('unique (owner_id, episode_id, plan_id, plan_version, variant_key)') &&
+			hookMigration.includes('never a promise of virality'),
 	],
 	[
 		'render quotas, health and ops scripts are server-only and dry-run first',

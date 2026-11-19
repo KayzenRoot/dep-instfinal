@@ -104,6 +104,41 @@ export async function enqueueRenderJob(input: {
 		if (typeof takeId === 'string') narrationTakeId = takeId;
 	}
 	const idempotencyKey = input.idempotencyKey ?? `web:${randomUUID()}`;
+	const { data: planRow, error: planError } = await input.adminDb
+		.from('video_edit_plans')
+		.select('current_version,plan')
+		.eq('owner_id', input.owner.id)
+		.eq('episode_id', input.episodeId)
+		.maybeSingle();
+	if (planError || !planRow)
+		throw new RenderJobError(409, 'RENDER_PLAN_NOT_FOUND', 'Plano de edição não encontrado.');
+	const template =
+		(planRow.plan as { captions?: { template?: string } } | null)?.captions?.template ?? 'clean';
+	if (template === 'none' && (planRow.plan as { cta?: { enabled?: boolean } } | null)?.cta?.enabled)
+		throw new RenderJobError(
+			409,
+			'CTA_REQUIRES_CAPTIONS',
+			'Ative as legendas ou desative a CTA antes de renderizar.',
+		);
+	if (template !== 'none') {
+		let captionQuery = input.adminDb
+			.from('caption_tracks')
+			.select('id')
+			.eq('owner_id', input.owner.id)
+			.eq('episode_id', input.episodeId)
+			.eq('plan_version', planRow.current_version)
+			.eq('current_status', 'APPROVED');
+		captionQuery = narrationTakeId
+			? captionQuery.eq('narration_take_id', narrationTakeId)
+			: captionQuery.is('narration_take_id', null);
+		const { data: captionRow } = await captionQuery.maybeSingle();
+		if (!captionRow)
+			throw new RenderJobError(
+				409,
+				'CAPTIONS_NOT_APPROVED',
+				'Aprove as legendas da versão atual do plano antes de renderizar.',
+			);
+	}
 	const { data, error } = await input.adminDb.rpc('enqueue_render_job', {
 		p_owner_id: input.owner.id,
 		p_episode_id: input.episodeId,

@@ -210,6 +210,27 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner authorized merge/promotion on 2026-11-14; PR #55 squash-merged at `326c576`; issue #24 closed; checkpoint **PROMOTED**. WO-008 (#25) is next.
 
+## V2 Context Lock — WO-015 (#32)
+
+- **Base revalidated:** `main` `9862f8c` (checkpoint WO-013 core promoted). Branch: `feat/dif-v2-wo-015`.
+- **Issue inventory:** WO-001–013 **MERGED/CLOSED/PROMOTED (core)**; WO-015/#32 em execução; WO-014 blocked by 015–021.
+- **Scope:** Hook Lab determinístico com até três aberturas usando clipes/áudio/legendas existentes, patch imutável versionado, aplicar como nova versão, reverter e metadados para análise manual.
+- **Delivered locally:** `hook_variants` RLS owner-only/service writes; engine cold open/intriguing line/sound entry; `/app/hooks` A/B/C; aplicação/reversão versionada; PgTAP 161/161.
+- **Gate:** CI, auditoria independente e autorização do owner; checkpoint **PROPOSED**. WO-016 (#33) é a próxima.
+
+### Fingerprints no base `9862f8c`
+
+| Fonte canônica                       | SHA-256                                                            |
+| ------------------------------------ | ------------------------------------------------------------------ |
+| `docs/CHECKPOINT_DELTA.md`           | `dab87bf608140e9beaa9df878119cf534ced5d800a8aa43ea62368e933eab381` |
+| `docs/SOURCE_PACK.md`                | `ccac8b33f2d83c578f2a0ca3549f03d0c791980acfbedd3f1b06c5ca2257dd1c` |
+| `docs/ADR_V2_002_STORAGE.md`         | `9e39af92e6ea71ad234900c6e7d5d9a2290cc32c393177ad45db9b472510966e` |
+| `docs/V2_EXECUTION_PLAN.md`          | `ea7e2fe0720aeb0874c77ff7bf85c6ddb19457134092346882e00c4ebd3de693` |
+| `docs/CONTEXT_LOCK.md`               | `72306b4ef3ed45bc3e0b17cb5940f7a4038d9cd06ce5578924d9466f9b67b7c3` |
+| `src/lib/schemas/video-edit-plan.ts` | `ae4b4edcb23e888e1da2fb25bc37c475dd7c737731db78c482eefb1dc45de406` |
+| `src/lib/domain/video-edit-plan.ts`  | `9fc21ae85a0c71ca0b4d250b7f84512731b9573ddb81b27b6c1f209dd709f11e` |
+| `src/lib/server/video-edit-plans.ts` | `55b8dfef95dfd005d13496e184fedad1fa4fd10c6d1bc00b54601701e49cb72b` |
+
 ## V2 Context Lock — WO-013 (#30)
 
 - **Base revalidated:** `main` `7d15076` (checkpoint WO-012 promoted). Branch: `feat/dif-v2-wo-013`.

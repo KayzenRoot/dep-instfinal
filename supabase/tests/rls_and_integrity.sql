@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(155);
+select plan(161);
 
 do $$
 declare
@@ -14,7 +14,7 @@ declare
     'video_edit_plans', 'video_edit_plan_versions',
     'render_jobs', 'render_job_events',
     'voice_direction_plans', 'narration_takes',
-    'caption_tracks', 'audio_assets', 'render_quality_reports'
+    'caption_tracks', 'audio_assets', 'render_quality_reports', 'hook_variants'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -60,7 +60,7 @@ begin
     elsif v_table in (
       'video_edit_plans', 'video_edit_plan_versions', 'render_jobs', 'render_job_events',
       'voice_direction_plans', 'narration_takes', 'caption_tracks', 'audio_assets',
-      'render_quality_reports'
+      'render_quality_reports', 'hook_variants'
     ) then
       if v_policy_count <> 1 then raise exception 'edit plan policies must be read-only'; end if;
       if has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
@@ -1947,6 +1947,54 @@ select throws_ok(
 select is(
   jsonb_typeof(public.render_queue_health()), 'object',
   'queue health returns a sanitized JSON object'
+);
+select lives_ok(
+  $$insert into public.hook_variants (
+      owner_id, episode_id, plan_id, plan_version, variant_key, label, objective,
+      source_plan_hash, opening_clip_id, opening_asset_id, opening_clip_index,
+      opening_start_ms, opening_end_ms, premise, score, reasons
+    )
+    select owner_id, episode_id, plan_id, plan_version, 'cold_open',
+      'Cold open visual', 'MYSTERY', repeat('a', 64), id, id, 0, 0, 8000,
+      'Abre com a cena de maior tensão.', 70, '["teste determinístico"]'::jsonb
+    from public.render_jobs
+    where id = (select id from test_render_jobs where name = 'job3');$$,
+  'service role stores a hook variant patch'
+);
+select throws_ok(
+  $$insert into public.hook_variants (
+      owner_id, episode_id, plan_id, plan_version, variant_key, label, objective,
+      source_plan_hash, opening_clip_id, opening_asset_id, opening_clip_index,
+      opening_start_ms, opening_end_ms, premise, score, reasons
+    )
+    select owner_id, episode_id, plan_id, plan_version, variant_key, label, objective,
+      source_plan_hash, opening_clip_id, opening_asset_id, opening_clip_index,
+      opening_start_ms, opening_end_ms, premise, score, reasons
+    from public.hook_variants limit 1;$$,
+  '23505', null,
+  'hook variants are unique per plan version and key'
+);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.hook_variants), 1::bigint,
+  'owner can read hook variants'
+);
+select throws_ok(
+  $$insert into public.hook_variants (owner_id)
+    values ('11111111-1111-4111-8111-111111111111');$$,
+  '42501', 'permission denied for table hook_variants',
+  'owner cannot write hook variants directly'
+);
+select throws_ok(
+  $$update public.hook_variants set label = 'Spoof';$$,
+  '42501', 'permission denied for table hook_variants',
+  'owner cannot update hook variants directly'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.hook_variants), 0::bigint,
+  'second owner cannot read hook variants'
 );
 reset role;
 

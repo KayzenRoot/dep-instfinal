@@ -49,6 +49,12 @@
 			glyph: 'branch',
 		},
 		{
+			path: '/app/hooks',
+			href: resolve('/app/hooks'),
+			label: 'Hook Lab',
+			glyph: 'branch',
+		},
+		{
 			path: '/app/narration',
 			href: resolve('/app/narration'),
 			label: 'Narração',
