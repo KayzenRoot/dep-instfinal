@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { ownerDatabase } from '#lib/server/authorized.js';
-import { loadOwnerEpisodeOptions } from '#lib/server/episode-options.js';
+import { loadOwnerEpisodeSelection } from '#lib/server/episode-options.js';
 import { loadEditPlan } from '#lib/server/video-edit-plans.js';
 import { clearColorGrade, ColorGradeError, saveColorGrade } from '#lib/server/color-grade.js';
 import { createSupabaseAdminClient } from '#lib/server/supabase.js';
@@ -14,10 +14,11 @@ function actionError(cause: unknown) {
 
 export const load: PageServerLoad = async (event) => {
 	const { db, owner } = ownerDatabase(event);
-	const episodes = await loadOwnerEpisodeOptions(db, owner);
-	const requestedId = event.url.searchParams.get('episodeId');
-	const selectedEpisode =
-		episodes.find((episode) => episode.id === requestedId) ?? episodes[0] ?? null;
+	const { episodes, selectedEpisode } = await loadOwnerEpisodeSelection(
+		db,
+		owner,
+		event.url.searchParams.get('episodeId'),
+	);
 	if (!selectedEpisode)
 		return {
 			episodes,
