@@ -4,7 +4,7 @@ import {
 	type CoverConfig,
 	type CoverRevisionStatus,
 } from '#lib/schemas/cover.js';
-import { coverConfigHash } from '#lib/domain/cover.js';
+import { coverConfigHash } from '#lib/domain/cover-hash.js';
 import { firstRelation } from './relations.js';
 
 export class CoverError extends Error {

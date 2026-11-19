@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-import { canonicalJson } from './canonical-json.js';
 import {
 	COVER_FORMATS,
 	type CoverConfig,
@@ -142,10 +140,6 @@ export function coverLayout(format: CoverFormatId): CoverLayout {
 			height: gridHeight,
 		},
 	};
-}
-
-export function coverConfigHash(config: CoverConfig): string {
-	return createHash('sha256').update(canonicalJson(config)).digest('hex');
 }
 
 function escapeXml(value: string): string {

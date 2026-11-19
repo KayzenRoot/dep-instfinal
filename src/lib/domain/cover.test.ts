@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { coverConfigSchema } from '#lib/schemas/cover.js';
+import { coverConfigHash } from './cover-hash.js';
 import {
 	COVER_TEMPLATE_LIST,
 	buildCoverSvg,
-	coverConfigHash,
 	coverFileBase,
 	coverLayout,
 	wrapCoverText,
