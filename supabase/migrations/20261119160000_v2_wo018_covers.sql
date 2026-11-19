@@ -136,10 +136,10 @@ begin
 
   insert into public.cover_revisions (
     owner_id, episode_id, revision_number, template_id, template_version,
-    format, frame_asset_id, config, config_hash, status
+    format, frame_asset_id, config, config_hash, hash_version, status
   ) values (
     p_owner_id, p_episode_id, v_revision, p_config ->> 'templateId', 1,
-    p_config ->> 'format', v_frame_asset_id, p_config, p_config_hash, p_status
+    p_config ->> 'format', v_frame_asset_id, p_config, p_config_hash, 1, p_status
   );
   return v_revision;
 end;
@@ -177,13 +177,17 @@ begin
     raise exception 'episode_not_found' using errcode = 'P0002';
   end if;
   perform set_config('dif.cover_prune', 'on', true);
-  with doomed as (
-    select r.id from public.cover_revisions r
+  with ranked as (
+    select r.id,
+      row_number() over (order by r.revision_number desc) as position
+    from public.cover_revisions r
     where r.owner_id = p_owner_id and r.episode_id = p_episode_id
-    order by r.revision_number desc
-    offset p_keep
   )
-  delete from public.cover_revisions r using doomed d where r.id = d.id;
+  delete from public.cover_revisions r
+  using ranked d
+  where r.id = d.id
+    and r.status <> 'APPROVED'
+    and d.position > p_keep;
   get diagnostics v_deleted = row_count;
   perform set_config('dif.cover_prune', 'off', true);
   return v_deleted;

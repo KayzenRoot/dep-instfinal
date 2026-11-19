@@ -50,7 +50,7 @@
 - Unit: 6 testes — 4 presets, dimensões/safe zones de UI, wrap Unicode/ellipsis, `textLength`/scrim, escape XML, hash com template/renderer e nome seguro.
 - Render: 6 testes — 12 combinações formato × preset, frame/foco/JPEG, EXIF orientation 6, preview 378×672, limite de 4 MB, título longo Unicode.
 - Actions: geração de 3 templates com revisão otimista, configuração inválida, approve/restore e redirects.
-- PgTAP 193: owner read, escrita direta negada, segundo owner isolado, RPC versionada, quota e poda.
+- PgTAP 194: owner read, escrita direta negada, segundo owner isolado, RPC versionada e poda preservando APPROVED; o trigger de quota existe, mas atingir 500 revisões não é exercitado.
 - E2E: entrar pela nav, criar episódio sintético, gerar/aprovar, prévia PNG 4:5, download JPEG/ZIP, acesso anônimo negado, capa aprovada no episódio, responsivo 360.
 - Policy: 32 invariantes / 30 tabelas; backup/restore atualizados.
 

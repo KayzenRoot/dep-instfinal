@@ -109,6 +109,8 @@ export function coverLayout(format: CoverFormatId): CoverLayout {
 	const titleTop = round(height * 0.56);
 	const titleHeight = round(height * 0.24);
 	const gridHeight = Math.min(height, round(width * 1.25));
+	const gridTop = round((height - gridHeight) / 2);
+	const badgeTop = Math.max(top, gridTop + round(height * 0.02));
 	return {
 		width,
 		height,
@@ -126,19 +128,19 @@ export function coverLayout(format: CoverFormatId): CoverLayout {
 		},
 		badgeBox: {
 			x: left,
-			y: top,
+			y: badgeTop,
 			width: round(width * 0.31),
 			height: round(height * 0.038),
 		},
 		logoBox: {
 			x: width - right - round(width * 0.28),
-			y: top,
+			y: badgeTop,
 			width: round(width * 0.28),
 			height: round(height * 0.038),
 		},
 		gridCrop: {
 			x: 0,
-			y: round((height - gridHeight) / 2),
+			y: gridTop,
 			width,
 			height: gridHeight,
 		},
@@ -231,7 +233,7 @@ export function buildCoverSvg(
 	const badgeText = wrapCoverText(config.badge || 'EPISÓDIO', 20, 1)[0] ?? 'EPISÓDIO';
 	const title = lines
 		.map((line, index) => {
-			const estimated = Array.from(line).length * fontSize * 0.8;
+			const estimated = Array.from(line).length * fontSize;
 			const fit =
 				estimated > layout.titleBox.width
 					? ` textLength="${layout.titleBox.width}" lengthAdjust="spacingAndGlyphs"`
@@ -271,8 +273,8 @@ ${background}
 <rect width="${layout.width}" height="${layout.height}" fill="url(#coverShade)"/>
 <rect x="${layout.titleBox.x - 24}" y="${layout.titleBox.y - 28}" width="${layout.titleBox.width + 48}" height="${layout.titleBox.height + round(layout.titleBox.height * 0.35)}" rx="${round(layout.width * 0.02)}" fill="#000" opacity="0.32"/>
 <rect x="${layout.badgeBox.x}" y="${layout.badgeBox.y}" width="${layout.badgeBox.width}" height="${layout.badgeBox.height}" rx="${round(layout.badgeBox.height / 2)}" fill="${template.badgeBackground}"/>
-<text x="${layout.badgeBox.x + round(layout.badgeBox.width * 0.04)}" y="${layout.badgeBox.y + round(layout.badgeBox.height * 0.68)}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${badgeSize}" font-weight="700" fill="${template.badgeColor}">${escapeXml(badgeText)}</text>
-<text x="${layout.badgeBox.x}" y="${layout.badgeBox.y - round(layout.badgeBox.height * 0.42)}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${seriesSize}" letter-spacing="2" fill="${template.accent}" stroke="#000" stroke-opacity="0.4" stroke-width="1" paint-order="stroke">${escapeXml(
+<text x="${layout.badgeBox.x + round(layout.badgeBox.width * 0.04)}" y="${layout.badgeBox.y + round(layout.badgeBox.height * 0.68)}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${badgeSize}" font-weight="700" fill="${template.badgeColor}"${Array.from(badgeText).length * badgeSize > layout.badgeBox.width * 0.9 ? ` textLength="${round(layout.badgeBox.width * 0.9)}" lengthAdjust="spacingAndGlyphs"` : ''}>${escapeXml(badgeText)}</text>
+<text x="${layout.badgeBox.x}" y="${layout.badgeBox.y - round(layout.badgeBox.height * 0.42)}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${seriesSize}" letter-spacing="2" fill="${template.accent}" stroke="#000" stroke-opacity="0.4" stroke-width="1" paint-order="stroke"${Array.from(wrapCoverText(config.seriesTitle.toUpperCase(), 22, 1)[0] ?? '').length * seriesSize > layout.logoBox.width ? ` textLength="${layout.logoBox.width}" lengthAdjust="spacingAndGlyphs"` : ''}>${escapeXml(
 		wrapCoverText(config.seriesTitle.toUpperCase(), 22, 1)[0] ?? '',
 	)}</text>
 ${title}

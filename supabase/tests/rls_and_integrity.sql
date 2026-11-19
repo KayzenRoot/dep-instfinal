@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(193);
+select plan(194);
 
 do $$
 declare
@@ -2243,15 +2243,33 @@ select lives_ok(
     );$$,
   'service role appends an approved cover revision'
 );
+select lives_ok(
+  $$select public.save_cover_revision(
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      2,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'templateVersion', 1,
+        'templateId', 'archive',
+        'format', '4:5',
+        'frameAssetId', null,
+        'title', 'Capa DRAFT posterior',
+        'seriesTitle', 'RLS test series'
+      ),
+      repeat('b', 64), 'DRAFT'
+    );$$,
+  'service role appends a newer draft after the approved cover'
+);
 select is(
   (select count(*) from public.cover_revisions
    where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
-  2::bigint, 'cover history keeps both revisions'
+  3::bigint, 'cover history keeps all three revisions'
 );
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
 select is(
-  (select count(*) from public.cover_revisions), 2::bigint,
+  (select count(*) from public.cover_revisions), 3::bigint,
   'owner can read cover revisions'
 );
 select throws_ok(
@@ -2288,7 +2306,7 @@ select is(
 select is(
   (select count(*) from public.cover_revisions
    where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
-  1::bigint, 'cover retention keeps the configured number of revisions'
+  2::bigint, 'cover retention keeps the approved cover and the newest draft'
 );
 reset role;
 

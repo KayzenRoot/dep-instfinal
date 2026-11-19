@@ -89,6 +89,39 @@ describe('cover rendering with Sharp', () => {
 		expect(metadata.height).toBe(1920);
 	}, 60_000);
 
+	it('keeps the title region dark over a white frame', async () => {
+		const source = await sharp({
+			create: { width: 1080, height: 1920, channels: 3, background: '#ffffff' },
+		})
+			.png()
+			.toBuffer();
+		const rendered = await renderCover(config('9:16', 'noir'), source, '9:16');
+		const region = await sharp(rendered.buffer)
+			.extract({ left: 80, top: 1075, width: 820, height: 460 })
+			.removeAlpha()
+			.raw()
+			.toBuffer({ resolveWithObject: true });
+		let sum = 0;
+		let minimum = 255;
+		const pixels = (region.info.width ?? 820) * (region.info.height ?? 460);
+		for (let index = 0; index < region.data.length; index += 3) {
+			const luma =
+				0.2126 * (region.data[index] ?? 0) +
+				0.7152 * (region.data[index + 1] ?? 0) +
+				0.0722 * (region.data[index + 2] ?? 0);
+			sum += luma;
+			minimum = Math.min(minimum, luma);
+		}
+		expect(sum / pixels).toBeLessThan(120);
+		expect(minimum).toBeLessThan(40);
+	}, 60_000);
+
+	it('rejects a corrupted source frame', async () => {
+		await expect(
+			renderCover(config('9:16', 'noir'), Buffer.from('not an image'), '9:16'),
+		).rejects.toBeTruthy();
+	}, 60_000);
+
 	it('renders long titles and accents without throwing', async () => {
 		const long = coverConfigSchema.parse({
 			...config('4:5', 'vhs_polaroid'),

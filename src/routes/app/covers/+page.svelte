@@ -6,6 +6,7 @@
 	import { COVER_FORMATS } from '#lib/schemas/cover.js';
 
 	let { data, form }: PageProps = $props();
+	let failedPreviews = $state<Set<string>>(new Set());
 
 	const latestRevision = $derived(data.context?.revisions[0]?.revision ?? 0);
 	const selectedFrame = $derived(
@@ -13,6 +14,10 @@
 			(frame) => frame.assetId === data.context?.revisions[0]?.config.frameAssetId,
 		) ?? null,
 	);
+
+	function markPreviewFailed(id: string): void {
+		failedPreviews = new Set([...failedPreviews, id]);
+	}
 
 	function templateLabel(id: string): string {
 		return COVER_TEMPLATES[id as keyof typeof COVER_TEMPLATES]?.label ?? id;
@@ -163,7 +168,13 @@
 									alt={`Capa ${templateLabel(revision.templateId)} ${revision.format}`}
 									loading="lazy"
 									decoding="async"
+									onerror={() => markPreviewFailed(revision.id)}
 								/>
+								{#if failedPreviews.has(revision.id)}
+									<span class="preview-error" role="alert"
+										>Prévia indisponível. Gere uma variante sem frame ou baixe o arquivo.</span
+									>
+								{/if}
 								{#if revision.format === '9:16'}
 									<span class="grid-crop" title="Recorte central 4:5 do grid do Instagram">4:5</span
 									>
@@ -302,6 +313,14 @@
 		object-fit: contain;
 		background-color: #000;
 		border-radius: var(--radius-sm);
+	}
+	.preview-error {
+		position: absolute;
+		inset: auto 0 0;
+		padding: 0.35rem;
+		background: rgb(40 10 15 / 90%);
+		color: #ffb4b4;
+		font-size: 0.65rem;
 	}
 	.grid-crop {
 		position: absolute;

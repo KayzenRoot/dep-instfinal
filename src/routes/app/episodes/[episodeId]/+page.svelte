@@ -416,7 +416,7 @@
 						{#each data.approvedCovers as cover (cover.id)}
 							<figure class="approved-cover" data-cover-revision={cover.id}>
 								<img
-									src={`/api/covers/${cover.id}?format=${cover.format}`}
+									src={`/api/covers/${cover.id}?format=${cover.format}&preview=1`}
 									alt={`Capa aprovada ${cover.template_id} ${cover.format}`}
 									loading="lazy"
 								/>

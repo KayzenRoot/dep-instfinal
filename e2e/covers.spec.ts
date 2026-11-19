@@ -80,7 +80,11 @@ test('owner generates, approves and downloads private covers', async ({ page, re
 	expect([401, 403, 404]).toContain(anonymous.status());
 
 	await page.goto(`/app/episodes/${episodeId}`);
-	await expect(page.locator('.approved-cover').first()).toBeVisible();
+	const approvedCover = page.locator('.approved-cover img').first();
+	await expect(approvedCover).toBeVisible();
+	await expect
+		.poll(() => approvedCover.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+		.toBeGreaterThan(0);
 	await page.goto(`/app/covers?episodeId=${episodeId}`);
 	await page.setViewportSize({ width: 360, height: 900 });
 	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(

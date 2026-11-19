@@ -34,21 +34,29 @@ export const GET: RequestHandler = async (event) => {
 
 	try {
 		if (requested === 'zip') {
-			const buffers: Buffer[] = [];
+			let buffers: Buffer[] = [];
+			let extension = output === 'jpeg' ? 'jpg' : 'png';
 			for (const format of FORMAT_IDS) {
 				const rendered = await renderCover(revision.config, source, format, output, scale);
 				buffers.push(rendered.buffer);
 			}
-			if (coverResponseExceedsLimit(buffers))
-				error(
-					413,
-					'O ZIP ultrapassa o limite de resposta. Baixe os formatos individualmente em JPEG.',
-				);
+			if (coverResponseExceedsLimit(buffers)) {
+				buffers = [];
+				extension = 'jpg';
+				for (const format of FORMAT_IDS) {
+					const rendered = await renderCover(revision.config, source, format, 'jpeg', scale);
+					buffers.push(rendered.buffer);
+				}
+				if (coverResponseExceedsLimit(buffers))
+					error(
+						413,
+						'O ZIP ultrapassa o limite de resposta. Baixe os formatos individualmente em JPEG.',
+					);
+			}
 			const stream = new PassThrough();
 			const archive = new ZipArchive({ zlib: { level: 6 } });
 			archive.on('error', (cause: Error) => stream.destroy(cause));
 			archive.pipe(stream);
-			const extension = output === 'jpeg' ? 'jpg' : 'png';
 			for (const [index, format] of FORMAT_IDS.entries()) {
 				archive.append(buffers[index]!, {
 					name: `${base}-${format.replace(':', 'x')}.${extension}`,

@@ -44,8 +44,11 @@ describe('cover templates', () => {
 		const vertical = coverLayout('9:16');
 		expect(vertical.titleBox.x + vertical.titleBox.width).toBeLessThanOrEqual(900);
 		expect(vertical.titleBox.y + vertical.titleBox.height).toBeLessThanOrEqual(1620);
-		expect(vertical.badgeBox.y).toBeGreaterThanOrEqual(180);
+		expect(vertical.badgeBox.y).toBeGreaterThanOrEqual(vertical.gridCrop.y);
 		expect(vertical.logoBox.x + vertical.logoBox.width).toBeLessThanOrEqual(900);
+		expect(
+			vertical.badgeBox.y - Math.round(vertical.badgeBox.height * 0.42),
+		).toBeGreaterThanOrEqual(vertical.gridCrop.y);
 	});
 
 	it('wraps and truncates long Unicode titles within the line budget', () => {
@@ -78,7 +81,8 @@ describe('cover templates', () => {
 	it('forces excessively wide title lines to fit and draws a contrast scrim', () => {
 		const config = coverConfigSchema.parse({
 			...base,
-			title: 'WWWWWWWWWWWWWWWWWWWW',
+			title: 'WWWWWWWWWWWW',
+			badge: 'WWWWWWWWWWWWWWWWWWWW',
 		});
 		const svg = buildCoverSvg(config, COVER_TEMPLATE_LIST[0]!, coverLayout('9:16'), {
 			background: true,
