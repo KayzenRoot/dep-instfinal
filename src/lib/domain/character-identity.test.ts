@@ -68,6 +68,35 @@ describe('character identity', () => {
 		expect(buildIdentityAnchor(value, 'Lara', 5)).toContain('casaco cinza rasgado');
 	});
 
+	it('rejects overlapping look ranges and invalid episode numbers', () => {
+		const base = profile();
+		expect(
+			characterIdentityProfileSchema.safeParse({
+				...base,
+				looks: [
+					{
+						id: 'look-1',
+						label: 'A',
+						appliesFromEpisode: 1,
+						appliesToEpisode: 4,
+						wardrobe: 'a',
+						hair: '',
+						notes: '',
+					},
+					{
+						id: 'look-2',
+						label: 'B',
+						appliesFromEpisode: 4,
+						appliesToEpisode: null,
+						wardrobe: 'b',
+						hair: '',
+						notes: '',
+					},
+				],
+			}).success,
+		).toBe(false);
+	});
+
 	it('honors a manual anchor override and produces stable hashes', () => {
 		const first = profile({ anchorOverrideEn: 'Lara: fixed manual anchor.' });
 		expect(buildIdentityAnchor(first, 'Lara', 5)).toBe('Lara: fixed manual anchor.');

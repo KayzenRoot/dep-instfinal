@@ -84,12 +84,30 @@
 				<span>Gere a primeira revisão para revisar frames e notas.</span>
 			{/if}
 		</div>
-		<form method="POST" action="?/generate">
-			<input type="hidden" name="episodeId" value={data.context.episode.id} />
-			<button class="primary" type="submit"
-				>{data.context.latest ? 'Gerar nova revisão' : 'Gerar relatório'}</button
-			>
-		</form>
+		<div class="summary-actions">
+			<form method="POST" action="?/generate">
+				<input type="hidden" name="episodeId" value={data.context.episode.id} />
+				<button class="primary" type="submit"
+					>{data.context.latest ? 'Gerar nova revisão' : 'Gerar relatório'}</button
+				>
+			</form>
+			{#if data.context.latest}
+				<p class="hint export-links">
+					Relatório:
+					<a
+						href={resolve('/api/continuity/[episodeId]/report?format=json', {
+							episodeId: data.context.episode.id,
+						})}>JSON</a
+					>
+					·
+					<a
+						href={resolve('/api/continuity/[episodeId]/report?format=md', {
+							episodeId: data.context.episode.id,
+						})}>Markdown</a
+					>
+				</p>
+			{/if}
+		</div>
 	</section>
 
 	<section class="panel">
@@ -104,6 +122,8 @@
 								<img
 									src={`/api/media/${scene.startFrameAssetId}?variant=thumb`}
 									alt={`Frame inicial da cena ${scene.sceneIndex}`}
+									loading="lazy"
+									decoding="async"
 								/>
 							{:else}
 								<span class="missing">sem frame inicial</span>
@@ -112,6 +132,8 @@
 								<img
 									src={`/api/media/${scene.endFrameAssetId}?variant=thumb`}
 									alt={`Frame final da cena ${scene.sceneIndex}`}
+									loading="lazy"
+									decoding="async"
 								/>
 							{:else}
 								<span class="missing">sem frame final</span>
@@ -141,6 +163,8 @@
 									<img
 										src={`/api/media/${observation.frameAssetId}?variant=thumb`}
 										alt={`Evidência da cena ${observation.sceneIndex}`}
+										loading="lazy"
+										decoding="async"
 									/>
 								{:else}
 									<span class="missing">sem frame</span>
@@ -253,6 +277,13 @@
 		gap: 0.15rem;
 		font-size: 0.78rem;
 		color: var(--muted);
+	}
+	.summary-actions {
+		display: grid;
+		gap: 0.3rem;
+	}
+	.export-links {
+		margin: 0;
 	}
 	.summary strong {
 		color: var(--ink);

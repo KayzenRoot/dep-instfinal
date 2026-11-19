@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(179);
+select plan(183);
 
 do $$
 declare
@@ -2112,6 +2112,22 @@ select is(
    where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
   3::bigint, 'continuity reports keep every revision'
 );
+select is(
+  has_function_privilege(
+    'authenticated',
+    'public.save_visual_continuity_report(uuid,uuid,integer,jsonb,text,uuid)',
+    'EXECUTE'
+  ), false,
+  'authenticated cannot execute the continuity report RPC'
+);
+select is(
+  has_function_privilege(
+    'service_role',
+    'public.save_visual_continuity_report(uuid,uuid,integer,jsonb,text,uuid)',
+    'EXECUTE'
+  ), true,
+  'service role can execute the continuity report RPC'
+);
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
 select is(
@@ -2154,6 +2170,21 @@ select is(
 select is(
   (select count(*) from public.visual_continuity_reports), 0::bigint,
   'second owner cannot read continuity reports'
+);
+reset role;
+set local role service_role;
+select is(
+  public.prune_visual_continuity_reports(
+    '11111111-1111-4111-8111-111111111111',
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    2
+  ), 1,
+  'service role prunes old continuity revisions while keeping the newest two'
+);
+select is(
+  (select count(*) from public.visual_continuity_reports
+   where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+  2::bigint, 'continuity retention leaves the configured number of revisions'
 );
 reset role;
 

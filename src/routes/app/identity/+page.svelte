@@ -96,8 +96,9 @@
 		<section class="panel">
 			<h2>{data.detail.name} · perfil v{data.detail.version ?? 0}</h2>
 			<p class="hint">
-				Status atual: {data.detail.profileStatus ?? 'sem perfil'}. Salvar cria uma versão DRAFT;
-				aprovar torna a âncora elegível para o export. O personagem canônico não é editado.
+				Status atual: {data.detail.profileStatus ?? 'sem perfil'}. Salvar cria uma versão DRAFT.
+				Aprovar registra o status aprovado; o export inclui o status atual e avisa quando há DRAFT.
+				O personagem canônico não é editado.
 			</p>
 			<form method="POST" action="?/save" class="identity-form">
 				<input type="hidden" name="characterId" value={data.detail.characterId} />
@@ -173,7 +174,17 @@
 					{#if data.detail.referenceAssets.length}
 						<ul class="reference-list">
 							{#each data.detail.referenceAssets as asset (asset.id)}
-								<li>
+								<li class="reference-row">
+									{#if asset.uploadStatus === 'READY'}
+										<img
+											src={`/api/media/${asset.id}?variant=thumb`}
+											alt={`Referência ${asset.id.slice(0, 8)}`}
+											loading="lazy"
+											decoding="async"
+										/>
+									{:else}
+										<span class="missing">indisponível</span>
+									{/if}
 									<label class="check">
 										<input
 											type="checkbox"
@@ -186,7 +197,7 @@
 										{asset.assetKind} · {asset.width ?? '?'}×{asset.height ?? '?'} · {asset.id.slice(
 											0,
 											8,
-										)}
+										)}{asset.uploadStatus !== 'READY' ? ' · indisponível' : ''}
 									</label>
 								</li>
 							{/each}
@@ -216,6 +227,22 @@
 					<button type="submit" formaction="?/approve">Salvar e aprovar</button>
 				</div>
 			</form>
+			{#if data.detail.profile}
+				<p class="hint export-links">
+					Exportar perfil:
+					<a
+						href={resolve('/api/identity/[characterId]/export?format=json', {
+							characterId: data.detail.characterId,
+						})}>JSON</a
+					>
+					·
+					<a
+						href={resolve('/api/identity/[characterId]/export?format=md', {
+							characterId: data.detail.characterId,
+						})}>Markdown</a
+					>
+				</p>
+			{/if}
 			{#if data.detail.versions.length}
 				<h3>Versões</h3>
 				<ul class="versions">
@@ -368,6 +395,26 @@
 		padding: 0;
 		margin: 0 0 0.5rem;
 		list-style: none;
+	}
+	.reference-row {
+		display: grid;
+		grid-template-columns: 3.2rem 1fr;
+		gap: 0.45rem;
+		align-items: center;
+	}
+	.reference-row img,
+	.reference-row .missing {
+		width: 3.2rem;
+		height: 3.2rem;
+		object-fit: cover;
+		border-radius: var(--radius-sm);
+		background: #050505;
+	}
+	.reference-row .missing {
+		display: grid;
+		place-items: center;
+		font-size: 0.58rem;
+		text-align: center;
 	}
 	.check {
 		display: flex;

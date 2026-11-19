@@ -98,6 +98,7 @@ export interface CharacterIdentityDetail extends CharacterIdentitySummary {
 		width: number | null;
 		height: number | null;
 		createdAt: string;
+		uploadStatus: string;
 	}>;
 }
 
@@ -170,6 +171,72 @@ export async function loadSeriesCharacters(
 	});
 }
 
+async function loadSeriesProfilesMap(
+	db: SupabaseClient,
+	owner: User,
+	seriesId: string,
+): Promise<Map<string, { version: number; profile: CharacterIdentityProfile }>> {
+	const { data: profiles, error } = await db
+		.from('character_identity_profiles')
+		.select('character_id,current_version,profile,profile_hash')
+		.eq('owner_id', owner.id)
+		.eq('series_id', seriesId);
+	if (error)
+		throw new CharacterIdentityError(
+			503,
+			'IDENTITY_LOAD_FAILED',
+			'Não foi possível carregar os perfis da série.',
+		);
+	return new Map(
+		(
+			(profiles ?? []) as Array<{
+				character_id: string;
+				current_version: number;
+				profile: unknown;
+				profile_hash: string;
+			}>
+		).map((row) => [
+			row.character_id,
+			{
+				version: Number(row.current_version),
+				profile: parseProfileRow(row),
+			},
+		]),
+	);
+}
+
+export async function loadSeriesIdentityCandidates(
+	db: SupabaseClient,
+	owner: User,
+	seriesId: string,
+): Promise<CharacterIdentityCandidate[]> {
+	const [{ data: characters, error }, profiles] = await Promise.all([
+		db
+			.from('characters')
+			.select('id,name')
+			.eq('owner_id', owner.id)
+			.eq('series_id', seriesId)
+			.order('name')
+			.order('id'),
+		loadSeriesProfilesMap(db, owner, seriesId),
+	]);
+	if (error)
+		throw new CharacterIdentityError(
+			503,
+			'IDENTITY_LOAD_FAILED',
+			'Não foi possível carregar os personagens.',
+		);
+	return ((characters ?? []) as Array<{ id: string; name: string }>).map((character) => {
+		const current = profiles.get(character.id);
+		return {
+			characterId: character.id,
+			name: character.name,
+			version: current?.version ?? 0,
+			profile: current?.profile ?? null,
+		};
+	});
+}
+
 export async function loadCharacterIdentityDetail(
 	db: SupabaseClient,
 	owner: User,
@@ -189,33 +256,73 @@ export async function loadCharacterIdentityDetail(
 		);
 	if (!character) return null;
 	const series = Array.isArray(character.series) ? character.series[0] : character.series;
-	const [{ data: profileRow, error: profileError }, { data: assets, error: assetsError }] =
-		await Promise.all([
-			db
-				.from('character_identity_profiles')
-				.select('id,current_version,profile,profile_hash')
-				.eq('owner_id', owner.id)
-				.eq('character_id', characterId)
-				.maybeSingle(),
-			db
-				.from('media_assets')
-				.select('id,asset_kind,width,height,created_at')
-				.eq('owner_id', owner.id)
-				.eq('upload_status', 'READY')
-				.in('asset_kind', ['REFERENCE', 'FRAME'])
-				.order('created_at', { ascending: false })
-				.limit(80),
-		]);
-	if (profileError || assetsError)
+	const { data: profileRow, error: profileError } = await db
+		.from('character_identity_profiles')
+		.select('id,current_version,profile,profile_hash')
+		.eq('owner_id', owner.id)
+		.eq('character_id', characterId)
+		.maybeSingle();
+	if (profileError)
 		throw new CharacterIdentityError(
 			503,
 			'IDENTITY_LOAD_FAILED',
 			'Não foi possível carregar o perfil.',
 		);
+	const { data: recentAssets, error: assetsError } = await db
+		.from('media_assets')
+		.select('id,asset_kind,width,height,created_at,upload_status')
+		.eq('owner_id', owner.id)
+		.eq('upload_status', 'READY')
+		.in('asset_kind', ['REFERENCE', 'FRAME'])
+		.order('created_at', { ascending: false })
+		.limit(80);
+	if (assetsError)
+		throw new CharacterIdentityError(
+			503,
+			'IDENTITY_LOAD_FAILED',
+			'Não foi possível carregar as referências.',
+		);
+	type AssetRow = {
+		id: string;
+		asset_kind: string;
+		width: number | null;
+		height: number | null;
+		created_at: string;
+		upload_status: string;
+	};
+	const assetsById = new Map<string, AssetRow>(
+		((recentAssets ?? []) as AssetRow[]).map((asset) => [asset.id, asset]),
+	);
 	let profile: CharacterIdentityProfile | null = null;
 	let versions: CharacterIdentityDetail['versions'] = [];
 	if (profileRow) {
 		profile = parseProfileRow(profileRow as { profile: unknown; profile_hash: string });
+		const referencedIds = [...new Set(profile.references.map((reference) => reference.assetId))];
+		if (referencedIds.length) {
+			const { data: referencedAssets, error: referencedError } = await db
+				.from('media_assets')
+				.select('id,asset_kind,width,height,created_at,upload_status')
+				.eq('owner_id', owner.id)
+				.in('id', referencedIds);
+			if (referencedError)
+				throw new CharacterIdentityError(
+					503,
+					'IDENTITY_LOAD_FAILED',
+					'Não foi possível carregar as referências do perfil.',
+				);
+			for (const asset of (referencedAssets ?? []) as AssetRow[]) assetsById.set(asset.id, asset);
+			for (const assetId of referencedIds) {
+				if (!assetsById.has(assetId))
+					assetsById.set(assetId, {
+						id: assetId,
+						asset_kind: 'MISSING',
+						width: null,
+						height: null,
+						created_at: '',
+						upload_status: 'MISSING',
+					});
+			}
+		}
 		const { data: versionRows, error: versionError } = await db
 			.from('character_identity_profile_versions')
 			.select('version,change_note,created_at')
@@ -247,21 +354,16 @@ export async function loadCharacterIdentityDetail(
 		primaryReferenceAssetId: profile?.primaryReferenceAssetId ?? null,
 		profile,
 		versions,
-		referenceAssets: (
-			(assets ?? []) as Array<{
-				id: string;
-				asset_kind: string;
-				width: number | null;
-				height: number | null;
-				created_at: string;
-			}>
-		).map((asset) => ({
-			id: asset.id,
-			assetKind: asset.asset_kind,
-			width: asset.width,
-			height: asset.height,
-			createdAt: asset.created_at,
-		})),
+		referenceAssets: [...assetsById.values()]
+			.sort((left, right) => right.created_at.localeCompare(left.created_at))
+			.map((asset) => ({
+				id: asset.id,
+				assetKind: asset.asset_kind,
+				width: asset.width,
+				height: asset.height,
+				createdAt: asset.created_at,
+				uploadStatus: asset.upload_status,
+			})),
 	};
 }
 
@@ -277,6 +379,7 @@ async function assertReferenceAssets(
 		.select('id,asset_kind')
 		.eq('owner_id', ownerId)
 		.eq('upload_status', 'READY')
+		.in('asset_kind', ['REFERENCE', 'FRAME'])
 		.in('id', ids);
 	if (error)
 		throw new CharacterIdentityError(
@@ -301,6 +404,7 @@ export async function saveCharacterIdentityProfile(input: {
 	expectedVersion: number;
 	profile: CharacterIdentityProfile;
 	changeNote?: string;
+	validateReferences?: boolean;
 }): Promise<number> {
 	const parsed = characterIdentityProfileSchema.safeParse(input.profile);
 	if (!parsed.success)
@@ -329,7 +433,8 @@ export async function saveCharacterIdentityProfile(input: {
 			'IDENTITY_SERIES_MISMATCH',
 			'O personagem não pertence à série informada.',
 		);
-	await assertReferenceAssets(input.db, input.owner.id, parsed.data);
+	if (input.validateReferences !== false)
+		await assertReferenceAssets(input.db, input.owner.id, parsed.data);
 	if (!input.adminDb)
 		throw new CharacterIdentityError(
 			503,
@@ -400,6 +505,7 @@ export async function restoreCharacterIdentityProfileVersion(input: {
 		expectedVersion: input.expectedVersion,
 		profile: { ...profile, status: 'DRAFT' },
 		changeNote: `Restaurar perfil v${input.version}`,
+		validateReferences: false,
 	});
 }
 
@@ -450,16 +556,7 @@ export async function loadIdentityPromptBundle(
 			'IDENTITY_LOAD_FAILED',
 			'Não foi possível carregar as cenas.',
 		);
-	const candidates: CharacterIdentityCandidate[] = [];
-	for (const character of characters) {
-		const detail = await loadCharacterIdentityDetail(db, owner, character.characterId);
-		candidates.push({
-			characterId: character.characterId,
-			name: character.name,
-			version: detail?.version ?? 0,
-			profile: detail?.profile ?? null,
-		});
-	}
+	const candidates = await loadSeriesIdentityCandidates(db, owner, seriesId);
 	return {
 		episode: {
 			id: episode.id,
@@ -496,19 +593,21 @@ export async function loadSeriesIdentityRecords(
 	owner: User,
 	seriesId: string,
 ): Promise<CharacterIdentityRecord[]> {
-	const characters = await loadSeriesCharacters(db, owner, seriesId);
-	const records: CharacterIdentityRecord[] = [];
-	for (const character of characters) {
-		const detail = await loadCharacterIdentityDetail(db, owner, character.characterId);
-		if (detail?.profile && detail.version)
-			records.push({
-				characterId: detail.characterId,
-				name: detail.name,
-				version: detail.version,
-				profile: detail.profile,
-			});
-	}
-	return records;
+	const candidates = await loadSeriesIdentityCandidates(db, owner, seriesId);
+	return candidates
+		.filter(
+			(
+				candidate,
+			): candidate is CharacterIdentityCandidate & {
+				profile: CharacterIdentityProfile;
+			} => Boolean(candidate.profile) && candidate.version > 0,
+		)
+		.map((candidate) => ({
+			characterId: candidate.characterId,
+			name: candidate.name,
+			version: candidate.version,
+			profile: candidate.profile,
+		}));
 }
 
 export function identityBundleJson(

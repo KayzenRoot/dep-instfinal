@@ -408,7 +408,12 @@ export async function generateVisualContinuityReport(input: {
 			['authenticated', 'private'].includes(asset.delivery_type),
 		);
 	}
-	const measured = await measurePrivateImageAssets(assets);
+	const budget = Number(process.env.CONTINUITY_SAMPLING_BUDGET_MS);
+	const measured = await measurePrivateImageAssets(
+		assets,
+		4,
+		Number.isFinite(budget) && budget > 0 ? budget : 60_000,
+	);
 	const frameStats: VisualContinuityInput['frameStats'] = {};
 	for (const assetId of assetIds) frameStats[assetId] = measured.get(assetId) ?? null;
 	const report = buildVisualContinuityReport({
@@ -428,12 +433,19 @@ export async function generateVisualContinuityReport(input: {
 			'CONTINUITY_WRITE_UNAVAILABLE',
 			'O writer de continuidade não está configurado.',
 		);
-	const reportHash = visualContinuityReportHash(report);
+	const parsedReport = visualContinuityReportSchema.safeParse(report);
+	if (!parsedReport.success)
+		throw new VisualContinuityError(
+			400,
+			'CONTINUITY_REPORT_INVALID',
+			'O relatório excede os limites de observações ou limitações. Reduza o escopo e gere novamente.',
+		);
+	const reportHash = visualContinuityReportHash(parsedReport.data);
 	const { data, error } = await input.adminDb.rpc('save_visual_continuity_report', {
 		p_owner_id: input.owner.id,
 		p_episode_id: input.episodeId,
 		p_expected_revision: latest?.revision ?? 0,
-		p_report: report,
+		p_report: parsedReport.data,
 		p_report_hash: reportHash,
 		p_supersedes_report_id: latest?.id ?? null,
 	});
@@ -444,7 +456,7 @@ export async function generateVisualContinuityReport(input: {
 			'CONTINUITY_SAVE_FAILED',
 			'O servidor não retornou a revisão.',
 		);
-	return { report, revision: data, reportHash };
+	return { report: parsedReport.data, revision: data, reportHash };
 }
 
 export async function decideVisualContinuity(input: {
@@ -480,12 +492,19 @@ export async function decideVisualContinuity(input: {
 			'CONTINUITY_WRITE_UNAVAILABLE',
 			'O writer de continuidade não está configurado.',
 		);
-	const reportHash = visualContinuityReportHash(report);
+	const parsedReport = visualContinuityReportSchema.safeParse(report);
+	if (!parsedReport.success)
+		throw new VisualContinuityError(
+			400,
+			'CONTINUITY_REPORT_INVALID',
+			'O relatório excede os limites do schema.',
+		);
+	const reportHash = visualContinuityReportHash(parsedReport.data);
 	const { data, error } = await input.adminDb.rpc('save_visual_continuity_report', {
 		p_owner_id: input.owner.id,
 		p_episode_id: input.episodeId,
 		p_expected_revision: latest.revision,
-		p_report: report,
+		p_report: parsedReport.data,
 		p_report_hash: reportHash,
 		p_supersedes_report_id: latest.id,
 	});

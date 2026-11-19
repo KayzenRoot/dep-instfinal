@@ -64,7 +64,7 @@ export const GET: RequestHandler = async (event) => {
 	} catch {
 		error(503, 'Não foi possível preparar o contexto de continuidade da exportação.');
 	}
-	const [scenesQuery, choicesQuery] = await Promise.all([
+	const [scenesQuery, choicesQuery, revisionQuery] = await Promise.all([
 		db
 			.from('scenes')
 			.select('*')
@@ -77,11 +77,29 @@ export const GET: RequestHandler = async (event) => {
 			.eq('episode_id', episode.id)
 			.eq('owner_id', owner.id)
 			.order('option_key'),
+		db
+			.from('episode_revisions')
+			.select('revision_number')
+			.eq('episode_id', episode.id)
+			.eq('owner_id', owner.id)
+			.order('revision_number', { ascending: false })
+			.limit(1)
+			.maybeSingle(),
 	]);
-	if (scenesQuery.error || choicesQuery.error)
+	if (scenesQuery.error || choicesQuery.error || revisionQuery.error)
 		error(503, 'Não foi possível preparar a exportação.');
 	const scenes = scenesQuery.data ?? [];
 	const choices = choicesQuery.data ?? [];
+	const currentRevision = revisionQuery.data ? Number(revisionQuery.data.revision_number) : null;
+	const continuityReport = latestContinuity;
+	const continuityStale = continuityReport
+		? (continuityReport.report.episodeRevisionNumber !== null &&
+				continuityReport.report.episodeRevisionNumber !== currentRevision) ||
+			scenes.some(
+				(scene) =>
+					typeof scene.updated_at === 'string' && scene.updated_at > continuityReport.createdAt,
+			)
+		: false;
 	const sceneMedia = scenes.flatMap((scene) =>
 		[
 			scene.start_frame_asset_id
@@ -250,15 +268,16 @@ export const GET: RequestHandler = async (event) => {
 				version: record.version,
 				status: record.profile.status,
 			})),
-			anchorsPath: 'identity/character-anchors.json',
-			checklistPath: 'identity/continuity-checklist.md',
-			sceneAnchorsPath: 'identity/scene-anchors.json',
-			matching: 'exact name/alias in scene notes; manual review required',
+			anchorsPath: identityRecords.length ? 'identity/character-anchors.json' : null,
+			checklistPath: identityRecords.length ? 'identity/continuity-checklist.md' : null,
+			sceneAnchorsPath: identityRecords.length ? 'identity/scene-anchors.json' : null,
+			matching: 'literal name/alias token match in scene notes; not a unique identity match',
 		},
 		continuityVisual: {
 			status: latestContinuity?.status ?? 'NOT_REVIEWED',
 			revision: latestContinuity?.revision ?? null,
 			blockingCount: latestContinuity?.blockingCount ?? 0,
+			stale: continuityStale,
 			reportPath: latestContinuity ? 'continuity/report.json' : null,
 			checklistPath: latestContinuity ? 'continuity/checklist.md' : null,
 		},
@@ -294,11 +313,16 @@ export const GET: RequestHandler = async (event) => {
 	if (targetPlatforms.length === 0) manifest.warnings.push('TARGET_PLATFORMS_EMPTY');
 	if (!aiDisclosure) manifest.warnings.push('AI_DISCLOSURE_EMPTY');
 	if (!latestContinuity) manifest.warnings.push('CONTINUITY_VISUAL_NOT_REVIEWED');
+	else if (continuityStale) manifest.warnings.push('CONTINUITY_REPORT_STALE');
 	if (!identityRecords.length) manifest.warnings.push('IDENTITY_PROFILES_MISSING');
 	else if (!identityPromptBundle.rows.length)
 		manifest.warnings.push('IDENTITY_SCENE_MATCHES_MISSING');
 	else if (identityPromptBundle.unmatchedScenes.length)
 		manifest.warnings.push('IDENTITY_SCENE_MATCHES_PARTIAL');
+	if (identityRecords.some((record) => record.profile.status !== 'APPROVED'))
+		manifest.warnings.push('IDENTITY_PROFILES_DRAFT');
+	if (latestContinuity && latestContinuity.observationCount === 0)
+		manifest.warnings.push('CONTINUITY_VISUAL_EMPTY');
 
 	const output = new PassThrough();
 	const archive = new ZipArchive({ zlib: { level: 6 } });

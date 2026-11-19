@@ -15,11 +15,20 @@ export const GET: RequestHandler = async (event) => {
 	if (episodeId) {
 		const { data: episode } = await db
 			.from('episodes')
-			.select('episode_number')
+			.select('episode_number,seasons(series_id)')
 			.eq('owner_id', owner.id)
 			.eq('id', episodeId)
 			.maybeSingle();
-		if (episode) episodeNumber = Number(episode.episode_number);
+		const season = episode
+			? Array.isArray(episode.seasons)
+				? episode.seasons[0]
+				: episode.seasons
+			: null;
+		if (episode) {
+			if ((season as { series_id?: string } | null)?.series_id !== detail.seriesId)
+				error(400, 'O episódio não pertence à série deste personagem.');
+			episodeNumber = Number(episode.episode_number);
+		}
 	}
 	const record = {
 		characterId: detail.characterId,

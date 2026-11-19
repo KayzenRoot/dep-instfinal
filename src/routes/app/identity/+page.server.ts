@@ -52,8 +52,8 @@ function parseLooks(value: string): IdentityLook[] {
 		return {
 			id: slugifyIdentityLook(label, index),
 			label,
-			appliesFromEpisode: Number.isFinite(from) ? from : 1,
-			appliesToEpisode: Number.isFinite(to) ? to : null,
+			appliesFromEpisode: from,
+			appliesToEpisode: Number.isFinite(to) ? to : Number.NaN,
 			wardrobe: parts[3] ?? '',
 			hair: parts[4] ?? '',
 			notes: parts[5] ?? '',

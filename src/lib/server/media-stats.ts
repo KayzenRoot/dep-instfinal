@@ -64,11 +64,13 @@ export async function measurePrivateImageAsset(
 export async function measurePrivateImageAssets(
 	assets: PrivateImageAsset[],
 	concurrency = 4,
+	deadlineMs = 60_000,
 ): Promise<Map<string, ColorStats | null>> {
 	const results = new Map<string, ColorStats | null>();
+	const startedAt = Date.now();
 	let cursor = 0;
 	async function worker(): Promise<void> {
-		while (cursor < assets.length) {
+		while (cursor < assets.length && Date.now() - startedAt < deadlineMs) {
 			const asset = assets[cursor];
 			cursor += 1;
 			if (!asset) return;

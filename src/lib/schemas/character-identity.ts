@@ -88,6 +88,24 @@ export const characterIdentityProfileSchema = z
 				message: 'Escolha no máximo uma referência principal.',
 				path: ['references'],
 			});
+		const looks = [...profile.looks].sort(
+			(left, right) => left.appliesFromEpisode - right.appliesFromEpisode,
+		);
+		for (let index = 1; index < looks.length; index += 1) {
+			const previous = looks[index - 1];
+			const current = looks[index];
+			if (
+				previous &&
+				current &&
+				(previous.appliesToEpisode === null ||
+					current.appliesFromEpisode <= previous.appliesToEpisode)
+			)
+				context.addIssue({
+					code: 'custom',
+					message: 'Os intervalos de episódios dos looks não podem se sobrepor.',
+					path: ['looks'],
+				});
+		}
 	});
 
 export const identityProfileStatusSchema = z.enum(['DRAFT', 'APPROVED']);

@@ -44,7 +44,7 @@ export interface VisualContinuityInput {
 const LABELS = {
 	wardrobe: ['figurino', 'vestuario', 'vestuário', 'wardrobe'],
 	hair: ['cabelo', 'hair'],
-	location: ['local', 'location'],
+	location: ['local', 'locacao', 'locação', 'location'],
 	time: ['tempo', 'time'],
 } as const;
 
@@ -87,6 +87,22 @@ function textMatches(expected: string, observed: string): boolean {
 
 function truncate(value: string, max = 500): string {
 	return value.trim().slice(0, max);
+}
+
+function roundMetric(value: number): number {
+	return Math.round(value * 1_000) / 1_000;
+}
+
+function roundStats(stats: ColorStats): ColorStats {
+	return {
+		...stats,
+		meanLuma: roundMetric(stats.meanLuma),
+		p05Luma: roundMetric(stats.p05Luma),
+		p95Luma: roundMetric(stats.p95Luma),
+		lowClipPct: roundMetric(stats.lowClipPct),
+		highClipPct: roundMetric(stats.highClipPct),
+		meanSaturation: roundMetric(stats.meanSaturation),
+	};
 }
 
 function addObservation(
@@ -148,7 +164,7 @@ function buildObservations(input: VisualContinuityInput): {
 				sceneIndex: scene.sceneIndex,
 				role: 'START',
 				assetId: scene.startFrameAssetId,
-				stats: stats ? { ...stats } : null,
+				stats: stats ? roundStats(stats) : null,
 			});
 		}
 		if (scene.endFrameAssetId) {
@@ -158,7 +174,7 @@ function buildObservations(input: VisualContinuityInput): {
 				sceneIndex: scene.sceneIndex,
 				role: 'END',
 				assetId: scene.endFrameAssetId,
-				stats: stats ? { ...stats } : null,
+				stats: stats ? roundStats(stats) : null,
 			});
 		}
 		if (!scene.startFrameAssetId && !scene.endFrameAssetId) {
@@ -322,7 +338,7 @@ export function continuityReportStatus(
 	summary: VisualContinuityReport['summary'],
 ): VisualContinuityReport['status'] {
 	if (summary.blocking > 0) return 'BLOCKING';
-	if (summary.needsReview > 0) return 'NEEDS_REVIEW';
+	if (summary.needsReview > 0 || summary.total === 0) return 'NEEDS_REVIEW';
 	return 'ACCEPTED';
 }
 
@@ -345,11 +361,16 @@ export function mergePreviousDecisions(
 	previous: VisualContinuityReport | null | undefined,
 ): VisualContinuityReport {
 	if (!previous) return report;
+	const keyFor = (observation: ContinuityObservation) =>
+		`${observation.sceneId}|${observation.entityType}|${observation.attribute}|${observation.characterId ?? ''}`;
 	const decisions = new Map(
 		previous.observations.map((observation) => [observation.id, observation] as const),
 	);
+	const decisionsByKey = new Map(
+		previous.observations.map((observation) => [keyFor(observation), observation] as const),
+	);
 	const observations = report.observations.map((observation) => {
-		const decision = decisions.get(observation.id);
+		const decision = decisions.get(observation.id) ?? decisionsByKey.get(keyFor(observation));
 		if (!decision || (decision.status === 'NEEDS_REVIEW' && !decision.decisionNote))
 			return observation;
 		return {
@@ -390,9 +411,57 @@ export function visualContinuityReportHash(report: VisualContinuityReport): stri
 	return createHash('sha256').update(canonicalJson(report)).digest('hex');
 }
 
+function capLimitations(values: string[]): string[] {
+	const unique = [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+	if (unique.length <= 10) return unique;
+	return [...unique.slice(0, 9), `Additional limitations omitted (${unique.length - 9}).`];
+}
+
+function capObservations(observations: ContinuityObservation[]): ContinuityObservation[] {
+	if (observations.length <= 200) return observations;
+	const priority = (status: ContinuityObservation['status']): number =>
+		status === 'BLOCKING'
+			? 0
+			: status === 'NEEDS_REVIEW'
+				? 1
+				: status === 'EXCEPTION'
+					? 2
+					: status === 'ACCEPTED'
+						? 3
+						: 4;
+	const kept = [...observations]
+		.sort(
+			(left, right) =>
+				priority(left.status) - priority(right.status) ||
+				left.sceneIndex - right.sceneIndex ||
+				left.id.localeCompare(right.id),
+		)
+		.slice(0, 200);
+	return kept.sort(
+		(left, right) => left.sceneIndex - right.sceneIndex || left.id.localeCompare(right.id),
+	);
+}
+
 export function buildVisualContinuityReport(input: VisualContinuityInput): VisualContinuityReport {
-	const { observations, frames, limitations } = buildObservations(input);
-	const summary = summarizeContinuityReport(observations);
+	const { observations, frames: rawFrames, limitations } = buildObservations(input);
+	const profileList = input.characters
+		.filter((character) => character.profile)
+		.map((character) => ({
+			characterId: character.id,
+			name: character.name,
+			version: character.version,
+		}))
+		.sort(
+			(left, right) =>
+				left.name.localeCompare(right.name) || left.characterId.localeCompare(right.characterId),
+		);
+	const extraLimitations: string[] = [];
+	if (profileList.length > 60)
+		extraLimitations.push(
+			`Only the first 60 of ${profileList.length} profiles are listed in this report.`,
+		);
+	if (rawFrames.length > 120)
+		extraLimitations.push(`Only the first 120 of ${rawFrames.length} sampled frames are listed.`);
 	const report: VisualContinuityReport = {
 		schemaVersion: 1,
 		episodeId: input.episodeId,
@@ -400,20 +469,27 @@ export function buildVisualContinuityReport(input: VisualContinuityInput): Visua
 		episodeNumber: input.episodeNumber,
 		episodeRevisionNumber: input.episodeRevisionNumber,
 		generatedAt: input.generatedAt,
-		profilesUsed: input.characters
-			.filter((character) => character.profile)
-			.map((character) => ({
-				characterId: character.id,
-				name: character.name,
-				version: character.version,
-			})),
-		frames,
+		profilesUsed: profileList.slice(0, 60),
+		frames: rawFrames.slice(0, 120),
 		observations,
-		summary,
-		status: continuityReportStatus(summary),
+		summary: summarizeContinuityReport(observations),
+		status: continuityReportStatus(summarizeContinuityReport(observations)),
 		limitations,
 	};
-	return mergePreviousDecisions(report, input.previous);
+	const merged = mergePreviousDecisions(report, input.previous);
+	const truncated = merged.observations.length > 200;
+	if (truncated)
+		extraLimitations.push(
+			`Report truncated from ${merged.observations.length} to 200 observations; blocking items are preserved first.`,
+		);
+	const capped = rebuildReport(
+		{
+			...merged,
+			limitations: capLimitations([...merged.limitations, ...extraLimitations]),
+		},
+		capObservations(merged.observations),
+	);
+	return capped;
 }
 
 export function buildContinuityReportMarkdown(

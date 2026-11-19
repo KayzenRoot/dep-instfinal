@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { characterIdentityProfileSchema } from '#lib/schemas/character-identity.js';
+import { visualContinuityReportSchema } from '#lib/schemas/visual-continuity.js';
 import {
 	applyContinuityDecision,
 	buildContinuityReportMarkdown,
@@ -197,13 +198,78 @@ describe('visual continuity report', () => {
 		expect(markdown).not.toMatch(/https?:\/\//);
 	});
 
-	it('records characters without profiles as a limitation, not a semantic failure', () => {
+	it('records characters without profiles as a limitation and does not call an empty report accepted', () => {
 		const report = buildVisualContinuityReport({
 			...input([]),
 			characters: [{ id: characterId, name: 'Lara', version: 0, profile: null }],
 		});
 		expect(report.observations).toHaveLength(0);
 		expect(report.limitations.join(' ')).toContain('no identity profile');
-		expect(report.status).toBe('ACCEPTED');
+		expect(report.status).toBe('NEEDS_REVIEW');
+	});
+
+	it('round-trips sampled frame stats through the schema and keeps the hash stable', () => {
+		const frame = scene(1).startFrameAssetId!;
+		const report = buildVisualContinuityReport(
+			input([scene(1)], { [frame]: stats(42.123456, 18.987654) }),
+		);
+		const parsed = visualContinuityReportSchema.parse(report);
+		expect(parsed.frames[0]?.stats).toMatchObject({
+			frameCount: 1,
+			meanLuma: 42.123,
+			meanSaturation: 18.988,
+		});
+		expect(visualContinuityReportHash(parsed)).toBe(visualContinuityReportHash(report));
+	});
+
+	it('caps an oversized report to schema limits while preserving blocking decisions', () => {
+		const otherCharacter = '99999999-9999-4999-8999-999999999999';
+		const otherProfile = characterIdentityProfileSchema.parse({
+			...profile(),
+			characterId: otherCharacter,
+			aliases: ['Mestre'],
+			visualTraits: {
+				hair: 'careca',
+				wardrobe: 'paletó cinza',
+				silhouette: 'baixa',
+				marks: '',
+				accessories: '',
+			},
+		});
+		const scenes: VisualSceneInput[] = Array.from({ length: 60 }, (_, index) =>
+			scene(index + 1, {
+				characterNotes: 'Lara e Mestre entram. FIGURINO: roupas erradas. CABELO: errado',
+			}),
+		);
+		const report = buildVisualContinuityReport({
+			...input(scenes),
+			characters: [
+				{ id: characterId, name: 'Lara', version: 1, profile: profile() },
+				{ id: otherCharacter, name: 'Mestre', version: 1, profile: otherProfile },
+			],
+		});
+		expect(report.observations.length).toBeLessThanOrEqual(200);
+		expect(report.limitations.join(' ')).toContain('truncated');
+		expect(visualContinuityReportSchema.safeParse(report).success).toBe(true);
+	});
+
+	it('preserves an explicit blocking decision when the evidence text changes', () => {
+		const original = buildVisualContinuityReport(
+			input([scene(2, { characterNotes: 'Lara entra. FIGURINO: vestido vermelho' })]),
+		);
+		const blocking = applyContinuityDecision(original, {
+			observationId: original.observations[0]!.id,
+			status: 'BLOCKING',
+			rationale: 'Figurino errado.',
+			action: 'REGENERATE',
+		});
+		const regenerated = buildVisualContinuityReport({
+			...input([scene(2, { characterNotes: 'Lara entra. FIGURINO: vestido verde' })]),
+			previous: blocking,
+		});
+		expect(regenerated.observations[0]?.id).not.toBe(blocking.observations[0]?.id);
+		expect(regenerated.observations[0]?.status).toBe('BLOCKING');
+		expect(regenerated.observations[0]?.decisionNote).toContain('[REGENERATE]');
+		expect(regenerated.status).toBe('BLOCKING');
 	});
 });

@@ -70,6 +70,10 @@ const identityMigration = await readFile(
 	'supabase/migrations/20261119130000_v2_wo017_identity_continuity.sql',
 	'utf8',
 );
+const identityRetentionMigration = await readFile(
+	'supabase/migrations/20261119132000_v2_wo017_retention.sql',
+	'utf8',
+);
 const retentionScript = await readFile('scripts/retention.mjs', 'utf8');
 const restoreScript = await readFile('scripts/restore-metadata.mjs', 'utf8');
 const hook = await readFile('src/hooks.server.ts', 'utf8');
@@ -369,7 +373,12 @@ const checks = [
 			identityMigration.includes('character_identity_history_is_immutable') &&
 			identityMigration.includes('identity_version_conflict') &&
 			identityMigration.includes('continuity_revision_conflict') &&
-			identityMigration.includes('visual_continuity_reports_immutable'),
+			identityMigration.includes('visual_continuity_reports_immutable') &&
+			identityRetentionMigration.includes('identity_version_quota') &&
+			identityRetentionMigration.includes('continuity_revision_quota') &&
+			identityRetentionMigration.includes('prune_visual_continuity_reports') &&
+			identityRetentionMigration.includes('prune_character_identity_profile_versions') &&
+			identityRetentionMigration.includes('dif.continuity_prune'),
 	],
 	[
 		'render quotas, health and ops scripts are server-only and dry-run first',

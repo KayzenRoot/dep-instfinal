@@ -29,6 +29,7 @@ export const continuityObservationStatusSchema = z.enum(CONTINUITY_OBSERVATION_S
 export const continuityReportStatusSchema = z.enum(CONTINUITY_REPORT_STATUSES);
 
 export const continuityFrameStatsSchema = z.object({
+	frameCount: z.number().int().min(0),
 	meanLuma: z.number().finite(),
 	p05Luma: z.number().finite(),
 	p95Luma: z.number().finite(),

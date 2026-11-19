@@ -39,6 +39,17 @@
 - Backup/restore e manifesto de backup incluem as três tabelas; grants de leitura ao `service_role` para as tabelas legadas de metadados.
 - Nenhuma migração altera dados existentes, exceto a constraint aditiva `characters(owner_id, series_id, id)` usada pela FK.
 
+## Correções pós-auditoria independente
+
+- **Persistência/hash:** `continuityFrameStatsSchema` agora inclui `frameCount`; stats são arredondados a 3 casas antes do hash; o servidor valida `visualContinuityReportSchema` antes de salvar e de decidir. Um teste de roundtrip com stats não nulos prova parse + hash iguais.
+- **Limites:** o builder limita observações a 200 (preservando BLOCKING/NEEDS_REVIEW primeiro), frames a 120, perfis a 60 e limitações a 10, com limitação explícita; relatórios acima do schema não são mais gravados.
+- **Decisão bloqueante:** merge por `sceneId/entityType/attribute/characterId` quando o id muda por edição da nota, evitando liberar o export por mudança textual.
+- **Referências:** ativos já vinculados são carregados além dos 80 recentes; indisponíveis aparecem com aviso e não são removidos silenciosamente. Servidor aceita apenas REFERENCE/FRAME READY; restore histórico não revalida bytes.
+- **Frescor:** export calcula `CONTINUITY_REPORT_STALE` quando a revisão do episódio ou `scenes.updated_at` é posterior ao relatório; é warning, não bloqueio.
+- **Retenção/quota:** 500 revisões por episódio/perfil e RPCs service-only para podar histórico mantendo as mais recentes; o trigger de imutabilidade só permite poda com setting interno.
+- **Orçamento de frames:** amostragem limitada por `CONTINUITY_SAMPLING_BUDGET_MS` (default 60 s) e timeout de 15 s por imagem.
+- **UX/evidência:** status vazio não vira ACCEPTED; export avisa `IDENTITY_PROFILES_DRAFT`/`CONTINUITY_VISUAL_EMPTY`; thumbnails lazy e links JSON/Markdown; testes de 200/201 observações, 10 limitações, roundtrip e BLOCKING após mudança de nota.
+
 ## Capacidade real versus planejada
 
 - A inspeção usa **frames já vinculados** (`start_frame_asset_id`/`end_frame_asset_id`). Não há extração de frame do meio do vídeo na aplicação: isso exigiria canvas no navegador ou o worker FFmpeg, fora deste incremento.
@@ -50,24 +61,25 @@
 
 ## Critérios de aceitação
 
-| Critério                                                                            | Estado       | Evidência                                                               |
-| ----------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------- |
-| Figurino contraditório gera alerta rastreável e decisão do owner                    | PASS         | domain test nota vs perfil/look; E2E registra decisão e histórico       |
-| Quadros e notas lado a lado sem vazamento de mídia                                  | PASS parcial | UI e `/api/media` owner-only; apenas frames vinculados são amostrados   |
-| Iluminação aparece como sugestão não conclusiva e admite exceção                    | PASS         | regra `PIXEL_STATS` + teste de exceção intencional                      |
-| Nenhum alerta altera lore/cânone/vídeo; revisão versionada no relatório             | PASS         | tabela append-only, RLS, testes PgTAP, nenhuma escrita em cenas/cânone  |
-| Fluxo utilizável sem modelo multimodal pago                                         | PASS         | apenas metadados, pixels e revisão humana                               |
-| 2 personagens e 4 cenas geram prompts distintos com anchor estável                  | PASS         | domain test com 2 perfis/4 cenas; anchor por episódio e look            |
-| Mudança de figurino autorizada não gera erro permanente                             | PASS         | look com intervalo; decisão `EXCEPTION`; restore DRAFT                  |
-| Owner edita/rejeita âncora e restaura versão sem alterar cânone                     | PASS         | override, DRAFT/APPROVED, restore append-only; E2E                      |
-| Export inclui nomes/aliases, referências owner-only e instruções sem URL permanente | PASS         | E2E JSON/ZIP verifica anchors/checklist/report                          |
-| Alertas pós-Flow têm evidência, admitem desconhecido e revisão humana               | PASS         | método/confiança observáveis, `NEEDS_REVIEW`, decisão com justificativa |
+| Critério                                                                            | Estado       | Evidência                                                                   |
+| ----------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------- |
+| Figurino contraditório gera alerta rastreável e decisão do owner                    | PASS         | domain test nota vs perfil/look; E2E registra decisão e histórico           |
+| Quadros e notas lado a lado sem vazamento de mídia                                  | PASS parcial | UI e `/api/media` owner-only; apenas frames vinculados são amostrados       |
+| Iluminação aparece como sugestão não conclusiva e admite exceção                    | PASS         | regra `PIXEL_STATS` + teste de exceção intencional                          |
+| Nenhum alerta altera lore/cânone/vídeo; revisão versionada no relatório             | PASS         | tabela append-only, RLS, testes PgTAP, nenhuma escrita em cenas/cânone      |
+| Fluxo utilizável sem modelo multimodal pago                                         | PASS         | apenas metadados, pixels e revisão humana                                   |
+| 2 personagens e 4 cenas geram prompts distintos com anchor estável                  | PASS         | domain test com 2 perfis/4 cenas; anchor por episódio e look                |
+| Mudança de figurino autorizada não gera erro permanente                             | PASS         | look com intervalo; decisão `EXCEPTION`; restore DRAFT                      |
+| Owner edita/rejeita âncora e restaura versão sem alterar cânone                     | PASS         | override, DRAFT/APPROVED, restore append-only; E2E                          |
+| Export inclui nomes/aliases, referências owner-only e instruções sem URL permanente | PASS         | E2E JSON/ZIP verifica anchors/checklist/report                              |
+| Alertas pós-Flow têm evidência, admitem desconhecido e revisão humana               | PASS         | método/confiança observáveis, `NEEDS_REVIEW`, decisão com justificativa     |
+| Relatório persistido é sempre legível e com hash verificável                        | PASS         | schema com `frameCount`, stats arredondados, parse antes do save, roundtrip |
 
 ## Testes planejados/executados
 
-- Unit: perfis/anchors/looks/aliases/UTF-8/homônimos/sem imagem, matching 2×4, composição de prompt; relatório com contradição, frame ausente, luz, locação/tempo, merge de decisões, bloqueio explícito e Markdown sem URLs.
+- Unit: perfis/anchors/looks/aliases/UTF-8/homônimos/sem imagem, matching 2×4, composição de prompt; relatório com contradição, frame ausente, luz, locação/tempo, merge de decisões, bloqueio explícito, roundtrip de stats, limites 200/201 e Markdown sem URLs.
 - Actions: parsing do perfil, referências/foto-chave, DRAFT/approve/restore, redirect 303 e mapeamento 409; gerar/decidir relatório, regeneração e erros.
-- PgTAP: RLS owner-read, escrita direta negada, isolamento de segundo owner, conflito de versão/revisão, histórico imutável e relatório bloqueante.
+- PgTAP 183: RLS owner-read, escrita direta negada, isolamento de segundo owner, conflito de versão/revisão, histórico imutável, EXECUTE negado a authenticated, quota/retenção e relatório bloqueante.
 - E2E: perfil salvo/aprovado/restaurado, export JSON, relatório gerado, decisão BLOCKING bloqueia ZIP, RESOLVED libera ZIP e inclui identity/continuity no pacote.
 - Policy: 31 invariantes / 29 tabelas; backup/restore atualizados.
 
@@ -78,10 +90,12 @@
 - Estatísticas de pixel são grosseiras e não detectam figurino/objeto; iluminação intencional exige exceção.
 - Não há associação cena↔personagem persistida; a correspondência é derivada das notas e revisável.
 - Relatórios são gerados sob demanda; não há job automático nem comparação entre séries.
-- Referências ficam no JSON do perfil (IDs de `media_assets`), não em `image_references`; a biblioteca existente continua sendo a fonte dos bytes.
+- Referências ficam no JSON do perfil (IDs de `media_assets`), não em `image_references`; a biblioteca existente continua sendo a fonte dos bytes. Ativos indisponíveis aparecem marcados e o restore histórico não revalida bytes.
 - A âncora manual é texto livre; revisão humana e hash do perfil são a garantia de rastreabilidade.
 - Frames privados dependem de Cloudinary configurado; falha de amostragem vira limitação, não bloqueio.
 - WO-024 (storyboard pré-Flow) e extração no worker permanecem para WOs futuras.
+- Export ZIP inclui perfis DRAFT com warning; a UI explicita o status. Relatórios antigos podem ser podados por RPC service-only; o latest preserva decisões.
+- O gate de frescor é warning, não bloqueio; um relatório desatualizado ainda libera o ZIP se não tiver BLOCKING.
 
 ## Gate
 
