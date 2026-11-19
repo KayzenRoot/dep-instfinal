@@ -48,6 +48,12 @@ function mapRpcError(error: { code?: string; message?: string }): CharacterIdent
 		);
 	if (error.code === '42501')
 		return new CharacterIdentityError(403, 'IDENTITY_FORBIDDEN', 'Acesso não autorizado.');
+	if (error.code === '23514' && error.message?.includes('identity_version_quota'))
+		return new CharacterIdentityError(
+			409,
+			'IDENTITY_VERSION_QUOTA',
+			'Limite de 500 versões do perfil atingido. Um operador pode podar o histórico antigo.',
+		);
 	if (error.code === '23514')
 		return new CharacterIdentityError(400, 'IDENTITY_INVALID', 'Perfil de identidade inválido.');
 	return new CharacterIdentityError(

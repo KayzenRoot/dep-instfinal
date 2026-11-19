@@ -215,8 +215,9 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Base revalidated:** `main` `174e045` (checkpoint WO-016 promoted). Branch: `feat/dif-v2-wo-017`.
 - **Issue inventory:** WO-001–016 **MERGED/CLOSED/PROMOTED**; WO-017/#34 em execução; WO-014 blocked by 017–021 + OPS.
 - **Scope:** Character Identity Kit versionado sobre `characters` existentes; prompts/anchors/checklists Flow; inspetor pós-Flow determinístico com frames privados, notas, decisões e relatório exportável; bloqueio de ZIP apenas para BLOCKING explícito.
-- **Delivered locally:** `character_identity_profiles` + versões imutáveis; `visual_continuity_reports`; RPCs service-only; `/app/identity` e `/app/continuity/visual`; export JSON/MD e ZIP; E2E 1/1; PgTAP 179/179; policy 31/29.
+- **Delivered locally:** `character_identity_profiles` + versões imutáveis; `visual_continuity_reports`; RPCs service-only; `/app/identity` e `/app/continuity/visual`; export JSON/MD e ZIP; E2E 1/1; PgTAP 183/183; policy 31/29; quotas/retenção service-only.
 - **Correções durante a implementação:** look selecionado pelo número do episódio (não pelo índice da cena), redirects fora do catch, mocks de formulário e grants de backup.
+- **Correções de auditoria:** `frameCount`/rounding/parse antes do hash, caps de relatório, merge de BLOCKING por chave, referências preservadas, stale/DRAFT/empty warnings, quota/retenção e orçamento de amostragem.
 - **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROPOSED**. WO-018 (#35) é a próxima.
 
 ## V2 Context Lock — WO-016 (#33)

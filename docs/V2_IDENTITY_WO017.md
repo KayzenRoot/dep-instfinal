@@ -48,7 +48,7 @@
 - **Frescor:** export calcula `CONTINUITY_REPORT_STALE` quando a revisão do episódio ou `scenes.updated_at` é posterior ao relatório; é warning, não bloqueio.
 - **Retenção/quota:** 500 revisões por episódio/perfil e RPCs service-only para podar histórico mantendo as mais recentes; o trigger de imutabilidade só permite poda com setting interno.
 - **Orçamento de frames:** amostragem limitada por `CONTINUITY_SAMPLING_BUDGET_MS` (default 60 s) e timeout de 15 s por imagem.
-- **UX/evidência:** status vazio não vira ACCEPTED; export avisa `IDENTITY_PROFILES_DRAFT`/`CONTINUITY_VISUAL_EMPTY`; thumbnails lazy e links JSON/Markdown; testes de 200/201 observações, 10 limitações, roundtrip e BLOCKING após mudança de nota.
+- **UX/evidência:** status vazio não vira ACCEPTED; export avisa `IDENTITY_PROFILES_DRAFT`/`CONTINUITY_VISUAL_EMPTY`; thumbnails lazy e links JSON/Markdown; testes de 240→200 observações, cap de 10 limitações, roundtrip e decisões após mudança de nota (só BLOCKING é transportado por chave; ACCEPTED/EXCEPTION/RESOLVED de evidência diferente voltam a NEEDS_REVIEW).
 
 ## Capacidade real versus planejada
 
@@ -94,8 +94,11 @@
 - A âncora manual é texto livre; revisão humana e hash do perfil são a garantia de rastreabilidade.
 - Frames privados dependem de Cloudinary configurado; falha de amostragem vira limitação, não bloqueio.
 - WO-024 (storyboard pré-Flow) e extração no worker permanecem para WOs futuras.
-- Export ZIP inclui perfis DRAFT com warning; a UI explicita o status. Relatórios antigos podem ser podados por RPC service-only; o latest preserva decisões.
-- O gate de frescor é warning, não bloqueio; um relatório desatualizado ainda libera o ZIP se não tiver BLOCKING.
+- Export ZIP inclui perfis DRAFT com warning; a UI explicita o status. O export standalone JSON/MD inclui o status, mas não um warning separado.
+- Relatórios antigos podem ser podados por RPC service-only; o latest preserva decisões. Uma revisão latest legada acima dos limites do schema (se existir) precisaria de remediação administrativa.
+- A poda usa um GUC de sessão permitido apenas ao service_role; a imutabilidade deixa de ser absoluta para esse role confiável.
+- O gate de frescor é warning, não bloqueio; um relatório desatualizado ainda libera o ZIP se não tiver BLOCKING. Revisão nula vs. atual e mudanças de perfil/bytes de mídia podem não ser sinalizadas.
+- Quotas de 500 revisões retornam 409 com mensagem operacional, mas a poda não tem UI; é um runbook service-only.
 
 ## Gate
 

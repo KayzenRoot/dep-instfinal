@@ -11,10 +11,11 @@ import {
 	restoreCharacterIdentityProfileVersion,
 	saveCharacterIdentityProfile,
 } from '#lib/server/character-identity.js';
-import type {
-	CharacterIdentityProfile,
-	IdentityLook,
-	IdentityReference,
+import {
+	characterIdentityProfileSchema,
+	type CharacterIdentityProfile,
+	type IdentityLook,
+	type IdentityReference,
 } from '#lib/schemas/character-identity.js';
 import {
 	slugifyIdentityLook,
@@ -53,7 +54,7 @@ function parseLooks(value: string): IdentityLook[] {
 			id: slugifyIdentityLook(label, index),
 			label,
 			appliesFromEpisode: from,
-			appliesToEpisode: Number.isFinite(to) ? to : Number.NaN,
+			appliesToEpisode: rawTo === '' ? null : Number.isFinite(to) ? to : Number.NaN,
 			wardrobe: parts[3] ?? '',
 			hair: parts[4] ?? '',
 			notes: parts[5] ?? '',
@@ -112,6 +113,15 @@ async function saveFromForm(event: RequestEvent, status: CharacterIdentityProfil
 		return fail(400, { message: 'Personagem ou versão inválidos. Recarregue a página.' });
 	const detail = await loadCharacterIdentityDetail(db, owner, characterId);
 	if (!detail) return fail(404, { message: 'Personagem não encontrado.' });
+	const parsedProfile = characterIdentityProfileSchema.safeParse(
+		profileFromForm(form, detail, status),
+	);
+	if (!parsedProfile.success) {
+		const issue = parsedProfile.error.issues[0];
+		return fail(400, {
+			message: `Perfil inválido${issue ? `: ${issue.path.join('.')} — ${issue.message}` : '.'}`,
+		});
+	}
 	try {
 		const version = await saveCharacterIdentityProfile({
 			db,
@@ -119,7 +129,7 @@ async function saveFromForm(event: RequestEvent, status: CharacterIdentityProfil
 			owner,
 			characterId,
 			expectedVersion,
-			profile: profileFromForm(form, detail, status),
+			profile: parsedProfile.data,
 			changeNote: status === 'APPROVED' ? 'Perfil aprovado' : 'Perfil salvo',
 		});
 		redirect(

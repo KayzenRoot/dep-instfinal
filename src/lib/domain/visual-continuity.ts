@@ -370,7 +370,15 @@ export function mergePreviousDecisions(
 		previous.observations.map((observation) => [keyFor(observation), observation] as const),
 	);
 	const observations = report.observations.map((observation) => {
-		const decision = decisions.get(observation.id) ?? decisionsByKey.get(keyFor(observation));
+		const byId = decisions.get(observation.id);
+		const byKey = decisionsByKey.get(keyFor(observation));
+		const decision =
+			byId ??
+			(byKey &&
+			(byKey.status === 'BLOCKING' ||
+				(byKey.expected === observation.expected && byKey.observed === observation.observed))
+				? byKey
+				: undefined);
 		if (!decision || (decision.status === 'NEEDS_REVIEW' && !decision.decisionNote))
 			return observation;
 		return {
@@ -479,13 +487,14 @@ export function buildVisualContinuityReport(input: VisualContinuityInput): Visua
 	const merged = mergePreviousDecisions(report, input.previous);
 	const truncated = merged.observations.length > 200;
 	if (truncated)
-		extraLimitations.push(
+		extraLimitations.unshift(
 			`Report truncated from ${merged.observations.length} to 200 observations; blocking items are preserved first.`,
 		);
+	const allLimitations = [...extraLimitations, ...merged.limitations];
 	const capped = rebuildReport(
 		{
 			...merged,
-			limitations: capLimitations([...merged.limitations, ...extraLimitations]),
+			limitations: capLimitations(allLimitations),
 		},
 		capObservations(merged.observations),
 	);

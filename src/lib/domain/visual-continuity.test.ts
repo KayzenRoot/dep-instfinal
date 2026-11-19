@@ -241,16 +241,49 @@ describe('visual continuity report', () => {
 				characterNotes: 'Lara e Mestre entram. FIGURINO: roupas erradas. CABELO: errado',
 			}),
 		);
+		const extraCharacters = Array.from({ length: 12 }, (_, index) => ({
+			id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(index + 1).padStart(12, '0')}`,
+			name: `Extra ${index + 1}`,
+			version: 1,
+			profile: characterIdentityProfileSchema.parse({
+				...profile(),
+				characterId: `aaaaaaaa-aaaa-4aaa-8aaa-${String(index + 1).padStart(12, '0')}`,
+				aliases: [],
+			}),
+		}));
 		const report = buildVisualContinuityReport({
 			...input(scenes),
 			characters: [
 				{ id: characterId, name: 'Lara', version: 1, profile: profile() },
 				{ id: otherCharacter, name: 'Mestre', version: 1, profile: otherProfile },
+				...extraCharacters,
 			],
 		});
 		expect(report.observations.length).toBeLessThanOrEqual(200);
-		expect(report.limitations.join(' ')).toContain('truncated');
+		expect(report.limitations[0]).toContain('truncated');
+		expect(report.limitations.length).toBeLessThanOrEqual(10);
 		expect(visualContinuityReportSchema.safeParse(report).success).toBe(true);
+	});
+
+	it('does not carry accepted/exception/resolved decisions to changed evidence', () => {
+		for (const status of ['ACCEPTED', 'EXCEPTION', 'RESOLVED'] as const) {
+			const original = buildVisualContinuityReport(
+				input([scene(2, { characterNotes: 'Lara entra. FIGURINO: vestido vermelho' })]),
+			);
+			const decided = applyContinuityDecision(original, {
+				observationId: original.observations[0]!.id,
+				status,
+				rationale: 'Decisão da evidência antiga.',
+				action: 'NONE',
+			});
+			const regenerated = buildVisualContinuityReport({
+				...input([scene(2, { characterNotes: 'Lara entra. FIGURINO: vestido verde' })]),
+				previous: decided,
+			});
+			expect(regenerated.observations[0]?.status).toBe('NEEDS_REVIEW');
+			expect(regenerated.observations[0]?.decisionNote).toBe('');
+			expect(regenerated.status).toBe('NEEDS_REVIEW');
+		}
 	});
 
 	it('preserves an explicit blocking decision when the evidence text changes', () => {

@@ -228,20 +228,21 @@
 				</div>
 			</form>
 			{#if data.detail.profile}
-				<p class="hint export-links">
-					Exportar perfil:
-					<a
-						href={resolve('/api/identity/[characterId]/export?format=json', {
-							characterId: data.detail.characterId,
-						})}>JSON</a
-					>
+				<form
+					class="hint export-form"
+					method="GET"
+					action={resolve('/api/identity/[characterId]/export', {
+						characterId: data.detail.characterId,
+					})}
+				>
+					<span>Exportar perfil:</span>
+					{#if data.episodeId}
+						<input type="hidden" name="episodeId" value={data.episodeId} />
+					{/if}
+					<button type="submit" name="format" value="json">JSON</button>
 					·
-					<a
-						href={resolve('/api/identity/[characterId]/export?format=md', {
-							characterId: data.detail.characterId,
-						})}>Markdown</a
-					>
-				</p>
+					<button type="submit" name="format" value="md">Markdown</button>
+				</form>
 			{/if}
 			{#if data.detail.versions.length}
 				<h3>Versões</h3>

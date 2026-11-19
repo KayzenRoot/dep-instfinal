@@ -93,7 +93,7 @@ export const GET: RequestHandler = async (event) => {
 	const currentRevision = revisionQuery.data ? Number(revisionQuery.data.revision_number) : null;
 	const continuityReport = latestContinuity;
 	const continuityStale = continuityReport
-		? (continuityReport.report.episodeRevisionNumber !== null &&
+		? (currentRevision !== null &&
 				continuityReport.report.episodeRevisionNumber !== currentRevision) ||
 			scenes.some(
 				(scene) =>

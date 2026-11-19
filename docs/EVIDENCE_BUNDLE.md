@@ -4,8 +4,8 @@
 
 - **Work Order:** `DIF-V2-WO-017` · issue #34 · epic #17 · adendo ENH-16
 - **Base:** `main` `174e045` (checkpoint WO-016 promovido); branch `feat/dif-v2-wo-017`
-- **Status:** implementação local; unit/action, PgTAP **179/179**, policy **31/29**, E2E local **1/1**, E2E responsivo e CI **PENDENTES**. Checkpoint **PROPOSED**.
-- **Auditoria:** independente ainda não executada.
+- **Status:** implementação + correções de auditoria; PgTAP **183/183**, policy **31/29**, E2E local/CI e unit finais em validação. Checkpoint **PROPOSED**.
+- **Auditoria:** rodada 1 **CORRECTION REQUIRED** (C1 hash com stats, H1 limites, M1–M7); correções aplicadas; reauditoria final pendente.
 
 | Check           | Result     | Evidence                                                                                   |
 | --------------- | ---------- | ------------------------------------------------------------------------------------------ |

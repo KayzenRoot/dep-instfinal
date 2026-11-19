@@ -117,6 +117,23 @@ describe('identity page actions', () => {
 		});
 	});
 
+	it('keeps an open-ended look null and rejects an invalid end', async () => {
+		await expect(
+			actions.save(event(fields({ looks: 'Pós-ritual | 4 | | casaco | preso | nota' }))),
+		).rejects.toMatchObject({ status: 303 });
+		const call = identity.saveCharacterIdentityProfile.mock.calls[0]?.[0];
+		expect(call.profile.looks[0]).toMatchObject({
+			label: 'Pós-ritual',
+			appliesFromEpisode: 4,
+			appliesToEpisode: null,
+		});
+		identity.saveCharacterIdentityProfile.mockClear();
+		expect(
+			await actions.save(event(fields({ looks: 'Pós-ritual | 4 | abc | casaco' }))),
+		).toMatchObject({ status: 400 });
+		expect(identity.saveCharacterIdentityProfile).not.toHaveBeenCalled();
+	});
+
 	it('marks the primary reference and approves through the same parser', async () => {
 		await expect(
 			actions.approve(
