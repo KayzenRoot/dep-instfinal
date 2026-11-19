@@ -121,7 +121,7 @@
 						referência.
 					</p>
 					<div class="actions">
-						{#if variant.status === 'APPLIED' && variant.appliedVersion}
+						{#if variant.status === 'APPLIED' && variant.appliedVersion === data.plan?.version}
 							<span class="badge">Aplicada na v{variant.appliedVersion}</span>
 							<form method="POST" action="?/revert">
 								<input type="hidden" name="episodeId" value={data.selectedEpisode?.id ?? ''} />

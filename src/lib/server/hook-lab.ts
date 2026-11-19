@@ -79,6 +79,7 @@ async function loadCaptionForVersion(
 		.eq('owner_id', ownerId)
 		.eq('episode_id', episodeId)
 		.eq('plan_version', planVersion)
+		.eq('current_status', 'APPROVED')
 		.order('created_at', { ascending: false })
 		.limit(1)
 		.maybeSingle();

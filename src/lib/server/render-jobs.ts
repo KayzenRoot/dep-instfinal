@@ -114,6 +114,12 @@ export async function enqueueRenderJob(input: {
 		throw new RenderJobError(409, 'RENDER_PLAN_NOT_FOUND', 'Plano de edição não encontrado.');
 	const template =
 		(planRow.plan as { captions?: { template?: string } } | null)?.captions?.template ?? 'clean';
+	if (template === 'none' && (planRow.plan as { cta?: { enabled?: boolean } } | null)?.cta?.enabled)
+		throw new RenderJobError(
+			409,
+			'CTA_REQUIRES_CAPTIONS',
+			'Ative as legendas ou desative a CTA antes de renderizar.',
+		);
 	if (template !== 'none') {
 		let captionQuery = input.adminDb
 			.from('caption_tracks')

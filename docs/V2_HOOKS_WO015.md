@@ -1,6 +1,6 @@
 # DIF-V2-WO-015 — Hook Lab: três aberturas e variantes exportáveis
 
-**Status:** implementação completa em `feat/dif-v2-wo-015`; unit **213+3**, PgTAP **161/161**, policy **30/26**, E2E timeline **1/1** (4,3 min) e responsivo **1/1** PASS; CI e auditoria independente **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** implementação completa em `feat/dif-v2-wo-015`; unit **213+3**, PgTAP **161/161**, policy **30/26**, E2E timeline **1/1** (4,5 min) e responsivo **1/1** PASS; CI e auditoria independente **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
 **Base:** `main` `9862f8c` (checkpoint WO-013 núcleo promovido).
 **Escopo:** WO-015 (#32), dependente de WO-004/010/011/012.
 
@@ -20,7 +20,7 @@
 - O Hook Lab reordena **clipes inteiros** já READY; não cria frames, não gera vídeo por IA e não altera a duração total.
 - A prévia é o clipe de abertura com seek no `sourceInMs`, não o render composto; o MP4 final continua sendo a referência e exige aplicar, aprovar o plano, reaprovar legendas e renderizar.
 - O score é heurístico e transparente; não mede retenção, não ranqueia com dados reais e não substitui teste A/B na WO-020.
-- A variante de “fala intrigante” usa legendas já aprovadas; não gera texto novo. O hook de texto via Gemini opt-in não foi implementado nesta entrega.
+- A variante de “fala intrigante” usa apenas track com `current_status = APPROVED`; não gera texto novo. O hook de texto via Gemini opt-in não foi implementado nesta entrega.
 - Sem spoiler automático semântico: a premissa é genérica e o owner revisa; nenhuma decisão de cânone/votação é alterada.
 
 ## Critérios de aceitação
@@ -49,6 +49,8 @@
 - Aplicar/reverter cria nova versão DRAFT e exige aprovar o plano + reaprovar legendas; o enqueue bloqueia render sem legendas aprovadas para a versão.
 - A variante JSON é exportável individualmente; o MP4 por variante não é gerado em um clique e segue o pipeline versionado.
 - O estado APPLIED não é transacional com o save do plano; reaplicar/reverter valida a versão atual, mas concorrência extrema continua residual.
+- Reverter restaura a versão base e descarta edições não-clip feitas depois dela; o histórico preserva a recuperação.
+- O hash do plano derivado no export é calculado a partir da versão fonte; o apply opera sobre o plano atual compatível por assinatura de cortes.
 
 ## Correções pós-auditoria
 
