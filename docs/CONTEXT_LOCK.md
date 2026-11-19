@@ -210,6 +210,15 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner authorized merge/promotion on 2026-11-14; PR #55 squash-merged at `326c576`; issue #24 closed; checkpoint **PROMOTED**. WO-008 (#25) is next.
 
+## V2 Context Lock — WO-017 (#34)
+
+- **Base revalidated:** `main` `174e045` (checkpoint WO-016 promoted). Branch: `feat/dif-v2-wo-017`.
+- **Issue inventory:** WO-001–016 **MERGED/CLOSED/PROMOTED**; WO-017/#34 em execução; WO-014 blocked by 017–021 + OPS.
+- **Scope:** Character Identity Kit versionado sobre `characters` existentes; prompts/anchors/checklists Flow; inspetor pós-Flow determinístico com frames privados, notas, decisões e relatório exportável; bloqueio de ZIP apenas para BLOCKING explícito.
+- **Delivered locally:** `character_identity_profiles` + versões imutáveis; `visual_continuity_reports`; RPCs service-only; `/app/identity` e `/app/continuity/visual`; export JSON/MD e ZIP; E2E 1/1; PgTAP 179/179; policy 31/29.
+- **Correções durante a implementação:** look selecionado pelo número do episódio (não pelo índice da cena), redirects fora do catch, mocks de formulário e grants de backup.
+- **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROPOSED**. WO-018 (#35) é a próxima.
+
 ## V2 Context Lock — WO-016 (#33)
 
 - **Base revalidated:** `main` `d96ed00` (checkpoint WO-015 promoted). Branch: `feat/dif-v2-wo-016`.

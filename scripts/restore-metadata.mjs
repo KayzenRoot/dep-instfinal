@@ -34,12 +34,17 @@ const summary = JSON.parse(readFileSync(join(backupDir, 'summary.json'), 'utf8')
 const allowedTables = new Set([
 	'series',
 	'seasons',
+	'characters',
+	'lore_facts',
 	'episodes',
 	'scenes',
 	'choices',
 	'polls',
 	'poll_results',
 	'canonical_decisions',
+	'media_assets',
+	'image_references',
+	'generation_jobs',
 	'video_upload_sessions',
 	'video_assets',
 	'video_edit_plans',
@@ -52,6 +57,9 @@ const allowedTables = new Set([
 	'audio_assets',
 	'render_quality_reports',
 	'hook_variants',
+	'character_identity_profiles',
+	'character_identity_profile_versions',
+	'visual_continuity_reports',
 ]);
 for (const table of Object.keys(summary.counts)) {
 	if (!allowedTables.has(table) || !/^[a-z][a-z0-9_]{0,63}$/.test(table))

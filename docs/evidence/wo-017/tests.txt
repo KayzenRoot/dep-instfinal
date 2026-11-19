@@ -1,0 +1,61 @@
+# WO-017 — evidence
+
+Date: 2026-11-19 (America/Sao_Paulo)
+Branch: `feat/dif-v2-wo-017` (base `main` `174e045`)
+
+## Static
+
+- `npm run check`: 0 errors / 0 warnings
+- `npm run lint`: PASS (`eslint . --max-warnings=0`)
+- `npm run build`: PASS (@sveltejs/adapter-node)
+- `npm run audit:policy`: 31 invariants / 29 tables PASS
+- `npm run test:db`: **179/179** PgTAP PASS
+
+## Unit / actions
+
+- `character-identity.test.ts`: 7/7 — look selection by episode, stable anchors, manual
+  override, aliases/accents, 2 characters × 4 scenes, homonyms, prompt composition,
+  checklist/export without private URLs.
+- `visual-continuity.test.ts`: 7/7 — wardrobe contradiction, missing frame, lighting and
+  location suggestions, owner exception, explicit blocking/regeneration, decision merge,
+  deterministic hash and Markdown without URLs.
+- `identity-actions.test.ts`: 4/4 — version required, parsed fields/looks/references,
+  primary reference, redirect 303, 409 mapping and restore.
+- `continuity-actions.test.ts`: 3/3 — generate redirect, decision with REGENERATE,
+  incomplete decision and conflict mapping.
+- Full local suite: **261 passed + 3 skipped** before the final look-number correction;
+  the affected identity suite was rerun **7/7** after the correction. CI is authoritative
+  for the final combined count.
+
+## E2E
+
+- `e2e/identity-continuity.spec.ts`: **1/1** (20.1 s) — owner token creates a synthetic
+  series/season/character/episode/scene; UI saves profile v1, approves v2, restores v3;
+  export JSON contains anchor/checklist; visual report generated for a scene without a
+  frame; BLOCKING decision makes `/api/export` return **409**; RESOLVED decision releases
+  the ZIP and the package contains `identity/character-anchors.json`,
+  `identity/continuity-checklist.md`, `continuity/report.json` and manifest identity data.
+- `e2e/owner-boundary.spec.ts -g "authenticated studio pages"`: **1/1** (1.4 min) at
+  360/768/1440 including `/app/identity` and `/app/continuity/visual`.
+
+## Policy / operations
+
+- PgTAP covers owner read, direct authenticated writes denied, second-owner isolation,
+  identity/report version conflicts, immutable history and explicit BLOCKING.
+- Backup route/script/restore now include `character_identity_profiles`,
+  `character_identity_profile_versions` and `visual_continuity_reports`, plus the
+  previously missing `render_quality_reports`, `hook_variants`, characters/lore/media/
+  references/generation tables for the metadata backup.
+- Service-role SELECT grants added for legacy metadata tables read by backup.
+
+## Limits verified
+
+- Frames are the linked `start_frame_asset_id`/`end_frame_asset_id`; no midpoint extraction
+  from video in the app (worker/canvas path remains future work).
+- Character matching is exact name/alias in scene notes; no semantic or facial recognition.
+- Pixel statistics only suggest lighting differences and never auto-block; explicit owner
+  BLOCKING is required to gate the Flow export.
+- No paid multimodal API, GPU, scraping or Flow automation; Cloudinary failure degrades
+  sampling to a limitation.
+- No scene, character, lore, canon or source bytes are written by the inspector.
+- Reports are generated on demand; no automatic per-render review.

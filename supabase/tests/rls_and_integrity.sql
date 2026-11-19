@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(161);
+select plan(179);
 
 do $$
 declare
@@ -14,7 +14,9 @@ declare
     'video_edit_plans', 'video_edit_plan_versions',
     'render_jobs', 'render_job_events',
     'voice_direction_plans', 'narration_takes',
-    'caption_tracks', 'audio_assets', 'render_quality_reports', 'hook_variants'
+    'caption_tracks', 'audio_assets', 'render_quality_reports', 'hook_variants',
+    'character_identity_profiles', 'character_identity_profile_versions',
+    'visual_continuity_reports'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -60,7 +62,9 @@ begin
     elsif v_table in (
       'video_edit_plans', 'video_edit_plan_versions', 'render_jobs', 'render_job_events',
       'voice_direction_plans', 'narration_takes', 'caption_tracks', 'audio_assets',
-      'render_quality_reports', 'hook_variants'
+      'render_quality_reports', 'hook_variants',
+      'character_identity_profiles', 'character_identity_profile_versions',
+      'visual_continuity_reports'
     ) then
       if v_policy_count <> 1 then raise exception 'edit plan policies must be read-only'; end if;
       if has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
@@ -1948,6 +1952,211 @@ select is(
   jsonb_typeof(public.render_queue_health()), 'object',
   'queue health returns a sanitized JSON object'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+insert into public.characters (id, owner_id, series_id, name, role)
+values (
+  'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
+  '11111111-1111-4111-8111-111111111111',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  'Lara fixture', 'PROTAGONIST'
+) on conflict (owner_id, id) do nothing;
+reset role;
+
+select lives_ok(
+  $$select public.save_character_identity_profile(
+      '11111111-1111-4111-8111-111111111111',
+      'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
+      0,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'characterId', 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
+        'seriesId', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        'status', 'APPROVED',
+        'aliases', '[]'::jsonb,
+        'visualTraits', '{}'::jsonb,
+        'references', '[]'::jsonb,
+        'looks', '[]'::jsonb
+      ),
+      repeat('a', 64), 'fixture v1'
+    );$$,
+  'service role stores the first identity profile version'
+);
+select throws_ok(
+  $$select public.save_character_identity_profile(
+      '11111111-1111-4111-8111-111111111111',
+      'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
+      0,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'characterId', 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
+        'seriesId', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        'status', 'DRAFT',
+        'aliases', '[]'::jsonb,
+        'visualTraits', '{}'::jsonb,
+        'references', '[]'::jsonb,
+        'looks', '[]'::jsonb
+      ),
+      repeat('b', 64), 'stale'
+    );$$,
+  '40001', 'identity_version_conflict',
+  'identity profile writes require the current version'
+);
+select lives_ok(
+  $$select public.save_character_identity_profile(
+      '11111111-1111-4111-8111-111111111111',
+      'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
+      1,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'characterId', 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
+        'seriesId', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        'status', 'DRAFT',
+        'aliases', '["Lara"]'::jsonb,
+        'visualTraits', '{}'::jsonb,
+        'references', '[]'::jsonb,
+        'looks', '[]'::jsonb
+      ),
+      repeat('b', 64), 'fixture v2'
+    );$$,
+  'service role appends a second identity profile version'
+);
+select is(
+  (select current_version from public.character_identity_profiles
+   where character_id = 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1'),
+  2, 'identity current version advances to 2'
+);
+select is(
+  (select count(*) from public.character_identity_profile_versions
+   where profile_id = (select id from public.character_identity_profiles
+     where character_id = 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1')),
+  2::bigint, 'identity history keeps both versions'
+);
+select throws_ok(
+  $$update public.character_identity_profile_versions set change_note = 'spoof';$$,
+  '55000', 'character_identity_history_is_immutable',
+  'identity history is immutable'
+);
+select lives_ok(
+  $$select public.save_visual_continuity_report(
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      0,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'episodeId', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        'status', 'NEEDS_REVIEW',
+        'observations', '[]'::jsonb,
+        'frames', '[]'::jsonb,
+        'summary', jsonb_build_object('blocking', 0)
+      ),
+      repeat('c', 64), null
+    );$$,
+  'service role stores the first continuity report revision'
+);
+select throws_ok(
+  $$select public.save_visual_continuity_report(
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      0,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'episodeId', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        'status', 'NEEDS_REVIEW',
+        'observations', '[]'::jsonb,
+        'frames', '[]'::jsonb,
+        'summary', jsonb_build_object('blocking', 0)
+      ),
+      repeat('d', 64), null
+    );$$,
+  '40001', 'continuity_revision_conflict',
+  'continuity reports require the current revision'
+);
+select lives_ok(
+  $$select public.save_visual_continuity_report(
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      1,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'episodeId', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        'status', 'ACCEPTED',
+        'observations', '[]'::jsonb,
+        'frames', '[]'::jsonb,
+        'summary', jsonb_build_object('blocking', 0)
+      ),
+      repeat('d', 64), null
+    );$$,
+  'service role appends a decided continuity report revision'
+);
+select lives_ok(
+  $$select public.save_visual_continuity_report(
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      2,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'episodeId', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        'status', 'BLOCKING',
+        'observations', '[{"id":"obs_000000000000","status":"BLOCKING"}]'::jsonb,
+        'frames', '[]'::jsonb,
+        'summary', jsonb_build_object('blocking', 1)
+      ),
+      repeat('e', 64), null
+    );$$,
+  'service role stores an explicitly blocking revision'
+);
+select is(
+  (select count(*) from public.visual_continuity_reports
+   where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+  3::bigint, 'continuity reports keep every revision'
+);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.character_identity_profiles), 1::bigint,
+  'owner can read the identity profile'
+);
+select throws_ok(
+  $$insert into public.character_identity_profiles (owner_id, series_id, character_id, profile, profile_hash)
+    values ('11111111-1111-4111-8111-111111111111',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', '{}'::jsonb, repeat('a', 64));$$,
+  '42501', 'permission denied for table character_identity_profiles',
+  'owner cannot write identity profiles directly'
+);
+select is(
+  (select count(*) from public.visual_continuity_reports), 3::bigint,
+  'owner can read continuity reports'
+);
+select throws_ok(
+  $$insert into public.visual_continuity_reports (
+      owner_id, episode_id, revision_number, status, report, report_hash
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 4, 'ACCEPTED',
+      '{}'::jsonb, repeat('a', 64)
+    );$$,
+  '42501', 'permission denied for table visual_continuity_reports',
+  'owner cannot write continuity reports directly'
+);
+select throws_ok(
+  $$update public.visual_continuity_reports set status = 'ACCEPTED';$$,
+  '42501', 'permission denied for table visual_continuity_reports',
+  'owner cannot update continuity reports directly'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.character_identity_profiles), 0::bigint,
+  'second owner cannot read identity profiles'
+);
+select is(
+  (select count(*) from public.visual_continuity_reports), 0::bigint,
+  'second owner cannot read continuity reports'
+);
+reset role;
+
 select lives_ok(
   $$insert into public.hook_variants (
       owner_id, episode_id, plan_id, plan_version, variant_key, label, objective,

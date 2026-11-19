@@ -6,10 +6,17 @@ import { v2 as cloudinary } from 'cloudinary';
 import { buildSrt, csvCell, formatSrtTime } from '#lib/domain/timeline.js';
 import { exceedsZipMediaBudget } from '#lib/domain/export-size.js';
 import { renderNarrativePrompt } from '#lib/domain/narrative-context.js';
+import {
+	buildIdentityChecklistMarkdown,
+	buildSceneIdentityPrompts,
+} from '#lib/domain/character-identity.js';
+import { buildContinuityReportMarkdown } from '#lib/domain/visual-continuity.js';
 import { ownerDatabase } from '#lib/server/authorized.js';
 import { getAppConfig } from '#lib/server/config.js';
 import { firstRelation } from '#lib/server/relations.js';
 import { loadNarrativeContext } from '#lib/server/narrative-context.js';
+import { identityBundleJson, loadSeriesIdentityRecords } from '#lib/server/character-identity.js';
+import { loadLatestVisualContinuityReport } from '#lib/server/visual-continuity.js';
 
 function safeTime(value: number): string {
 	return `${(value / 1000).toFixed(3)}s`;
@@ -24,7 +31,7 @@ export const GET: RequestHandler = async (event) => {
 	const { data: episode, error: episodeError } = await db
 		.from('episodes')
 		.select(
-			'id,title,episode_number,status,duration_ms,scene_duration_ms,narration_pt_br,logline,hook,reveal,cliffhanger,platform_metadata,is_season_finale,seasons(title,planned_episode_count,series(title,premise,tone))',
+			'id,title,episode_number,status,duration_ms,scene_duration_ms,narration_pt_br,logline,hook,reveal,cliffhanger,platform_metadata,is_season_finale,seasons(id,title,series_id,planned_episode_count,series(title,premise,tone))',
 		)
 		.eq('id', event.params.episodeId)
 		.eq('owner_id', owner.id)
@@ -33,6 +40,24 @@ export const GET: RequestHandler = async (event) => {
 	const season = firstRelation(episode.seasons);
 	const series = firstRelation(season?.series);
 	const isSeasonFinale = Number(episode.episode_number) === Number(season?.planned_episode_count);
+	const seriesId = (season as { series_id?: string } | null)?.series_id ?? null;
+	let identityRecords: Awaited<ReturnType<typeof loadSeriesIdentityRecords>> = [];
+	let latestContinuity: Awaited<ReturnType<typeof loadLatestVisualContinuityReport>> = null;
+	if (seriesId) {
+		try {
+			[identityRecords, latestContinuity] = await Promise.all([
+				loadSeriesIdentityRecords(db, owner, seriesId),
+				loadLatestVisualContinuityReport(db, owner, episode.id),
+			]);
+		} catch {
+			error(503, 'Não foi possível carregar identidade e continuidade visual para a exportação.');
+		}
+	}
+	if (latestContinuity && latestContinuity.blockingCount > 0)
+		error(
+			409,
+			`A exportação está bloqueada por ${latestContinuity.blockingCount} inconsistência(s) marcada(s) como bloqueante(s). Resolva no inspetor de continuidade visual.`,
+		);
 	let narrativeContext;
 	try {
 		narrativeContext = await loadNarrativeContext(db, owner.id, episode.id);
@@ -153,6 +178,22 @@ export const GET: RequestHandler = async (event) => {
 		: episode.narration_pt_br.trim()
 			? `1\n${formatSrtTime(0)} --> ${formatSrtTime(episode.duration_ms)}\n${episode.narration_pt_br.trim()}\n`
 			: '';
+	const identityPromptBundle = buildSceneIdentityPrompts(
+		scenes.map((scene) => ({
+			id: scene.id,
+			sceneIndex: Number(scene.scene_index),
+			characterNotes: scene.character_notes ?? '',
+			visualDescription: scene.visual_description ?? '',
+			startFramePromptEn: scene.start_frame_prompt_en ?? '',
+		})),
+		identityRecords.map((record) => ({
+			characterId: record.characterId,
+			name: record.name,
+			version: record.version,
+			profile: record.profile,
+		})),
+		Number(episode.episode_number),
+	);
 	const manifest = {
 		format: 'dif-studio-flow-package/v1',
 		createdAt: new Date().toISOString(),
@@ -201,6 +242,26 @@ export const GET: RequestHandler = async (event) => {
 			approvedCanon: narrativeContext.latestPreviousCanon?.approvedCanon ?? null,
 			contextPath: 'narrative/context.json',
 		},
+		identity: {
+			format: 'dif-studio-character-identity/v1',
+			profiles: identityRecords.map((record) => ({
+				characterId: record.characterId,
+				name: record.name,
+				version: record.version,
+				status: record.profile.status,
+			})),
+			anchorsPath: 'identity/character-anchors.json',
+			checklistPath: 'identity/continuity-checklist.md',
+			sceneAnchorsPath: 'identity/scene-anchors.json',
+			matching: 'exact name/alias in scene notes; manual review required',
+		},
+		continuityVisual: {
+			status: latestContinuity?.status ?? 'NOT_REVIEWED',
+			revision: latestContinuity?.revision ?? null,
+			blockingCount: latestContinuity?.blockingCount ?? 0,
+			reportPath: latestContinuity ? 'continuity/report.json' : null,
+			checklistPath: latestContinuity ? 'continuity/checklist.md' : null,
+		},
 		scenes: scenes.map((scene) => ({
 			index: scene.scene_index,
 			startMs: scene.start_ms,
@@ -232,6 +293,12 @@ export const GET: RequestHandler = async (event) => {
 		manifest.warnings.push('SCENE_PROMPTS_NOT_APPROVED');
 	if (targetPlatforms.length === 0) manifest.warnings.push('TARGET_PLATFORMS_EMPTY');
 	if (!aiDisclosure) manifest.warnings.push('AI_DISCLOSURE_EMPTY');
+	if (!latestContinuity) manifest.warnings.push('CONTINUITY_VISUAL_NOT_REVIEWED');
+	if (!identityRecords.length) manifest.warnings.push('IDENTITY_PROFILES_MISSING');
+	else if (!identityPromptBundle.rows.length)
+		manifest.warnings.push('IDENTITY_SCENE_MATCHES_MISSING');
+	else if (identityPromptBundle.unmatchedScenes.length)
+		manifest.warnings.push('IDENTITY_SCENE_MATCHES_PARTIAL');
 
 	const output = new PassThrough();
 	const archive = new ZipArchive({ zlib: { level: 6 } });
@@ -244,6 +311,63 @@ export const GET: RequestHandler = async (event) => {
 	archive.append(renderNarrativePrompt(narrativeContext, 145), {
 		name: 'narrative/continuation-prompt.md',
 	});
+	if (identityRecords.length) {
+		archive.append(
+			`${JSON.stringify(
+				identityBundleJson(
+					String(series?.title ?? ''),
+					Number(episode.episode_number),
+					identityRecords,
+				),
+				null,
+				2,
+			)}\n`,
+			{ name: 'identity/character-anchors.json' },
+		);
+		archive.append(
+			buildIdentityChecklistMarkdown(
+				String(series?.title ?? ''),
+				identityRecords,
+				Number(episode.episode_number),
+			),
+			{ name: 'identity/continuity-checklist.md' },
+		);
+		archive.append(
+			`${JSON.stringify(
+				{
+					format: 'dif-studio-scene-identity/v1',
+					episodeNumber: Number(episode.episode_number),
+					rows: identityPromptBundle.rows,
+					unmatchedScenes: identityPromptBundle.unmatchedScenes,
+					missingProfiles: identityPromptBundle.missingProfiles,
+					limitations: identityPromptBundle.limitations,
+				},
+				null,
+				2,
+			)}\n`,
+			{ name: 'identity/scene-anchors.json' },
+		);
+	}
+	if (latestContinuity) {
+		archive.append(
+			`${JSON.stringify(
+				{
+					format: 'dif-studio-visual-continuity/v1',
+					revision: latestContinuity.revision,
+					status: latestContinuity.status,
+					blockingCount: latestContinuity.blockingCount,
+					reportHash: latestContinuity.reportHash,
+					report: latestContinuity.report,
+				},
+				null,
+				2,
+			)}\n`,
+			{ name: 'continuity/report.json' },
+		);
+		archive.append(buildContinuityReportMarkdown(latestContinuity.report, String(episode.title)), {
+			name: 'continuity/checklist.md',
+		});
+	}
 	archive.append(`${timelineRows}\r\n`, { name: 'timeline.csv' });
 	archive.append(episode.narration_pt_br ?? '', { name: 'narration/narration-pt-BR.txt' });
 	archive.append(srt, { name: 'captions/captions.srt' });

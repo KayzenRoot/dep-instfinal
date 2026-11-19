@@ -1,5 +1,25 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-017 — Continuidade visual e Character Identity Kit (2026-11-19) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-017` · issue #34 · epic #17 · adendo ENH-16
+- **Base:** `main` `174e045` (checkpoint WO-016 promovido); branch `feat/dif-v2-wo-017`
+- **Status:** implementação local; unit/action, PgTAP **179/179**, policy **31/29**, E2E local **1/1**, E2E responsivo e CI **PENDENTES**. Checkpoint **PROPOSED**.
+- **Auditoria:** independente ainda não executada.
+
+| Check           | Result     | Evidence                                                                                   |
+| --------------- | ---------- | ------------------------------------------------------------------------------------------ |
+| Data model      | PASS       | 3 tabelas aditivas; RLS owner-read/service-write; RPCs versionadas; histórico imutável     |
+| Identity kit    | PASS local | perfil versionado, looks por episódio, referências READY, anchor/checklist determinísticos |
+| Prompt matching | PASS local | nome/alias exato; 2 personagens × 4 cenas em teste; prompts não sobrescritos               |
+| Inspector       | PASS local | frames vinculados, notas estruturadas, lógica/luz/tempo, decisões e merge por id           |
+| Export/gate     | PASS local | JSON/Markdown + arquivos no ZIP; BLOCKING bloqueia, RESOLVED libera; aviso sem relatório   |
+| PgTAP           | PASS       | 179/179, incluindo owner-read, escrita direta negada e isolamento                          |
+| Policy          | PASS       | 31 invariantes / 29 tabelas                                                                |
+| E2E             | PASS local | perfil/approve/restore, export, relatório, BLOCKING→409, RESOLVED→200 e ZIP                |
+| CI              | PENDENTE   | quality, Sonar, responsivo e auditoria serão registrados no head final                     |
+| Limites         | —          | sem extração de frame do vídeo; matching textual; pixel stats grosseiros; sem WO-024       |
+
 ## V2 WO-016 — Color Match e presets de terror (2026-11-19) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-016` · issue #33 · epic #17
