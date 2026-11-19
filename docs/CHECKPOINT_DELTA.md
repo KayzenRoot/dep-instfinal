@@ -1,14 +1,22 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-016 — Color Match e presets de terror (2026-11-19) — PROPOSED
+## DIF-V2-WO-016 — Color Match e presets de terror (2026-11-19) — PROMOTED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; code/test head `176ee68`; unit 241+3, PgTAP PASS, policy 30/26, E2E 14/14 (5,6 min), Sonar 0% duplicação/Security A, benchmark local e ARM64 PASS; reauditoria final **APPROVED WITH RESIDUALS**. Sem merge/deploy.
+- **Status:** **PROMOTED**; code/test head `176ee68`; unit 241+3, PgTAP PASS, policy 30/26, E2E 14/14 (5,6 min), Sonar 0% duplicação/Security A, benchmark local e ARM64 PASS; reauditoria final **APPROVED WITH RESIDUALS**; squash-merged em `25089c3` (PR #63); issue #33 fechada.
 - **Base:** `main` `d96ed00` (checkpoint WO-015 promovido); branch `feat/dif-v2-wo-016`.
 - **Delivered:** presets versionados recalibrados para preservar sombras; `ColorGrade` no plano com força global, referência e override/exclusão por clipe; filtro FFmpeg determinístico por id; `/app/color` com antes/depois CSS, `expectedVersion`, rótulo 1-based, redirect pós-save, salvar DRAFT e remover; manifesto registra o grade; QA `COLOR_RANGE`; benchmark de render com/sem cor.
 - **Correções pós-auditoria:** clipe certo no render mesmo com `plan.clips` fora de ordem; erro de cena 1-based; erros de plano 400/404/409 em vez de 503; overrides inválidos/ids órfãos rejeitados; remover sem cor não cria versão; referência nula preservada; erro de plano visível; acessibilidade dos controles por cena; refresh não reenvia POST.
 - **Limits:** preset+força, sem histogram matching; preview CSS diverge do FFmpeg e não mostra o VHS global; HDR não testado; clipping só é sinalizado no QA pós-render (amostragem 0,2 fps, não crítico); parâmetros v1 exigem dispatch versionado para mudanças futuras; salvar exige reaprovar legendas.
 - **Residuals:** benchmark local Windows/AMD; sem fallback leve automático para `noise`; sem detecção de clipping antes do render; crush localizado pode escapar da amostragem.
-- **Gate:** CI + reauditoria independente **APPROVED WITH RESIDUALS**; merge/promoção autorizados pelo fluxo contínuo do owner; WO-017 (#34) é a próxima.
+- **Gate:** atendido; WO-017 (#34) é a próxima. Sem deploy de worker/VPS.
+
+## V2 checkpoint promotion — WO-016 (2026-11-19)
+
+- **Owner decision:** “continue de onde parou” registrado como continuidade/autorização; PR #63 squash-merged em `25089c3`; issue #33 fechada.
+- **Audit:** três rodadas independentes; achados HIGH/MEDIUM corrigidos (clipe errado no render, off-by-one de cena, concorrência e overrides); veredito final **APPROVED WITH RESIDUALS**, sem HIGH/MEDIUM.
+- **Evidence:** unit 241+3, PgTAP PASS, policy 30/26, E2E 14/14 em 5,6 min, Sonar PASS (0% duplicação, Security A), ARM64 color render 8,12→40,82 s/min (720p) e 16,32→83,66 (1080p), benchmark local em `docs/evidence/wo-016/benchmark-color.json`.
+- **Residuals:** notice por query param; teste de no-op fonte-vs-render; QA amostrado e não crítico; E2E de rótulo format-only; sem MP4 E2E de 15 clipes com cor; fallback PATH preexistente; benchmark local Windows/AMD.
+- **Next:** WO-017 (#34) Continuidade visual + Character Identity Kit; WO-014 release remains blocked by 017–021 and OPS extensions.
 
 ## DIF-V2-WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROMOTED
 

@@ -1,10 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-016 — Color Match e presets de terror (2026-11-19) — PROPOSED
+## V2 WO-016 — Color Match e presets de terror (2026-11-19) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-016` · issue #33 · epic #17
 - **Base:** `main` `d96ed00` (checkpoint WO-015 promovido); branch `feat/dif-v2-wo-016`
-- **Status:** implementação + correções de auditoria; code/test head `176ee68`; unit/integração **241+3**, policy **30/26**, PgTAP PASS, E2E **14/14** (5,6 min), Sonar **PASS** (0% duplicação, Security A), ARM64 color benchmark PASS. Checkpoint **PROPOSED**.
+- **Status:** **PROMOTED**; code/test head `176ee68`; unit/integração **241+3**, policy **30/26**, PgTAP PASS, E2E **14/14** (5,6 min), Sonar **PASS** (0% duplicação, Security A), ARM64 color benchmark PASS; squash-merged em `25089c3` (PR #63); issue #33 fechada.
 - **Auditoria:** rodada 1 **CORRECTION REQUIRED** (clipe errado, rótulo, conflito, overrides); rodada 2 **CORRECTION REQUIRED** (off-by-one de cena, lacunas de prova, docs); rodada 3 final **APPROVED WITH RESIDUALS**, sem HIGH/MEDIUM, no head `176ee68`.
 - **Residuals aceitos:** notice por query param (owner-only, cosmético); teste de no-op compara fonte vs render (unit cobre o filtro); QA amostrado/não crítico; E2E de rótulo é format-only (unit cobre o valor); sem MP4 E2E de 15 clipes com cor; fallback PATH preexistente em outros módulos; benchmark local Windows/AMD.
 
