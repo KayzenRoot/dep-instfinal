@@ -12,6 +12,7 @@ create table public.cover_revisions (
   frame_asset_id uuid,
   config jsonb not null check (jsonb_typeof(config) = 'object'),
   config_hash text not null check (config_hash ~ '^[0-9a-f]{64}$'),
+  hash_version integer not null default 1 check (hash_version = 1),
   status text not null default 'DRAFT' check (status in ('DRAFT', 'APPROVED')),
   created_at timestamptz not null default now(),
   unique (owner_id, episode_id, revision_number),
