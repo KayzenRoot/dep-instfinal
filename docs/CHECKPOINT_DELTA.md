@@ -2,13 +2,13 @@
 
 ## DIF-V2-WO-016 — Color Match e presets de terror (2026-11-19) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; correções pós-auditoria aplicadas; unit 239+3, policy 30/26, render FFmpeg real, fixtures SDR, benchmark 720p/1080p, E2E PASS; CI/reauditoria pendentes. Sem merge/deploy.
+- **Status:** **PROPOSED — NOT PROMOTED**; code/test head `176ee68`; unit 241+3, PgTAP PASS, policy 30/26, E2E 14/14 (5,6 min), Sonar 0% duplicação/Security A, benchmark local e ARM64 PASS; reauditoria final **APPROVED WITH RESIDUALS**. Sem merge/deploy.
 - **Base:** `main` `d96ed00` (checkpoint WO-015 promovido); branch `feat/dif-v2-wo-016`.
-- **Delivered:** presets versionados recalibrados para preservar sombras; `ColorGrade` no plano com força global, referência e override/exclusão por clipe; filtro FFmpeg determinístico por id; `/app/color` com antes/depois CSS, `expectedVersion`, rótulo por cena, salvar DRAFT e remover; manifesto registra o grade; QA `COLOR_RANGE`; benchmark de render com/sem cor.
-- **Correções pós-auditoria:** clipe certo no render mesmo com `plan.clips` fora de ordem; erros de plano 400/409 em vez de 503; overrides inválidos/ids órfãos rejeitados; remover sem cor não cria versão; referência nula preservada; erro de plano visível; acessibilidade dos controles por cena.
-- **Limits:** preset+força, sem histogram matching; preview CSS diverge do FFmpeg e não mostra o VHS global; HDR não testado; clipping só é sinalizado no QA pós-render; parâmetros v1 exigem dispatch versionado para mudanças futuras; salvar exige reaprovar legendas.
-- **Residuals:** benchmark local Windows/AMD; números ARM64 virão do workflow; sem fallback leve automático para `noise`; sem detecção de clipping antes do render.
-- **Gate:** CI + reauditoria independente + autorização do owner; WO-017 (#34) é a próxima.
+- **Delivered:** presets versionados recalibrados para preservar sombras; `ColorGrade` no plano com força global, referência e override/exclusão por clipe; filtro FFmpeg determinístico por id; `/app/color` com antes/depois CSS, `expectedVersion`, rótulo 1-based, redirect pós-save, salvar DRAFT e remover; manifesto registra o grade; QA `COLOR_RANGE`; benchmark de render com/sem cor.
+- **Correções pós-auditoria:** clipe certo no render mesmo com `plan.clips` fora de ordem; erro de cena 1-based; erros de plano 400/404/409 em vez de 503; overrides inválidos/ids órfãos rejeitados; remover sem cor não cria versão; referência nula preservada; erro de plano visível; acessibilidade dos controles por cena; refresh não reenvia POST.
+- **Limits:** preset+força, sem histogram matching; preview CSS diverge do FFmpeg e não mostra o VHS global; HDR não testado; clipping só é sinalizado no QA pós-render (amostragem 0,2 fps, não crítico); parâmetros v1 exigem dispatch versionado para mudanças futuras; salvar exige reaprovar legendas.
+- **Residuals:** benchmark local Windows/AMD; sem fallback leve automático para `noise`; sem detecção de clipping antes do render; crush localizado pode escapar da amostragem.
+- **Gate:** CI + reauditoria independente **APPROVED WITH RESIDUALS**; merge/promoção autorizados pelo fluxo contínuo do owner; WO-017 (#34) é a próxima.
 
 ## DIF-V2-WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROMOTED
 

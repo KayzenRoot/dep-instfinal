@@ -215,9 +215,9 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Base revalidated:** `main` `d96ed00` (checkpoint WO-015 promoted). Branch: `feat/dif-v2-wo-016`.
 - **Issue inventory:** WO-001–015 **MERGED/CLOSED/PROMOTED**; WO-016/#33 em execução; WO-014 blocked by 016–021 + OPS.
 - **Scope:** presets de cor versionados, grade por plano com força/referência/overrides, filtro FFmpeg allowlisted e UI antes/depois. Sem GPU, IA ou alteração da fonte.
-- **Delivered locally:** `ColorGrade` no `VideoEditPlan`; 5 presets recalibrados para preservar sombras; filtro por id de clipe; `/app/color` com rótulo por `scene_index`; concorrência otimista (`expectedVersion`); validação de overrides/ids; QA `COLOR_RANGE`; fixtures SDR; benchmark 720p/1080p; integração real FFmpeg; unit 239+3 (após correções).
-- **Correções pós-auditoria:** clipe certo no render, rótulo de cena, erros 400/409 reais, overrides inválidos com 400, clear sem versão vazia, referência nula preservada, erro de plano visível, `aria-label` por cena e prévia explicitando a camada VHS global.
-- **Gate:** CI, reauditoria independente e autorização do owner; checkpoint **PROPOSED**. WO-017 (#34) é a próxima.
+- **Delivered locally:** `ColorGrade` no `VideoEditPlan`; 5 presets recalibrados para preservar sombras; filtro por id de clipe; `/app/color` com rótulo 1-based por `scene_index`; concorrência otimista (`expectedVersion`); redirect pós-save/clear; validação de overrides/ids; QA `COLOR_RANGE`; fixtures SDR; benchmark 720p/1080p; integração real FFmpeg; unit 241+3 (após correções).
+- **Correções pós-auditoria:** clipe certo no render, rótulo de cena 1-based, erros 400/404/409 reais, overrides inválidos com 400, clear sem versão vazia, referência nula preservada, erro de plano visível, `aria-label` por cena, refresh sem re-POST e prévia explicitando a camada VHS global.
+- **Gate:** CI PASS no code/test head `176ee68` (quality `44508653180`, Sonar, ARM64 `44508652844`); reauditoria final **APPROVED WITH RESIDUALS**; checkpoint **PROPOSED** até o merge. WO-017 (#34) é a próxima.
 
 ### Fingerprints no base `d96ed00`
 

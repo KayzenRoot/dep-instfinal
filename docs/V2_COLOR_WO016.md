@@ -1,6 +1,6 @@
 # DIF-V2-WO-016 — Color Match e presets de terror
 
-**Status:** implementação e correções pós-auditoria em `feat/dif-v2-wo-016`; unit/integração locais, PgTAP, policy, E2E e benchmark medidos; CI, reauditoria e merge **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** implementação e correções finais em `feat/dif-v2-wo-016`; code/test head `176ee68` com CI PASS (quality `44508653180`: 241+3, PgTAP PASS, E2E 14/14 em 5,6 min; Sonar 0% duplicação/Security A; ARM64 `44508652844`) e reauditoria final **APPROVED WITH RESIDUALS**. Merge/promoção pendentes. Sem deploy; checkpoint **PROPOSED**.
 **Base:** `main` `d96ed00` (checkpoint WO-015 promovido).
 **Escopo:** WO-016 (#33), dependente de WO-002/003/006/011/012.
 
@@ -47,20 +47,20 @@ Os parâmetros foram recalibrados após fixtures de baixa luz, contraluz, rampa 
 - O render opera em `format=yuv420p` após scale/crop; fontes HDR/BT.2020 não foram testadas e não há promessa de tone mapping.
 - Não há análise de clipping antes do render; depois do render, o QA amostra RGB e emite WARN quando um extremo passa de 20% ou os dois somam 30% dos pixels amostrados. A amostragem padrão é 0,2 fps/12 frames (grosseira para crush localizado) e o check não é crítico.
 - Os parâmetros dos presets são a definição v1; alterá-los exige bump de `presetVersion` e dispatch versionado (residual para WO-021).
-- O custo do Color Match foi medido localmente (Windows 11, Ryzen 5 2500U, FFmpeg 9.0.2): em 720p, 63,1 s de render por minuto de footage sem cor e 160,4 s com `cursed_tape@80` (2,54×); em 1080p, 111,0 s e 375,2 s (3,38×). CPU e, quando o FFmpeg reporta, RSS estão no artefato `docs/evidence/wo-016/benchmark-color.json`. No runner ARM64 do CI, o mesmo benchmark marcou 7,96→40,31 s/min em 720p e 16,20→83,57 s/min em 1080p (5,06× e 5,16×); o `maxrss` não é emitido pelo FFmpeg Linux. O workflow `color-render-benchmark` repete a medição a cada mudança de preset/composição.
+- O custo do Color Match foi medido localmente (Windows 11, Ryzen 5 2500U, FFmpeg 9.0.2): em 720p, 63,1 s de render por minuto de footage sem cor e 160,4 s com `cursed_tape@80` (2,54×); em 1080p, 111,0 s e 375,2 s (3,38×). CPU e, quando o FFmpeg reporta, RSS estão no artefato `docs/evidence/wo-016/benchmark-color.json`. No runner ARM64 do CI (`color-render` run `44508652844`), o mesmo benchmark marcou 8,12→40,82 s/min em 720p e 16,32→83,66 s/min em 1080p (5,03× e 5,13×); o `maxrss` não é emitido pelo FFmpeg Linux. O workflow `color-render-benchmark` usa `pipefail` e repete a medição a cada mudança de preset/composição.
 
 ## Critérios de aceitação
 
-| Critério                                                              | Estado | Evidência                                                                                                                       |
-| --------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| 15 clipes recebem preset comum e intensidade por cena, antes/depois   | PASS   | E2E CI cria 15 clipes, aplica `cursed_tape@80`, persiste override 40 na cena 1, confere “Cena 1” e remove; preview antes/depois |
-| Referência não altera fonte; reversão reprodutível; render compatível | PASS   | grade no plano versionado; clear salva plano sem cor; hash/manifesto; filtro determinístico; legado sem `color` intacto         |
-| Preserva sombras e evita clipping excessivo em fixtures; warning      | PASS   | 7 renders reais em 4 fixtures SDR; p05 e clipping medidos; teste falha se o grade for no-op; `COLOR_RANGE` PASS/WARN            |
-| FPS/A/V intactos; custo real por minuto medido e reportado            | PASS   | integração verifica codec/duração/fps/geometria; benchmark 720p/1080p com s/min e CPU; job ARM64 no CI                          |
+| Critério                                                              | Estado | Evidência                                                                                                                                                 |
+| --------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 15 clipes recebem preset comum e intensidade por cena, antes/depois   | PASS   | E2E CI cria 15 clipes, aplica `cursed_tape@80`, persiste override 40 na cena 1, valida rótulo 1-based e remove; unit cobre “Cena 1”; preview antes/depois |
+| Referência não altera fonte; reversão reprodutível; render compatível | PASS   | grade no plano versionado; clear salva plano sem cor; hash/manifesto; filtro determinístico; legado sem `color` intacto                                   |
+| Preserva sombras e evita clipping excessivo em fixtures; warning      | PASS   | 7 renders reais em 4 fixtures SDR; p05 e clipping medidos; teste falha se o grade for no-op; `COLOR_RANGE` PASS/WARN                                      |
+| FPS/A/V intactos; custo real por minuto medido e reportado            | PASS   | integração verifica codec/duração/fps/geometria; benchmark 720p/1080p com s/min e CPU; job ARM64 no CI                                                    |
 
 ## Testes
 
-- Unit: schema (limites, preset inválido, override), presets distintos/neutro/escala, estatísticas de cor, assessment/comparação, helpers de servidor (versão, target, clear), actions (400/409, overrides, `expectedVersion`).
+- Unit: schema (limites, preset inválido, override), presets distintos/neutro/escala, estatísticas de cor, assessment/comparação, helpers de servidor (versão, target, clear), actions (400/404/409, overrides, `expectedVersion`, redirect).
 - Render: filtro por clipe, exclusão e ordem fora de ordem; integração FFmpeg real de 4 s graduado.
 - Cor: integração FFmpeg com baixa luz, contraluz, rampa e RGB extremo; 4 presets na fixture escura; sem shadow crush nem crescimento de clipping > 5 p.p.
 - QA: artefato graduado recebe `COLOR_RANGE` PASS/WARN.
@@ -76,8 +76,11 @@ Os parâmetros foram recalibrados após fixtures de baixa luz, contraluz, rampa 
 - Parâmetros v1 são globais; mudanças futuras exigem versionamento real (WO-021).
 - Aplicar ou remover cor cria versão DRAFT e exige aprovar plano + reaprovar legendas antes do render.
 - O QA de cor amostra 12 frames a 0,2 fps e usa limiares grosseiros; crush localizado pode passar. O check é WARN, não bloqueio.
-- O benchmark local usa host Windows/AMD; os números ARM64 do CI (`44461340719`) e o host local divergem em escala, mas ambos foram registrados.
+- O notice de sucesso vem de `?saved`/`?cleared` (owner-only, cosmético); um link stale pode exibir sucesso sem novo save.
+- O teste de no-op compara a fonte com o render (scale/encode também alteram luma); o unit cobre a presença do filtro no grafo, mas não há comparação plain-vs-graded do mesmo pipeline.
+- O E2E de rótulo valida o formato 1-based; o valor exato é coberto pelo unit test. Não há MP4 E2E de 15 clipes com cor; a cobertura é em camadas (grafo de 15, render graduado de 2, fixtures de 1).
+- O benchmark local usa host Windows/AMD; os números ARM64 do CI (`44508652844`) e o host local divergem em escala, mas ambos foram registrados.
 
 ## Gate
 
-CI hosted, PgTAP, Evidence Bundle, Checkpoint Delta PROPOSED, reauditoria independente e autorização do owner antes de merge/promoção. **Sem merge/deploy.**
+CI hosted PASS, PgTAP, Evidence Bundle, Checkpoint Delta, reauditoria independente **APPROVED WITH RESIDUALS** e autorização contínua do owner para merge/promoção. **Sem deploy nesta etapa.**

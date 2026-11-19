@@ -420,7 +420,7 @@ export async function inspectRenderArtifact(
 			checks.push(
 				check('COLOR_RANGE', 'Faixa tonal do Color Match', range.status, range.message, {
 					severity: range.severe ? 'MEDIUM' : undefined,
-					tolerance: 'clipping < 20% em sombras e altas luzes',
+					tolerance: 'clipping < 20% em cada extremo e < 30% combinado',
 					evidence: [
 						{ value: Number(stats.lowClipPct.toFixed(2)), unit: '%' },
 						{ value: Number(stats.highClipPct.toFixed(2)), unit: '%' },
