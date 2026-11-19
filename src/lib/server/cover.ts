@@ -152,7 +152,7 @@ export async function loadCoverContext(
 		db
 			.from('cover_revisions')
 			.select(
-				'id,episode_id,revision_number,template_id,format,status,config,config_hash,created_at',
+				'id,episode_id,revision_number,template_id,format,status,config,config_hash,hash_version,created_at',
 			)
 			.eq('owner_id', owner.id)
 			.eq('episode_id', episodeId)
