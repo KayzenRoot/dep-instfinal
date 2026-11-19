@@ -216,7 +216,7 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Issue inventory:** WO-001–013 **MERGED/CLOSED/PROMOTED (core)**; WO-015/#32 em execução; WO-014 blocked by 015–021.
 - **Scope:** Hook Lab determinístico com até três aberturas usando clipes/áudio/legendas existentes, patch imutável versionado, aplicar como nova versão, reverter e metadados para análise manual.
 - **Delivered locally:** `hook_variants` RLS owner-only/service writes; engine cold open/intriguing line/sound entry; `/app/hooks` A/B/C; aplicação/reversão versionada; PgTAP 161/161.
-- **Gate:** CI, auditoria independente e autorização do owner; checkpoint **PROPOSED**. WO-016 (#33) é a próxima.
+- **Gate:** atendido; CI `44427960113` em `b3426ef`; auditoria **APPROVED WITH RESIDUALS**; PR #62 squash-merged em `7c2ac4b`; issue #32 fechada; checkpoint **PROMOTED**. WO-016 (#33) é a próxima.
 
 ### Fingerprints no base `9862f8c`
 

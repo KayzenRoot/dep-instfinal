@@ -2,8 +2,8 @@
 
 - **Work Order:** `DIF-V2-WO-001` · issue #18
 - **Epic:** #17 · issues #18–#45
-- **Base atual:** `main` `9862f8c` (checkpoint WO-013 core promovido); WO-015 em execução; plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
-- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged** (`239f3ba`); WO-007 **APPROVED/merged** (`326c576`); WO-008 **APPROVED/merged** (`a633c3a`); WO-009 **APPROVED/merged** (`0b60321`); WO-010 **APPROVED/merged** (`1824061`); WO-011 **APPROVED WITH RESIDUALS/merged** (`d4a6a80`); WO-012 **APPROVED WITH RESIDUALS/merged** (`3edec2b`); WO-013 **APPROVED WITH RESIDUALS/merged (núcleo)** (`b1a1eaf`); WO-015 em execução.
+- **Base atual:** `main` `7c2ac4b` (checkpoint WO-015 promovido); WO-016 em execução; plano original em `13467ab009e0eaaee1be6ba2e35678228cfbdf32`.
+- **Status:** **PROMOTED** — WO-001/002 **APPROVED/merged**; ADR-V2-002 **ACCEPTED**; WO-003/004/005 **APPROVED/merged** (`ac55d27`, `c6be101`, `dc405d8`); checkpoint V2 **PROMOTED**; WO-006 **APPROVED/merged** (`239f3ba`); WO-007 **APPROVED/merged** (`326c576`); WO-008 **APPROVED/merged** (`a633c3a`); WO-009 **APPROVED/merged** (`0b60321`); WO-010 **APPROVED/merged** (`1824061`); WO-011 **APPROVED WITH RESIDUALS/merged** (`d4a6a80`); WO-012 **APPROVED WITH RESIDUALS/merged** (`3edec2b`); WO-013 **APPROVED WITH RESIDUALS/merged (núcleo)** (`b1a1eaf`); WO-015 **APPROVED WITH RESIDUALS/merged** (`7c2ac4b`); WO-016 em execução.
 - **Fonte viva:** os corpos atuais das issues #18–#45 prevalecem sobre este plano.
 
 ## Inventário — 28 WOs e 20 melhorias

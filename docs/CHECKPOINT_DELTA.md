@@ -1,12 +1,21 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROPOSED
+## DIF-V2-WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROMOTED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; unit 213+3, PgTAP 161/161, policy 30/26, E2E PASS; CI/auditoria pendentes. Sem merge/deploy.
+- **Status:** **PROMOTED**; unit 213+3, PgTAP 161/161, policy 30/26, E2E 14/14; CI `44427960113` em `b3426ef` PASS; auditoria **APPROVED WITH RESIDUALS**; squash-merged em `7c2ac4b` (PR #62); issue #32 fechada.
 - **Base:** `main` `9862f8c` (checkpoint WO-013 núcleo promovido); branch `feat/dif-v2-wo-015`.
 - **Delivered:** `hook_variants` owner-only/versionado; motor determinístico com cold open por tensão, fala interrogativa aprovada e entrada por áudio; cards A/B/C com preview, score e motivos; aplicar cria nova versão DRAFT; reverter exige estado aplicado; export JSON por variante; render bloqueado sem legendas aprovadas; metadados para WO-020.
 - **Limits:** variantes reordenam clipes inteiros; preview é o clipe de abertura; a nova versão exige aprovar plano e reaprovar legendas; MP4 por variante segue o pipeline; score heurístico; hook de texto Gemini opt-in não implementado.
-- **Gate:** CI + auditoria independente + autorização do owner; WO-016 (#33) é a próxima.
+- **Residuals:** status APPLIED não transacional com o save; revert restaura a base e descarta edições não-clip posteriores (histórico preserva); CTA sem cue só é bloqueada no QA; export JSON usa hash da versão fonte; hook Gemini opt-in não implementado.
+- **Gate:** atendido; WO-016 (#33) é a próxima. Sem deploy de worker/VPS.
+
+## V2 checkpoint promotion — WO-015 (2026-11-18)
+
+- **Owner decision:** “continue de onde parou” recorded as continuity/merge authorization; PR #62 squash-merged at `7c2ac4b`; issue #32 closed.
+- **Audit:** first round **CORRECTION REQUIRED** (A1–A5); final re-audit **APPROVED WITH RESIDUALS**, no HIGH/CRITICAL.
+- **Evidence:** unit 213+3, PgTAP 161/161, policy 30/26, E2E 14/14, CI `44427960113`, Sonar/Socket/Vercel PASS at `b3426ef`; Hook Lab apply/revert exercised locally; hook_variants included in backup/restore.
+- **Residuals:** whole-clip reorder, DRAFT+reapproval flow, heuristic score, non-transactional APPLIED marker, revert drops later non-clip edits (history preserved), CTA cue QA residual, JSON-only variant export.
+- **Next:** WO-016 (#33) Color Match; WO-014 release remains blocked by 016–021 and OPS extensions.
 
 ## DIF-V2-WO-013 — Hardening operacional (2026-11-18) — PROMOTED (core)
 

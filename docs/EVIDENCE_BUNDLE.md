@@ -1,6 +1,6 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROPOSED
+## V2 WO-015 — Hook Lab: três aberturas e variantes (2026-11-18) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-015` · issue #32 · epic #17
 - **Base:** `main` `9862f8c` (checkpoint WO-013 núcleo promovido); branch `feat/dif-v2-wo-015`

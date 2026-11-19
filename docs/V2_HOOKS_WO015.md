@@ -1,6 +1,6 @@
 # DIF-V2-WO-015 — Hook Lab: três aberturas e variantes exportáveis
 
-**Status:** implementação completa em `feat/dif-v2-wo-015`; unit **213+3**, PgTAP **161/161**, policy **30/26**, E2E timeline **1/1** (4,5 min) e responsivo **1/1** PASS; CI e auditoria independente **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** **PROMOTED**; unit **213+3**, PgTAP **161/161**, policy **30/26**, E2E **14/14** (4,2 min); CI `44427960113` em `b3426ef` PASS; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `7c2ac4b` (PR #62); issue #32 fechada. Sem deploy de worker/VPS.
 **Base:** `main` `9862f8c` (checkpoint WO-013 núcleo promovido).
 **Escopo:** WO-015 (#32), dependente de WO-004/010/011/012.
 
@@ -64,4 +64,4 @@ A auditoria retornou **CORRECTION REQUIRED** (A1 legendas/CTA na nova versão, A
 
 ## Gate
 
-CI hosted, PgTAP, Evidence Bundle, Checkpoint Delta PROPOSED, auditoria independente e autorização do owner antes de merge/promoção. **Sem merge/deploy.**
+CI hosted, PgTAP, Evidence Bundle, auditoria independente **APPROVED WITH RESIDUALS** e autorização do owner (“continue de onde parou”, 2026-11-18) atendidos; PR #62 squash-merged em `7c2ac4b`; issue #32 fechada; checkpoint **PROMOTED**. WO-016 (#33) é a próxima.
