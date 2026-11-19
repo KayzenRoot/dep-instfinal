@@ -4,8 +4,8 @@
 
 - **Work Order:** `DIF-V2-WO-017` · issue #34 · epic #17 · adendo ENH-16
 - **Base:** `main` `174e045` (checkpoint WO-016 promovido); branch `feat/dif-v2-wo-017`
-- **Status:** implementação + correções de auditoria; PgTAP **183/183**, policy **31/29**, E2E local/CI e unit finais em validação. Checkpoint **PROPOSED**.
-- **Auditoria:** rodada 1 **CORRECTION REQUIRED** (C1 hash com stats, H1 limites, M1–M7); correções aplicadas; reauditoria final pendente.
+- **Status:** implementação + correções de auditoria; code/test head `2cd9c9d` com CI PASS (quality `44573637241`: unit **266+3**, PgTAP **183/183**, E2E **15/15**); correções finais em `6c421f2` com CI final em validação. Checkpoint **PROPOSED**.
+- **Auditoria:** rodada 1 **CORRECTION REQUIRED** (C1 hash com stats, H1 limites, M1–M7); rodada 2 **CORRECTION REQUIRED** (look aberto, merge amplo); correções finais; rodada 3 **APPROVED WITH RESIDUALS** (C1/H1 fechados para novas gravações, sem HIGH restante).
 
 | Check           | Result     | Evidence                                                                                   |
 | --------------- | ---------- | ------------------------------------------------------------------------------------------ |

@@ -16,16 +16,16 @@ Branch: `feat/dif-v2-wo-017` (base `main` `174e045`)
 - `character-identity.test.ts`: 8/8 — look selection by episode, stable anchors, manual
   override, aliases/accents, 2 characters × 4 scenes, homonyms, prompt composition,
   checklist/export without private URLs.
-- `visual-continuity.test.ts`: 10/10 — wardrobe contradiction, missing frame, lighting and
+- `visual-continuity.test.ts`: 12/12 — wardrobe contradiction, missing frame, lighting and
   location suggestions, owner exception, explicit blocking/regeneration, decision merge,
   deterministic hash and Markdown without URLs.
-- `identity-actions.test.ts`: 4/4 — version required, parsed fields/looks/references,
+- `identity-actions.test.ts`: 5/5 — version required, parsed fields/looks/references,
   primary reference, redirect 303, 409 mapping and restore.
 - `continuity-actions.test.ts`: 3/3 — generate redirect, decision with REGENERATE,
   incomplete decision and conflict mapping.
-- Final CI suite: **266 passed + 3 skipped** (expected after the audit-fix tests); the
-  audit-fix run at `1ec385e` reported 263 passed/3 failed before the export fixture was
-  updated, and the final run is authoritative.
+- CI at `2cd9c9d` (`quality` run `44573637241`): **266 passed + 3 skipped**, PgTAP
+  **183/183**, E2E **15/15**. Final head `6c421f2` adds only tighter evidence/quota tests
+  and has a final CI run in progress.
 
 ## E2E
 
