@@ -180,6 +180,9 @@
 							>{/if}
 					</article>{/each}
 			</div>{:else}<p class="quiet-copy">Nenhum personagem cadastrado.</p>{/if}
+		<a class="text-link" href={resolve(`/app/identity?seriesId=${data.series.id}`)}>
+			Abrir kit de identidade e prompts Flow
+		</a>
 		<form method="POST" action="?/createCharacter" class="form-stack create-form">
 			<h3>Adicionar personagem</h3>
 			<label>Nome<input name="name" maxlength="120" required /></label>

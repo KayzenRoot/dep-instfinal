@@ -66,6 +66,14 @@ const hookMigration = await readFile(
 	'supabase/migrations/20261118200000_v2_wo015_hook_variants.sql',
 	'utf8',
 );
+const identityMigration = await readFile(
+	'supabase/migrations/20261119130000_v2_wo017_identity_continuity.sql',
+	'utf8',
+);
+const identityRetentionMigration = await readFile(
+	'supabase/migrations/20261119132000_v2_wo017_retention.sql',
+	'utf8',
+);
 const retentionScript = await readFile('scripts/retention.mjs', 'utf8');
 const restoreScript = await readFile('scripts/restore-metadata.mjs', 'utf8');
 const hook = await readFile('src/hooks.server.ts', 'utf8');
@@ -102,9 +110,10 @@ const tables = [
 	...audioMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...qualityMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...hookMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...identityMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['26 owner-scoped public tables', tables.length === 26],
+	['29 owner-scoped public tables', tables.length === 29],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -345,6 +354,31 @@ const checks = [
 			) &&
 			hookMigration.includes('unique (owner_id, episode_id, plan_id, plan_version, variant_key)') &&
 			hookMigration.includes('never a promise of virality'),
+	],
+	[
+		'identity profiles and visual continuity reports are owner-read and service-written',
+		identityMigration.includes('character_identity_profiles') &&
+			identityMigration.includes('character_identity_profile_versions') &&
+			identityMigration.includes('visual_continuity_reports') &&
+			identityMigration.includes('force row level security') &&
+			identityMigration.includes(
+				'grant select on table public.character_identity_profiles to authenticated',
+			) &&
+			identityMigration.includes(
+				'grant execute on function public.save_character_identity_profile',
+			) &&
+			identityMigration.includes(
+				'grant execute on function public.save_visual_continuity_report',
+			) &&
+			identityMigration.includes('character_identity_history_is_immutable') &&
+			identityMigration.includes('identity_version_conflict') &&
+			identityMigration.includes('continuity_revision_conflict') &&
+			identityMigration.includes('visual_continuity_reports_immutable') &&
+			identityRetentionMigration.includes('identity_version_quota') &&
+			identityRetentionMigration.includes('continuity_revision_quota') &&
+			identityRetentionMigration.includes('prune_visual_continuity_reports') &&
+			identityRetentionMigration.includes('prune_character_identity_profile_versions') &&
+			identityRetentionMigration.includes('dif.continuity_prune'),
 	],
 	[
 		'render quotas, health and ops scripts are server-only and dry-run first',

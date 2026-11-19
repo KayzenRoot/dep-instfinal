@@ -25,4 +25,5 @@ export const variables = defineEnvVars({
 	VIDEO_PROBE_DRIVER: { schema: optionalString },
 	MAX_VIDEO_MB: { schema: optionalString },
 	VIDEO_PART_SIZE_MB: { schema: optionalString },
+	CONTINUITY_SAMPLING_BUDGET_MS: { schema: optionalString },
 });

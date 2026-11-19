@@ -13,6 +13,10 @@
 	title="Votações e cânone"
 	description="Nenhuma enquete é publicada ou contabilizada automaticamente. Cada decisão mantém seu histórico."
 />
+<p class="visual-link">
+	<a href={resolve('/app/continuity/visual')}>Abrir inspetor de continuidade visual</a>
+	· alertas determinísticos de frames e notas, sem alterar o cânone.
+</p>
 {#if data.polls.length}<div class="poll-list">
 		{#each data.polls as poll (poll.id)}<Panel
 				eyebrow={`${poll.episodes?.seasons?.series?.title ?? 'SÉRIE'} · EPISÓDIO ${String(poll.episodes?.episode_number ?? 0).padStart(2, '0')}`}

@@ -63,12 +63,17 @@ const client = createClient(url, key, {
 const tableNames = [
 	'series',
 	'seasons',
+	'characters',
+	'lore_facts',
 	'episodes',
 	'scenes',
 	'choices',
 	'polls',
 	'poll_results',
 	'canonical_decisions',
+	'media_assets',
+	'image_references',
+	'generation_jobs',
 	'video_upload_sessions',
 	'video_assets',
 	'video_edit_plans',
@@ -81,6 +86,9 @@ const tableNames = [
 	'audio_assets',
 	'render_quality_reports',
 	'hook_variants',
+	'character_identity_profiles',
+	'character_identity_profile_versions',
+	'visual_continuity_reports',
 ];
 const counts = {};
 for (const table of tableNames) {
@@ -127,7 +135,7 @@ const artifacts = jobs
 		};
 	})
 	.filter(Boolean);
-const reports = await fetchAll('render_quality_reports', 'job_id,artifact_sha256,status');
+const reports = await fetchAll('render_quality_reports', 'id,job_id,artifact_sha256,status');
 
 const summary = {
 	schemaVersion: 1,

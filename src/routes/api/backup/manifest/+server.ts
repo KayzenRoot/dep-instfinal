@@ -27,6 +27,11 @@ const TABLES = [
 	'narration_takes',
 	'caption_tracks',
 	'audio_assets',
+	'render_quality_reports',
+	'hook_variants',
+	'character_identity_profiles',
+	'character_identity_profile_versions',
+	'visual_continuity_reports',
 ] as const;
 
 export const GET: RequestHandler = async (event) => {

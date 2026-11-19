@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-017 — Continuidade visual e Character Identity Kit (2026-11-19) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 183/183, policy 31/29, CI `44580197679` PASS em `6c421f2`; auditoria final **APPROVED WITH RESIDUALS**; correções finais em `6c421f2` com CI final em validação. Sem merge/deploy.
+- **Base:** `main` `174e045` (checkpoint WO-016 promovido); branch `feat/dif-v2-wo-017`.
+- **Delivered:** perfis de identidade versionados por personagem existente; looks por episódio; referências owner-only; anchors/checklists/prompts Flow determinísticos; inspetor pós-Flow com frames privados, observações e decisões append-only; export JSON/Markdown e arquivos no ZIP Flow; gate apenas para BLOCKING explícito; quotas/retenção service-only; validação de schema antes do hash.
+- **Limits:** sem extração de frame do meio do vídeo; matching textual conservador; pixel stats não semânticos; sem integração WO-024; relatório sob demanda; export DRAFT com warning; frescor é warning.
+- **Gate:** CI final + auditoria **APPROVED WITH RESIDUALS** + autorização contínua do owner; WO-018 (#35) é a próxima.
+
 ## DIF-V2-WO-016 — Color Match e presets de terror (2026-11-19) — PROMOTED
 
 - **Status:** **PROMOTED**; code/test head `176ee68`; unit 241+3, PgTAP PASS, policy 30/26, E2E 14/14 (5,6 min), Sonar 0% duplicação/Security A, benchmark local e ARM64 PASS; reauditoria final **APPROVED WITH RESIDUALS**; squash-merged em `25089c3` (PR #63); issue #33 fechada.

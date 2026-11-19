@@ -49,6 +49,7 @@ type Query = {
 	eq: (field: string, value: unknown) => Query;
 	in: (field: string, values: unknown[]) => Query;
 	order: (field: string) => Query;
+	limit: (count: number) => Query;
 	maybeSingle: () => Promise<Result>;
 	then: (resolve: (result: Result) => unknown) => Promise<unknown>;
 };
@@ -82,6 +83,7 @@ function setupDatabase(results: Record<string, Result>) {
 					return query;
 				},
 				order: () => query,
+				limit: () => query,
 				maybeSingle: async () => result,
 				then: (resolve) => Promise.resolve(result).then(resolve),
 			};
