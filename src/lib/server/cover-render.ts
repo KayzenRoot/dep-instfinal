@@ -64,7 +64,8 @@ async function coverBase(
 			[1, 0, 0],
 			[0, 1, 0],
 			[0, 0, 1],
-		]);
+		])
+		.flatten({ background: '#000000' });
 }
 
 export async function renderCover(
@@ -79,7 +80,7 @@ export async function renderCover(
 	const template = COVER_TEMPLATES[config.templateId];
 	const overlay = Buffer.from(buildCoverSvg(effectiveConfig, template, layout));
 	const base = await coverBase(source, effectiveConfig, layout);
-	let pipeline = base.composite([{ input: overlay, top: 0, left: 0 }]);
+	let pipeline = base.composite([{ input: overlay, top: 0, left: 0 }]).removeAlpha();
 	if (output === 'jpeg') pipeline = pipeline.jpeg({ quality: 90, mozjpeg: true });
 	else pipeline = pipeline.png({ compressionLevel: 9 });
 	const buffer = await pipeline.toBuffer();

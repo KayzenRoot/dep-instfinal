@@ -8,13 +8,14 @@ export const COVER_RENDERER_VERSION = 1;
 
 /**
  * Fingerprint of the config plus the template parameters and renderer version.
- * A visual template change must bump the version, which invalidates old hashes.
+ * A visual or algorithm change must add a new versioned hasher so stored
+ * revisions remain readable with the version recorded in `hash_version`.
  */
-export function coverConfigHash(config: CoverConfig): string {
+export function coverConfigHashV1(config: CoverConfig): string {
 	return createHash('sha256')
 		.update(
 			canonicalJson({
-				hashVersion: COVER_HASH_VERSION,
+				hashVersion: 1,
 				rendererVersion: COVER_RENDERER_VERSION,
 				config,
 				template: {
@@ -32,4 +33,14 @@ export function coverConfigHash(config: CoverConfig): string {
 			}),
 		)
 		.digest('hex');
+}
+
+const COVER_HASHERS: Record<number, (config: CoverConfig) => string> = {
+	1: coverConfigHashV1,
+};
+
+export function coverConfigHash(config: CoverConfig, hashVersion = COVER_HASH_VERSION): string {
+	const hasher = COVER_HASHERS[hashVersion];
+	if (!hasher) throw new Error(`unsupported cover hash version: ${hashVersion}`);
+	return hasher(config);
 }

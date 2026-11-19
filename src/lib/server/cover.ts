@@ -27,6 +27,7 @@ interface CoverRevisionRow {
 	status: string;
 	config: unknown;
 	config_hash: string;
+	hash_version: number;
 	created_at: string;
 }
 
@@ -45,7 +46,17 @@ function parseRevision(row: CoverRevisionRow): CoverRevision {
 	const parsed = coverConfigSchema.safeParse(row.config);
 	if (!parsed.success)
 		throw new CoverError(500, 'COVER_STORED_INVALID', 'Configuração de capa armazenada inválida.');
-	if (coverConfigHash(parsed.data) !== row.config_hash)
+	let storedHash: string;
+	try {
+		storedHash = coverConfigHash(parsed.data, Number(row.hash_version));
+	} catch {
+		throw new CoverError(
+			500,
+			'COVER_HASH_VERSION_UNSUPPORTED',
+			'A versão de hash desta capa não é suportada por este servidor.',
+		);
+	}
+	if (storedHash !== row.config_hash)
 		throw new CoverError(500, 'COVER_HASH_MISMATCH', 'O hash da capa armazenada não confere.');
 	return {
 		id: row.id,
@@ -270,7 +281,9 @@ export async function loadCoverRevision(
 		return null;
 	const { data, error } = await db
 		.from('cover_revisions')
-		.select('id,episode_id,revision_number,template_id,format,status,config,config_hash,created_at')
+		.select(
+			'id,episode_id,revision_number,template_id,format,status,config,config_hash,hash_version,created_at',
+		)
 		.eq('owner_id', owner.id)
 		.eq('id', revisionId)
 		.maybeSingle();

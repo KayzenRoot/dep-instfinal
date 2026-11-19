@@ -63,6 +63,14 @@ describe('cover rendering with Sharp', () => {
 		expect(rendered.mimeType).toBe('image/jpeg');
 	}, 60_000);
 
+	it('renders byte-identical output for the same config', async () => {
+		const first = await renderCover(config('4:5', 'noir'), null, '4:5');
+		const second = await renderCover(config('4:5', 'noir'), null, '4:5');
+		expect(first.buffer.equals(second.buffer)).toBe(true);
+		expect(first.width).toBe(1080);
+		expect(first.height).toBe(1350);
+	}, 60_000);
+
 	it('renders a smaller preview variant for the grid', async () => {
 		const rendered = await renderCover(config('9:16', 'noir'), null, '9:16', 'png', 0.35);
 		const metadata = await sharp(rendered.buffer).metadata();
@@ -114,6 +122,18 @@ describe('cover rendering with Sharp', () => {
 		}
 		expect(sum / pixels).toBeLessThan(120);
 		expect(minimum).toBeLessThan(40);
+	}, 60_000);
+
+	it('flattens transparent source frames onto black', async () => {
+		const transparent = await sharp({
+			create: { width: 1080, height: 1920, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+		})
+			.png()
+			.toBuffer();
+		const rendered = await renderCover(config('9:16', 'noir'), transparent, '9:16');
+		const metadata = await sharp(rendered.buffer).metadata();
+		expect(metadata.channels).toBe(3);
+		expect(metadata.hasAlpha).toBe(false);
 	}, 60_000);
 
 	it('rejects a corrupted source frame', async () => {

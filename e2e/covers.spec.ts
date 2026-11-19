@@ -1,3 +1,5 @@
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import sharp from 'sharp';
 import { insertRow, ownerAccessToken, ownerId, serviceKey, supabaseUrl } from './supabase.js';
@@ -85,9 +87,19 @@ test('owner generates, approves and downloads private covers', async ({ page, re
 	await expect
 		.poll(() => approvedCover.evaluate((image) => (image as HTMLImageElement).naturalWidth))
 		.toBeGreaterThan(0);
-	await page.goto(`/app/covers?episodeId=${episodeId}`);
-	await page.setViewportSize({ width: 360, height: 900 });
-	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-		true,
-	);
+	const screenshotDirectory = path.join(process.cwd(), 'test-results', 'screenshots');
+	await mkdir(screenshotDirectory, { recursive: true });
+	for (const width of [360, 768, 1440]) {
+		await page.goto(`/app/covers?episodeId=${episodeId}`);
+		await page.setViewportSize({ width, height: 900 });
+		await expect(page.getByRole('heading', { name: 'Capas do episódio' })).toBeVisible();
+		const fits = await page.evaluate(
+			() => document.documentElement.scrollWidth <= window.innerWidth,
+		);
+		expect(fits, `covers page should not overflow at ${width}px`).toBe(true);
+		await page.screenshot({
+			path: path.join(screenshotDirectory, `covers-${width}.png`),
+			fullPage: true,
+		});
+	}
 });

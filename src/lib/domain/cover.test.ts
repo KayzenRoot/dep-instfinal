@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { coverConfigSchema } from '#lib/schemas/cover.js';
-import { coverConfigHash } from './cover-hash.js';
+import { coverConfigHash, coverConfigHashV1 } from './cover-hash.js';
 import {
 	COVER_TEMPLATE_LIST,
 	buildCoverSvg,
@@ -46,9 +46,12 @@ describe('cover templates', () => {
 		expect(vertical.titleBox.y + vertical.titleBox.height).toBeLessThanOrEqual(1620);
 		expect(vertical.badgeBox.y).toBeGreaterThanOrEqual(vertical.gridCrop.y);
 		expect(vertical.logoBox.x + vertical.logoBox.width).toBeLessThanOrEqual(900);
-		expect(
-			vertical.badgeBox.y - Math.round(vertical.badgeBox.height * 0.42),
-		).toBeGreaterThanOrEqual(vertical.gridCrop.y);
+		const seriesBaseline =
+			vertical.badgeBox.y + vertical.badgeBox.height + Math.round(vertical.height * 0.014);
+		expect(seriesBaseline - Math.round(vertical.width * 0.026)).toBeGreaterThanOrEqual(
+			vertical.gridCrop.y,
+		);
+		expect(seriesBaseline + Math.round(vertical.height * 0.014)).toBeLessThan(vertical.titleBox.y);
 	});
 
 	it('wraps and truncates long Unicode titles within the line budget', () => {
@@ -82,6 +85,7 @@ describe('cover templates', () => {
 		const config = coverConfigSchema.parse({
 			...base,
 			title: 'WWWWWWWWWWWW',
+			subtitle: 'Uma gravação encontrada três dias depois na fita',
 			badge: 'WWWWWWWWWWWWWWWWWWWW',
 		});
 		const svg = buildCoverSvg(config, COVER_TEMPLATE_LIST[0]!, coverLayout('9:16'), {
@@ -91,10 +95,13 @@ describe('cover templates', () => {
 		expect(svg).toContain('lengthAdjust="spacingAndGlyphs"');
 		expect(svg).toContain('stroke="#000"');
 		expect(svg).toContain('opacity="0.32"');
+		expect(svg.match(/font-size="35"/g)).toHaveLength(2);
 	});
 
 	it('hashes deterministically and builds a safe file name', () => {
 		expect(coverConfigHash(base)).toBe(coverConfigHash({ ...base }));
+		expect(coverConfigHash(base, 1)).toBe(coverConfigHashV1(base));
+		expect(() => coverConfigHash(base, 2)).toThrow(/unsupported cover hash version/);
 		expect(coverConfigHash({ ...base, title: 'Outra capa' })).not.toBe(coverConfigHash(base));
 		expect(coverFileBase(base)).toBe('cover-a-fita-amaldicoada-noir-9x16');
 		expect(coverFileBase({ ...base, title: '../../etc/passwd' })).not.toContain('..');

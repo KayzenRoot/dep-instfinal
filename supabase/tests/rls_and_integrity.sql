@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(194);
+select plan(196);
 
 do $$
 declare
@@ -2307,6 +2307,30 @@ select is(
   (select count(*) from public.cover_revisions
    where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
   2::bigint, 'cover retention keeps the approved cover and the newest draft'
+);
+insert into public.cover_revisions (
+  owner_id, episode_id, revision_number, template_id, format, config, config_hash
+)
+select
+  '11111111-1111-4111-8111-111111111111',
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  revision, 'noir', '9:16', '{}'::jsonb, repeat('c', 64)
+from generate_series(4, 501) as revision;
+select is(
+  (select count(*) from public.cover_revisions
+   where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+  500::bigint, 'cover quota allows exactly 500 revisions per episode'
+);
+select throws_ok(
+  $$insert into public.cover_revisions (
+      owner_id, episode_id, revision_number, template_id, format, config, config_hash
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      502, 'noir', '9:16', '{}'::jsonb, repeat('c', 64)
+    );$$,
+  '23514', 'cover_revision_quota',
+  'cover quota blocks the 501st revision'
 );
 reset role;
 
