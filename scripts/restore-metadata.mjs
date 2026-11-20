@@ -68,6 +68,10 @@ const allowedTables = new Set([
 	'retention_imports',
 	'analytics_snapshots',
 	'retention_experiments',
+	'style_presets',
+	'style_preset_revisions',
+	'episode_style_overrides',
+	'scene_style_overrides',
 ]);
 for (const table of Object.keys(summary.counts)) {
 	if (!allowedTables.has(table) || !/^[a-z][a-z0-9_]{0,63}$/.test(table))

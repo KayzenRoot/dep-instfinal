@@ -18,6 +18,8 @@ import { savePlanFromForm } from '#lib/server/plan-actions.js';
 import { EditPlanError } from '#lib/domain/video-edit-plan.js';
 import { loadVoicePlan } from '#lib/server/narration.js';
 import { listAudioAssets } from '#lib/server/audio-library.js';
+import { resolveEpisodeStyleSnapshot } from '#lib/server/style-bible.js';
+import { DEFAULT_STYLE_CONFIG, styleSnapshotDrift } from '#lib/domain/style-bible.js';
 import type { AudioAsset } from '#lib/schemas/audio-library.js';
 
 function messageFor(cause: unknown): { status: number; message: string } {
@@ -55,6 +57,7 @@ export const load: PageServerLoad = async (event) => {
 			context: null,
 			planError: null,
 			planStale: false,
+			styleDrift: null,
 			renderJobs: [],
 			narration: null,
 			audioAssets: [],
@@ -70,6 +73,41 @@ export const load: PageServerLoad = async (event) => {
 				plan = defaultEditPlan(context);
 			} catch (cause) {
 				planError = cause instanceof Error ? cause.message : 'Não foi possível criar o plano.';
+			}
+		}
+		let styleDrift: ReturnType<typeof styleSnapshotDrift> | null = null;
+		if (stored.plan) {
+			try {
+				const currentStyle = await resolveEpisodeStyleSnapshot(db, owner, selectedEpisode.id);
+				if (stored.plan.plan.styleBible) {
+					styleDrift = styleSnapshotDrift(stored.plan.plan.styleBible, currentStyle);
+				} else if (
+					currentStyle.presetId ||
+					(currentStyle.scenes?.length ?? 0) > 0 ||
+					JSON.stringify(currentStyle.config) !== JSON.stringify(DEFAULT_STYLE_CONFIG)
+				) {
+					styleDrift = {
+						stale: true,
+						capturedRevision: null,
+						currentRevision: currentStyle.presetRevision,
+						capturedHash: null,
+						currentHash: currentStyle.presetHash,
+						configChanged: true,
+						scenesChanged: false,
+					};
+				}
+			} catch {
+				if (stored.plan.plan.styleBible) {
+					styleDrift = {
+						stale: true,
+						capturedRevision: stored.plan.plan.styleBible.presetRevision,
+						currentRevision: null,
+						capturedHash: stored.plan.plan.styleBible.presetHash,
+						currentHash: null,
+						configChanged: false,
+						scenesChanged: false,
+					};
+				}
 			}
 		}
 		let renderJobs: RenderJob[] = [];
@@ -132,6 +170,7 @@ export const load: PageServerLoad = async (event) => {
 			planStale: Boolean(
 				stored.plan && plan && plan.episodeRevisionNumber !== context.episodeRevisionNumber,
 			),
+			styleDrift,
 			versions: stored.versions,
 			storedPlan: stored.plan
 				? {
@@ -155,6 +194,7 @@ export const load: PageServerLoad = async (event) => {
 			context: null,
 			planError: errorInfo.message,
 			planStale: false,
+			styleDrift: null,
 			renderJobs: [],
 			narration: null,
 			audioAssets: [],
@@ -211,6 +251,7 @@ export const actions: Actions = {
 				expectedVersion,
 				plan: defaultEditPlan(context),
 				changeNote: 'Plano reconstruído para a revisão atual do episódio',
+				applyStyle: true,
 			});
 			return { success: true, version };
 		} catch (cause) {

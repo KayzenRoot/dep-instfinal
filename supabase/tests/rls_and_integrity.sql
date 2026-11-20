@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(229);
+select plan(247);
 
 do $$
 declare
@@ -18,7 +18,8 @@ declare
     'character_identity_profiles', 'character_identity_profile_versions',
     'visual_continuity_reports', 'cover_revisions', 'choice_end_cards',
     'published_posts', 'published_post_versions', 'creative_variants',
-    'retention_imports', 'analytics_snapshots', 'retention_experiments'
+    'retention_imports', 'analytics_snapshots', 'retention_experiments',
+    'style_presets', 'style_preset_revisions', 'episode_style_overrides', 'scene_style_overrides'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -68,7 +69,8 @@ begin
       'character_identity_profiles', 'character_identity_profile_versions',
       'visual_continuity_reports', 'cover_revisions', 'choice_end_cards',
       'published_posts', 'published_post_versions', 'creative_variants',
-      'retention_imports', 'analytics_snapshots', 'retention_experiments'
+      'retention_imports', 'analytics_snapshots', 'retention_experiments',
+      'style_presets', 'style_preset_revisions', 'episode_style_overrides', 'scene_style_overrides'
     ) then
       if v_policy_count <> 1 then raise exception 'edit plan policies must be read-only'; end if;
       if has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
@@ -2704,6 +2706,159 @@ select is(
    where owner_id = '11111111-1111-4111-8111-111111111111'
      and episode_id = 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'),
   0::bigint, 'post deletion removes linked experiments'
+);
+reset role;
+
+set local role service_role;
+select lives_ok(
+  $$select public.save_style_preset_revision(
+      '11111111-1111-4111-8111-111111111111', 'SERIES',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Série RLS', 0,
+      '{"schemaVersion":1,"captionTemplate":"horror"}'::jsonb, repeat('a', 64), 'DRAFT'
+    );$$,
+  'service role stores the first style preset revision'
+);
+select throws_ok(
+  $$select public.save_style_preset_revision(
+      '11111111-1111-4111-8111-111111111111', 'SERIES',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Série RLS', 0,
+      '{"schemaVersion":1}'::jsonb, repeat('b', 64), 'DRAFT'
+    );$$,
+  '40001', 'style_revision_conflict',
+  'style revisions require the current revision'
+);
+select lives_ok(
+  $$select public.save_style_preset_revision(
+      '11111111-1111-4111-8111-111111111111', 'SERIES',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Série RLS', 1,
+      '{"schemaVersion":1,"captionTemplate":"horror"}'::jsonb, repeat('a', 64), 'APPROVED'
+    );$$,
+  'service role approves a new style preset revision'
+);
+select throws_ok(
+  $$update public.style_preset_revisions set status = 'DRAFT' where revision_number = 1;$$,
+  '55000', 'style_revision_is_immutable',
+  'style preset revisions are immutable'
+);
+select lives_ok(
+  $$select public.save_episode_style_override(
+      '11111111-1111-4111-8111-111111111111',
+      'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7',
+      '{"captionTemplate":"clean","reducedMotion":true}'::jsonb
+    );$$,
+  'service role stores an episode style override'
+);
+select lives_ok(
+  $$select public.save_scene_style_override(
+      '11111111-1111-4111-8111-111111111111',
+      (select id from public.scenes
+       where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1),
+      '{"motion":"kinetic"}'::jsonb
+    );$$,
+  'service role stores a scene style override'
+);
+select throws_ok(
+  $$select public.save_style_preset_revision(
+      '11111111-1111-4111-8111-111111111111', 'EPISODE',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Escopo inválido', 0,
+      '{}'::jsonb, repeat('c', 64), 'DRAFT'
+    );$$,
+  '23514', 'style_scope_invalid',
+  'style presets accept only series or season scopes'
+);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.style_preset_revisions), 2::bigint,
+  'owner can read style revisions'
+);
+select throws_ok(
+  $$insert into public.style_presets (owner_id, scope_type, scope_id, name)
+    values ('11111111-1111-4111-8111-111111111111', 'SERIES',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Direto');$$,
+  '42501', 'permission denied for table style_presets',
+  'owner cannot write style presets directly'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.style_preset_revisions), 0::bigint,
+  'second owner cannot read style revisions'
+);
+reset role;
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public.save_style_preset_revision(uuid,text,uuid,text,integer,jsonb,text,text)',
+    'EXECUTE'
+  )
+  and has_function_privilege(
+    'service_role',
+    'public.save_style_preset_revision(uuid,text,uuid,text,integer,jsonb,text,text)',
+    'EXECUTE'
+  ),
+  'style revision writes are service-role only'
+);
+
+set local role service_role;
+insert into public.style_preset_revisions (
+  owner_id, preset_id, revision_number, config, config_hash, hash_version, status
+)
+select '11111111-1111-4111-8111-111111111111',
+       (select id from public.style_presets
+        where owner_id = '11111111-1111-4111-8111-111111111111'
+          and scope_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+       n, '{}'::jsonb, repeat('f', 64), 1, 'DRAFT'
+from generate_series(3, 200) as n;
+select is(
+  (select count(*) from public.style_preset_revisions
+   where owner_id = '11111111-1111-4111-8111-111111111111'),
+  200::bigint, 'style history allows exactly 200 revisions per preset'
+);
+select throws_ok(
+  $$insert into public.style_preset_revisions (
+      owner_id, preset_id, revision_number, config, config_hash, hash_version, status
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      (select id from public.style_presets
+       where owner_id = '11111111-1111-4111-8111-111111111111'
+         and scope_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+      201, '{}'::jsonb, repeat('f', 64), 1, 'DRAFT'
+    );$$,
+  '23514', 'style_revision_quota',
+  'style history blocks the 201st revision'
+);
+select is(
+  public.clear_episode_style_override(
+    '11111111-1111-4111-8111-111111111111',
+    'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'
+  ), true, 'service role clears an episode style override'
+);
+select is(
+  (select count(*) from public.episode_style_overrides
+   where episode_id = 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'),
+  0::bigint, 'cleared episode returns to inheritance'
+);
+select throws_ok(
+  $$select public.clear_episode_style_override(
+      '22222222-2222-4222-8222-222222222222',
+      'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'
+    );$$,
+  'P0002', 'episode_not_found',
+  'a second owner cannot clear another owner episode override'
+);
+select is(
+  public.clear_scene_style_override(
+    '11111111-1111-4111-8111-111111111111',
+    (select id from public.scenes
+     where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1)
+  ), true, 'service role clears a scene style override'
+);
+select is(
+  (select count(*)
+   from public.scene_style_overrides o
+   join public.scenes s on s.id = o.scene_id
+   where s.episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  0::bigint, 'cleared scene returns to inheritance'
 );
 reset role;
 

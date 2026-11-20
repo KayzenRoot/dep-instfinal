@@ -10,6 +10,8 @@ import {
 	restoreCoverRevision,
 	saveCoverRevision,
 } from '#lib/server/cover.js';
+import { resolveEpisodeStyleSnapshot } from '#lib/server/style-bible.js';
+import { DEFAULT_STYLE_CONFIG } from '#lib/domain/style-bible.js';
 import {
 	COVER_TEMPLATE_IDS,
 	coverConfigSchema,
@@ -66,6 +68,7 @@ export const load: PageServerLoad = async (event) => {
 			selectedEpisode: null,
 			context: null,
 			defaultTitle: '',
+			styleCoverTemplate: null,
 			notice: null,
 			loadError: 'Crie um episódio e vincule frames antes de gerar capas.',
 		};
@@ -81,6 +84,7 @@ export const load: PageServerLoad = async (event) => {
 				defaultTitle: '',
 				defaultSubtitle: '',
 				defaultBadge: '',
+				styleCoverTemplate: null,
 				notice: null,
 				loadError: cause.message,
 			};
@@ -98,6 +102,17 @@ export const load: PageServerLoad = async (event) => {
 					? { mode: 'restored' as const, value: restored }
 					: null;
 	const latestConfig = context?.revisions[0]?.config;
+	let styleCoverTemplate: CoverTemplateId | null;
+	try {
+		const styleBible = await resolveEpisodeStyleSnapshot(db, owner, selectedEpisode.id);
+		const hasStyle =
+			Boolean(styleBible.presetId) ||
+			(styleBible.scenes?.length ?? 0) > 0 ||
+			JSON.stringify(styleBible.config) !== JSON.stringify(DEFAULT_STYLE_CONFIG);
+		styleCoverTemplate = hasStyle ? styleBible.config.coverTemplateId : null;
+	} catch {
+		styleCoverTemplate = null;
+	}
 	return {
 		episodes,
 		selectedEpisode,
@@ -106,6 +121,7 @@ export const load: PageServerLoad = async (event) => {
 		defaultSubtitle: latestConfig?.subtitle ?? '',
 		defaultBadge:
 			latestConfig?.badge ?? `E${String(context?.episode.number ?? 1).padStart(2, '0')}`,
+		styleCoverTemplate,
 		notice,
 		loadError: null,
 	};

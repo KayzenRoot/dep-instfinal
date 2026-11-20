@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-021 — Bíblia audiovisual, presets e herança (2026-11-20) — PROPOSED / NOT PROMOTED
+
+- **Status:** auditoria round 1 **CORRECTION REQUIRED**; correções HIGH/MEDIUM aplicadas; CI final/reauditoria/merge pendentes. Sem deploy.
+- **Base:** `main` `2fcfd89` (checkpoint WO-020 promovido); branch `feat/dif-v2-wo-021`.
+- **Delivered:** presets versionados por série/temporada com revisão imutável e quota 200; overrides owner-only por episódio/cena com clear real e `reducedMotion` tri-state; precedência/origem/versão por campo; snapshot congelado no plano com opt-in explícito; legenda/fonte/área segura aplicadas no render; CTA/template no final; clipe-amostra sintético; `/app/style`; export/import JSON estrito; auditoria de SFX; 4 tabelas RLS.
+- **Limits:** SFX/voz/capa/final permanecem referências para telas especializadas; amostra é sintética; backup/restore das novas tabelas não exercitado; sem backfill de séries existentes; falta E2E de render antigo byte-idêntico.
+- **Gate:** pendente de CI/auditoria; WO-014 release segue bloqueada por OPS 015–021.
+
 ## DIF-V2-WO-020 — Laboratório de retenção (2026-11-20) — PROMOTED
 
 - **Status:** **PROMOTED**; code/test head `02d9cae`; CI `44694433465` PASS (318+3 unit, PgTAP 229/229, E2E 18/18, Sonar PASS), docs-only `f22a4f7` CI `44696127263` PASS, policy 34/37; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `d9dd82b` (PR #67); issue #37 fechada.

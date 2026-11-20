@@ -15,6 +15,9 @@ import {
 	ChoiceEndCardError,
 	loadApprovedEndCardSnapshot,
 } from './choice-end-card.js';
+import { DEFAULT_STYLE_CONFIG } from '#lib/domain/style-bible.js';
+import { resolveEpisodeStyleSnapshot, StyleServiceError } from './style-bible.js';
+import type { StyleSnapshot } from '#lib/schemas/style-bible.js';
 
 export class VideoEditPlanError extends Error {
 	constructor(
@@ -239,6 +242,64 @@ async function assertPlanAudioAssets(
 	}
 }
 
+export function shouldApplyStyleSnapshot(input: {
+	expectedVersion: number;
+	applyStyle: boolean;
+}): boolean {
+	return input.applyStyle || input.expectedVersion === 0;
+}
+
+async function loadStoredStyleBible(
+	db: SupabaseClient,
+	owner: User,
+	episodeId: string,
+): Promise<StyleSnapshot | null> {
+	const { data, error } = await db
+		.from('video_edit_plans')
+		.select('plan')
+		.eq('owner_id', owner.id)
+		.eq('episode_id', episodeId)
+		.maybeSingle();
+	if (error)
+		throw new VideoEditPlanError(
+			503,
+			'EDIT_PLAN_LOAD_FAILED',
+			'Não foi possível carregar o snapshot de estilo armazenado.',
+		);
+	if (!data) return null;
+	const parsed = videoEditPlanSchema.safeParse(data.plan);
+	return parsed.success ? (parsed.data.styleBible ?? null) : null;
+}
+
+function hasConfiguredStyle(styleBible: StyleSnapshot): boolean {
+	return (
+		styleBible.presetId !== null ||
+		(styleBible.scenes?.length ?? 0) > 0 ||
+		JSON.stringify(styleBible.config) !== JSON.stringify(DEFAULT_STYLE_CONFIG)
+	);
+}
+
+export function attachStyleSnapshot(plan: VideoEditPlan, styleBible: StyleSnapshot): VideoEditPlan {
+	const styled = {
+		...plan,
+		styleBible,
+		captions: { ...plan.captions, template: styleBible.config.captionTemplate },
+	};
+	if (!styled.color && styleBible.config.colorPresetId !== 'neutral') {
+		return {
+			...styled,
+			color: {
+				presetId: styleBible.config.colorPresetId,
+				presetVersion: 1,
+				strength: Math.round(styleBible.config.colorStrength * 100),
+				referenceClipId: null,
+				overrides: [],
+			},
+		};
+	}
+	return styled;
+}
+
 export function validateForContext(plan: VideoEditPlan, context: EditPlanContext): VideoEditPlan {
 	try {
 		return validateEditPlan(plan, context);
@@ -257,6 +318,7 @@ export async function saveVideoEditPlan(input: {
 	expectedVersion: number;
 	plan: VideoEditPlan;
 	changeNote?: string;
+	applyStyle?: boolean;
 }): Promise<number> {
 	const context = await loadEditPlanContext(input.db, input.owner, input.episodeId);
 	let linkedPlan = input.plan;
@@ -284,7 +346,35 @@ export async function saveVideoEditPlan(input: {
 			throw cause;
 		}
 	}
-	const plan = validateForContext(linkedPlan, context);
+	let styledPlan: VideoEditPlan;
+	if (
+		shouldApplyStyleSnapshot({
+			expectedVersion: input.expectedVersion,
+			applyStyle: input.applyStyle === true,
+		})
+	) {
+		try {
+			const styleBible = await resolveEpisodeStyleSnapshot(input.db, input.owner, input.episodeId);
+			if (input.applyStyle === true || hasConfiguredStyle(styleBible)) {
+				styledPlan = attachStyleSnapshot(linkedPlan, styleBible);
+			} else {
+				styledPlan = { ...linkedPlan };
+				delete styledPlan.styleBible;
+			}
+		} catch (cause) {
+			if (cause instanceof StyleServiceError)
+				throw new VideoEditPlanError(cause.status, cause.code, cause.message);
+			throw cause;
+		}
+	} else {
+		const storedStyle = await loadStoredStyleBible(input.db, input.owner, input.episodeId);
+		const withoutClientStyle = { ...linkedPlan };
+		delete withoutClientStyle.styleBible;
+		styledPlan = storedStyle
+			? { ...withoutClientStyle, styleBible: storedStyle }
+			: withoutClientStyle;
+	}
+	const plan = validateForContext(styledPlan, context);
 	await assertPlanAudioAssets(input.db, input.owner.id, plan);
 	if (!input.adminDb)
 		throw new VideoEditPlanError(

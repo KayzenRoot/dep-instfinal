@@ -4,6 +4,7 @@ import { editDirectorPlanSchema } from './edit-director.js';
 import { editPlanPreviewSchema } from './platform-preview.js';
 import { colorGradeSchema } from './color-grade.js';
 import { editPlanEndCardSchema } from './choice-end-card.js';
+import { styleSnapshotSchema } from './style-bible.js';
 
 const uuid = z.string().uuid();
 const millisecond = z.number().int().min(0).max(150_000);
@@ -67,6 +68,7 @@ export const videoEditPlanSchema = z.object({
 		.default({ template: 'clean' }),
 	cta: editPlanCtaSchema.nullable().default(null),
 	endCard: editPlanEndCardSchema.nullable().optional(),
+	styleBible: styleSnapshotSchema.nullable().optional(),
 	audio: editPlanAudioSchema.optional(),
 	director: editDirectorPlanSchema.optional(),
 	preview: editPlanPreviewSchema.optional(),
