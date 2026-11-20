@@ -60,7 +60,7 @@ Legendas e tipografia são aplicadas no render/export a partir do snapshot conge
 | Policy audit                         | **35 invariantes / 41 tabelas**                                                                                                                               |
 | E2E `style.spec.ts`                  | 2 séries com estilos distintos, sem contaminação; override de episódio/cena; export sem segredos; import DRAFT-only; títulos longos; screenshots 360/768/1440 |
 | Build/typecheck/lint                 | `npm run build`, `npm run check`, `npm run lint` PASS                                                                                                         |
-| Suíte unit/integração completa       | **343+ passed + 3 skipped** (reexecutar no SHA final)                                                                                                         |
+| Suíte unit/integração completa       | **350 passed + 3 skipped**                                                                                                                                    |
 
 ## Matriz de aceitação
 

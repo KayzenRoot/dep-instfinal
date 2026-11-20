@@ -32,7 +32,7 @@ Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
   unchanged without a snapshot.
 - `video-edit-plan-save.test.ts`: **4/4** — ordinary save preserves the stored snapshot,
   legacy plan without snapshot stays unchanged, explicit opt-in applies style/color.
-- Full unit/integration suite: **343 passed + 3 skipped** no último ciclo completo; testes de save-plan/bulk/clear adicionados depois (total esperado ~350; reexecutar no HEAD final).
+- Full unit/integration suite: **350 passed + 3 skipped**.
 
 ## E2E
 

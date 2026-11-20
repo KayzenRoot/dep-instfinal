@@ -212,7 +212,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 			try {
 				const voice = await loadVoicePlan(db, owner, episodeId);
-				if (voice?.plan.takeId) {
+				if (voice?.status === 'APPROVED' && voice.plan.takeId) {
 					const { data: take } = await db
 						.from('narration_takes')
 						.select('id,duration_ms')
