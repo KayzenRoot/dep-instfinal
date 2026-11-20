@@ -45,7 +45,7 @@ This procedure was executed against the hosted `dif` project and a local Supabas
 
 - `countMismatches: []`, `episodeSceneJoinRows: 768`, `readyJobsWithMatchingQaHash: 5/5`;
 - `metadataOk: true`, `coverageOk: true`, `shaVerified: true`;
-- 2 local media blobs `verified_local`; 3 temporary E2E MP4s `missing` (already deleted by the OS), so `mediaOk: false`/`ok: false` as designed (fail-closed, no false success).
+- 2 local media blobs `verified_local`; 3 temporary E2E MP4s `missing` at verification time, so `mediaOk: false`/`ok: false` as designed (fail-closed, no false success).
 
 Auth users, passwords, media bytes and signed URLs remain outside the dump. Remote restore and R2 lifecycle/GC remain manual.
 
@@ -56,7 +56,7 @@ Auth users, passwords, media bytes and signed URLs remain outside the dump. Remo
 - Overrides de episódio/cena são upserts pequenos, sem histórico próprio; `reducedMotion` aceita herdar/true/false. Enviar o formulário todo vazio chama `clear_*_style_override` e a camada volta a herdar.
 - Planos novos congelam o estilo no primeiro save quando há preset/override configurado; sem estilo, nenhum snapshot é inventado. Planos existentes só recebem uma revisão nova quando o owner marca “Aplicar estilo atual” no timeline ou reconstrói; saves comuns preservam o snapshot. O render aplica cor, legenda, área segura e fonte ao snapshot; SFX/voz/capa/final continuam referências das telas especializadas.
 - SFX referenciados são revalidados na resolução do snapshot. Assets removidos ou sem licença comercial/social são retirados do config efetivo com warning (`STYLE_SFX_UNAVAILABLE`/`STYLE_SFX_LICENSE`), sem alterar o preset aprovado.
-- Backup/restore scripts incluem as quatro tabelas; a execução deste ciclo ficou pendente. Restaure presets antes das revisões e overrides depois de episódios/cenas para respeitar as FKs.
+- Backup/restore scripts incluem as quatro tabelas e a execução local de 2026-11-20 está registrada na seção OPS acima. Restaure presets antes das revisões e overrides depois de episódios/cenas para respeitar as FKs.
 
 ## Temporary public access via Cloudflare Tunnel (owner-authorized)
 

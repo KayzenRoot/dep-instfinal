@@ -78,11 +78,15 @@ for (const table of Object.keys(summary.counts)) {
 	if (!allowedTables.has(table) || !/^[a-z][a-z0-9_]{0,63}$/.test(table))
 		throw new Error(`Unexpected backup table: ${table}`);
 }
+if (Object.keys(summary.counts).length !== allowedTables.size)
+	throw new Error('Backup summary must cover every allowed table.');
 const schemaBytes = readFileSync(join(backupDir, 'schema.sql'));
 const dataBytes = readFileSync(join(backupDir, 'data.sql'));
 const schemaSha = createHash('sha256').update(schemaBytes).digest('hex');
 const dataSha = createHash('sha256').update(dataBytes).digest('hex');
-if (schemaSha !== summary.files?.schema?.sha256 || dataSha !== summary.files?.data?.sha256)
+const shaVerified =
+	schemaSha === summary.files?.schema?.sha256 && dataSha === summary.files?.data?.sha256;
+if (!shaVerified)
 	throw new Error('Backup SHA-256 mismatch; refusing to restore a corrupted or altered dump.');
 const schemaSql = schemaBytes.toString('utf8');
 const dataSql = dataBytes.toString('utf8');
@@ -208,7 +212,7 @@ const report = {
 	generatedAt: new Date().toISOString(),
 	backupDir,
 	database,
-	shaVerified: true,
+	shaVerified,
 	countMismatches,
 	episodeSceneJoinRows: Number(joinCheck),
 	expectedReadyJobsWithQa: expectedQa,

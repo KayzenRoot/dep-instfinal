@@ -9,13 +9,18 @@ Branch: `feat/dif-v2-ops-015-021` (base `main` `3950ccb`)
   “backup and restore cover every public table” invariant.
 - Backup/restore table lists: **41/41** tables each (`episode_revisions` restored to
   the lists after the audit gap).
-- `npm run check`, `npm run lint`, `npm run build`, `npm run test:db`: expected PASS
-  on the final SHA (rerun before PR).
+- `npm run check`: 0 errors / 0 warnings.
+- `npm run lint`: PASS.
+- `npm test`: **351 passed + 3 skipped** (CI baseline).
+- `npm run test:db`: **247/247** PgTAP PASS.
+- CI quality `44782439445` PASS (10m59s), Sonar/Socket/Vercel PASS.
+- Auditoria independente: **APPROVED WITH RESIDUALS**; findings textuais corrigidos antes do merge.
 
 ## Backup / restore (local disposable stack)
 
 - Command: `npm run backup:metadata -- --out-dir <private dir outside repo>`.
-- 41/41 table counts captured; `episode_revisions = 173`.
+- 41/41 table counts captured; `episode_revisions = 173`. `restore-metadata.mjs`
+  now requires the summary to contain exactly the 41 allowed table keys.
 - SHA-256 of `schema.sql` and `data.sql` verified before restore (`shaVerified: true`).
 - Restore target: `dif_restore_test` in `supabase_db_dif-studio-local` (disposable).
 - Result:
@@ -23,10 +28,11 @@ Branch: `feat/dif-v2-ops-015-021` (base `main` `3950ccb`)
   - `episodeSceneJoinRows: 768`
   - `readyJobsWithMatchingQaHash: 5/5` (`expectedReadyJobsWithQa: 5`)
   - `metadataOk: true`, `coverageOk: true`, `artifactsWithoutQa: 0`
-  - `mediaOk: false`, `ok: false` only because 3 temporary E2E MP4 paths no longer
-    existed (`missing`); 2 local artifacts were `verified_local`.
+  - `mediaOk: false`, `ok: false` because 3 temporary E2E MP4 paths were absent at
+    verification time (`missing`); 2 local artifacts were `verified_local`.
 - This is the intended fail-closed behavior: metadata counts and hashes are proven,
-  while missing media is reported instead of silently accepted.
+  while missing media is reported instead of silently accepted. The `ok:false` is
+  expected and the command exits non-zero.
 - No Auth users, passwords, media bytes, signed URLs or secrets were included.
 
 ## Not exercised

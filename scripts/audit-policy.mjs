@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import process from 'node:process';
 
 const migration = await readFile('supabase/migrations/20261109000100_initial_schema.sql', 'utf8');
@@ -125,22 +125,15 @@ const videoDownload = await readFile('src/routes/api/video/[assetId]/+server.ts'
 const timelineRoute = await readFile('src/routes/app/timeline/+page.server.ts', 'utf8');
 const editPlans = await readFile('src/lib/server/video-edit-plans.ts', 'utf8');
 
-const tables = [
-	...migration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...videoMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...editPlanMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...renderJobMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...narrationMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...captionMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...audioMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...qualityMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...hookMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...identityMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...coverMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...endCardMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...retentionLabMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-	...styleBibleMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
-].map((match) => match[1]);
+const migrationDir = 'supabase/migrations';
+const migrationFiles = (await readdir(migrationDir)).filter((file) => file.endsWith('.sql'));
+const tableSet = new Set();
+for (const file of migrationFiles.sort()) {
+	const sql = await readFile(`${migrationDir}/${file}`, 'utf8');
+	for (const match of sql.matchAll(/create table(?: if not exists)?\s+public\.(\w+)\s*\(/gi))
+		tableSet.add(match[1]);
+}
+const tables = [...tableSet].sort();
 const checks = [
 	['41 owner-scoped public tables', tables.length === 41],
 	[
