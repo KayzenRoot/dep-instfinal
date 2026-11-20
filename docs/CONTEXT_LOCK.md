@@ -213,10 +213,10 @@ Revalidate before any external action if `main` changes; the feature branch is r
 ## V2 Context Lock — WO-019 (#36)
 
 - **Base revalidated:** `main` `c94409d` (checkpoint WO-018 promoted). Branch: `feat/dif-v2-wo-019`.
-- **Issue inventory:** WO-001–018 **MERGED/CLOSED/PROMOTED**; WO-019/#36 em execução; WO-020–021 e OPS bloqueiam WO-014.
+- **Issue inventory:** WO-001–019 **MERGED/CLOSED/PROMOTED**; WO-020/#37 é a próxima; WO-020–021 e OPS bloqueiam WO-014.
 - **Scope:** CTA A/B cinematográfica a partir das duas escolhas V1; 6 presets, 2 layouts, ASS 9:16, SFX local, anexo à timeline, stale gate e export.
 - **Delivered locally:** `choice_end_cards` service-write/owner-read; `/app/finale` na nav; aprovação/restauração; ASS/JSON/WAV/ZIP; `plan.endCard` validado no servidor; stale 409; PgTAP 210; policy 33/31.
-- **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROPOSED**. WO-020 (#37) é a próxima.
+- **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROMOTED** (`3b0f3b7`, PR #66). WO-020 (#37) é a próxima.
 
 ## V2 Context Lock — WO-018 (#35)
 

@@ -1,12 +1,20 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-019 — Finais A/B e CTA cinematográfica (2026-11-20) — PROPOSED
+## DIF-V2-WO-019 — Finais A/B e CTA cinematográfica (2026-11-20) — PROMOTED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; CI `44676921244` PASS em `ff00957` (307+3 unit, PgTAP 210/210, E2E 17/17, Sonar PASS), policy 33/31; correções da auditoria aplicadas; auditoria delta final pendente. Sem merge/deploy.
+- **Status:** **PROMOTED**; code/test head `ff00957`; CI `44676921244` PASS (307+3 unit, PgTAP 210/210, E2E 17/17, Sonar PASS), docs-only `1c914ea` CI `44678149983` PASS, policy 33/31; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `3b0f3b7` (PR #66); issue #36 fechada.
 - **Base:** `main` `c94409d` (checkpoint WO-018 promovido); branch `feat/dif-v2-wo-019`.
-- **Delivered:** configs de final A/B versionadas com snapshot das duas escolhas; 6 presets × 2 layouts; ASS + SFX determinísticos no fim do MP4; `/app/finale`; anexo ao plano; stale/409; export ZIP; gate de finale sem escolhas.
-- **Limits:** card 2D sem geração de vídeo; labels fixos das escolhas; janela no fim; sem UI de poda; sem golden cross-host; voto continua manual V1.
-- **Gate:** CI + auditoria independente + autorização contínua do owner; WO-020 (#37) é a próxima.
+- **Delivered:** configs de final A/B versionadas com snapshot das duas escolhas (label + consequência); 6 presets × 2 layouts; ASS + SFX determinísticos no fim real da timeline; `/app/finale`; anexo ao plano com expectedVersion; stale/409; export ZIP; gate de finale sem escolhas.
+- **Limits:** card 2D sem geração de vídeo; labels fixos das escolhas; janela no fim; sem UI de poda; sem golden cross-host; voto continua manual V1; migration nunca deployada antes desta WO.
+- **Gate:** atendido; WO-020 (#37) é a próxima.
+
+## V2 checkpoint promotion — WO-019 (2026-11-20)
+
+- **Owner decision:** continuidade autônoma registrada; PR #66 squash-merged em `3b0f3b7`; issue #36 fechada.
+- **Audit:** duas rodadas independentes; C1 (geometria ASS), H1 (mute sem SFX), H2 (stale por consequência/revisão), H3 (fim real da timeline), H4 (CI/Sonar) e M1–M8 corrigidos; veredito final **APPROVED WITH RESIDUALS** sem CRITICAL/HIGH.
+- **Evidence:** unit 307+3, PgTAP 210/210, policy 33/31, E2E 17/17, Sonar PASS; CI `44676921244`; migration `20261120090000_v2_wo019_choice_end_cards.sql`.
+- **Residuals:** `btrim` vs `.trim()` em bordas de consequência; aprovado stale fora das 30 revisões sem aviso visual (servidor bloqueia); restaurar DRAFT stale retorna 409; aprovações repetidas ilimitadas (quota só DRAFT); preview Reels sem auto-ajuste; fontes sem golden cross-host; sem bounding box dos painéis/MP4 completo com card anexado; sem vínculo material card↔poll_results; poda sem UI.
+- **Next:** WO-020 (#37) Laboratório de retenção; WO-014 release segue bloqueada por 020–021 e OPS.
 
 ## DIF-V2-WO-018 — Capas, posters e cards (2026-11-19) — PROMOTED
 

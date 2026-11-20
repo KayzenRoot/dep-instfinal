@@ -1,10 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-019 — Finais A/B e CTA cinematográfica (2026-11-20) — PROPOSED
+## V2 WO-019 — Finais A/B e CTA cinematográfica (2026-11-20) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-019` · issue #36 · epic #17
 - **Base:** `main` `c94409d` (checkpoint WO-018 promovido); branch `feat/dif-v2-wo-019`
-- **Status:** code/test head `ff00957`; CI `44676921244` PASS (**307+3** unit, PgTAP **210/210**, E2E **17/17**, Sonar PASS); policy 33/31. Correções da auditoria aplicadas; auditoria delta final pendente. Checkpoint **PROPOSED**.
+- **Status:** **PROMOTED**; code/test head `ff00957`; CI `44676921244` PASS (**307+3** unit, PgTAP **210/210**, E2E **17/17**, Sonar PASS); docs-only `1c914ea` CI `44678149983` PASS; policy 33/31; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `3b0f3b7` (PR #66); issue #36 fechada.
 
 | Check   | Result     | Evidence                                                                                      |
 | ------- | ---------- | --------------------------------------------------------------------------------------------- |

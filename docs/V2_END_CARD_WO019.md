@@ -1,6 +1,6 @@
 # DIF-V2-WO-019 — Finais A/B, CTA cinematográfica e votação manual
 
-**Status:** implementação completa; CI `44676921244` PASS em `ff00957` (307+3 unit, PgTAP 210/210, E2E 17/17, Sonar PASS), policy 33/31; correções da auditoria aplicadas; auditoria delta final **PENDENTE**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** **PROMOTED**; CI `44676921244` PASS em `ff00957` (307+3 unit, PgTAP 210/210, E2E 17/17, Sonar PASS), policy 33/31; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `3b0f3b7` (PR #66); issue #36 fechada. Sem deploy nesta WO.
 **Base:** `main` `c94409d` (checkpoint WO-018 promovido).
 **Escopo:** WO-019 (#36), dependente de WO-004/008/010/011/012 e do par de escolhas V1.
 
