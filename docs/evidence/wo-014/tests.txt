@@ -1,0 +1,55 @@
+# DIF-V2-WO-014 — release evidence
+
+Date: 2026-11-20 (America/Sao_Paulo)
+Branch: `feat/dif-v2-wo-014` (base `main` `7c175e5`)
+
+## Local/CI baseline
+
+- `main` code/test head V2 `f32cc97`: CI `44776291945` PASS — unit **351+3**,
+  PgTAP **247/247**, policy 35/41, E2E **19/19**, Sonar PASS.
+- OPS head `77d5626`: CI `44787029917` PASS — unit **351+3**, PgTAP **247/247**,
+  policy **36/41**, E2E **19/19**, Sonar PASS.
+- `main` docs checkpoints: `3950ccb` (WO-021) and `7c175e5` (OPS) CI PASS.
+- Backup/restore local: 41/41 table counts, SHA verified, join 768, QA 5/5,
+  metadata/coverage OK; media fail-closed for 3 absent temp MP4s.
+
+## Production observations (2026-11-20)
+
+Authenticated owner session against `https://dif-studio.vercel.app`:
+
+| Route | Status |
+| --- | --- |
+| `/health` | 200 |
+| `/login` | 200 |
+| `/app` | 200 |
+| `/app/series` | 200 |
+| `/app/episodes` | 200 |
+| `/timeline` | timed out / V2 data unavailable |
+| `/app/style` | **500 Internal Error** |
+
+Hosted Supabase `zottgifcocnjguhmnezx`:
+
+- `GET /rest/v1/style_presets` → HTTP 404 `PGRST205` (table missing);
+- same for `cover_revisions` and other V2 tables;
+- V1 tables/services remain reachable through the app.
+
+## Credential preflight
+
+- `npx supabase projects list` → `Invalid access token`.
+- No `supabase-pat.txt` in `C:\Users\csn19\.zcode\dif-secrets`.
+- No Vercel CLI credentials; production deploys come from the Git integration.
+- Therefore the 29 V2 migrations cannot be applied and the release is **BLOCKED**.
+
+## Migration runner dry-run
+
+`SUPABASE_PROJECT_REF=zottgifcocnjguhmnezx node scripts/apply-hosted-migrations.mjs`
+lists **29 migrations** from `20261112170000` and performs no network write in
+dry-run. `--execute` requires an owner PAT `sbp_...` and refuses if V2 markers
+already exist.
+
+## Not yet executed
+
+- Hosted migration apply/backup and production smoke.
+- Worker isolated deployment/authorization.
+- Real owner 90–150 s Flow acceptance and human AV QA.
+- R2 lifecycle/GC, remote restore, Auth restore.
