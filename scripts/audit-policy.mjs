@@ -128,12 +128,12 @@ const editPlans = await readFile('src/lib/server/video-edit-plans.ts', 'utf8');
 const migrationDir = 'supabase/migrations';
 const migrationFiles = (await readdir(migrationDir)).filter((file) => file.endsWith('.sql'));
 const tableSet = new Set();
-for (const file of migrationFiles.sort()) {
+for (const file of migrationFiles.sort((left, right) => left.localeCompare(right))) {
 	const sql = await readFile(`${migrationDir}/${file}`, 'utf8');
 	for (const match of sql.matchAll(/create table(?: if not exists)?\s+public\.(\w+)\s*\(/gi))
 		tableSet.add(match[1]);
 }
-const tables = [...tableSet].sort();
+const tables = [...tableSet].sort((left, right) => left.localeCompare(right));
 const checks = [
 	['41 owner-scoped public tables', tables.length === 41],
 	[
