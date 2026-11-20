@@ -234,5 +234,5 @@ revoke all on function public.enforce_choice_end_card_quota() from public, anon,
 
 comment on table public.choice_end_cards is
   'Owner-readable, immutable two-choice end-card configurations tied to the current choice snapshot.';
-comment on function public.save_choice_end_card(uuid, uuid, integer, jsonb, text, text) is
+comment on function public.save_choice_end_card(uuid, uuid, integer, jsonb, jsonb, text, text) is
   'Server-only append of an end-card revision with optimistic concurrency and a two-choice gate.';
