@@ -62,6 +62,12 @@ const allowedTables = new Set([
 	'visual_continuity_reports',
 	'cover_revisions',
 	'choice_end_cards',
+	'published_posts',
+	'published_post_versions',
+	'creative_variants',
+	'retention_imports',
+	'analytics_snapshots',
+	'retention_experiments',
 ]);
 for (const table of Object.keys(summary.counts)) {
 	if (!allowedTables.has(table) || !/^[a-z][a-z0-9_]{0,63}$/.test(table))

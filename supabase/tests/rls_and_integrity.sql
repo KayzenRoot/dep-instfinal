@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(210);
+select plan(229);
 
 do $$
 declare
@@ -16,7 +16,9 @@ declare
     'voice_direction_plans', 'narration_takes',
     'caption_tracks', 'audio_assets', 'render_quality_reports', 'hook_variants',
     'character_identity_profiles', 'character_identity_profile_versions',
-    'visual_continuity_reports', 'cover_revisions', 'choice_end_cards'
+    'visual_continuity_reports', 'cover_revisions', 'choice_end_cards',
+    'published_posts', 'published_post_versions', 'creative_variants',
+    'retention_imports', 'analytics_snapshots', 'retention_experiments'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -64,7 +66,9 @@ begin
       'voice_direction_plans', 'narration_takes', 'caption_tracks', 'audio_assets',
       'render_quality_reports', 'hook_variants',
       'character_identity_profiles', 'character_identity_profile_versions',
-      'visual_continuity_reports', 'cover_revisions', 'choice_end_cards'
+      'visual_continuity_reports', 'cover_revisions', 'choice_end_cards',
+      'published_posts', 'published_post_versions', 'creative_variants',
+      'retention_imports', 'analytics_snapshots', 'retention_experiments'
     ) then
       if v_policy_count <> 1 then raise exception 'edit plan policies must be read-only'; end if;
       if has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
@@ -2536,6 +2540,164 @@ select throws_ok(
     );$$,
   '55000', 'end_card_episode_published',
   'published episodes cannot receive a new end card'
+);
+reset role;
+
+insert into public.episodes (id, owner_id, season_id, episode_number, title, duration_ms)
+values (
+  'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7', '11111111-1111-4111-8111-111111111111',
+  'f6f6f6f6-f6f6-46f6-86f6-f6f6f6f6f6f6', 9, 'Retention lab episode', 90000
+);
+
+set local role service_role;
+select lives_ok(
+  $$select public.save_published_post(
+      '11111111-1111-4111-8111-111111111111', null,
+      'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7', 'tiktok',
+      'https://www.tiktok.com/@rls/video/1', '2026-11-01T00:00:00Z',
+      'Post RLS', 'Fixture', 'Criação'
+    );$$,
+  'service role stores a published post'
+);
+select throws_ok(
+  $$select public.save_published_post(
+      '11111111-1111-4111-8111-111111111111', null,
+      'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7', 'tiktok',
+      'not-a-url', '2026-11-01T00:00:00Z', 'X', '', ''
+    );$$,
+  '23514', 'retention_post_invalid',
+  'invalid publication URLs are rejected'
+);
+select lives_ok(
+  $$select public.save_creative_variant(
+      '11111111-1111-4111-8111-111111111111',
+      (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1'),
+      'HOOK', 'A', null, null, null
+    );$$,
+  'service role stores variant A'
+);
+select lives_ok(
+  $$select public.save_creative_variant(
+      '11111111-1111-4111-8111-111111111111',
+      (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1'),
+      'BASELINE', 'B', null, null, null
+    );$$,
+  'service role stores variant B'
+);
+select lives_ok(
+  $$select public.save_analytics_snapshot(
+      '11111111-1111-4111-8111-111111111111',
+      (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1'),
+      '2026-11-09T00:00:00Z', '2026-11-01T00:00:00Z', '2026-11-08T00:00:00Z',
+      'MANUAL', 'Primeira coleta', 10000, 400, 50, 30, 20, 10, 60000, 50,
+      repeat('1', 64), null, null
+    );$$,
+  'service role stores the first analytics snapshot'
+);
+select is(
+  public.save_analytics_snapshot(
+    '11111111-1111-4111-8111-111111111111',
+    (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1'),
+    '2026-11-09T00:00:00Z', '2026-11-01T00:00:00Z', '2026-11-08T00:00:00Z',
+    'MANUAL', 'Primeira coleta', 10000, 400, 50, 30, 20, 10, 60000, 50,
+    repeat('1', 64), null, null
+  ), 1, 'repeated snapshot hashes are idempotent'
+);
+select is(
+  public.save_analytics_snapshot(
+    '11111111-1111-4111-8111-111111111111',
+    (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1'),
+    '2026-11-10T00:00:00Z', '2026-11-01T00:00:00Z', '2026-11-08T00:00:00Z',
+    'MANUAL', 'Retificação', 12000, 500, 60, 40, 25, 12, 62000, 51,
+    repeat('2', 64),
+    (select id from public.analytics_snapshots
+     where post_id = (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1')
+       and revision_number = 1),
+    null
+  ), 2, 'a retification appends a new revision and supersedes the old one'
+);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.published_posts
+   where episode_id = 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'),
+  1::bigint, 'owner can read published posts'
+);
+select throws_ok(
+  $$insert into public.published_posts (
+      owner_id, episode_id, platform, url, published_at
+    ) values (
+      '11111111-1111-4111-8111-111111111111', 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7',
+      'tiktok', 'https://www.tiktok.com/@rls/video/2', now()
+    );$$,
+  '42501', 'permission denied for table published_posts',
+  'owner cannot insert published posts directly'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.published_posts
+   where episode_id = 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'),
+  0::bigint, 'second owner cannot read published posts'
+);
+reset role;
+set local role service_role;
+select throws_ok(
+  $$update public.analytics_snapshots set views = 1 where revision_number = 1;$$,
+  '55000', 'retention_history_is_immutable',
+  'analytics snapshots are immutable'
+);
+select lives_ok(
+  $$select public.save_retention_experiment(
+      '11111111-1111-4111-8111-111111111111',
+      'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7',
+      'Hook A/B',
+      (select id from public.creative_variants where label = 'A' and kind = 'HOOK'),
+      (select id from public.creative_variants where label = 'B' and kind = 'BASELINE'),
+      'Associação observada.'
+    );$$,
+  'service role stores a retention experiment'
+);
+select throws_ok(
+  $$select public.save_retention_experiment(
+      '11111111-1111-4111-8111-111111111111',
+      'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7', 'Same variant',
+      (select id from public.creative_variants where label = 'A' and kind = 'HOOK'),
+      (select id from public.creative_variants where label = 'A' and kind = 'HOOK'), ''
+    );$$,
+  '23514', 'retention_experiment_invalid',
+  'experiments require two distinct variants'
+);
+select is(
+  public.delete_published_post(
+    '11111111-1111-4111-8111-111111111111',
+    (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1')
+  ), true, 'service role deletes the publication'
+);
+select is(
+  (select count(*) from public.published_posts
+   where episode_id = 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'),
+  0::bigint, 'post deletion removes the publication'
+);
+select is(
+  (select count(*) from public.published_post_versions
+   where owner_id = '11111111-1111-4111-8111-111111111111' and post_id not in (select id from public.published_posts)),
+  0::bigint, 'post deletion removes the version history'
+);
+select is(
+  (select count(*) from public.creative_variants
+   where owner_id = '11111111-1111-4111-8111-111111111111' and post_id not in (select id from public.published_posts)),
+  0::bigint, 'post deletion removes the variants'
+);
+select is(
+  (select count(*) from public.analytics_snapshots
+   where owner_id = '11111111-1111-4111-8111-111111111111' and post_id not in (select id from public.published_posts)),
+  0::bigint, 'post deletion removes the snapshots'
+);
+select is(
+  (select count(*) from public.retention_experiments
+   where owner_id = '11111111-1111-4111-8111-111111111111'
+     and episode_id = 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'),
+  0::bigint, 'post deletion removes linked experiments'
 );
 reset role;
 

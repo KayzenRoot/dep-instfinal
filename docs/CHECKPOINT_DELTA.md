@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-020 — Laboratório de retenção (2026-11-20) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 229/229, policy 34/37, unit 317+3, E2E local PASS; CI hosted e auditoria final pendentes. Sem merge/deploy.
+- **Base:** `main` `59ec14c` (checkpoint WO-019 promovido); branch `feat/dif-v2-wo-020`.
+- **Delivered:** posts versionados, variantes ligadas a hook/capa/final, snapshots idempotentes imutáveis, import CSV com NULL, experimentos A/B observacionais, dashboard/export/delete owner-only.
+- **Limits:** sem API/scraping; comparação descritiva sem significância; CSV exporta último snapshot; sem UI de edição de variante/poda; sem dados de espectadores.
+- **Gate:** CI + auditoria independente + autorização contínua do owner; WO-021 (#38) é a próxima.
+
 ## DIF-V2-WO-019 — Finais A/B e CTA cinematográfica (2026-11-20) — PROMOTED
 
 - **Status:** **PROMOTED**; code/test head `ff00957`; CI `44676921244` PASS (307+3 unit, PgTAP 210/210, E2E 17/17, Sonar PASS), docs-only `1c914ea` CI `44678149983` PASS, policy 33/31; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `3b0f3b7` (PR #66); issue #36 fechada.

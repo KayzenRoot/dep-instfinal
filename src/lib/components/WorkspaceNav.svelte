@@ -37,6 +37,12 @@
 			glyph: 'branch',
 		},
 		{
+			path: '/app/retention',
+			href: resolve('/app/retention'),
+			label: 'Retenção',
+			glyph: 'archive',
+		},
+		{
 			path: '/app/library',
 			href: resolve('/app/library'),
 			label: 'Biblioteca visual',

@@ -91,6 +91,12 @@ const tableNames = [
 	'visual_continuity_reports',
 	'cover_revisions',
 	'choice_end_cards',
+	'published_posts',
+	'published_post_versions',
+	'creative_variants',
+	'retention_imports',
+	'analytics_snapshots',
+	'retention_experiments',
 ];
 const counts = {};
 for (const table of tableNames) {

@@ -1,0 +1,50 @@
+# WO-020 — evidence
+
+Date: 2026-11-20 (America/Sao_Paulo)
+Branch: `feat/dif-v2-wo-020` (base `main` `59ec14c`)
+
+## Static
+
+- `npm run check`: 0 errors / 0 warnings
+- `npm run lint`: PASS
+- `npm run audit:policy`: **34 invariants / 37 tables** PASS
+- `npm run build`: PASS (@sveltejs/adapter-node)
+- `npm run test:db`: **229/229** PgTAP PASS
+
+## Unit / domain
+
+- `retention.test.ts`: 10/10 — formula denominators, NULL vs zero, low sample, completion
+  discrepancy, watch > duration, platform/period/sample/metric comparability, non-causal language,
+  CSV quoted/CRLF, malformed rows, formula injection.
+- Unit suite: **317 passed + 3 skipped** locally.
+
+## E2E
+
+- `e2e/retention.spec.ts` local PASS: login, nav “Retenção”, TikTok and Reels posts, three variants,
+  manual snapshots, A/B observational comparison, CSV import with NULL interactions, CSV/JSON export,
+  anonymous 401, delete, screenshots 360/768/1440.
+- Dashboard shows origin/period/denominator and marks missing values as `INDISPONÍVEL`.
+
+## Database / retention
+
+- `published_posts`, `published_post_versions`, `creative_variants`, `analytics_snapshots`,
+  `retention_imports`, `retention_experiments` are owner-read/service-write with forced RLS.
+- Snapshots/versions/imports are immutable; snapshots are idempotent by `(post, snapshot_hash)` and
+  retifications append a new revision with `supersedes_snapshot_id`.
+- PgTAP: owner read, direct insert denied, second owner isolated, post version, variants A/B,
+  idempotent snapshot, supersedes, immutable update, experiment distinct variants, delete cascade.
+- Quota: 5000 snapshots per post; 5000 CSV rows and 5 MB input.
+
+## Privacy / security
+
+- URLs are owner-provided text and never fetched; no scraping, login automation or social API.
+- Only aggregate metrics are stored; no viewer-level, demographic or comment data.
+- Export routes owner-only, `private, no-store`; CSV cells guarded against formula injection.
+- Deletion is owner-scoped and removes post, versions, variants, snapshots and linked experiments.
+
+## Limits verified
+
+- Comparisons are descriptive associations, not causal or significance tests.
+- Different platforms or window lengths return `NOT_COMPARABLE`; low samples return `INSUFFICIENT`.
+- CSV export contains the latest snapshot per post; full context and imports are in JSON.
+- Post edits create a new version; variants are immutable and have no edit UI.
