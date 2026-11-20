@@ -33,6 +33,7 @@
 		"check:r2": "node scripts/check-r2.mjs",
 		"backup:metadata": "node scripts/backup-metadata.mjs",
 		"db:apply-hosted": "node scripts/apply-hosted-migrations.mjs",
+		"release:smoke": "node scripts/release-smoke.mjs",
 		"restore:metadata": "node scripts/restore-metadata.mjs",
 		"retention": "node scripts/retention.mjs",
 		"audit:policy": "node scripts/audit-policy.mjs",

@@ -40,6 +40,15 @@ Hosted Supabase `zottgifcocnjguhmnezx`:
 - No Vercel CLI credentials; production deploys come from the Git integration.
 - Therefore the 29 V2 migrations cannot be applied and the release is **BLOCKED**.
 
+## Release smoke (2026-11-20)
+
+`npm run release:smoke` against production:
+
+- PASS: `/health`, `/login`, anonymous boundaries for media/video/health/style.
+- FAIL: 7 V2 schema markers missing (`video_assets`, `video_edit_plans`, `render_jobs`,
+  `cover_revisions`, `choice_end_cards`, `published_posts`, `style_presets`).
+- Exit non-zero; production must not be declared V2-complete.
+
 ## Migration runner dry-run
 
 `SUPABASE_PROJECT_REF=zottgifcocnjguhmnezx node scripts/apply-hosted-migrations.mjs`

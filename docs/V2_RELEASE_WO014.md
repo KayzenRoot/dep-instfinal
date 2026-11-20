@@ -36,8 +36,10 @@
      node scripts/apply-hosted-migrations.mjs --execute
    ```
    O script recusa se detectar schema V2 já presente, aplica em ordem e exige 41 tabelas públicas.
-5. Smoke: `/health`, `/login`, owner login, `/app/style`, `/app/timeline`, upload R2, download privado, render worker, MP4 1080×1920, backup/rollback.
+5. Smoke: `npm run release:smoke` (V1 público/boundaries + marcadores V2 no schema), depois owner login, `/app/style`, `/app/timeline`, upload R2, download privado, render worker, MP4 1080×1920, backup/rollback.
 6. Só depois promover o checkpoint final para **APROVADO**.
+
+Saída atual de `npm run release:smoke` (2026-11-20): health/login/boundaries PASS; **7 tabelas V2 ausentes** (`video_assets`, `video_edit_plans`, `render_jobs`, `cover_revisions`, `choice_end_cards`, `published_posts`, `style_presets`), exit não-zero. O script é read-only e impede declarar release completa com schema V1.
 
 ## Script de migrations
 
