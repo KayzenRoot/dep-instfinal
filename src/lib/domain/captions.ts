@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { formatSrtTime } from './timeline.js';
 import type { CaptionCue, CaptionStyle, CaptionTrack, CaptionWord } from '#lib/schemas/captions.js';
 import type { PreviewBox } from '#lib/schemas/platform-preview.js';
+import type { StyleFontFamily } from '#lib/schemas/style-bible.js';
+import { assFontForStyle } from './style-caption.js';
 import {
 	CAPTION_SAFE_WIDTH,
 	captionTextFitsBox,
@@ -486,13 +488,17 @@ function escapeAssLine(line: string): string {
 		.replace(/\}/gu, '\uFF5D');
 }
 
-function assStyle(style: CaptionStyle, safeZone: CaptionTrack['safeZone']): string {
+function assStyle(
+	style: CaptionStyle,
+	safeZone: CaptionTrack['safeZone'],
+	fontFamily?: StyleFontFamily,
+): string {
 	const marginV = safeZone === 'stories' ? 280 : safeZone === 'feed' ? 140 : 220;
 	if (style === 'vhs')
-		return `Style: Default,Courier New,54,&H00E8F0FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,2,2,90,90,${marginV},1`;
+		return `Style: Default,${assFontForStyle(fontFamily) ?? 'Courier New'},54,&H00E8F0FF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,2,2,90,90,${marginV},1`;
 	if (style === 'highlight')
-		return `Style: Default,DejaVu Sans,58,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,1,2,90,90,${marginV},1`;
-	return `Style: Default,DejaVu Sans,58,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,1,2,90,90,${marginV},1`;
+		return `Style: Default,${assFontForStyle(fontFamily) ?? 'DejaVu Sans'},58,&H00FFFFFF,&H0000FFFF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,1,2,90,90,${marginV},1`;
+	return `Style: Default,${assFontForStyle(fontFamily) ?? 'DejaVu Sans'},58,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,4,1,2,90,90,${marginV},1`;
 }
 
 export function appendCtaCues(input: {
@@ -534,7 +540,11 @@ export function appendCtaCues(input: {
 	return cues;
 }
 
-export function buildCaptionAss(track: CaptionTrack, layout?: CaptionLayout): string {
+export function buildCaptionAss(
+	track: CaptionTrack,
+	layout?: CaptionLayout,
+	fontFamily?: StyleFontFamily,
+): string {
 	const lines = [
 		'[Script Info]',
 		'ScriptType: v4.00+',
@@ -545,7 +555,7 @@ export function buildCaptionAss(track: CaptionTrack, layout?: CaptionLayout): st
 		'',
 		'[V4+ Styles]',
 		'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-		assStyle(track.style, track.safeZone),
+		assStyle(track.style, track.safeZone, fontFamily),
 		'',
 		'[Events]',
 		'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',

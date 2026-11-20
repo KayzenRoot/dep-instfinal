@@ -110,11 +110,14 @@ export const styleSourcesSchema = z.record(
 	z.enum(['DEFAULT', 'SERIES', 'SEASON', 'EPISODE', 'SCENE']),
 );
 
+export const styleVersionsSchema = z.record(z.string(), z.number().int().min(1).nullable());
+
 export const styleSceneSnapshotSchema = z.object({
 	sceneId: uuid,
 	sceneIndex: z.number().int().min(1).max(500),
 	config: styleConfigSchema,
 	sources: styleSourcesSchema,
+	versions: styleVersionsSchema.optional(),
 });
 
 export const styleSnapshotSchema = z.object({
@@ -128,6 +131,7 @@ export const styleSnapshotSchema = z.object({
 	scopeId: uuid.nullable(),
 	config: styleConfigSchema,
 	sources: styleSourcesSchema,
+	versions: styleVersionsSchema.optional(),
 	scenes: z.array(styleSceneSnapshotSchema).max(60).optional(),
 	warnings: z.array(z.string().max(200)).max(20).default([]),
 	capturedAt: z.string().datetime({ offset: true }),
@@ -144,10 +148,12 @@ export const stylePresetSaveSchema = z.object({
 	status: z.enum(['DRAFT', 'APPROVED']).default('DRAFT'),
 });
 
-export const styleImportSchema = z.object({
-	format: z.literal('dif-studio-style-preset/v1'),
-	name: z.string().trim().min(1).max(80),
-	scopeType: z.enum(STYLE_SCOPE_TYPES),
-	scopeId: uuid,
-	config: styleConfigSchema,
-});
+export const styleImportSchema = z
+	.object({
+		format: z.literal('dif-studio-style-preset/v1'),
+		name: z.string().trim().min(1).max(80),
+		scopeType: z.enum(STYLE_SCOPE_TYPES),
+		scopeId: uuid,
+		config: styleConfigSchema,
+	})
+	.strict();

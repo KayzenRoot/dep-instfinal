@@ -94,6 +94,10 @@ const styleBibleQuotaMigration = await readFile(
 	'supabase/migrations/20261120131000_v2_wo021_style_quota.sql',
 	'utf8',
 );
+const styleBibleClearMigration = await readFile(
+	'supabase/migrations/20261120132000_v2_wo021_style_override_clear.sql',
+	'utf8',
+);
 const retentionScript = await readFile('scripts/retention.mjs', 'utf8');
 const restoreScript = await readFile('scripts/restore-metadata.mjs', 'utf8');
 const hook = await readFile('src/hooks.server.ts', 'utf8');
@@ -454,7 +458,10 @@ const checks = [
 			styleBibleMigration.includes('style_revision_conflict') &&
 			styleBibleMigration.includes('dif.style_prune') &&
 			styleBibleQuotaMigration.includes('style_preset_revisions_quota') &&
-			styleBibleQuotaMigration.includes('style_revision_quota'),
+			styleBibleQuotaMigration.includes('style_revision_quota') &&
+			styleBibleClearMigration.includes('clear_episode_style_override') &&
+			styleBibleClearMigration.includes('clear_scene_style_override') &&
+			styleBibleClearMigration.includes('to service_role'),
 	],
 	[
 		'render quotas, health and ops scripts are server-only and dry-run first',

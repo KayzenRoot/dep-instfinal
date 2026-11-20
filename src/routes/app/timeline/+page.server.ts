@@ -19,7 +19,7 @@ import { EditPlanError } from '#lib/domain/video-edit-plan.js';
 import { loadVoicePlan } from '#lib/server/narration.js';
 import { listAudioAssets } from '#lib/server/audio-library.js';
 import { resolveEpisodeStyleSnapshot } from '#lib/server/style-bible.js';
-import { styleSnapshotDrift } from '#lib/domain/style-bible.js';
+import { DEFAULT_STYLE_CONFIG, styleSnapshotDrift } from '#lib/domain/style-bible.js';
 import type { AudioAsset } from '#lib/schemas/audio-library.js';
 
 function messageFor(cause: unknown): { status: number; message: string } {
@@ -76,20 +76,38 @@ export const load: PageServerLoad = async (event) => {
 			}
 		}
 		let styleDrift: ReturnType<typeof styleSnapshotDrift> | null = null;
-		if (stored.plan?.plan.styleBible) {
+		if (stored.plan) {
 			try {
 				const currentStyle = await resolveEpisodeStyleSnapshot(db, owner, selectedEpisode.id);
-				styleDrift = styleSnapshotDrift(stored.plan.plan.styleBible, currentStyle);
+				if (stored.plan.plan.styleBible) {
+					styleDrift = styleSnapshotDrift(stored.plan.plan.styleBible, currentStyle);
+				} else if (
+					currentStyle.presetId ||
+					(currentStyle.scenes?.length ?? 0) > 0 ||
+					JSON.stringify(currentStyle.config) !== JSON.stringify(DEFAULT_STYLE_CONFIG)
+				) {
+					styleDrift = {
+						stale: true,
+						capturedRevision: null,
+						currentRevision: currentStyle.presetRevision,
+						capturedHash: null,
+						currentHash: currentStyle.presetHash,
+						configChanged: true,
+						scenesChanged: false,
+					};
+				}
 			} catch {
-				styleDrift = {
-					stale: true,
-					capturedRevision: stored.plan.plan.styleBible.presetRevision,
-					currentRevision: null,
-					capturedHash: stored.plan.plan.styleBible.presetHash,
-					currentHash: null,
-					configChanged: false,
-					scenesChanged: false,
-				};
+				if (stored.plan.plan.styleBible) {
+					styleDrift = {
+						stale: true,
+						capturedRevision: stored.plan.plan.styleBible.presetRevision,
+						currentRevision: null,
+						capturedHash: stored.plan.plan.styleBible.presetHash,
+						currentHash: null,
+						configChanged: false,
+						scenesChanged: false,
+					};
+				}
 			}
 		}
 		let renderJobs: RenderJob[] = [];
@@ -233,6 +251,7 @@ export const actions: Actions = {
 				expectedVersion,
 				plan: defaultEditPlan(context),
 				changeNote: 'Plano reconstruído para a revisão atual do episódio',
+				applyStyle: true,
 			});
 			return { success: true, version };
 		} catch (cause) {

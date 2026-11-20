@@ -199,17 +199,30 @@
 		</form>
 		{#if data.preview}
 			<div
-				class="effective-preview font-{data.preview.config.fontFamily}"
+				class="effective-preview sample-clip zone-{data.preview.config.captionSafeZone} font-{data
+					.preview.config.fontFamily}"
 				style={`--bg:${data.preview.config.paletteBackground};--fg:${data.preview.config.paletteForeground};--accent:${data.preview.config.paletteAccent};--muted:${data.preview.config.paletteMuted}`}
 			>
+				<div class="sample-frame" aria-hidden="true">
+					<span class="sample-scanlines"></span>
+					<span class="sample-corner"></span>
+				</div>
 				<div class="swatches" aria-hidden="true">
 					<span style={`background:${data.preview.config.paletteBackground}`}></span>
 					<span style={`background:${data.preview.config.paletteForeground}`}></span>
 					<span style={`background:${data.preview.config.paletteAccent}`}></span>
 					<span style={`background:${data.preview.config.paletteMuted}`}></span>
 				</div>
+				<span class="sample-kicker">AMOSTRA SINTÉTICA · {data.preview.config.motion}</span>
 				<strong>A casa não responde</strong>
-				<p>{data.preview.config.ctaPrompt}</p>
+				<p class="sample-caption">Só mais uma fita.</p>
+				<p class="sample-cta">{data.preview.config.ctaPrompt}</p>
+				<div class="sample-badges">
+					<span>Capa {data.preview.config.coverTemplateId}</span>
+					<span>Final {data.preview.config.endCardTemplateId}</span>
+					<span>Voz {data.preview.config.voiceStyle}</span>
+					<span>SFX {data.preview.config.sfxCategory}</span>
+				</div>
 				<small>
 					{data.preview.config.captionTemplate} · {data.preview.config.captionSafeZone} ·
 					{data.preview.config.motion} · {data.preview.config.colorPresetId} ·
@@ -264,8 +277,12 @@
 			<div class="source-table">
 				{#each STYLE_FIELDS as field (field)}
 					<span>{fieldLabels[field] ?? field}</span>
-					<strong>{sourceLabels[data.preview.sources[field]] ?? data.preview.sources[field]}</strong
-					>
+					<strong>
+						{sourceLabels[data.preview.sources[field]] ?? data.preview.sources[field]}{data.preview
+							.versions?.[field]
+							? ` v${data.preview.versions[field]}`
+							: ''}
+					</strong>
 				{/each}
 			</div>
 			{#if data.preview.scenes?.length}
@@ -319,7 +336,8 @@
 								<input type="hidden" name="scopeId" value={data.scopeId} />
 								<input type="hidden" name="episodeId" value={data.episodeId} />
 								<input type="hidden" name="presetId" value={selectedPreset.id} />
-								<button type="submit">Aprovar</button>
+								<input type="hidden" name="revision" value={revision.revision} />
+								<button type="submit">Aprovar v{revision.revision}</button>
 							</form>
 						{/if}
 						{#if revision.revision !== selectedPreset.latestRevision}
@@ -596,28 +614,105 @@
 		background: #1a140c;
 		color: #ffd0a0;
 	}
-	.effective-preview {
+	.effective-preview.sample-clip {
+		position: relative;
 		display: grid;
+		grid-template-rows: auto auto 1fr auto auto;
+		align-content: end;
 		gap: 0.45rem;
-		padding: 1rem;
-		background: var(--bg);
+		aspect-ratio: 9 / 16;
+		max-width: 20rem;
+		padding: 12% 8% 9%;
+		background:
+			radial-gradient(
+				circle at 50% 30%,
+				color-mix(in srgb, var(--accent) 22%, transparent),
+				transparent 45%
+			),
+			linear-gradient(160deg, var(--bg), color-mix(in srgb, var(--bg) 65%, #000 35%));
 		color: var(--fg);
+		border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
 		border-radius: var(--radius-sm);
+		overflow: hidden;
 		text-align: center;
 	}
-	.effective-preview strong {
-		font-size: 1.2rem;
-		letter-spacing: 0.04em;
+	.sample-frame {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
 	}
-	.effective-preview p {
-		margin: 0;
+	.sample-scanlines {
+		position: absolute;
+		inset: 0;
+		background: repeating-linear-gradient(
+			to bottom,
+			rgb(255 255 255 / 4%) 0,
+			rgb(255 255 255 / 4%) 1px,
+			transparent 1px,
+			transparent 3px
+		);
+		opacity: 0.8;
+	}
+	.sample-corner {
+		position: absolute;
+		inset: 6% 5% auto;
+		height: 34%;
+		border: 1px dashed color-mix(in srgb, var(--fg) 28%, transparent);
+		border-radius: 2px;
+	}
+	.effective-preview strong {
+		position: relative;
+		font-size: 1.1rem;
+		letter-spacing: 0.04em;
+		text-shadow: 0 1px 6px #000;
+	}
+	.sample-kicker {
+		position: relative;
+		justify-self: center;
+		border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+		border-radius: 999px;
+		padding: 0.08rem 0.45rem;
+		font-size: 0.58rem;
+		letter-spacing: 0.12em;
 		color: var(--accent);
+	}
+	.effective-preview .sample-caption,
+	.effective-preview .sample-cta {
+		position: relative;
+		margin: 0;
 		font-weight: 700;
-		font-size: 0.8rem;
+		font-size: 0.78rem;
+		line-height: 1.2;
+	}
+	.effective-preview .sample-caption {
+		align-self: end;
+		padding: 0.35rem 0.45rem;
+		background: rgb(0 0 0 / 62%);
+	}
+	.effective-preview .sample-cta {
+		color: var(--accent);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+	}
+	.sample-badges {
+		position: relative;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.2rem;
+	}
+	.sample-badges span {
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		padding: 0.05rem 0.3rem;
+		font-size: 0.56rem;
+		color: var(--muted);
+		background: rgb(0 0 0 / 35%);
 	}
 	.effective-preview small {
+		position: relative;
 		color: var(--muted);
-		font-size: 0.65rem;
+		font-size: 0.62rem;
 	}
 	.swatches {
 		display: flex;

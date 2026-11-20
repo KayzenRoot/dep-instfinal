@@ -4,22 +4,22 @@
 
 - **Work Order:** `DIF-V2-WO-021` · issue #38 · epic #17
 - **Base:** `main` `2fcfd89` (checkpoint WO-020 promovido); branch `feat/dif-v2-wo-021`
-- **Status:** implementação local concluída; PR Draft, CI, auditoria independente, merge e promoção pendentes. Sem deploy.
+- **Status:** auditoria independente round 1 **CORRECTION REQUIRED**; correções HIGH/MEDIUM aplicadas; CI final/reauditoria, merge e promoção pendentes. Sem deploy.
 
-| Check      | Result     | Evidence                                                                                 |
-| ---------- | ---------- | ---------------------------------------------------------------------------------------- |
-| Model      | PASS local | presets + revisões imutáveis por série/temporada; overrides owner-only por episódio/cena |
-| Precedence | PASS local | DEFAULT<SERIES<SEASON<EPISODE<SCENE, origem por campo, false/zero explícitos             |
-| Snapshot   | PASS local | `styleBible` congelado no plano, hash canônico, cenas com override, drift no timeline    |
-| Config     | PASS local | Zod estrito; enums/cores/templates/IDs; sem URLs, binários, shell ou filtros             |
-| SFX        | PASS local | licença validada no save; reauditoria na resolução com fallback e warning                |
-| UI         | PASS local | `/app/style` escopos, editor, prévia, revisões, overrides, import/duplicate/export       |
-| API        | PASS local | `/api/style/[presetId]` owner-only, no-store, sem segredos                               |
-| PgTAP      | PASS local | 242/242 RLS, imutabilidade, concorrência, quota 200, escopo inválido                     |
-| Policy     | PASS local | 35 invariantes / 41 tabelas; backup/restore incluem as 4 tabelas                         |
-| E2E        | PASS local | duas séries independentes, overrides, export/import DRAFT-only, screenshots              |
-| CI         | PENDENTE   | quality/Sonar/E2E no HEAD do PR                                                          |
-| Limites    | —          | render atual consome snapshot + color; tipografia/SFX ficam congelados para evolução     |
+| Check      | Result     | Evidence                                                                                   |
+| ---------- | ---------- | ------------------------------------------------------------------------------------------ |
+| Model      | PASS local | presets + revisões imutáveis por série/temporada; overrides owner-only por episódio/cena   |
+| Precedence | PASS local | DEFAULT<SERIES<SEASON<EPISODE<SCENE, origem por campo, false/zero explícitos               |
+| Snapshot   | PASS local | `styleBible` congelado, versão/origem por campo, opt-in explícito, drift no timeline       |
+| Config     | PASS local | Zod estrito; enums/cores/templates/IDs; sem URLs, binários, shell ou filtros               |
+| SFX        | PASS local | licença validada no save (unit), reauditoria na resolução com fallback warning             |
+| UI         | PASS local | `/app/style` escopos, editor, clipe-amostra, revisões, clear de override, import/export    |
+| API        | PASS local | `/api/style/[presetId]` owner-only, no-store, sem segredos                                 |
+| PgTAP      | PASS local | 247/247 RLS, imutabilidade, concorrência, quota 200, clear owner-only                      |
+| Policy     | PASS local | 35 invariantes / 41 tabelas; backup/restore incluem as 4 tabelas                           |
+| E2E        | PASS local | duas séries, overrides, clear, export/import estrito, screenshots 360/768/1440             |
+| CI         | PENDENTE   | quality/Sonar/E2E no HEAD final                                                            |
+| Limites    | —          | render aplica cor/legenda/fonte; SFX/voz/capa/final são referências; backup não exercitado |
 
 ## V2 WO-020 — Laboratório de retenção (2026-11-20) — PROMOTED
 

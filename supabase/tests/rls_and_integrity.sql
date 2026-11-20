@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(242);
+select plan(247);
 
 do $$
 declare
@@ -2826,6 +2826,39 @@ select throws_ok(
     );$$,
   '23514', 'style_revision_quota',
   'style history blocks the 201st revision'
+);
+select is(
+  public.clear_episode_style_override(
+    '11111111-1111-4111-8111-111111111111',
+    'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'
+  ), true, 'service role clears an episode style override'
+);
+select is(
+  (select count(*) from public.episode_style_overrides
+   where episode_id = 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'),
+  0::bigint, 'cleared episode returns to inheritance'
+);
+select throws_ok(
+  $$select public.clear_episode_style_override(
+      '22222222-2222-4222-8222-222222222222',
+      'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'
+    );$$,
+  'P0002', 'episode_not_found',
+  'a second owner cannot clear another owner episode override'
+);
+select is(
+  public.clear_scene_style_override(
+    '11111111-1111-4111-8111-111111111111',
+    (select id from public.scenes
+     where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6' and scene_index = 1)
+  ), true, 'service role clears a scene style override'
+);
+select is(
+  (select count(*)
+   from public.scene_style_overrides o
+   join public.scenes s on s.id = o.scene_id
+   where s.episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
+  0::bigint, 'cleared scene returns to inheritance'
 );
 reset role;
 

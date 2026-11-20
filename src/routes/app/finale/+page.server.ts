@@ -17,6 +17,7 @@ import {
 	VideoEditPlanError,
 } from '#lib/server/video-edit-plans.js';
 import { EditPlanError } from '#lib/domain/video-edit-plan.js';
+import { resolveEpisodeStyleSnapshot } from '#lib/server/style-bible.js';
 import { choiceSetHash } from '#lib/domain/choice-end-card-hash.js';
 import {
 	CHOICE_END_CARD_LAYOUTS,
@@ -28,7 +29,7 @@ import {
 
 const DEFAULT_CONFIG = {
 	schemaVersion: 1 as const,
-	templateId: 'doors' as const,
+	templateId: 'doors' as ChoiceEndCardTemplateId,
 	layout: 'stacked' as const,
 	durationMs: 6_000,
 	prompt: 'Qual caminho você escolhe?',
@@ -196,6 +197,21 @@ export const load: PageServerLoad = async (event) => {
 							? { mode: 'detached' as const, value: 0 }
 							: null;
 	const latest = context.revisions[0]?.config;
+	let styleDefaults: typeof DEFAULT_CONFIG;
+	try {
+		const styleBible = await resolveEpisodeStyleSnapshot(db, owner, selectedEpisode.id);
+		styleDefaults = {
+			...DEFAULT_CONFIG,
+			templateId: (CHOICE_END_CARD_TEMPLATE_IDS as readonly string[]).includes(
+				styleBible.config.endCardTemplateId,
+			)
+				? styleBible.config.endCardTemplateId
+				: DEFAULT_CONFIG.templateId,
+			prompt: styleBible.config.ctaPrompt,
+		};
+	} catch {
+		styleDefaults = DEFAULT_CONFIG;
+	}
 	return {
 		episodes,
 		selectedEpisode,
@@ -208,7 +224,7 @@ export const load: PageServerLoad = async (event) => {
 					? 'Final de temporada sem escolhas: nenhuma CTA A/B será inventada.'
 					: 'O episódio precisa de exatamente duas escolhas antes do final A/B.'
 				: null,
-		defaults: latest ? { ...DEFAULT_CONFIG, ...latest } : DEFAULT_CONFIG,
+		defaults: latest ? { ...DEFAULT_CONFIG, ...latest } : styleDefaults,
 		staleRevisionIds,
 	};
 };

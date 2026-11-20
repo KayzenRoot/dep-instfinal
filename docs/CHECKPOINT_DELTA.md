@@ -2,10 +2,10 @@
 
 ## DIF-V2-WO-021 — Bíblia audiovisual, presets e herança (2026-11-20) — PROPOSED / NOT PROMOTED
 
-- **Status:** implementação local concluída; PR Draft/CI/auditoria/merge pendentes. Sem deploy.
+- **Status:** auditoria round 1 **CORRECTION REQUIRED**; correções HIGH/MEDIUM aplicadas; CI final/reauditoria/merge pendentes. Sem deploy.
 - **Base:** `main` `2fcfd89` (checkpoint WO-020 promovido); branch `feat/dif-v2-wo-021`.
-- **Delivered:** presets versionados por série/temporada com revisão imutável e quota 200; overrides owner-only por episódio/cena; precedência por campo com origem; snapshot congelado no plano e hash; drift sinalizado no timeline; `/app/style`; export/import JSON estrito; auditoria de SFX; 4 tabelas RLS.
-- **Limits:** render atual consome o snapshot e o color grade injetado; tipografia/legenda/SFX/capa/final permanecem referências congeladas para a evolução do renderizador. Sem backfill de séries existentes.
+- **Delivered:** presets versionados por série/temporada com revisão imutável e quota 200; overrides owner-only por episódio/cena com clear real e `reducedMotion` tri-state; precedência/origem/versão por campo; snapshot congelado no plano com opt-in explícito; legenda/fonte/área segura aplicadas no render; CTA/template no final; clipe-amostra sintético; `/app/style`; export/import JSON estrito; auditoria de SFX; 4 tabelas RLS.
+- **Limits:** SFX/voz/capa/final permanecem referências para telas especializadas; amostra é sintética; backup/restore das novas tabelas não exercitado; sem backfill de séries existentes; falta E2E de render antigo byte-idêntico.
 - **Gate:** pendente de CI/auditoria; WO-014 release segue bloqueada por OPS 015–021.
 
 ## DIF-V2-WO-020 — Laboratório de retenção (2026-11-20) — PROMOTED

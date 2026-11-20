@@ -13,6 +13,8 @@ const style = vi.hoisted(() => {
 	}
 	return {
 		StyleServiceError,
+		clearEpisodeStyleOverride: vi.fn(),
+		clearSceneStyleOverride: vi.fn(),
 		exportStylePreset: vi.fn(),
 		importStylePreset: vi.fn(),
 		loadStylePageContext: vi.fn(),
@@ -105,9 +107,11 @@ describe('style page actions', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		authorized.ownerDatabase.mockReturnValue({ db: {}, owner: { id: 'owner-id' } });
-		style.saveStylePreset.mockResolvedValue({ revision: 1, presetId: null });
+		style.saveStylePreset.mockResolvedValue({ revision: 1 });
 		style.saveEpisodeStyleOverride.mockResolvedValue(undefined);
 		style.saveSceneStyleOverride.mockResolvedValue(undefined);
+		style.clearEpisodeStyleOverride.mockResolvedValue(true);
+		style.clearSceneStyleOverride.mockResolvedValue(true);
 		style.importStylePreset.mockResolvedValue(1);
 	});
 
@@ -150,6 +154,27 @@ describe('style page actions', () => {
 		);
 	});
 
+	it('clears the episode override when the sparse form is empty', async () => {
+		await expect(
+			(actions.override as (event: never) => Promise<unknown>)(event({ episodeId })),
+		).rejects.toMatchObject({ status: 303 });
+		expect(style.clearEpisodeStyleOverride).toHaveBeenCalledWith(
+			expect.objectContaining({ episodeId }),
+		);
+		expect(style.saveEpisodeStyleOverride).not.toHaveBeenCalled();
+	});
+
+	it('can force reducedMotion=false in an override', async () => {
+		await expect(
+			(actions.override as (event: never) => Promise<unknown>)(
+				event({ episodeId, reducedMotion: 'false' }),
+			),
+		).rejects.toMatchObject({ status: 303 });
+		expect(style.saveEpisodeStyleOverride).toHaveBeenCalledWith(
+			expect.objectContaining({ config: { reducedMotion: false } }),
+		);
+	});
+
 	it('lets a scene override replace the SFX list with an explicit empty list', async () => {
 		await expect(
 			(actions.sceneOverride as (event: never) => Promise<unknown>)(
@@ -161,7 +186,7 @@ describe('style page actions', () => {
 		);
 	});
 
-	it('approves the latest revision with optimistic concurrency', async () => {
+	it('approves the clicked revision with optimistic concurrency', async () => {
 		style.loadStylePageContext.mockResolvedValue({
 			presets: [
 				{
@@ -170,7 +195,10 @@ describe('style page actions', () => {
 					scopeId,
 					name: 'Noir',
 					latestRevision: 4,
-					revisions: [{ revision: 4, status: 'DRAFT', config }],
+					revisions: [
+						{ revision: 4, status: 'DRAFT', config: { ...config, ctaPrompt: 'Quatro' } },
+						{ revision: 2, status: 'DRAFT', config },
+					],
 					approved: null,
 				},
 			],
@@ -182,7 +210,7 @@ describe('style page actions', () => {
 		});
 		await expect(
 			(actions.approve as (event: never) => Promise<unknown>)(
-				event({ presetId, scopeType: 'SERIES', scopeId, episodeId }),
+				event({ presetId, revision: '2', scopeType: 'SERIES', scopeId, episodeId }),
 			),
 		).rejects.toMatchObject({ status: 303 });
 		expect(style.saveStylePreset).toHaveBeenCalledWith(

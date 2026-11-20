@@ -17,6 +17,7 @@ import { inspectRenderArtifact } from '../src/lib/server/quality-inspector.js';
 import { recordQualityReport } from '../src/lib/server/quality-reports.js';
 import type { AudioMixEvent } from '../src/lib/domain/render-composition.js';
 import { buildCaptionAss } from '../src/lib/domain/captions.js';
+import { applyStyleToCaptionTrack } from '../src/lib/domain/style-caption.js';
 import { buildEndCardAss, buildEndCardSfxWav } from '../src/lib/domain/choice-end-card.js';
 import { layoutFromPlan, resolvePreviewLayout } from '../src/lib/domain/platform-preview.js';
 import { captionTrackSchema, type CaptionTrack } from '../src/lib/schemas/captions.js';
@@ -332,9 +333,14 @@ async function main() {
 		let captionAssPath: string | undefined;
 		if (caption) {
 			captionAssPath = join(work, 'captions.ass');
+			const styledTrack = applyStyleToCaptionTrack(caption.track, validated.styleBible);
 			await writeFile(
 				captionAssPath,
-				buildCaptionAss(caption.track, captionLayout ?? undefined),
+				buildCaptionAss(
+					styledTrack,
+					captionLayout ?? undefined,
+					validated.styleBible?.config.fontFamily,
+				),
 				'utf8',
 			);
 		}

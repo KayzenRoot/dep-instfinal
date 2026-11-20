@@ -147,6 +147,12 @@ async function validateSfxAssets(
 }
 
 function parseRevision(row: RevisionRow): StyleRevision {
+	if (Number(row.hash_version) !== STYLE_HASH_VERSION)
+		throw new StyleServiceError(
+			500,
+			'STYLE_HASH_VERSION_UNSUPPORTED',
+			'Versão de hash de estilo não suportada.',
+		);
 	const parsed = styleConfigSchema.safeParse(row.config);
 	if (!parsed.success)
 		throw new StyleServiceError(500, 'STYLE_STORED_INVALID', 'Estilo armazenado inválido.');
@@ -204,7 +210,7 @@ export async function saveStylePreset(input: {
 	adminDb: SupabaseClient | null;
 	owner: User;
 	values: unknown;
-}): Promise<{ revision: number; presetId: string | null }> {
+}): Promise<{ revision: number }> {
 	const parsed = stylePresetSaveSchema.safeParse(input.values);
 	if (!parsed.success)
 		throw new StyleServiceError(400, 'STYLE_INVALID', 'Configuração de estilo inválida.');
@@ -228,7 +234,7 @@ export async function saveStylePreset(input: {
 	if (error) throw mapRpcError(error);
 	if (typeof data !== 'number')
 		throw new StyleServiceError(503, 'STYLE_SAVE_FAILED', 'O servidor não retornou a revisão.');
-	return { revision: data, presetId: null };
+	return { revision: data };
 }
 
 export async function saveEpisodeStyleOverride(input: {
@@ -291,6 +297,85 @@ export async function saveSceneStyleOverride(input: {
 	if (error) throw mapRpcError(error);
 }
 
+export async function clearEpisodeStyleOverride(input: {
+	db: SupabaseClient;
+	adminDb: SupabaseClient | null;
+	owner: User;
+	episodeId: string;
+}): Promise<boolean> {
+	if (!input.adminDb)
+		throw new StyleServiceError(
+			503,
+			'STYLE_WRITE_UNAVAILABLE',
+			'O writer de estilo não está configurado.',
+		);
+	const { data, error } = await input.adminDb.rpc('clear_episode_style_override', {
+		p_owner_id: input.owner.id,
+		p_episode_id: input.episodeId,
+	});
+	if (error) throw mapRpcError(error);
+	return data === true;
+}
+
+export async function clearSceneStyleOverride(input: {
+	db: SupabaseClient;
+	adminDb: SupabaseClient | null;
+	owner: User;
+	sceneId: string;
+}): Promise<boolean> {
+	if (!input.adminDb)
+		throw new StyleServiceError(
+			503,
+			'STYLE_WRITE_UNAVAILABLE',
+			'O writer de estilo não está configurado.',
+		);
+	const { data, error } = await input.adminDb.rpc('clear_scene_style_override', {
+		p_owner_id: input.owner.id,
+		p_scene_id: input.sceneId,
+	});
+	if (error) throw mapRpcError(error);
+	return data === true;
+}
+
+async function loadPresetsBulk(
+	db: SupabaseClient,
+	owner: User,
+	rows: PresetRow[],
+): Promise<StylePreset[]> {
+	const ids = rows.map((row) => row.id);
+	const revisionsByPreset = new Map<string, StyleRevision[]>();
+	for (let index = 0; index < ids.length; index += 50) {
+		const { data, error } = await db
+			.from('style_preset_revisions')
+			.select('*')
+			.eq('owner_id', owner.id)
+			.in('preset_id', ids.slice(index, index + 50))
+			.order('revision_number', { ascending: false });
+		if (error)
+			throw new StyleServiceError(503, 'STYLE_LOAD_FAILED', 'Não foi possível carregar o estilo.');
+		for (const revision of (data ?? []) as RevisionRow[]) {
+			const parsed = parseRevision(revision);
+			const list = revisionsByPreset.get(revision.preset_id) ?? [];
+			list.push(parsed);
+			revisionsByPreset.set(revision.preset_id, list);
+		}
+	}
+	return rows.map((preset) => {
+		const revisions = (revisionsByPreset.get(preset.id) ?? []).sort(
+			(left, right) => right.revision - left.revision,
+		);
+		return {
+			id: preset.id,
+			scopeType: preset.scope_type as StyleScopeType,
+			scopeId: preset.scope_id,
+			name: preset.name,
+			revisions,
+			latestRevision: revisions[0]?.revision ?? 0,
+			approved: revisions.find((revision) => revision.status === 'APPROVED') ?? null,
+		};
+	});
+}
+
 export async function loadStylePageContext(
 	db: SupabaseClient,
 	owner: User,
@@ -337,16 +422,7 @@ export async function loadStylePageContext(
 		scenesOverrides.error
 	)
 		throw new StyleServiceError(503, 'STYLE_LOAD_FAILED', 'Não foi possível carregar a bíblia.');
-	const presets: StylePreset[] = [];
-	for (const preset of (presetsResult.data ?? []) as PresetRow[]) {
-		const loaded = await loadPresetForScope(
-			db,
-			owner,
-			preset.scope_type as StyleScopeType,
-			preset.scope_id,
-		);
-		if (loaded) presets.push(loaded);
-	}
+	const presets = await loadPresetsBulk(db, owner, (presetsResult.data ?? []) as PresetRow[]);
 	const series = (seriesResult.data ?? []).map((row) => ({
 		id: row.id as string,
 		title: row.title as string,
@@ -493,27 +569,46 @@ export async function resolveEpisodeStyleSnapshot(
 		sceneOverrideRows.map((row) => [row.scene_id as string, styleOverrideSchema.parse(row.config)]),
 	);
 	const layers: StyleLayer[] = [
-		{ source: 'SERIES', config: seriesPreset?.approved?.config ?? null },
-		{ source: 'SEASON', config: seasonPreset?.approved?.config ?? null },
+		{
+			source: 'SERIES',
+			config: seriesPreset?.approved?.config ?? null,
+			revision: seriesPreset?.approved?.revision ?? null,
+		},
+		{
+			source: 'SEASON',
+			config: seasonPreset?.approved?.config ?? null,
+			revision: seasonPreset?.approved?.revision ?? null,
+		},
 		{
 			source: 'EPISODE',
 			config: episodeOverride.data ? styleOverrideSchema.parse(episodeOverride.data.config) : null,
+			revision: null,
 		},
 	];
 	const resolved = resolveStyle(layers);
 	const resolvedScenes = sceneRows.flatMap((scene) => {
 		const override = overridesByScene.get(scene.id);
 		if (!override) return [];
-		const sceneResolved = resolveStyle([...layers, { source: 'SCENE', config: override }]);
+		const sceneResolved = resolveStyle([
+			...layers,
+			{ source: 'SCENE', config: override, revision: null },
+		]);
 		return [
 			{
 				sceneId: scene.id,
 				sceneIndex: scene.index,
 				config: sceneResolved.config,
 				sources: sceneResolved.sources,
+				versions: sceneResolved.versions,
 			},
 		];
 	});
+	if (resolvedScenes.length > 60)
+		throw new StyleServiceError(
+			409,
+			'STYLE_SCENE_LIMIT',
+			'O snapshot aceita no máximo 60 cenas com override.',
+		);
 	const audit = await auditSfxAssets(db, owner, [
 		...resolved.config.sfxAssetIds,
 		...resolvedScenes.flatMap((scene) => scene.config.sfxAssetIds),
@@ -536,6 +631,7 @@ export async function resolveEpisodeStyleSnapshot(
 		scopeId: seasonPreset?.approved ? seasonId : seriesPreset?.approved ? seriesId : null,
 		config: withdrawInvalidSfx(resolved.config, audit.valid),
 		sources: resolved.sources,
+		versions: resolved.versions,
 		scenes: resolvedScenes.map((scene) => ({
 			...scene,
 			config: withdrawInvalidSfx(scene.config, audit.valid),
@@ -551,12 +647,9 @@ export async function exportStylePreset(
 	presetId: string,
 ): Promise<{
 	format: 'dif-studio-style-preset/v1';
-	presetId: string;
 	scopeType: string;
 	scopeId: string;
 	name: string;
-	revision: number;
-	configHash: string;
 	config: StyleConfig;
 }> {
 	const { data: preset, error } = await db
@@ -578,12 +671,9 @@ export async function exportStylePreset(
 	if (!revision) throw new StyleServiceError(404, 'STYLE_NOT_FOUND', 'O preset não tem revisões.');
 	return {
 		format: 'dif-studio-style-preset/v1',
-		presetId: preset.id as string,
 		scopeType: preset.scope_type as string,
 		scopeId: preset.scope_id as string,
 		name: preset.name as string,
-		revision: revision.revision,
-		configHash: revision.configHash,
 		config: revision.config,
 	};
 }
@@ -611,7 +701,7 @@ export async function importStylePreset(input: {
 			values: {
 				scopeType: parsed.data.scopeType,
 				scopeId: parsed.data.scopeId,
-				name: parsed.data.name,
+				name: existing?.name ?? parsed.data.name,
 				expectedRevision: existing?.latestRevision ?? 0,
 				config: parsed.data.config,
 				status: 'DRAFT',

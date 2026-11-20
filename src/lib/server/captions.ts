@@ -12,6 +12,7 @@ import {
 } from '#lib/domain/captions.js';
 import { captionTextFitsBox } from '#lib/domain/caption-metrics.js';
 import { layoutFromPlan, resolvePreviewLayout } from '#lib/domain/platform-preview.js';
+import { applyStyleToCaptionTrack } from '#lib/domain/style-caption.js';
 import { captionTrackSchema, type CaptionStyle, type CaptionTrack } from '#lib/schemas/captions.js';
 import { videoEditPlanSchema, type VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
 
@@ -581,9 +582,14 @@ export async function getCaptionExports(input: {
 	);
 	if (!stored) return null;
 	const layout = layoutFromPlan(context.plan);
+	const styledTrack = applyStyleToCaptionTrack(stored.track, context.plan.styleBible);
 	return {
 		srt: buildCaptionSrt(stored.track.cues),
-		ass: buildCaptionAss(stored.track, layout ?? undefined),
+		ass: buildCaptionAss(
+			styledTrack,
+			layout ?? undefined,
+			context.plan.styleBible?.config.fontFamily,
+		),
 	};
 }
 

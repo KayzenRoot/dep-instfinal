@@ -241,6 +241,14 @@ async function assertPlanAudioAssets(
 	}
 }
 
+export function shouldApplyStyleSnapshot(input: {
+	expectedVersion: number;
+	hasSnapshot: boolean;
+	applyStyle: boolean;
+}): boolean {
+	return input.applyStyle || (input.expectedVersion === 0 && !input.hasSnapshot);
+}
+
 export function attachStyleSnapshot(plan: VideoEditPlan, styleBible: StyleSnapshot): VideoEditPlan {
 	const styled = { ...plan, styleBible };
 	if (!styled.color && styleBible.config.colorPresetId !== 'neutral') {
@@ -276,6 +284,7 @@ export async function saveVideoEditPlan(input: {
 	expectedVersion: number;
 	plan: VideoEditPlan;
 	changeNote?: string;
+	applyStyle?: boolean;
 }): Promise<number> {
 	const context = await loadEditPlanContext(input.db, input.owner, input.episodeId);
 	let linkedPlan = input.plan;
@@ -303,14 +312,22 @@ export async function saveVideoEditPlan(input: {
 			throw cause;
 		}
 	}
-	let styledPlan: VideoEditPlan;
-	try {
-		const styleBible = await resolveEpisodeStyleSnapshot(input.db, input.owner, input.episodeId);
-		styledPlan = attachStyleSnapshot(linkedPlan, styleBible);
-	} catch (cause) {
-		if (cause instanceof StyleServiceError)
-			throw new VideoEditPlanError(cause.status, cause.code, cause.message);
-		throw cause;
+	let styledPlan = linkedPlan;
+	if (
+		shouldApplyStyleSnapshot({
+			expectedVersion: input.expectedVersion,
+			hasSnapshot: Boolean(linkedPlan.styleBible),
+			applyStyle: input.applyStyle === true,
+		})
+	) {
+		try {
+			const styleBible = await resolveEpisodeStyleSnapshot(input.db, input.owner, input.episodeId);
+			styledPlan = attachStyleSnapshot(linkedPlan, styleBible);
+		} catch (cause) {
+			if (cause instanceof StyleServiceError)
+				throw new VideoEditPlanError(cause.status, cause.code, cause.message);
+			throw cause;
+		}
 	}
 	const plan = validateForContext(styledPlan, context);
 	await assertPlanAudioAssets(input.db, input.owner.id, plan);

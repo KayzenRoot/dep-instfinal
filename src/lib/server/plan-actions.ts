@@ -51,6 +51,7 @@ export async function savePlanFromForm(
 			expectedVersion,
 			plan: normalizedPlan,
 			changeNote: readFormText(form, 'changeNote') || options.defaultNote,
+			applyStyle: readFormText(form, 'applyStyle') === 'on',
 		});
 		return { ok: true, version };
 	} catch (cause) {

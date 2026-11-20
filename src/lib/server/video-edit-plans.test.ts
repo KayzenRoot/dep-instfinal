@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildDefaultEditPlan } from '#lib/domain/video-edit-plan.js';
 import { DEFAULT_STYLE_CONFIG, STYLE_FIELDS } from '#lib/domain/style-bible.js';
 import { styleConfigSchema, type StyleSnapshot } from '#lib/schemas/style-bible.js';
-import { attachStyleSnapshot } from './video-edit-plans.js';
+import { attachStyleSnapshot, shouldApplyStyleSnapshot } from './video-edit-plans.js';
 
 const episodeId = '11111111-1111-4111-8111-111111111111';
 const sceneId = '22222222-2222-4222-8222-222222222222';
@@ -45,6 +45,23 @@ function snapshot(overrides: Record<string, unknown> = {}): StyleSnapshot {
 		capturedAt: '2026-11-20T12:00:00Z',
 	};
 }
+
+describe('shouldApplyStyleSnapshot', () => {
+	it('applies automatically only to a brand-new plan or an explicit opt-in', () => {
+		expect(
+			shouldApplyStyleSnapshot({ expectedVersion: 0, hasSnapshot: false, applyStyle: false }),
+		).toBe(true);
+		expect(
+			shouldApplyStyleSnapshot({ expectedVersion: 4, hasSnapshot: false, applyStyle: false }),
+		).toBe(false);
+		expect(
+			shouldApplyStyleSnapshot({ expectedVersion: 4, hasSnapshot: true, applyStyle: false }),
+		).toBe(false);
+		expect(
+			shouldApplyStyleSnapshot({ expectedVersion: 4, hasSnapshot: true, applyStyle: true }),
+		).toBe(true);
+	});
+});
 
 describe('attachStyleSnapshot', () => {
 	it('freezes the resolved style and injects color when the plan has none', () => {

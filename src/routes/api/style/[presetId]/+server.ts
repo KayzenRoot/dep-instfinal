@@ -3,7 +3,10 @@ import type { RequestHandler } from './$types';
 import { ownerDatabase } from '#lib/server/authorized.js';
 import { exportStylePreset, StyleServiceError } from '#lib/server/style-bible.js';
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export const GET: RequestHandler = async (event) => {
+	if (!UUID.test(event.params.presetId)) error(404, 'Preset não encontrado.');
 	const { db, owner } = ownerDatabase(event);
 	try {
 		const payload = await exportStylePreset(db, owner, event.params.presetId);
@@ -13,7 +16,7 @@ export const GET: RequestHandler = async (event) => {
 				.toLowerCase()
 				.replace(/[^a-z0-9]+/g, '-')
 				.replace(/^-|-$/g, '') || 'preset'
-		}-v${payload.revision}.json`;
+		}-export.json`;
 		return new Response(JSON.stringify(payload, null, 2), {
 			headers: {
 				'content-type': 'application/json; charset=utf-8',

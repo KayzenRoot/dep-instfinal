@@ -43,10 +43,22 @@ const ALTERNATIVES: Record<string, unknown> = {
 describe('style bible resolution', () => {
 	it('resolves defaults, series, season, episode and scene precedence per field', () => {
 		const resolved = resolveStyle([
-			{ source: 'SERIES', config: override({ paletteAccent: '#ff0000', fontFamily: 'serif' }) },
-			{ source: 'SEASON', config: override({ paletteAccent: '#00ff00', vhsIntensity: 0 }) },
-			{ source: 'EPISODE', config: override({ captionTemplate: 'horror' }) },
-			{ source: 'SCENE', config: override({ motion: 'kinetic', reducedMotion: true }) },
+			{
+				source: 'SERIES',
+				config: override({ paletteAccent: '#ff0000', fontFamily: 'serif' }),
+				revision: 3,
+			},
+			{
+				source: 'SEASON',
+				config: override({ paletteAccent: '#00ff00', vhsIntensity: 0 }),
+				revision: 2,
+			},
+			{ source: 'EPISODE', config: override({ captionTemplate: 'horror' }), revision: null },
+			{
+				source: 'SCENE',
+				config: override({ motion: 'kinetic', reducedMotion: true }),
+				revision: null,
+			},
 		]);
 		expect(resolved.config.paletteAccent).toBe('#00ff00');
 		expect(resolved.config.fontFamily).toBe('serif');
@@ -60,6 +72,10 @@ describe('style bible resolution', () => {
 		expect(resolved.sources.captionTemplate).toBe('EPISODE');
 		expect(resolved.sources.motion).toBe('SCENE');
 		expect(resolved.sources.paletteBackground).toBe('DEFAULT');
+		expect(resolved.versions.paletteAccent).toBe(2);
+		expect(resolved.versions.fontFamily).toBe(3);
+		expect(resolved.versions.captionTemplate).toBeNull();
+		expect(resolved.versions.paletteBackground).toBeNull();
 	});
 
 	it('lets a scene override win every field without mutating the series layer', () => {
@@ -121,6 +137,7 @@ describe('style bible resolution', () => {
 		};
 		expect(styleImportSchema.parse(payload)).toMatchObject({ name: 'Noir reutilizável' });
 		expect(styleImportSchema.safeParse({ ...payload, format: 'v2' }).success).toBe(false);
+		expect(styleImportSchema.safeParse({ ...payload, presetId: 'x' }).success).toBe(false);
 		expect(
 			styleImportSchema.safeParse({
 				...payload,

@@ -27,17 +27,23 @@ export const STYLE_FIELDS = Object.keys(DEFAULT_STYLE_CONFIG).filter(
 export interface StyleLayer {
 	source: 'SERIES' | 'SEASON' | 'EPISODE' | 'SCENE';
 	config: StyleOverride | null;
+	revision?: number | null;
 }
 
 export interface ResolvedStyle {
 	config: StyleConfig;
 	sources: Record<string, 'DEFAULT' | 'SERIES' | 'SEASON' | 'EPISODE' | 'SCENE'>;
+	versions: Record<string, number | null>;
 }
 
 export function resolveStyle(layers: StyleLayer[]): ResolvedStyle {
 	const config: Record<string, unknown> = { ...DEFAULT_STYLE_CONFIG };
 	const sources: Record<string, 'DEFAULT' | 'SERIES' | 'SEASON' | 'EPISODE' | 'SCENE'> = {};
-	for (const field of STYLE_FIELDS) sources[field] = 'DEFAULT';
+	const versions: Record<string, number | null> = {};
+	for (const field of STYLE_FIELDS) {
+		sources[field] = 'DEFAULT';
+		versions[field] = null;
+	}
 	for (const layer of layers) {
 		if (!layer.config) continue;
 		for (const field of STYLE_FIELDS) {
@@ -45,10 +51,11 @@ export function resolveStyle(layers: StyleLayer[]): ResolvedStyle {
 			if (value !== undefined) {
 				config[field] = value;
 				sources[field] = layer.source;
+				versions[field] = layer.revision ?? null;
 			}
 		}
 	}
-	return { config: styleConfigSchema.parse(config), sources };
+	return { config: styleConfigSchema.parse(config), sources, versions };
 }
 
 export function withdrawInvalidSfx(

@@ -3,6 +3,8 @@ import type { Actions, PageServerLoad } from './$types';
 import { ownerDatabase, readFormText } from '#lib/server/authorized.js';
 import { createSupabaseAdminClient } from '#lib/server/supabase.js';
 import {
+	clearEpisodeStyleOverride,
+	clearSceneStyleOverride,
 	exportStylePreset,
 	importStylePreset,
 	loadStylePageContext,
@@ -98,7 +100,9 @@ function overrideFromForm(form: FormData): StyleOverride {
 			.map((value) => value.trim())
 			.filter(Boolean);
 	}
-	if (readFormText(form, 'reducedMotion') === 'on') raw.reducedMotion = true;
+	const reducedMotion = readFormText(form, 'reducedMotion');
+	if (reducedMotion === 'true') raw.reducedMotion = true;
+	else if (reducedMotion === 'false') raw.reducedMotion = false;
 	return styleOverrideSchema.parse(raw);
 }
 
@@ -219,8 +223,11 @@ export const actions: Actions = {
 			const context = await loadStylePageContext(db, owner);
 			const preset = presetFor(context.presets, readFormText(form, 'presetId'));
 			if (!preset) throw new StyleServiceError(404, 'STYLE_NOT_FOUND', 'Preset não encontrado.');
-			const latest = preset.revisions[0];
-			if (!latest) throw new StyleServiceError(404, 'STYLE_NOT_FOUND', 'Preset sem revisão.');
+			const requestedRevision = Number(readFormText(form, 'revision'));
+			const source =
+				preset.revisions.find((revision) => revision.revision === requestedRevision) ??
+				preset.revisions[0];
+			if (!source) throw new StyleServiceError(404, 'STYLE_NOT_FOUND', 'Preset sem revisão.');
 			await saveStylePreset({
 				db,
 				adminDb: createSupabaseAdminClient(),
@@ -230,7 +237,7 @@ export const actions: Actions = {
 					scopeId: preset.scopeId,
 					name: preset.name,
 					expectedRevision: preset.latestRevision,
-					config: latest.config,
+					config: source.config,
 					status: 'APPROVED',
 				},
 			});
@@ -328,13 +335,23 @@ export const actions: Actions = {
 		const episodeId = readFormText(form, 'episodeId');
 		if (!episodeId) return fail(400, { message: 'Episódio inválido.' });
 		try {
-			await saveEpisodeStyleOverride({
-				db,
-				adminDb: createSupabaseAdminClient(),
-				owner,
-				episodeId,
-				config: overrideFromForm(form),
-			});
+			const config = overrideFromForm(form);
+			if (Object.keys(config).length === 0) {
+				await clearEpisodeStyleOverride({
+					db,
+					adminDb: createSupabaseAdminClient(),
+					owner,
+					episodeId,
+				});
+			} else {
+				await saveEpisodeStyleOverride({
+					db,
+					adminDb: createSupabaseAdminClient(),
+					owner,
+					episodeId,
+					config,
+				});
+			}
 			redirectFor(form, 'saved=override');
 		} catch (cause) {
 			rethrowRedirect(cause);
@@ -348,13 +365,23 @@ export const actions: Actions = {
 		const sceneId = readFormText(form, 'sceneId');
 		if (!sceneId) return fail(400, { message: 'Cena inválida.' });
 		try {
-			await saveSceneStyleOverride({
-				db,
-				adminDb: createSupabaseAdminClient(),
-				owner,
-				sceneId,
-				config: overrideFromForm(form),
-			});
+			const config = overrideFromForm(form);
+			if (Object.keys(config).length === 0) {
+				await clearSceneStyleOverride({
+					db,
+					adminDb: createSupabaseAdminClient(),
+					owner,
+					sceneId,
+				});
+			} else {
+				await saveSceneStyleOverride({
+					db,
+					adminDb: createSupabaseAdminClient(),
+					owner,
+					sceneId,
+					config,
+				});
+			}
 			redirectFor(form, 'saved=scene-override');
 		} catch (cause) {
 			rethrowRedirect(cause);

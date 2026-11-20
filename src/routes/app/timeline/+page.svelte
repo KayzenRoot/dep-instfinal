@@ -482,10 +482,17 @@
 	{#if data.styleDrift?.stale}
 		<div class="notice warning" role="status">
 			<p>
-				O plano congela o estilo na revisão
-				{data.styleDrift.capturedRevision ?? 'ausente'}; a série/temporada está na revisão
-				{data.styleDrift.currentRevision ?? 'indisponível'}. Render e export continuam usando o
-				snapshot congelado. Salvar o plano aplica o estilo atual como uma nova versão (opt-in).
+				{#if data.styleDrift.capturedRevision === null}
+					Este plano não tem snapshot de estilo congelado; a série/temporada está na revisão
+					{data.styleDrift.currentRevision ?? 'indisponível'}. Salvar sem marcar mantém o plano
+					legado. Marque “Aplicar estilo atual” para congelar o snapshot e aplicar cor e legendas em
+					uma nova versão.
+				{:else}
+					O plano congela o estilo na revisão {data.styleDrift.capturedRevision}; a série/temporada
+					está na revisão {data.styleDrift.currentRevision ?? 'indisponível'}. Render e export
+					continuam usando o snapshot congelado. Marque “Aplicar estilo atual” ao salvar para criar
+					uma nova versão com o estilo vigente.
+				{/if}
 			</p>
 		</div>
 	{/if}
@@ -509,6 +516,12 @@
 				bind:value={changeNote}
 				placeholder="Ex.: reordenei o plano de abertura"
 			/>
+			{#if data.styleDrift?.stale}
+				<label class="apply-style">
+					<input type="checkbox" name="applyStyle" value="on" />
+					Aplicar estilo atual (nova versão)
+				</label>
+			{/if}
 			<button class="primary" type="submit" disabled={Boolean(editError) || data.planStale}>
 				Salvar nova versão
 			</button>
@@ -951,6 +964,15 @@
 	}
 	.episode-picker,
 	.editor-toolbar,
+	.apply-style {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.72rem;
+		color: var(--muted);
+		white-space: nowrap;
+	}
 	.plan-actions,
 	.history {
 		display: flex;

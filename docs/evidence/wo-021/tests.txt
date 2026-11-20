@@ -9,36 +9,44 @@ Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
 - `npm run lint`: PASS
 - `npm run audit:policy`: **35 invariants / 41 tables** PASS
 - `npm run build`: PASS (@sveltejs/adapter-node)
-- `npm run test:db`: **242/242** PgTAP PASS
+- `npm run test:db`: **247/247** PgTAP PASS
 
 ## Unit / domain
 
 - `style-bible.test.ts`: **9/9** — precedence DEFAULT<SERIES<SEASON<EPISODE<SCENE,
-  all 19 fields with SCENE winning, explicit false/zero, deterministic hash, strict
-  import envelope (`v1`, unknown field rejected), frozen scene snapshots, drift by
-  revision/config/scene.
-- `style-actions.test.ts`: **6/6** — full save parsing, sparse episode override,
-  explicit empty SFX list on a scene, approval with `expectedRevision`,
-  malformed import JSON → 400 before write, stale conflict → 409.
-- `video-edit-plans.test.ts`: **2/2** — `attachStyleSnapshot` freezes the snapshot and
-  injects color only when absent; neutral or explicit plan color preserved.
-- Full unit/integration suite: **335 passed + 3 skipped**.
+  all 19 fields with SCENE winning, per-field source/version, explicit false/zero,
+  deterministic hash, strict import envelope (`v1`, unknown field rejected), frozen
+  scene snapshots, drift by revision/config/scene, SFX fallback.
+- `style-actions.test.ts`: **8/8** — full save parsing, sparse episode override,
+  empty override → clear RPC, `reducedMotion=false`, explicit empty SFX list,
+  approval of the clicked revision with `expectedRevision`, malformed import JSON →
+  400 before write, stale conflict → 409.
+- `style-bible.test.ts` (server): **2/2** — missing and unlicensed SFX are rejected
+  with readable 409 before any RPC write.
+- `video-edit-plans.test.ts`: **3/3** — explicit style opt-in (new plan or checked
+  save), snapshot freeze, color injection only when absent, neutral/explicit color
+  preserved.
+- `style-caption.test.ts`: **3/3** — horror→VHS, safe zone, ASS font and legacy track
+  unchanged without a snapshot.
+- Full unit/integration suite: **343 passed + 3 skipped**.
 
 ## E2E
 
-- `e2e/style.spec.ts` local PASS (38s, chromium):
+- `e2e/style.spec.ts` local PASS:
   - two series with radically different styles (mono/horror/red/CTA A vs
     serif/clean/green/CTA B) and no cross-contamination in previews;
-  - episode override (caption clean) wins over the series and keeps CTA A;
-  - scene override (`feed`) appears in the frozen scene snapshot while the
-    series preset export still contains `horror`/`tiktok`;
+  - opening a scope without `episodeId` previews that scope's episode;
+  - episode override (caption clean) wins over the series and keeps CTA A; scope is
+    preserved after the override redirect;
+  - scene override (`feed`) appears in the frozen scene snapshot while the series
+    preset export still contains `horror`/`tiktok`;
   - export JSON is owner-only (anonymous 401), contains no `http`/`supabase`/`secret`;
-  - import into the other series creates only a DRAFT (3 revisions) and the
-    approved preview stays on series B;
+  - import into the other series creates only a DRAFT and the approved preview stays
+    on series B; the envelope is strict (unknown keys rejected);
   - responsive screenshots 360/768/1440 with no horizontal overflow, including a
     deliberately long series/episode title and accumulated studio data.
-- `e2e/owner-boundary.spec.ts` targeted rerun PASS **11/11** (9.6m), including the
-  studio viewport sweep at `/app/style` 360/768/1440. The first full local run hit a
+- `e2e/owner-boundary.spec.ts` targeted rerun PASS **11/11**, including the studio
+  viewport sweep at `/app/style` 360/768/1440. The first full local run hit a
   pre-existing Windows screenshot filename (`?`) failure and an owner-journey timeout
   under machine load; both were fixed/retried and are not app regressions.
 
@@ -51,13 +59,34 @@ Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
   (`23514`), direct authenticated writes denied (`42501`), second owner sees zero rows.
 - Quota trigger allows 200 revisions per preset and blocks the 201st with
   `style_revision_quota`.
+- Clear RPCs (`clear_episode_style_override`, `clear_scene_style_override`) are
+  service-role only, validate the owner scope, and return the row to inheritance.
 - Config is a strict allowlist: enums, `#rrggbb`, known template IDs, owner-scoped SFX
-  UUIDs; no URLs, binaries, shell or FFmpeg filters.
+  UUIDs; no URLs, binaries, shell or FFmpeg filters. The import envelope is strict too.
 - SFX references are validated against `audio_assets` license flags on preset/override
   save and re-audited on snapshot resolution; missing/unlicensed IDs are removed and
   reported as warnings.
 
-## Pending
+## Render / preview
 
-- PR Draft, CI quality/Sonar/E2E, independent audit, merge and checkpoint promotion.
-- Full local E2E suite not yet rerun after the new spec (only `style.spec.ts`).
+- The render/export path applies the frozen style snapshot to captions: `horror` →
+  VHS treatment, `clean` → clean, plus the safe zone and ASS font family. Plans
+  without `styleBible` keep the legacy behavior.
+- The timeline only applies a new style on a new plan or when **“Aplicar estilo atual”**
+  is checked (or rebuild); normal saves preserve the stored snapshot, and legacy plans
+  without a snapshot are flagged instead of silently changed.
+- `/app/finale` uses `endCardTemplateId` and `ctaPrompt` as defaults for a new card.
+- `/app/style` shows a synthetic sample clip with caption, CTA and cover/final/voice/SFX
+  badges, plus links to the specialized screens.
+
+## Pending / residuals
+
+- PR Draft, final CI quality/Sonar/E2E, independent re-audit of the final SHA, merge
+  and checkpoint promotion.
+- No E2E of an already-rendered plan staying byte-identical after a preset revision;
+  the frozen snapshot/hash is proven by unit/design, not a rendered golden.
+- SFX, voice and cover/end-card templates remain validated references for their
+  specialized screens; they are not auto-injected into existing plans.
+- Backup/restore of the four new tables was not executed in this cycle.
+- `/app/style` still serializes full revision history to the client (bounded by 200
+  revisions/preset); presets are owner-only and few.

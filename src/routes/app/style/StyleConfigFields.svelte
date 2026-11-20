@@ -271,7 +271,8 @@
 		<input type="hidden" name="episodeId" value={episodeId} />
 		{#if mode === 'scene'}<input type="hidden" name="sceneId" value={sceneId} />{/if}
 		<p class="hint">
-			Deixe um campo vazio para herdar da camada superior. Enviar tudo vazio limpa o override.
+			Deixe um campo vazio para herdar da camada superior. Enviar todos os campos vazios remove o
+			override e a camada volta a herdar integralmente.
 		</p>
 		<div class="two">
 			<label>
@@ -369,9 +370,20 @@
 				</select>
 			</label>
 		</div>
-		<label class="check">
-			<input type="checkbox" name="reducedMotion" checked={existing?.reducedMotion === true} />
-			Forçar redução de movimento
+		<label>
+			Movimento reduzido
+			<select
+				name="reducedMotion"
+				value={existing?.reducedMotion === true
+					? 'true'
+					: existing?.reducedMotion === false
+						? 'false'
+						: ''}
+			>
+				<option value="">herdar</option>
+				<option value="true">forçar redução</option>
+				<option value="false">forçar movimento</option>
+			</select>
 		</label>
 		<div class="two">
 			<label>
