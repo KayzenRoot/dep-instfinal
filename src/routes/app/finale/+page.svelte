@@ -10,6 +10,7 @@
 	const defaults = untrack(() => data.defaults);
 	let templateId = $state(defaults.templateId);
 	let layout = $state<'split' | 'stacked'>(defaults.layout);
+	let selectedLayouts = $state<Array<'split' | 'stacked'>>([defaults.layout]);
 	let durationMs = $state(defaults.durationMs);
 	let prompt = $state(defaults.prompt);
 	let footer = $state(defaults.footer);
@@ -159,9 +160,20 @@
 								type="checkbox"
 								name="layouts"
 								value={option}
-								checked={layout === option}
+								checked={selectedLayouts.includes(option)}
 								onchange={(event) => {
-									if (event.currentTarget.checked) layout = option;
+									if (event.currentTarget.checked) {
+										selectedLayouts = [...new Set([...selectedLayouts, option])];
+										layout = option;
+									} else {
+										const next = selectedLayouts.filter((value) => value !== option);
+										if (next.length) {
+											selectedLayouts = next;
+											layout = next[0]!;
+										} else {
+											event.currentTarget.checked = true;
+										}
+									}
 								}}
 							/>
 							{option === 'split' ? 'Lado a lado' : 'Empilhado'}
