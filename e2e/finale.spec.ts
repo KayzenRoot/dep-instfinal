@@ -1,6 +1,6 @@
-import { mkdir } from 'node:fs/promises';
-import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import { insertEpisodeHierarchy, loginAsOwner } from './fixtures.js';
+import { captureResponsivePages } from './responsive.js';
 import {
 	callRpc,
 	insertRow,
@@ -22,31 +22,17 @@ test('owner builds, approves and invalidates the two-choice end card', async ({
 	page.setDefaultNavigationTimeout(120_000);
 
 	const suffix = crypto.randomUUID().slice(0, 8);
-	const seriesId = crypto.randomUUID();
-	const seasonId = crypto.randomUUID();
-	const episodeId = crypto.randomUUID();
 	const token = await ownerAccessToken(request);
-	await insertRow(request, token, 'series', {
-		id: seriesId,
-		owner_id: ownerId,
-		title: `Finale E2E ${suffix}`,
+	const { episodeId } = await insertEpisodeHierarchy(request, {
+		token,
+		suffix,
+		seriesTitle: `Finale E2E ${suffix}`,
 		premise: 'Fixture sintética de final A/B.',
-	});
-	await insertRow(request, token, 'seasons', {
-		id: seasonId,
-		owner_id: ownerId,
-		series_id: seriesId,
-		season_number: 1,
-		title: 'Temporada final',
-		planned_episode_count: 10,
-	});
-	await insertRow(request, token, 'episodes', {
-		id: episodeId,
-		owner_id: ownerId,
-		season_id: seasonId,
-		episode_number: 9,
-		title: `Episódio final ${suffix}`,
-		duration_ms: 90_000,
+		seasonTitle: 'Temporada final',
+		plannedEpisodeCount: 10,
+		episodeNumber: 9,
+		episodeTitle: `Episódio final ${suffix}`,
+		durationMs: 90_000,
 	});
 	await insertRow(request, token, 'choices', {
 		owner_id: ownerId,
@@ -71,11 +57,7 @@ test('owner builds, approves and invalidates the two-choice end card', async ({
 		p_option_2_consequence: 'A personagem foge da sala.',
 	});
 
-	await page.goto('/login');
-	await page.getByLabel('E-mail do proprietário').fill(process.env.E2E_OWNER_EMAIL!);
-	await page.getByLabel('Senha').fill(process.env.E2E_OWNER_PASSWORD!);
-	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
-	await expect(page).toHaveURL(/\/app$/);
+	await loginAsOwner(page);
 
 	await page.getByRole('link', { name: 'Final A/B' }).click();
 	await expect(page).toHaveURL(/\/app\/finale/);
@@ -141,19 +123,9 @@ test('owner builds, approves and invalidates the two-choice end card', async ({
 	await page.goto(`/app/finale?episodeId=${episodeId}`);
 	await expect(page.locator('.stale')).toHaveCount(3);
 
-	const screenshotDirectory = path.join(process.cwd(), 'test-results', 'screenshots');
-	await mkdir(screenshotDirectory, { recursive: true });
-	for (const width of [360, 768, 1440]) {
-		await page.goto(`/app/finale?episodeId=${episodeId}`);
-		await page.setViewportSize({ width, height: 900 });
-		await expect(page.getByRole('heading', { name: 'Final A/B do episódio' })).toBeVisible();
-		const fits = await page.evaluate(
-			() => document.documentElement.scrollWidth <= window.innerWidth,
-		);
-		expect(fits, `finale page should not overflow at ${width}px`).toBe(true);
-		await page.screenshot({
-			path: path.join(screenshotDirectory, `finale-${width}.png`),
-			fullPage: true,
-		});
-	}
+	await captureResponsivePages(page, {
+		url: `/app/finale?episodeId=${episodeId}`,
+		heading: 'Final A/B do episódio',
+		prefix: 'finale',
+	});
 });

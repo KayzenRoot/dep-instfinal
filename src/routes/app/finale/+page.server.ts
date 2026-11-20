@@ -54,6 +54,42 @@ function readRevision(form: FormData): number | null {
 	return Number.isSafeInteger(value) ? value : null;
 }
 
+async function transitionRevision(
+	event: Parameters<Actions['approve']>[0],
+	status: 'APPROVED' | 'DRAFT',
+) {
+	const { db, owner } = ownerDatabase(event);
+	const form = await event.request.formData();
+	const revisionId = readFormText(form, 'revisionId');
+	const expectedRevision = readRevision(form);
+	if (!revisionId || expectedRevision === null) {
+		const failure = fail(400, { message: 'Revisão inválida.' });
+		return { ok: false as const, failure };
+	}
+	const revision = await loadChoiceEndCard(db, owner, revisionId);
+	if (!revision) {
+		const failure = fail(404, { message: 'Final A/B não encontrado.' });
+		return { ok: false as const, failure };
+	}
+	try {
+		const version = await saveChoiceEndCard({
+			db,
+			adminDb: createSupabaseAdminClient(),
+			owner,
+			episodeId: revision.episodeId,
+			expectedRevision,
+			config: revision.config,
+			status,
+			sourceChoiceRevision: revision.choiceRevisionNumber,
+		});
+		return { ok: true as const, episodeId: revision.episodeId, version };
+	} catch (cause) {
+		const info = messageFor(cause);
+		const failure = fail(info.status, { message: info.message });
+		return { ok: false as const, failure };
+	}
+}
+
 function configFromForm(form: FormData) {
 	return choiceEndCardConfigSchema.parse({
 		schemaVersion: 1,
@@ -217,57 +253,14 @@ export const actions: Actions = {
 		}
 	},
 	approve: async (event) => {
-		const { db, owner } = ownerDatabase(event);
-		const form = await event.request.formData();
-		const revisionId = readFormText(form, 'revisionId');
-		const expectedRevision = readRevision(form);
-		if (!revisionId || expectedRevision === null)
-			return fail(400, { message: 'Revisão inválida.' });
-		const revision = await loadChoiceEndCard(db, owner, revisionId);
-		if (!revision) return fail(404, { message: 'Final A/B não encontrado.' });
-		let version: number;
-		try {
-			version = await saveChoiceEndCard({
-				db,
-				adminDb: createSupabaseAdminClient(),
-				owner,
-				episodeId: revision.episodeId,
-				expectedRevision,
-				config: revision.config,
-				status: 'APPROVED',
-				sourceChoiceRevision: revision.choiceRevisionNumber,
-			});
-		} catch (cause) {
-			const info = messageFor(cause);
-			return fail(info.status, { message: info.message });
-		}
-		redirect(303, `/app/finale?episodeId=${revision.episodeId}&approved=${version}`);
+		const result = await transitionRevision(event, 'APPROVED');
+		if (!result.ok) return result.failure;
+		redirect(303, `/app/finale?episodeId=${result.episodeId}&approved=${result.version}`);
 	},
 	restore: async (event) => {
-		const { db, owner } = ownerDatabase(event);
-		const form = await event.request.formData();
-		const revisionId = readFormText(form, 'revisionId');
-		const expectedRevision = readRevision(form);
-		if (!revisionId || expectedRevision === null)
-			return fail(400, { message: 'Revisão inválida.' });
-		const revision = await loadChoiceEndCard(db, owner, revisionId);
-		if (!revision) return fail(404, { message: 'Final A/B não encontrado.' });
-		let version: number;
-		try {
-			version = await saveChoiceEndCard({
-				db,
-				adminDb: createSupabaseAdminClient(),
-				owner,
-				episodeId: revision.episodeId,
-				expectedRevision,
-				config: revision.config,
-				sourceChoiceRevision: revision.choiceRevisionNumber,
-			});
-		} catch (cause) {
-			const info = messageFor(cause);
-			return fail(info.status, { message: info.message });
-		}
-		redirect(303, `/app/finale?episodeId=${revision.episodeId}&restored=${version}`);
+		const result = await transitionRevision(event, 'DRAFT');
+		if (!result.ok) return result.failure;
+		redirect(303, `/app/finale?episodeId=${result.episodeId}&restored=${result.version}`);
 	},
 	attach: async (event) => {
 		const { db, owner } = ownerDatabase(event);

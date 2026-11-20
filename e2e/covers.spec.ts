@@ -1,8 +1,8 @@
-import { mkdir } from 'node:fs/promises';
-import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import sharp from 'sharp';
-import { insertRow, ownerAccessToken, ownerId, serviceKey, supabaseUrl } from './supabase.js';
+import { insertEpisodeHierarchy, loginAsOwner } from './fixtures.js';
+import { captureResponsivePages } from './responsive.js';
+import { ownerAccessToken, ownerId, serviceKey, supabaseUrl } from './supabase.js';
 
 test('owner generates, approves and downloads private covers', async ({ page, request }) => {
 	test.setTimeout(300_000);
@@ -12,38 +12,20 @@ test('owner generates, approves and downloads private covers', async ({ page, re
 	page.setDefaultNavigationTimeout(120_000);
 
 	const suffix = crypto.randomUUID().slice(0, 8);
-	const seriesId = crypto.randomUUID();
-	const seasonId = crypto.randomUUID();
-	const episodeId = crypto.randomUUID();
 	const token = await ownerAccessToken(request);
-	await insertRow(request, token, 'series', {
-		id: seriesId,
-		owner_id: ownerId,
-		title: `Covers E2E ${suffix}`,
+	const { episodeId } = await insertEpisodeHierarchy(request, {
+		token,
+		suffix,
+		seriesTitle: `Covers E2E ${suffix}`,
 		premise: 'Fixture sintética de capas.',
-	});
-	await insertRow(request, token, 'seasons', {
-		id: seasonId,
-		owner_id: ownerId,
-		series_id: seriesId,
-		season_number: 1,
-		title: 'Temporada capas',
-		planned_episode_count: 10,
-	});
-	await insertRow(request, token, 'episodes', {
-		id: episodeId,
-		owner_id: ownerId,
-		season_id: seasonId,
-		episode_number: 1,
-		title: `Episódio capas ${suffix}`,
-		duration_ms: 120_000,
+		seasonTitle: 'Temporada capas',
+		plannedEpisodeCount: 10,
+		episodeNumber: 1,
+		episodeTitle: `Episódio capas ${suffix}`,
+		durationMs: 120_000,
 	});
 
-	await page.goto('/login');
-	await page.getByLabel('E-mail do proprietário').fill(process.env.E2E_OWNER_EMAIL!);
-	await page.getByLabel('Senha').fill(process.env.E2E_OWNER_PASSWORD!);
-	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
-	await expect(page).toHaveURL(/\/app$/);
+	await loginAsOwner(page);
 
 	await page.getByRole('link', { name: 'Capas' }).click();
 	await expect(page).toHaveURL(/\/app\/covers/);
@@ -87,19 +69,9 @@ test('owner generates, approves and downloads private covers', async ({ page, re
 	await expect
 		.poll(() => approvedCover.evaluate((image) => (image as HTMLImageElement).naturalWidth))
 		.toBeGreaterThan(0);
-	const screenshotDirectory = path.join(process.cwd(), 'test-results', 'screenshots');
-	await mkdir(screenshotDirectory, { recursive: true });
-	for (const width of [360, 768, 1440]) {
-		await page.goto(`/app/covers?episodeId=${episodeId}`);
-		await page.setViewportSize({ width, height: 900 });
-		await expect(page.getByRole('heading', { name: 'Capas do episódio' })).toBeVisible();
-		const fits = await page.evaluate(
-			() => document.documentElement.scrollWidth <= window.innerWidth,
-		);
-		expect(fits, `covers page should not overflow at ${width}px`).toBe(true);
-		await page.screenshot({
-			path: path.join(screenshotDirectory, `covers-${width}.png`),
-			fullPage: true,
-		});
-	}
+	await captureResponsivePages(page, {
+		url: `/app/covers?episodeId=${episodeId}`,
+		heading: 'Capas do episódio',
+		prefix: 'covers',
+	});
 });

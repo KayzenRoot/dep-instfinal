@@ -54,6 +54,27 @@ function createSyntheticClip(
 	return path;
 }
 
+function mixEvent(overrides: Partial<AudioMixEvent> & Pick<AudioMixEvent, 'id' | 'path'>) {
+	const event: AudioMixEvent = {
+		kind: 'SFX',
+		startMs: 0,
+		durationMs: 4_000,
+		sourceInMs: 0,
+		gainDb: 0,
+		fadeInMs: 0,
+		fadeOutMs: 0,
+		pan: 0,
+		distance: 0.5,
+		loop: false,
+		ducking: false,
+		spatialPreset: 'none',
+		spatialMode: 'stereo_pan',
+		intensity: 1,
+		...overrides,
+	};
+	return event;
+}
+
 function twoClipPlan(workspace: string, source = 'testsrc2=size=180x320:rate=30') {
 	const scenes = [1, 2].map((index) => ({
 		id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
@@ -485,24 +506,12 @@ describe.skipIf(!enabled)('FFmpeg end-card burn-in integration', () => {
 				outputPath: join(workspace, 'output.mp4'),
 				endCardAssPath: assPath,
 				audioEvents: [
-					{
+					mixEvent({
 						id: '66666666-6666-4666-8666-666666666666',
 						path: sfxPath,
-						kind: 'SFX',
-						startMs: 0,
-						durationMs: 4_000,
-						sourceInMs: 0,
-						gainDb: 0,
 						fadeInMs: 60,
 						fadeOutMs: 120,
-						pan: 0,
-						distance: 0.5,
-						loop: false,
-						ducking: false,
-						spatialPreset: 'none',
-						spatialMode: 'stereo_pan',
-						intensity: 1,
-					},
+					}),
 				],
 				timeoutMs: 180_000,
 			});
@@ -748,42 +757,32 @@ describe.skipIf(!enabled)('FFmpeg audio mix integration', () => {
 				);
 			}
 			const events: AudioMixEvent[] = [
-				{
+				mixEvent({
 					id: 'music',
 					path: musicPath,
 					kind: 'MUSIC',
-					startMs: 0,
-					durationMs: 4_000,
-					sourceInMs: 0,
 					gainDb: -18,
 					fadeInMs: 250,
 					fadeOutMs: 350,
 					pan: -0.3,
-					distance: 0.5,
 					loop: true,
 					ducking: true,
-					spatialPreset: 'none',
-					spatialMode: 'stereo_pan',
 					intensity: 3,
-				},
-				{
+				}),
+				mixEvent({
 					id: 'impact',
 					path: sfxPath,
-					kind: 'SFX',
 					startMs: 2_000,
 					durationMs: 800,
-					sourceInMs: 0,
 					gainDb: -8,
 					fadeInMs: 50,
 					fadeOutMs: 80,
 					pan: 0.7,
 					distance: 0.2,
-					loop: false,
-					ducking: false,
 					spatialPreset: 'steps-behind',
 					spatialMode: 'binaural_simulated',
 					intensity: 5,
-				},
+				}),
 			];
 			const render = (name: string) =>
 				renderPlanToFile({
