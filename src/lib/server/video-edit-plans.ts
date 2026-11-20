@@ -355,8 +355,12 @@ export async function saveVideoEditPlan(input: {
 	) {
 		try {
 			const styleBible = await resolveEpisodeStyleSnapshot(input.db, input.owner, input.episodeId);
-			if (input.applyStyle === true || hasConfiguredStyle(styleBible))
+			if (input.applyStyle === true || hasConfiguredStyle(styleBible)) {
 				styledPlan = attachStyleSnapshot(linkedPlan, styleBible);
+			} else {
+				styledPlan = { ...linkedPlan };
+				delete styledPlan.styleBible;
+			}
 		} catch (cause) {
 			if (cause instanceof StyleServiceError)
 				throw new VideoEditPlanError(cause.status, cause.code, cause.message);

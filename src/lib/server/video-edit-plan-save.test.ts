@@ -151,6 +151,30 @@ describe('saveVideoEditPlan style opt-in', () => {
 		expect(adminDb.rpc.mock.calls[0]?.[1].p_plan.styleBible).toEqual(stored);
 	});
 
+	it('strips a forged snapshot from a brand-new plan with no configured style', async () => {
+		style.resolveEpisodeStyleSnapshot.mockResolvedValue({
+			...snapshot(),
+			presetId: null,
+			presetRevision: null,
+			presetHash: null,
+			scopeType: null,
+			scopeId: null,
+			config: DEFAULT_STYLE_CONFIG,
+		});
+		const adminDb = admin();
+		const forged = { ...snapshot(), presetRevision: 99 };
+		await saveVideoEditPlan({
+			db: database(null),
+			adminDb: adminDb as never,
+			owner: { id: 'owner' } as never,
+			episodeId,
+			expectedVersion: 0,
+			plan: { ...contextPlan(), styleBible: forged },
+		});
+		expect(style.resolveEpisodeStyleSnapshot).toHaveBeenCalled();
+		expect(adminDb.rpc.mock.calls[0]?.[1].p_plan.styleBible).toBeUndefined();
+	});
+
 	it('applies the current style only with explicit opt-in', async () => {
 		const current = snapshot({ colorPresetId: 'cctv', colorStrength: 0.65 });
 		style.resolveEpisodeStyleSnapshot.mockResolvedValue(current);
