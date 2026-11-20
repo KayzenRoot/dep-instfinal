@@ -1,8 +1,8 @@
 # DIF-V2-WO-013 — Hardening operacional: quotas, backup, retenção e recuperação
 
-**Status:** **PROMOTED (núcleo)**; unit **210+3**, PgTAP **155/155**, policy **29/25**, E2E **14/14**; CI `44410994788` e ARM64 `44410995020` em `fa236af` PASS; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b1a1eaf` (PR #61); issue #30 fechada. Extensões OPS das WOs 015–021 permanecem obrigações posteriores. Sem deploy de worker/VPS.
+**Status:** **PROMOTED (núcleo)**; unit **210+3**, PgTAP **155/155**, policy **29/25** no núcleo (após OPS 015–021: **36/41**), E2E **14/14**; CI `44410994788` e ARM64 `44410995020` em `fa236af` PASS; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b1a1eaf` (PR #61); issue #30 fechada. **Extensões OPS 015–021 concluídas** em `docs/V2_OPS_015_021.md` (backup/restore das 41 tabelas, `episode_revisions` incluído, policy 36/41). Sem deploy de worker/VPS.
 **Base:** `main` `7d15076` (checkpoint WO-012 promovido).
-**Escopo:** WO-013 (#30) — núcleo operacional (quotas, limites de worker, saúde, backup/restore, retenção dry-run). As extensões OPS-2026-11-12 ligadas às WOs 015–021 ficam registradas como obrigações posteriores, sem infraestrutura duplicada.
+**Escopo:** WO-013 (#30) — núcleo operacional (quotas, limites de worker, saúde, backup/restore, retenção dry-run). As extensões OPS-2026-11-12 ligadas às WOs 015–021 foram concluídas em `docs/V2_OPS_015_021.md`, sem infraestrutura duplicada.
 
 ## Entregue
 
@@ -74,7 +74,7 @@ A primeira auditoria independente retornou **CORRECTION REQUIRED** (F1–F11). A
 - Quotas fixas podem precisar de ajuste após benchmark real de temporada.
 - Limites de memória do FFmpeg não são impostos por cgroup; dependem de concorrência 1, timeout e monitoramento do host.
 - Worker ainda usa service role ampla; escopo de menor privilégio continua aberto para WO-014.
-- Extensões OPS das WOs 015–021 ainda pendentes.
+- Extensões OPS das WOs 015–021 concluídas: backup/restore exercitado nas 41 tabelas; ver `docs/V2_OPS_015_021.md`.
 
 ## Gate
 

@@ -39,6 +39,16 @@ The Free project was backed up without relying on provider snapshots:
 
 This procedure was executed against the hosted `dif` project and a local Supabase target on 2026-11-11; the restored counts matched the export, the owner login returned 200, anonymous REST returned 401, and the private Cloudinary image returned 235 bytes with a matching SHA-256. Auth passwords are intentionally re-provisioned, not copied from the backup.
 
+### OPS 015–021 local metadata backup (2026-11-20)
+
+`scripts/backup-metadata.mjs` and `scripts/restore-metadata.mjs` now cover **41/41 public tables**, including `episode_revisions` (the previous omission was an OPS gap). A local run restored into disposable `dif_restore_test` with:
+
+- `countMismatches: []`, `episodeSceneJoinRows: 768`, `readyJobsWithMatchingQaHash: 5/5`;
+- `metadataOk: true`, `coverageOk: true`, `shaVerified: true`;
+- 2 local media blobs `verified_local`; 3 temporary E2E MP4s `missing` at verification time, so `mediaOk: false`/`ok: false` as designed (fail-closed, no false success).
+
+Auth users, passwords, media bytes and signed URLs remain outside the dump. Remote restore and R2 lifecycle/GC remain manual.
+
 ## Bíblia audiovisual — retenção e cotas (WO-021)
 
 - `style_presets` e `style_preset_revisions` são owner-read/service-write; revisões são imutáveis e nunca sobrescrevem um plano ou render antigo.
@@ -46,7 +56,7 @@ This procedure was executed against the hosted `dif` project and a local Supabas
 - Overrides de episódio/cena são upserts pequenos, sem histórico próprio; `reducedMotion` aceita herdar/true/false. Enviar o formulário todo vazio chama `clear_*_style_override` e a camada volta a herdar.
 - Planos novos congelam o estilo no primeiro save quando há preset/override configurado; sem estilo, nenhum snapshot é inventado. Planos existentes só recebem uma revisão nova quando o owner marca “Aplicar estilo atual” no timeline ou reconstrói; saves comuns preservam o snapshot. O render aplica cor, legenda, área segura e fonte ao snapshot; SFX/voz/capa/final continuam referências das telas especializadas.
 - SFX referenciados são revalidados na resolução do snapshot. Assets removidos ou sem licença comercial/social são retirados do config efetivo com warning (`STYLE_SFX_UNAVAILABLE`/`STYLE_SFX_LICENSE`), sem alterar o preset aprovado.
-- Backup/restore scripts incluem as quatro tabelas; a execução deste ciclo ficou pendente. Restaure presets antes das revisões e overrides depois de episódios/cenas para respeitar as FKs.
+- Backup/restore scripts incluem as quatro tabelas e a execução local de 2026-11-20 está registrada na seção OPS acima. Restaure presets antes das revisões e overrides depois de episódios/cenas para respeitar as FKs.
 
 ## Temporary public access via Cloudflare Tunnel (owner-authorized)
 
