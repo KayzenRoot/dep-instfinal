@@ -75,6 +75,8 @@ interface SnapshotRow {
 	followers_gained: number | string | null;
 	avg_watch_ms: number | null;
 	completion_pct: number | string | null;
+	metric_version: number;
+	episode_duration_ms: number;
 	snapshot_hash: string;
 	created_at: string;
 }
@@ -121,6 +123,7 @@ export interface RetentionPost {
 		endCardId: string | null;
 	}>;
 	latestSnapshot: RetentionSnapshot | null;
+	snapshots: RetentionSnapshot[];
 	snapshotCount: number;
 }
 
@@ -140,6 +143,8 @@ export interface RetentionContext {
 		status: string;
 		variantAId: string;
 		variantBId: string;
+		snapshotAId: string | null;
+		snapshotBId: string | null;
 	}>;
 	imports: Array<{
 		id: string;
@@ -210,7 +215,22 @@ function numberOrNull(value: number | string | null): number | null {
 	return Number.isFinite(parsed) ? parsed : null;
 }
 
-function parseSnapshot(row: SnapshotRow, durationMs: number): RetentionSnapshot {
+function invalidComputed(warnings: string[]): ComputedRetentionMetrics {
+	return {
+		metricVersion: 0,
+		totalInteractions: null,
+		engagementRate: null,
+		completionPct: null,
+		watchTimeRelative: null,
+		interactionsPer1000: null,
+		interactionFields: [],
+		interactionCoverage: 'NONE',
+		missing: ['computed'],
+		warnings,
+	};
+}
+
+function parseSnapshot(row: SnapshotRow, fallbackDurationMs: number): RetentionSnapshot {
 	const metrics = {
 		views: numberOrNull(row.views),
 		likes: numberOrNull(row.likes),
@@ -221,6 +241,18 @@ function parseSnapshot(row: SnapshotRow, durationMs: number): RetentionSnapshot 
 		avgWatchMs: row.avg_watch_ms,
 		completionPct: numberOrNull(row.completion_pct),
 	};
+	const durationMs = Number(row.episode_duration_ms) || fallbackDurationMs;
+	let computed: ComputedRetentionMetrics;
+	try {
+		computed = computeRetentionMetrics(metrics, durationMs);
+		if (Number(row.metric_version) !== 1)
+			computed = {
+				...computed,
+				warnings: [...computed.warnings, 'METRIC_VERSION_UNSUPPORTED'],
+			};
+	} catch (cause) {
+		computed = invalidComputed([cause instanceof RetentionError ? cause.code : 'INVALID_METRICS']);
+	}
 	return {
 		id: row.id,
 		postId: row.post_id,
@@ -232,7 +264,7 @@ function parseSnapshot(row: SnapshotRow, durationMs: number): RetentionSnapshot 
 		source: row.source,
 		note: row.note,
 		metrics,
-		computed: computeRetentionMetrics(metrics, durationMs),
+		computed,
 		snapshotHash: row.snapshot_hash,
 		createdAt: row.created_at,
 	};
@@ -243,14 +275,7 @@ export async function loadRetentionContext(
 	owner: User,
 	episodeId: string,
 ): Promise<RetentionContext | null> {
-	const [
-		episodeResult,
-		postsResult,
-		variantsResult,
-		snapshotsResult,
-		experimentsResult,
-		importsResult,
-	] = await Promise.all([
+	const [episodeResult, postsResult, experimentsResult, importsResult] = await Promise.all([
 		db
 			.from('episodes')
 			.select('id,title,episode_number,duration_ms,seasons(series(title))')
@@ -264,18 +289,6 @@ export async function loadRetentionContext(
 			.eq('episode_id', episodeId)
 			.order('published_at', { ascending: false })
 			.limit(100),
-		db
-			.from('creative_variants')
-			.select('*')
-			.eq('owner_id', owner.id)
-			.order('created_at')
-			.limit(500),
-		db
-			.from('analytics_snapshots')
-			.select('*')
-			.eq('owner_id', owner.id)
-			.order('period_end', { ascending: false })
-			.limit(500),
 		db
 			.from('retention_experiments')
 			.select('*')
@@ -297,13 +310,7 @@ export async function loadRetentionContext(
 			'Não foi possível carregar o episódio.',
 		);
 	if (!episodeResult.data) return null;
-	if (
-		postsResult.error ||
-		variantsResult.error ||
-		snapshotsResult.error ||
-		experimentsResult.error ||
-		importsResult.error
-	)
+	if (postsResult.error || experimentsResult.error || importsResult.error)
 		throw new RetentionServiceError(
 			503,
 			'RETENTION_LOAD_FAILED',
@@ -312,19 +319,44 @@ export async function loadRetentionContext(
 	const season = firstRelation(episodeResult.data.seasons);
 	const durationMs = Number(episodeResult.data.duration_ms);
 	const posts = (postsResult.data ?? []) as PostRow[];
-	const postIds = new Set(posts.map((post) => post.id));
-	const variants = ((variantsResult.data ?? []) as VariantRow[]).filter((variant) =>
-		postIds.has(variant.post_id),
-	);
-	const snapshots = ((snapshotsResult.data ?? []) as SnapshotRow[]).filter((snapshot) =>
-		postIds.has(snapshot.post_id),
-	);
+	const postIds = posts.map((post) => post.id);
+	let variants: VariantRow[] = [];
+	let snapshots: SnapshotRow[] = [];
+	if (postIds.length) {
+		const [variantsResult, snapshotsResult] = await Promise.all([
+			db
+				.from('creative_variants')
+				.select('*')
+				.eq('owner_id', owner.id)
+				.in('post_id', postIds)
+				.order('created_at')
+				.limit(5_000),
+			db
+				.from('analytics_snapshots')
+				.select('*')
+				.eq('owner_id', owner.id)
+				.in('post_id', postIds)
+				.order('revision_number', { ascending: false })
+				.order('created_at', { ascending: false })
+				.limit(5_000),
+		]);
+		if (variantsResult.error || snapshotsResult.error)
+			throw new RetentionServiceError(
+				503,
+				'RETENTION_LOAD_FAILED',
+				'Não foi possível carregar a retenção.',
+			);
+		variants = (variantsResult.data ?? []) as VariantRow[];
+		snapshots = (snapshotsResult.data ?? []) as SnapshotRow[];
+	}
+	const historyByPost = new Map<string, RetentionSnapshot[]>();
 	const latestByPost = new Map<string, RetentionSnapshot>();
-	const countByPost = new Map<string, number>();
 	for (const row of snapshots) {
-		countByPost.set(row.post_id, (countByPost.get(row.post_id) ?? 0) + 1);
-		if (!latestByPost.has(row.post_id))
-			latestByPost.set(row.post_id, parseSnapshot(row, durationMs));
+		const parsed = parseSnapshot(row, durationMs);
+		const history = historyByPost.get(row.post_id) ?? [];
+		history.push(parsed);
+		historyByPost.set(row.post_id, history);
+		if (!latestByPost.has(row.post_id)) latestByPost.set(row.post_id, parsed);
 	}
 	return {
 		episode: {
@@ -355,7 +387,8 @@ export async function loadRetentionContext(
 					endCardId: variant.end_card_id,
 				})),
 			latestSnapshot: latestByPost.get(post.id) ?? null,
-			snapshotCount: countByPost.get(post.id) ?? 0,
+			snapshots: historyByPost.get(post.id) ?? [],
+			snapshotCount: historyByPost.get(post.id)?.length ?? 0,
 		})),
 		experiments: ((experimentsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
 			id: row.id as string,
@@ -364,6 +397,8 @@ export async function loadRetentionContext(
 			status: row.status as string,
 			variantAId: row.variant_a_id as string,
 			variantBId: row.variant_b_id as string,
+			snapshotAId: (row.variant_a_snapshot_id as string | null) ?? null,
+			snapshotBId: (row.variant_b_snapshot_id as string | null) ?? null,
 		})),
 		imports: ((importsResult.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
 			id: row.id as string,
@@ -510,11 +545,26 @@ export async function saveAnalyticsSnapshot(input: {
 		p_followers_gained: metrics.followersGained,
 		p_avg_watch_ms: metrics.avgWatchMs,
 		p_completion_pct: metrics.completionPct,
+		p_episode_duration_ms: input.durationMs,
 		p_snapshot_hash: hash,
 		p_supersedes_snapshot_id: parsed.data.supersedesSnapshotId,
 		p_import_id: null,
 	});
-	if (error?.code === '23505') return { revision: 0, duplicate: true };
+	if (error?.code === '23505') {
+		const { data: raced } = await input.db
+			.from('analytics_snapshots')
+			.select('revision_number')
+			.eq('owner_id', input.owner.id)
+			.eq('post_id', parsed.data.postId)
+			.eq('snapshot_hash', hash)
+			.maybeSingle();
+		if (raced) return { revision: Number(raced.revision_number), duplicate: true };
+		throw new RetentionServiceError(
+			409,
+			'RETENTION_CONFLICT',
+			'Outra coleta foi gravada ao mesmo tempo. Recarregue e tente novamente.',
+		);
+	}
 	if (error) throw mapRpcError(error);
 	if (typeof data !== 'number')
 		throw new RetentionServiceError(
@@ -541,7 +591,7 @@ export async function importRetentionCsv(input: {
 	const parsed = parseRetentionCsv(input.csv);
 	let imported = 0;
 	let skipped = 0;
-	for (const row of parsed.rows) {
+	for (const [rowIndex, row] of parsed.rows.entries()) {
 		try {
 			const postId = await savePublishedPost({
 				db: input.db,
@@ -586,7 +636,7 @@ export async function importRetentionCsv(input: {
 			else imported += 1;
 		} catch (cause) {
 			parsed.errors.push({
-				line: 0,
+				line: rowIndex + 2,
 				message: cause instanceof Error ? cause.message : 'Falha ao importar linha.',
 			});
 		}
@@ -659,16 +709,19 @@ export async function deletePublishedPost(input: {
 export function variantObservation(
 	post: RetentionPost,
 	variant: RetentionPost['variants'][number],
+	snapshotId?: string | null,
 ): VariantObservation | null {
-	if (!post.latestSnapshot) return null;
+	const snapshot =
+		post.snapshots.find((candidate) => candidate.id === snapshotId) ?? post.latestSnapshot;
+	if (!snapshot) return null;
 	return {
 		platform: post.platform,
 		label: post.label || post.url,
 		variantLabel: variant.label,
-		periodStart: post.latestSnapshot.periodStart,
-		periodEnd: post.latestSnapshot.periodEnd,
-		views: post.latestSnapshot.metrics.views,
-		metrics: post.latestSnapshot.computed,
+		periodStart: snapshot.periodStart,
+		periodEnd: snapshot.periodEnd,
+		views: snapshot.metrics.views,
+		metrics: snapshot.computed,
 	};
 }
 
@@ -694,8 +747,8 @@ export function comparePostVariants(
 			summary: 'Variantes do experimento não estão mais disponíveis.',
 			warnings: ['VARIANT_MISSING'],
 		};
-	const leftObservation = variantObservation(left.post, left.variant);
-	const rightObservation = variantObservation(right.post, right.variant);
+	const leftObservation = variantObservation(left.post, left.variant, experiment.snapshotAId);
+	const rightObservation = variantObservation(right.post, right.variant, experiment.snapshotBId);
 	if (!leftObservation || !rightObservation)
 		return {
 			status: 'INSUFFICIENT' as const,

@@ -56,6 +56,14 @@ export const RETENTION_METRIC_DEFINITIONS: MetricDefinition[] = [
 	},
 ];
 
+export const RETENTION_PLATFORM_NOTES: Record<string, string> = {
+	tiktok: 'Views/plays e interações conforme o painel do TikTok; campos ausentes são NULL.',
+	reels: 'Views/plays e interações conforme o painel do Instagram; completion pode não existir.',
+	youtube_shorts:
+		'Views e interações conforme o YouTube Studio; retenção média pode vir em % ou tempo.',
+	other: 'Plataforma não especificada: não é usada em comparação A/B.',
+};
+
 export interface ComputedRetentionMetrics {
 	metricVersion: number;
 	totalInteractions: number | null;
@@ -63,6 +71,8 @@ export interface ComputedRetentionMetrics {
 	completionPct: number | null;
 	watchTimeRelative: number | null;
 	interactionsPer1000: number | null;
+	interactionFields: string[];
+	interactionCoverage: 'NONE' | 'PARTIAL' | 'FULL';
 	missing: string[];
 	warnings: string[];
 }
@@ -83,13 +93,28 @@ export function computeRetentionMetrics(
 ): ComputedRetentionMetrics {
 	if (!Number.isFinite(durationMs) || durationMs <= 0)
 		throw new RetentionError('RETENTION_DURATION_INVALID', 'Duração do episódio inválida.');
-	if (metrics.avgWatchMs !== null && metrics.avgWatchMs > durationMs * 1.05)
+	if (metrics.avgWatchMs !== null && metrics.avgWatchMs > durationMs)
 		throw new RetentionError(
 			'RETENTION_WATCH_EXCEEDS_DURATION',
 			'Tempo médio assistido excede a duração do episódio.',
 		);
 	const missing: string[] = [];
 	const warnings: string[] = [];
+	const interactionPairs = [
+		['likes', metrics.likes],
+		['comments', metrics.comments],
+		['shares', metrics.shares],
+		['saves', metrics.saves],
+	] as const;
+	const interactionFields = interactionPairs
+		.filter(([, value]) => value !== null)
+		.map(([field]) => field);
+	const interactionCoverage =
+		interactionFields.length === 0
+			? 'NONE'
+			: interactionFields.length === interactionPairs.length
+				? 'FULL'
+				: 'PARTIAL';
 	const totalInteractions = sumAvailable([
 		metrics.likes,
 		metrics.comments,
@@ -97,6 +122,7 @@ export function computeRetentionMetrics(
 		metrics.saves,
 	]);
 	if (totalInteractions === null) missing.push('interactions');
+	else if (interactionCoverage === 'PARTIAL') warnings.push('PARTIAL_INTERACTIONS');
 	if (metrics.views === null) missing.push('views');
 	if (metrics.avgWatchMs === null) missing.push('avg_watch_ms');
 	if (metrics.completionPct === null && metrics.avgWatchMs === null) missing.push('completion');
@@ -134,6 +160,8 @@ export function computeRetentionMetrics(
 		completionPct,
 		watchTimeRelative,
 		interactionsPer1000,
+		interactionFields,
+		interactionCoverage,
 		missing,
 		warnings,
 	};
@@ -171,14 +199,17 @@ export function compareVariantObservations(
 	metric: MetricDefinition['id'] = 'engagement_rate',
 ): VariantComparison {
 	const warnings: string[] = [];
-	if (left.platform !== right.platform)
+	if (left.platform !== right.platform || left.platform === 'other')
 		return {
 			status: 'NOT_COMPARABLE',
 			metric,
 			valueA: null,
 			valueB: null,
-			summary: 'Plataformas diferentes: não há comparação válida.',
-			warnings: ['PLATFORM_MISMATCH'],
+			summary:
+				left.platform === 'other'
+					? 'Plataforma “other” não permite confirmar comparabilidade.'
+					: 'Plataformas diferentes: não há comparação válida.',
+			warnings: [left.platform === 'other' ? 'PLATFORM_UNSPECIFIED' : 'PLATFORM_MISMATCH'],
 		};
 	const startA = Date.parse(left.periodStart);
 	const startB = Date.parse(right.periodStart);
@@ -211,6 +242,19 @@ export function compareVariantObservations(
 		};
 	if (startA !== startB || endA !== endB) warnings.push('DIFFERENT_WINDOWS');
 	if (Math.abs(startA - startB) > 7 * 24 * 60 * 60 * 1000) warnings.push('DISTANT_WINDOWS');
+	if (
+		(metric === 'engagement_rate' || metric === 'interactions_per_1000') &&
+		left.metrics.interactionFields.join(',') !== right.metrics.interactionFields.join(',')
+	)
+		return {
+			status: 'INSUFFICIENT',
+			metric,
+			valueA: null,
+			valueB: null,
+			summary:
+				'As variantes não têm os mesmos campos de interação disponíveis: insuficiente para conclusão.',
+			warnings: [...warnings, 'INTERACTION_COVERAGE_MISMATCH'],
+		};
 	const valueA = metricValue(left, metric);
 	const valueB = metricValue(right, metric);
 	if (left.views === null || right.views === null)
@@ -295,13 +339,28 @@ export function parseCsvRows(input: string): string[][] {
 	return rows.filter((entry) => entry.some((value) => value.trim().length > 0));
 }
 
-function nullableNumber(value: string | undefined): number | null {
+function nullableInteger(value: string | undefined): number | null {
 	if (value === undefined || value.trim() === '' || value.trim().toLowerCase() === 'null')
 		return null;
-	const parsed = Number(value.replace(',', '.'));
-	if (!Number.isFinite(parsed))
-		throw new RetentionError('RETENTION_CSV_NUMBER', 'Número inválido.');
-	return parsed;
+	const trimmed = value.trim();
+	if (!/^\d+$/.test(trimmed))
+		throw new RetentionError(
+			'RETENTION_CSV_NUMBER',
+			`Número inteiro inválido: "${trimmed}". Use apenas dígitos, sem separador de milhar.`,
+		);
+	return Number(trimmed);
+}
+
+function nullableDecimal(value: string | undefined): number | null {
+	if (value === undefined || value.trim() === '' || value.trim().toLowerCase() === 'null')
+		return null;
+	const trimmed = value.trim();
+	if (!/^\d+(\.\d+)?$/.test(trimmed))
+		throw new RetentionError(
+			'RETENTION_CSV_NUMBER',
+			`Decimal inválido: "${trimmed}". Use ponto como separador decimal.`,
+		);
+	return Number(trimmed);
 }
 
 export function parseRetentionCsv(input: string): {
@@ -351,22 +410,24 @@ export function parseRetentionCsv(input: string): {
 					period_start: record.period_start,
 					period_end: record.period_end,
 					captured_at: record.captured_at,
-					views: nullableNumber(record.views),
-					likes: nullableNumber(record.likes),
-					comments: nullableNumber(record.comments),
-					shares: nullableNumber(record.shares),
-					saves: nullableNumber(record.saves),
-					followers_gained: nullableNumber(record.followers_gained),
-					avg_watch_ms: nullableNumber(record.avg_watch_ms),
-					completion_pct: nullableNumber(record.completion_pct),
+					views: nullableInteger(record.views),
+					likes: nullableInteger(record.likes),
+					comments: nullableInteger(record.comments),
+					shares: nullableInteger(record.shares),
+					saves: nullableInteger(record.saves),
+					followers_gained: nullableInteger(record.followers_gained),
+					avg_watch_ms: nullableInteger(record.avg_watch_ms),
+					completion_pct: nullableDecimal(record.completion_pct),
 					note: record.note,
 				}),
 			);
 		} catch (cause) {
 			const message =
-				cause && typeof cause === 'object' && 'issues' in cause
-					? (cause as { issues: Array<{ message: string }> }).issues[0]?.message
-					: 'Linha inválida.';
+				cause instanceof RetentionError
+					? cause.message
+					: cause && typeof cause === 'object' && 'issues' in cause
+						? (cause as { issues: Array<{ message: string }> }).issues[0]?.message
+						: 'Linha inválida.';
 			errors.push({ line: offset + 2, message: message ?? 'Linha inválida.' });
 		}
 	}
@@ -377,9 +438,15 @@ export function parseRetentionCsv(input: string): {
 export function sanitizeCsvCell(value: string | number | null): string {
 	if (value === null) return '';
 	const text = String(value);
-	if (/^[=+\-@\t\r]/.test(text)) return `'${text}`;
-	if (/[",\n\r]/.test(text)) return `"${text.replaceAll('"', '""')}"`;
-	return text;
+	const dangerous = /^[=+\-@\t\r]/.test(text);
+	let escaped = text.replaceAll('"', '""');
+	if (dangerous)
+		escaped = escaped
+			.split(/\r?\n/)
+			.map((line) => `'${line}`)
+			.join('\n');
+	if (dangerous || /[",\n\r]/.test(text)) return `"${escaped}"`;
+	return escaped;
 }
 
 export function retentionCsv(rows: Array<Record<string, string | number | null>>): string {

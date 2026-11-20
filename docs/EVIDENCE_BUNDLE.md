@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-020` · issue #37 · epic #17
 - **Base:** `main` `59ec14c` (checkpoint WO-019 promovido); branch `feat/dif-v2-wo-020`
-- **Status:** implementação + provas locais; unit **317+3**, PgTAP **229/229**, policy 34/37, build e E2E local PASS; CI hosted e auditoria pendentes. Checkpoint **PROPOSED**.
+- **Status:** implementação + provas locais; unit **318+3**, PgTAP **229/229**, policy 34/37, build e E2E local PASS; CI hosted e auditoria pendentes. Checkpoint **PROPOSED**.
 
 | Check   | Result     | Evidence                                                                             |
 | ------- | ---------- | ------------------------------------------------------------------------------------ |

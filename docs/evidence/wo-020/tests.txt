@@ -13,24 +13,31 @@ Branch: `feat/dif-v2-wo-020` (base `main` `59ec14c`)
 
 ## Unit / domain
 
-- `retention.test.ts`: 10/10 — formula denominators, NULL vs zero, low sample, completion
-  discrepancy, watch > duration, platform/period/sample/metric comparability, non-causal language,
-  CSV quoted/CRLF, malformed rows, formula injection.
-- Unit suite: **317 passed + 3 skipped** locally.
+- `retention.test.ts`: 11/11 — formula denominators, NULL vs zero, partial interactions vs full
+  coverage, low sample, completion discrepancy, watch =105% rejected, platform/period/sample/metric
+  comparability, non-causal language, CSV quoted/CRLF, malformed rows, ambiguous thousands,
+  formula injection with commas/newlines.
+- Post-fix: snapshots load per episode post ids; latest is highest revision; A/B pins the snapshots
+  used and rejects variants from the same post.
+- Unit suite: **318 passed + 3 skipped** locally.
 
 ## E2E
 
 - `e2e/retention.spec.ts` local PASS: login, nav “Retenção”, TikTok and Reels posts, three variants,
   manual snapshots, A/B observational comparison, CSV import with NULL interactions, CSV/JSON export,
   anonymous 401, delete, screenshots 360/768/1440.
-- Dashboard shows origin/period/denominator and marks missing values as `INDISPONÍVEL`.
+- Dashboard shows origin/period/denominator, marks missing values as `INDISPONÍVEL`, renders SVG
+  views/engagement bars and per-post snapshot history with supersedes/retification.
 
 ## Database / retention
 
 - `published_posts`, `published_post_versions`, `creative_variants`, `analytics_snapshots`,
   `retention_imports`, `retention_experiments` are owner-read/service-write with forced RLS.
-- Snapshots/versions/imports are immutable; snapshots are idempotent by `(post, snapshot_hash)` and
-  retifications append a new revision with `supersedes_snapshot_id`.
+- Snapshots/versions/imports are immutable; snapshots are idempotent by `(post, snapshot_hash)`,
+  pin `episode_duration_ms`/`metric_version`, and retifications append a new revision with
+  `supersedes_snapshot_id`.
+- Experiments pin `variant_a_snapshot_id`/`variant_b_snapshot_id` and reject variants from the same
+  post; concurrent snapshot revisions use an advisory lock.
 - PgTAP: owner read, direct insert denied, second owner isolated, post version, variants A/B,
   idempotent snapshot, supersedes, immutable update, experiment distinct variants, delete cascade.
 - Quota: 5000 snapshots per post; 5000 CSV rows and 5 MB input.
@@ -39,7 +46,8 @@ Branch: `feat/dif-v2-wo-020` (base `main` `59ec14c`)
 
 - URLs are owner-provided text and never fetched; no scraping, login automation or social API.
 - Only aggregate metrics are stored; no viewer-level, demographic or comment data.
-- Export routes owner-only, `private, no-store`; CSV cells guarded against formula injection.
+- Export routes owner-only, `private, no-store`; CSV cells are quoted then prefixed per line
+  against formula injection.
 - Deletion is owner-scoped and removes post, versions, variants, snapshots and linked experiments.
 
 ## Limits verified

@@ -2576,10 +2576,16 @@ select lives_ok(
     );$$,
   'service role stores variant A'
 );
+select public.save_published_post(
+  '11111111-1111-4111-8111-111111111111', null,
+  'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7', 'tiktok',
+  'https://www.tiktok.com/@rls/video/2', '2026-11-01T00:00:00Z',
+  'Post RLS B', 'Fixture B', 'Criação B'
+);
 select lives_ok(
   $$select public.save_creative_variant(
       '11111111-1111-4111-8111-111111111111',
-      (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1'),
+      (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/2'),
       'BASELINE', 'B', null, null, null
     );$$,
   'service role stores variant B'
@@ -2589,7 +2595,7 @@ select lives_ok(
       '11111111-1111-4111-8111-111111111111',
       (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1'),
       '2026-11-09T00:00:00Z', '2026-11-01T00:00:00Z', '2026-11-08T00:00:00Z',
-      'MANUAL', 'Primeira coleta', 10000, 400, 50, 30, 20, 10, 60000, 50,
+      'MANUAL', 'Primeira coleta', 10000, 400, 50, 30, 20, 10, 60000, 50, 90000,
       repeat('1', 64), null, null
     );$$,
   'service role stores the first analytics snapshot'
@@ -2599,7 +2605,7 @@ select is(
     '11111111-1111-4111-8111-111111111111',
     (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1'),
     '2026-11-09T00:00:00Z', '2026-11-01T00:00:00Z', '2026-11-08T00:00:00Z',
-    'MANUAL', 'Primeira coleta', 10000, 400, 50, 30, 20, 10, 60000, 50,
+    'MANUAL', 'Primeira coleta', 10000, 400, 50, 30, 20, 10, 60000, 50, 90000,
     repeat('1', 64), null, null
   ), 1, 'repeated snapshot hashes are idempotent'
 );
@@ -2608,7 +2614,7 @@ select is(
     '11111111-1111-4111-8111-111111111111',
     (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1'),
     '2026-11-10T00:00:00Z', '2026-11-01T00:00:00Z', '2026-11-08T00:00:00Z',
-    'MANUAL', 'Retificação', 12000, 500, 60, 40, 25, 12, 62000, 51,
+    'MANUAL', 'Retificação', 12000, 500, 60, 40, 25, 12, 62000, 51, 90000,
     repeat('2', 64),
     (select id from public.analytics_snapshots
      where post_id = (select id from public.published_posts where url = 'https://www.tiktok.com/@rls/video/1')
@@ -2621,14 +2627,14 @@ select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-1111111
 select is(
   (select count(*) from public.published_posts
    where episode_id = 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'),
-  1::bigint, 'owner can read published posts'
+  2::bigint, 'owner can read published posts'
 );
 select throws_ok(
   $$insert into public.published_posts (
       owner_id, episode_id, platform, url, published_at
     ) values (
       '11111111-1111-4111-8111-111111111111', 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7',
-      'tiktok', 'https://www.tiktok.com/@rls/video/2', now()
+      'tiktok', 'https://www.tiktok.com/@rls/video/3', now()
     );$$,
   '42501', 'permission denied for table published_posts',
   'owner cannot insert published posts directly'
@@ -2675,7 +2681,7 @@ select is(
 );
 select is(
   (select count(*) from public.published_posts
-   where episode_id = 'b7b7b7b7-b7b7-47b7-87b7-b7b7b7b7b7b7'),
+   where url = 'https://www.tiktok.com/@rls/video/1'),
   0::bigint, 'post deletion removes the publication'
 );
 select is(

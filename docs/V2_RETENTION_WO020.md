@@ -27,18 +27,28 @@
 
 ## Critérios de aceitação
 
-| Critério                                                                                        | Estado | Evidência                                                                                     |
-| ----------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------- |
-| 2 vídeos/fixtures, plataformas distintas, períodos e A/B; dashboard mostra origem e denominador | PASS   | E2E cria TikTok+Reels, A/C TikTok para A/B, snapshots manuais, CSV, comparação observacional  |
-| Métrica ausente não vira zero/conclusão; períodos distintos mostram incomparabilidade           | PASS   | NULL → `INDISPONÍVEL`; CSV sem interações; testes de `NOT_COMPARABLE` por plataforma/período  |
-| Gráficos/resumo factual sem “viral”, “garantia” ou ranking especulativo                         | PASS   | cards de métricas + comparação observacional; teste proíbe termos causais/virais              |
-| Entrada repetida idempotente com histórico; edição não sobrescreve evidência                    | PASS   | hash único por post, revisão append-only, `supersedes`; PgTAP cobre duplicata e imutabilidade |
-| Export/exclusão sem vazar dados owner ou de usuários                                            | PASS   | rotas owner-only, export agregado, delete RPC; E2E anônimo 401 e remoção                      |
+| Critério                                                                                        | Estado | Evidência                                                                                                               |
+| ----------------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 2 vídeos/fixtures, plataformas distintas, períodos e A/B; dashboard mostra origem e denominador | PASS   | E2E cria TikTok+Reels com snapshots, A/C TikTok para A/B, CSV, comparação observacional e cross-platform NOT_COMPARABLE |
+| Métrica ausente não vira zero/conclusão; períodos distintos mostram incomparabilidade           | PASS   | NULL/partial → warnings/`INSUFFICIENT`; CSV sem interações INDISPONÍVEL; cross-platform alerta                          |
+| Gráficos/resumo factual sem “viral”, “garantia” ou ranking especulativo                         | PASS   | barras SVG de views/engajamento, histórico por post, comparação observacional; teste proíbe termos                      |
+| Entrada repetida idempotente com histórico; edição não sobrescreve evidência                    | PASS   | hash único, revisão append-only, duração/métrica pinadas, `supersedes` e histórico na UI                                |
+| Export/exclusão sem vazar dados owner ou de usuários                                            | PASS   | rotas owner-only, export agregado, delete RPC; E2E anônimo 401 e remoção                                                |
+
+## Correções pós-auditoria independente
+
+- **Interações parciais:** `PARTIAL_INTERACTIONS` é emitido e a comparação com cobertura de campos diferente retorna `INSUFFICIENT`/`INTERACTION_COVERAGE_MISMATCH`; NULL nunca vira zero.
+- **Limites por owner:** variantes e snapshots são buscados com `.in('post_id', postIds)` depois dos posts, sem limite global que esconda o episódio.
+- **Números estritos:** formulário e CSV rejeitam `1.000`, `1,5`, `1.234,5` e texto; apenas dígitos (e ponto decimal na conclusão). Erro por linha é exibido.
+- **CSV injection:** células perigosas são citadas e cada linha recebe apóstrofo; vírgulas/quebras não criam registros sem escape.
+- **Snapshot/experimento pinados:** `episode_duration_ms` e `metric_version` ficam no snapshot; experimentos guardam os snapshots A/B usados e rejeitam variantes do mesmo post.
+- **Histórico/gráficos:** dashboard tem barras SVG de views/engajamento, histórico por post com revisões/supersedes e select de retificação; A/B mostra variante, post, views e unidade.
+- **Resiliência:** snapshot histórico inválido gera warning e não derruba a página/export; conflito de revisão concorrente usa advisory lock e 409, não falso duplicado.
 
 ## Testes planejados/executados
 
-- Unit: 10 testes — fórmulas com NULL/zero/amostra baixa/discrepância, watch > duração, comparabilidade por plataforma/período/amostra/métrica, linguagem não causal, CSV quoted/CRLF, linha malformada, injeção de fórmula.
-- PgTAP 229: RLS owner/nonowner, escrita direta negada, post/versão, variante A/B, snapshot idempotente e supersedes, imutabilidade, experimento, delete em cascata.
+- Unit: 11 testes — fórmulas com NULL/zero/amostra baixa/discrepância, interações parciais vs completas, watch =105% rejeitado, comparabilidade por plataforma/período/amostra/métrica, linguagem não causal, CSV quoted/CRLF, linha malformada, número ambíguo, injeção de fórmula com vírgula/newline.
+- PgTAP 229: RLS owner/nonowner, escrita direta negada, post/versão, variante A/B em posts distintos, snapshot idempotente com duração pinada e supersedes, imutabilidade, experimento, delete em cascata.
 - E2E: login/nav, cria posts TikTok+Reels, variantes, snapshots, experimento observacional, CSV com NULL, export CSV/JSON, anônimo negado, remoção e screenshots 360/768/1440.
 - Policy: 34 invariantes / 37 tabelas; backup/restore incluem as tabelas de retenção.
 
@@ -48,10 +58,10 @@
 - Sem significância estatística, controle de confundidores ou atribuição de tráfego; comparação é descritiva.
 - Sem dados por espectador, demografia ou comentários; somente agregados fornecidos.
 - CSV não valida duplicidade de URL entre episódios diferentes (a chave é por owner+episódio+plataforma+URL).
-- Importação marca erros de linha com `line 0` quando a falha é de RPC, não de parsing.
 - Sem UI de edição de post/variante; correções de post criam versão, variantes são imutáveis.
 - Sem poda de snapshots/imports; limites de 5000 snapshots/post e 5000 linhas/CSV.
-- Sem gráficos SVG canvas; cards/tabelas simples. Export não inclui séries temporais completas em CSV (apenas último snapshot por post); JSON inclui o contexto.
+- Gráficos são barras SVG simples por último snapshot, não séries temporais completas; histórico aparece em lista por post.
+- Export CSV inclui o último snapshot por post; JSON inclui todas as revisões e imports. Não há export de `published_post_versions`.
 
 ## Gate
 

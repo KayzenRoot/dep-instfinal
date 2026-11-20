@@ -110,8 +110,10 @@ test('owner records, imports, compares and deletes retention data', async ({ pag
 
 	await addSnapshot('tiktok · Abertura A', '12000', '600', '50');
 	await addSnapshot('tiktok · Abertura C', '10000', '300', '45');
+	await addSnapshot('reels · Abertura B', '9000', '200', '40');
 	await expect(page.locator('.post-card').first()).toContainText('12.000');
 	await expect(page.locator('.post-card').first()).toContainText('5.83%');
+	await expect(page.locator('.post-card').first()).toContainText('origem MANUAL');
 
 	const experimentForm = page.locator('form[action="?/experiment"]');
 	await experimentForm.locator('input[name="name"]').fill('Hook vs baseline');
@@ -126,9 +128,23 @@ test('owner records, imports, compares and deletes retention data', async ({ pag
 		.selectOption({ label: 'tiktok · Abertura C · C1' });
 	await experimentForm.getByRole('button', { name: 'Registrar experimento' }).click();
 	await expect(page.locator('.notice.success')).toContainText('Registro salvo');
-	await expect(page.locator('.comparison')).toContainText('OBSERVATIONAL');
-	await expect(page.locator('.comparison')).toContainText('maior valor observado');
-	await expect(page.locator('.comparison')).not.toContainText('garantia');
+	const observable = page.locator('.comparison').filter({ hasText: 'Hook vs baseline' });
+	await expect(observable).toContainText('OBSERVATIONAL');
+	await expect(observable).toContainText('maior valor observado');
+	await expect(observable).not.toContainText('garantia');
+
+	await experimentForm.locator('input[name="name"]').fill('Cross-platform');
+	await experimentForm
+		.locator('select[name="variantAId"]')
+		.selectOption({ label: 'tiktok · Abertura A · H1' });
+	await experimentForm
+		.locator('select[name="variantBId"]')
+		.selectOption({ label: 'reels · Abertura B · B1' });
+	await experimentForm.getByRole('button', { name: 'Registrar experimento' }).click();
+	await expect(page.locator('.notice.success')).toContainText('Registro salvo');
+	await expect(page.locator('.comparison').filter({ hasText: 'Cross-platform' })).toContainText(
+		'NOT_COMPARABLE',
+	);
 
 	await page.locator('details').filter({ hasText: 'Importar CSV' }).locator('summary').click();
 	const csv = [

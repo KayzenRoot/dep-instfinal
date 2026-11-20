@@ -31,10 +31,16 @@ function utcDate(value: string): string {
 	return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value) ? `${value}:00Z` : value;
 }
 
-function nullableNumber(value: string): number | null {
+function nullableMetric(value: string, integer = true): number | null {
 	if (!value.trim()) return null;
-	const parsed = Number(value.replace(',', '.'));
-	return Number.isFinite(parsed) ? parsed : null;
+	const trimmed = value.trim();
+	const pattern = integer ? /^\d+$/ : /^\d+(\.\d+)?$/;
+	if (!pattern.test(trimmed))
+		throw new RetentionError(
+			'RETENTION_NUMBER_INVALID',
+			`Valor inválido: "${trimmed}". Use dígitos${integer ? '' : ' e ponto decimal'}, sem separador de milhar.`,
+		);
+	return Number(trimmed);
 }
 
 export const load: PageServerLoad = async (event) => {
@@ -121,9 +127,15 @@ export const load: PageServerLoad = async (event) => {
 	const errors = Number(event.url.searchParams.get('errors') ?? '');
 	const notice =
 		Number.isSafeInteger(imported) && (imported > 0 || skipped > 0 || errors > 0)
-			? { mode: 'imported' as const, imported, skipped, errors }
+			? {
+					mode: 'imported' as const,
+					imported,
+					skipped,
+					errors,
+					detail: (event.url.searchParams.get('detail') ?? '').slice(0, 300),
+				}
 			: event.url.searchParams.get('saved')
-				? { mode: 'saved' as const, imported: 0, skipped: 0, errors: 0 }
+				? { mode: 'saved' as const, imported: 0, skipped: 0, errors: 0, detail: '' }
 				: null;
 	return {
 		episodes,
@@ -223,14 +235,14 @@ export const actions: Actions = {
 					note: readFormText(form, 'note'),
 					supersedesSnapshotId: readFormText(form, 'supersedesSnapshotId') || null,
 					metrics: {
-						views: nullableNumber(readFormText(form, 'views')),
-						likes: nullableNumber(readFormText(form, 'likes')),
-						comments: nullableNumber(readFormText(form, 'comments')),
-						shares: nullableNumber(readFormText(form, 'shares')),
-						saves: nullableNumber(readFormText(form, 'saves')),
-						followersGained: nullableNumber(readFormText(form, 'followersGained')),
-						avgWatchMs: nullableNumber(readFormText(form, 'avgWatchMs')),
-						completionPct: nullableNumber(readFormText(form, 'completionPct')),
+						views: nullableMetric(readFormText(form, 'views')),
+						likes: nullableMetric(readFormText(form, 'likes')),
+						comments: nullableMetric(readFormText(form, 'comments')),
+						shares: nullableMetric(readFormText(form, 'shares')),
+						saves: nullableMetric(readFormText(form, 'saves')),
+						followersGained: nullableMetric(readFormText(form, 'followersGained')),
+						avgWatchMs: nullableMetric(readFormText(form, 'avgWatchMs')),
+						completionPct: nullableMetric(readFormText(form, 'completionPct'), false),
 					},
 				},
 			});
@@ -262,9 +274,16 @@ export const actions: Actions = {
 				csv,
 				durationMs: context.episode.durationMs,
 			});
+			const detail = result.errors
+				.slice(0, 2)
+				.map((entry) => `L${entry.line}: ${entry.message}`)
+				.join(' | ')
+				.slice(0, 300);
 			redirect(
 				303,
-				`/app/retention?episodeId=${episodeId}&imported=${result.imported}&skipped=${result.skipped}&errors=${result.errors.length}`,
+				`/app/retention?episodeId=${episodeId}&imported=${result.imported}&skipped=${result.skipped}&errors=${result.errors.length}${
+					detail ? `&detail=${encodeURIComponent(detail)}` : ''
+				}`,
 			);
 		} catch (cause) {
 			rethrowRedirect(cause);

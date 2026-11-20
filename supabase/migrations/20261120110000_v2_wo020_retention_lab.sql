@@ -87,6 +87,7 @@ create table public.analytics_snapshots (
   avg_watch_ms integer check (avg_watch_ms between 0 and 600000),
   completion_pct numeric(5, 2) check (completion_pct between 0 and 100),
   metric_version integer not null default 1 check (metric_version = 1),
+  episode_duration_ms integer not null check (episode_duration_ms between 1000 and 600000),
   snapshot_hash text not null check (snapshot_hash ~ '^[0-9a-f]{64}$'),
   created_at timestamptz not null default now(),
   check (period_start < period_end),
@@ -107,6 +108,8 @@ create table public.retention_experiments (
   name text not null check (char_length(btrim(name)) between 1 and 80),
   variant_a_id uuid not null,
   variant_b_id uuid not null,
+  variant_a_snapshot_id uuid,
+  variant_b_snapshot_id uuid,
   hypothesis text not null default '' check (char_length(hypothesis) <= 500),
   status text not null default 'ACTIVE' check (status in ('DRAFT', 'ACTIVE', 'CLOSED')),
   created_at timestamptz not null default now(),
@@ -116,7 +119,9 @@ create table public.retention_experiments (
   unique (owner_id, episode_id, name),
   foreign key (owner_id, episode_id) references public.episodes (owner_id, id) on delete restrict,
   foreign key (owner_id, variant_a_id) references public.creative_variants (owner_id, id) on delete restrict,
-  foreign key (owner_id, variant_b_id) references public.creative_variants (owner_id, id) on delete restrict
+  foreign key (owner_id, variant_b_id) references public.creative_variants (owner_id, id) on delete restrict,
+  foreign key (owner_id, variant_a_snapshot_id) references public.analytics_snapshots (owner_id, id) on delete restrict,
+  foreign key (owner_id, variant_b_snapshot_id) references public.analytics_snapshots (owner_id, id) on delete restrict
 );
 
 create index published_posts_by_episode on public.published_posts (owner_id, episode_id, published_at desc);
@@ -289,19 +294,22 @@ begin
   end if;
   if p_hook_variant_id is not null and not exists (
     select 1 from public.hook_variants h
-    where h.owner_id = p_owner_id and h.id = p_hook_variant_id and h.episode_id = v_post.episode_id
+    where h.owner_id = p_owner_id and h.id = p_hook_variant_id
+      and h.episode_id = v_post.episode_id and h.status = 'APPLIED'
   ) then
     raise exception 'retention_hook_variant_invalid' using errcode = '23514';
   end if;
   if p_cover_revision_id is not null and not exists (
     select 1 from public.cover_revisions c
-    where c.owner_id = p_owner_id and c.id = p_cover_revision_id and c.episode_id = v_post.episode_id
+    where c.owner_id = p_owner_id and c.id = p_cover_revision_id
+      and c.episode_id = v_post.episode_id and c.status = 'APPROVED'
   ) then
     raise exception 'retention_cover_invalid' using errcode = '23514';
   end if;
   if p_end_card_id is not null and not exists (
     select 1 from public.choice_end_cards c
-    where c.owner_id = p_owner_id and c.id = p_end_card_id and c.episode_id = v_post.episode_id
+    where c.owner_id = p_owner_id and c.id = p_end_card_id
+      and c.episode_id = v_post.episode_id and c.status = 'APPROVED'
   ) then
     raise exception 'retention_end_card_invalid' using errcode = '23514';
   end if;
@@ -331,6 +339,7 @@ create or replace function public.save_analytics_snapshot(
   p_followers_gained integer,
   p_avg_watch_ms integer,
   p_completion_pct numeric,
+  p_episode_duration_ms integer,
   p_snapshot_hash text,
   p_supersedes_snapshot_id uuid default null,
   p_import_id uuid default null
@@ -355,7 +364,8 @@ begin
     or coalesce(p_shares, 0) < 0 or coalesce(p_saves, 0) < 0
     or coalesce(p_followers_gained, 0) < 0 or coalesce(p_avg_watch_ms, 0) < 0
     or coalesce(p_completion_pct, 0) < 0 or coalesce(p_completion_pct, 0) > 100
-    or coalesce(p_avg_watch_ms, 0) > 600000 then
+    or coalesce(p_avg_watch_ms, 0) > coalesce(p_episode_duration_ms, 0)
+    or coalesce(p_episode_duration_ms, 0) not between 1000 and 600000 then
     raise exception 'retention_metric_invalid' using errcode = '23514';
   end if;
   if not exists (
@@ -375,6 +385,7 @@ begin
   ) then
     raise exception 'retention_import_invalid' using errcode = '23514';
   end if;
+  perform pg_advisory_xact_lock(hashtextextended(p_post_id::text, 0));
   select s.revision_number into v_existing
   from public.analytics_snapshots s
   where s.owner_id = p_owner_id and s.post_id = p_post_id and s.snapshot_hash = p_snapshot_hash;
@@ -391,12 +402,12 @@ begin
     owner_id, post_id, revision_number, supersedes_snapshot_id, import_id,
     captured_at, period_start, period_end, source, note,
     views, likes, comments, shares, saves, followers_gained, avg_watch_ms,
-    completion_pct, snapshot_hash
+    completion_pct, episode_duration_ms, snapshot_hash
   ) values (
     p_owner_id, p_post_id, v_revision, p_supersedes_snapshot_id, p_import_id,
     p_captured_at, p_period_start, p_period_end, p_source, btrim(coalesce(p_note, '')),
     p_views, p_likes, p_comments, p_shares, p_saves, p_followers_gained, p_avg_watch_ms,
-    p_completion_pct, p_snapshot_hash
+    p_completion_pct, p_episode_duration_ms, p_snapshot_hash
   );
   return v_revision;
 end;
@@ -452,6 +463,10 @@ language plpgsql security definer set search_path = pg_catalog, public
 as $$
 declare
   v_id uuid;
+  v_post_a uuid;
+  v_post_b uuid;
+  v_snap_a uuid;
+  v_snap_b uuid;
 begin
   if p_owner_id is null or p_episode_id is null then
     raise exception 'owner_auth_required' using errcode = '42501';
@@ -460,26 +475,40 @@ begin
     or char_length(btrim(coalesce(p_name, ''))) not between 1 and 80 then
     raise exception 'retention_experiment_invalid' using errcode = '23514';
   end if;
-  if not exists (
-    select 1 from public.creative_variants va
-    join public.published_posts pa on pa.owner_id = va.owner_id and pa.id = va.post_id
-    where va.owner_id = p_owner_id and va.id = p_variant_a_id and pa.episode_id = p_episode_id
-  ) or not exists (
-    select 1 from public.creative_variants vb
-    join public.published_posts pb on pb.owner_id = vb.owner_id and pb.id = vb.post_id
-    where vb.owner_id = p_owner_id and vb.id = p_variant_b_id and pb.episode_id = p_episode_id
-  ) then
+  select va.post_id into v_post_a
+  from public.creative_variants va
+  join public.published_posts pa on pa.owner_id = va.owner_id and pa.id = va.post_id
+  where va.owner_id = p_owner_id and va.id = p_variant_a_id and pa.episode_id = p_episode_id;
+  select vb.post_id into v_post_b
+  from public.creative_variants vb
+  join public.published_posts pb on pb.owner_id = vb.owner_id and pb.id = vb.post_id
+  where vb.owner_id = p_owner_id and vb.id = p_variant_b_id and pb.episode_id = p_episode_id;
+  if v_post_a is null or v_post_b is null then
     raise exception 'retention_experiment_variant_invalid' using errcode = '23514';
   end if;
+  if v_post_a = v_post_b then
+    raise exception 'retention_experiment_same_post' using errcode = '23514';
+  end if;
+  select s.id into v_snap_a
+  from public.analytics_snapshots s
+  where s.owner_id = p_owner_id and s.post_id = v_post_a
+  order by s.revision_number desc limit 1;
+  select s.id into v_snap_b
+  from public.analytics_snapshots s
+  where s.owner_id = p_owner_id and s.post_id = v_post_b
+  order by s.revision_number desc limit 1;
   insert into public.retention_experiments (
-    owner_id, episode_id, name, variant_a_id, variant_b_id, hypothesis
+    owner_id, episode_id, name, variant_a_id, variant_b_id,
+    variant_a_snapshot_id, variant_b_snapshot_id, hypothesis
   ) values (
     p_owner_id, p_episode_id, btrim(p_name), p_variant_a_id, p_variant_b_id,
-    btrim(coalesce(p_hypothesis, ''))
+    v_snap_a, v_snap_b, btrim(coalesce(p_hypothesis, ''))
   )
   on conflict (owner_id, episode_id, name) do update
     set variant_a_id = excluded.variant_a_id,
         variant_b_id = excluded.variant_b_id,
+        variant_a_snapshot_id = excluded.variant_a_snapshot_id,
+        variant_b_snapshot_id = excluded.variant_b_snapshot_id,
         hypothesis = excluded.hypothesis,
         updated_at = now()
   returning id into v_id;
@@ -519,7 +548,7 @@ $$;
 
 revoke all on function public.save_published_post(uuid, uuid, uuid, text, text, timestamptz, text, text, text) from public, anon, authenticated;
 revoke all on function public.save_creative_variant(uuid, uuid, text, text, uuid, uuid, uuid) from public, anon, authenticated;
-revoke all on function public.save_analytics_snapshot(uuid, uuid, timestamptz, timestamptz, timestamptz, text, text, bigint, bigint, bigint, bigint, bigint, integer, integer, numeric, text, uuid, uuid) from public, anon, authenticated;
+revoke all on function public.save_analytics_snapshot(uuid, uuid, timestamptz, timestamptz, timestamptz, text, text, bigint, bigint, bigint, bigint, bigint, integer, integer, numeric, integer, text, uuid, uuid) from public, anon, authenticated;
 revoke all on function public.save_retention_import(uuid, text, text, integer, integer, integer, integer) from public, anon, authenticated;
 revoke all on function public.save_retention_experiment(uuid, uuid, text, uuid, uuid, text) from public, anon, authenticated;
 revoke all on function public.delete_published_post(uuid, uuid) from public, anon, authenticated;
@@ -527,12 +556,12 @@ revoke all on function public.reject_retention_history_mutation() from public, a
 
 grant execute on function public.save_published_post(uuid, uuid, uuid, text, text, timestamptz, text, text, text) to service_role;
 grant execute on function public.save_creative_variant(uuid, uuid, text, text, uuid, uuid, uuid) to service_role;
-grant execute on function public.save_analytics_snapshot(uuid, uuid, timestamptz, timestamptz, timestamptz, text, text, bigint, bigint, bigint, bigint, bigint, integer, integer, numeric, text, uuid, uuid) to service_role;
+grant execute on function public.save_analytics_snapshot(uuid, uuid, timestamptz, timestamptz, timestamptz, text, text, bigint, bigint, bigint, bigint, bigint, integer, integer, numeric, integer, text, uuid, uuid) to service_role;
 grant execute on function public.save_retention_import(uuid, text, text, integer, integer, integer, integer) to service_role;
 grant execute on function public.save_retention_experiment(uuid, uuid, text, uuid, uuid, text) to service_role;
 grant execute on function public.delete_published_post(uuid, uuid) to service_role;
 
 comment on table public.analytics_snapshots is
   'Owner-only aggregate snapshots supplied manually or by CSV; never fetched from platforms.';
-comment on function public.save_analytics_snapshot(uuid, uuid, timestamptz, timestamptz, timestamptz, text, text, bigint, bigint, bigint, bigint, bigint, integer, integer, numeric, text, uuid, uuid) is
+comment on function public.save_analytics_snapshot(uuid, uuid, timestamptz, timestamptz, timestamptz, text, text, bigint, bigint, bigint, bigint, bigint, integer, integer, numeric, integer, text, uuid, uuid) is
   'Server-only idempotent snapshot append with explicit NULL metrics and a supersedes chain.';

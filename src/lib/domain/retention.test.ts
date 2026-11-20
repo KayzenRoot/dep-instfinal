@@ -3,6 +3,7 @@ import {
 	compareVariantObservations,
 	computeRetentionMetrics,
 	LOW_SAMPLE_VIEWS,
+	parseCsvRows,
 	parseRetentionCsv,
 	RetentionError,
 	retentionCsv,
@@ -49,7 +50,7 @@ describe('retention formulas', () => {
 		expect(result.missing).toEqual([]);
 	});
 
-	it('never turns missing metrics into zero', () => {
+	it('never turns missing metrics into zero and flags partial interactions', () => {
 		const result = computeRetentionMetrics(
 			metrics({ likes: null, comments: null, shares: null, saves: null }),
 			120_000,
@@ -58,6 +59,20 @@ describe('retention formulas', () => {
 		expect(result.engagementRate).toBeNull();
 		expect(result.interactionsPer1000).toBeNull();
 		expect(result.missing).toContain('interactions');
+		expect(result.interactionCoverage).toBe('NONE');
+
+		const partial = computeRetentionMetrics(
+			metrics({ likes: null, comments: 50, shares: 30, saves: 20 }),
+			120_000,
+		);
+		expect(partial.interactionCoverage).toBe('PARTIAL');
+		expect(partial.warnings).toContain('PARTIAL_INTERACTIONS');
+		const full = observation();
+		const partialObservation = observation({ metrics: partial });
+		expect(compareVariantObservations(full, partialObservation, 'engagement_rate')).toMatchObject({
+			status: 'INSUFFICIENT',
+			warnings: expect.arrayContaining(['INTERACTION_COVERAGE_MISMATCH']),
+		});
 
 		const noViews = computeRetentionMetrics(metrics({ views: null }), 120_000);
 		expect(noViews.engagementRate).toBeNull();
@@ -77,7 +92,10 @@ describe('retention formulas', () => {
 		expect(discrepancy.warnings).toContain('COMPLETION_DISCREPANCY');
 	});
 
-	it('rejects watch time above the episode duration', () => {
+	it('rejects watch time above the episode duration, including 105%', () => {
+		expect(() => computeRetentionMetrics(metrics({ avgWatchMs: 126_000 }), 120_000)).toThrow(
+			RetentionError,
+		);
 		expect(() => computeRetentionMetrics(metrics({ avgWatchMs: 130_000 }), 120_000)).toThrow(
 			RetentionError,
 		);
@@ -162,11 +180,22 @@ describe('CSV import and export', () => {
 		expect(() => parseRetentionCsv('a,b\n1,2')).toThrow(RetentionError);
 	});
 
-	it('guards formula injection in exported cells', () => {
-		expect(sanitizeCsvCell('=SUM(A1:A2)')).toBe("'=SUM(A1:A2)");
-		expect(sanitizeCsvCell('@user')).toBe("'@user");
+	it('guards formula injection including commas and newlines', () => {
+		expect(sanitizeCsvCell('=SUM(A1:A2)')).toBe(`"'=SUM(A1:A2)"`);
+		expect(sanitizeCsvCell('@user')).toBe(`"'@user"`);
 		expect(sanitizeCsvCell('a,b')).toBe('"a,b"');
-		const csv = retentionCsv([{ label: '=HYPERLINK("x")', views: 10 }]);
-		expect(csv).toContain("'=HYPERLINK");
+		expect(sanitizeCsvCell('=1,2')).toBe(`"'=1,2"`);
+		const csv = retentionCsv([{ label: '=x\n=HYPERLINK("https://evil.example")', views: 10 }]);
+		const parsed = parseCsvRows(csv);
+		expect(parsed).toHaveLength(2);
+		expect(parsed[1]).toHaveLength(2);
+		expect(parsed[1]?.[0]).toContain(`'=HYPERLINK`);
+	});
+
+	it('rejects ambiguous thousands separators in CSV numbers', () => {
+		const csv = `${header}\nTikTok,https://www.tiktok.com/@x/video/1,2026-11-01T00:00:00Z,A,2026-11-01T00:00:00Z,2026-11-08T00:00:00Z,2026-11-09T00:00:00Z,1.000,1,1,1,1,0,30000,50,ok`;
+		const parsed = parseRetentionCsv(csv);
+		expect(parsed.rows).toHaveLength(0);
+		expect(parsed.errors[0]?.message).toContain('Número inteiro inválido');
 	});
 });
