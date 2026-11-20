@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(183);
+select plan(196);
 
 do $$
 declare
@@ -16,7 +16,7 @@ declare
     'voice_direction_plans', 'narration_takes',
     'caption_tracks', 'audio_assets', 'render_quality_reports', 'hook_variants',
     'character_identity_profiles', 'character_identity_profile_versions',
-    'visual_continuity_reports'
+    'visual_continuity_reports', 'cover_revisions'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -64,7 +64,7 @@ begin
       'voice_direction_plans', 'narration_takes', 'caption_tracks', 'audio_assets',
       'render_quality_reports', 'hook_variants',
       'character_identity_profiles', 'character_identity_profile_versions',
-      'visual_continuity_reports'
+      'visual_continuity_reports', 'cover_revisions'
     ) then
       if v_policy_count <> 1 then raise exception 'edit plan policies must be read-only'; end if;
       if has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
@@ -2185,6 +2185,152 @@ select is(
   (select count(*) from public.visual_continuity_reports
    where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
   2::bigint, 'continuity retention leaves the configured number of revisions'
+);
+reset role;
+
+select lives_ok(
+  $$select public.save_cover_revision(
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      0,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'templateVersion', 1,
+        'templateId', 'noir',
+        'format', '9:16',
+        'frameAssetId', null,
+        'title', 'Capa de teste',
+        'seriesTitle', 'RLS test series'
+      ),
+      repeat('f', 64), 'DRAFT'
+    );$$,
+  'service role stores the first cover revision'
+);
+select throws_ok(
+  $$select public.save_cover_revision(
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      0,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'templateVersion', 1,
+        'templateId', 'noir',
+        'format', '9:16',
+        'frameAssetId', null,
+        'title', 'Capa de teste',
+        'seriesTitle', 'RLS test series'
+      ),
+      repeat('f', 64), 'DRAFT'
+    );$$,
+  '40001', 'cover_revision_conflict',
+  'cover revisions require the current revision'
+);
+select lives_ok(
+  $$select public.save_cover_revision(
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      1,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'templateVersion', 1,
+        'templateId', 'vhs_polaroid',
+        'format', '4:5',
+        'frameAssetId', null,
+        'title', 'Capa aprovada',
+        'seriesTitle', 'RLS test series'
+      ),
+      repeat('a', 64), 'APPROVED'
+    );$$,
+  'service role appends an approved cover revision'
+);
+select lives_ok(
+  $$select public.save_cover_revision(
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      2,
+      jsonb_build_object(
+        'schemaVersion', 1,
+        'templateVersion', 1,
+        'templateId', 'archive',
+        'format', '4:5',
+        'frameAssetId', null,
+        'title', 'Capa DRAFT posterior',
+        'seriesTitle', 'RLS test series'
+      ),
+      repeat('b', 64), 'DRAFT'
+    );$$,
+  'service role appends a newer draft after the approved cover'
+);
+select is(
+  (select count(*) from public.cover_revisions
+   where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+  3::bigint, 'cover history keeps all three revisions'
+);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.cover_revisions), 3::bigint,
+  'owner can read cover revisions'
+);
+select throws_ok(
+  $$insert into public.cover_revisions (
+      owner_id, episode_id, revision_number, template_id, format, config, config_hash
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      3, 'noir', '9:16', '{}'::jsonb, repeat('a', 64)
+    );$$,
+  '42501', 'permission denied for table cover_revisions',
+  'owner cannot write cover revisions directly'
+);
+select throws_ok(
+  $$update public.cover_revisions set status = 'APPROVED';$$,
+  '42501', 'permission denied for table cover_revisions',
+  'owner cannot update cover revisions directly'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.cover_revisions), 0::bigint,
+  'second owner cannot read cover revisions'
+);
+reset role;
+set local role service_role;
+select is(
+  public.prune_cover_revisions(
+    '11111111-1111-4111-8111-111111111111',
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    1
+  ), 1,
+  'service role prunes older cover revisions'
+);
+select is(
+  (select count(*) from public.cover_revisions
+   where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+  2::bigint, 'cover retention keeps the approved cover and the newest draft'
+);
+insert into public.cover_revisions (
+  owner_id, episode_id, revision_number, template_id, format, config, config_hash
+)
+select
+  '11111111-1111-4111-8111-111111111111',
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  revision, 'noir', '9:16', '{}'::jsonb, repeat('c', 64)
+from generate_series(4, 501) as revision;
+select is(
+  (select count(*) from public.cover_revisions
+   where episode_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+  500::bigint, 'cover quota allows exactly 500 revisions per episode'
+);
+select throws_ok(
+  $$insert into public.cover_revisions (
+      owner_id, episode_id, revision_number, template_id, format, config, config_hash
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      502, 'noir', '9:16', '{}'::jsonb, repeat('c', 64)
+    );$$,
+  '23514', 'cover_revision_quota',
+  'cover quota blocks the 501st revision'
 );
 reset role;
 

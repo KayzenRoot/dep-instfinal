@@ -712,6 +712,7 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 		'/app/director',
 		'/app/hooks',
 		episodeId ? `/app/color?episodeId=${episodeId}` : '/app/color',
+		episodeId ? `/app/covers?episodeId=${episodeId}` : '/app/covers',
 		'/app/settings',
 		...(seriesDetail ? [seriesDetail] : []),
 		...(episodeDetail ? [episodeDetail] : []),

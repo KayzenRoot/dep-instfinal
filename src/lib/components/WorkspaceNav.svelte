@@ -25,6 +25,12 @@
 			glyph: 'frames',
 		},
 		{
+			path: '/app/covers',
+			href: resolve('/app/covers'),
+			label: 'Capas',
+			glyph: 'frames',
+		},
+		{
 			path: '/app/library',
 			href: resolve('/app/library'),
 			label: 'Biblioteca visual',
@@ -189,7 +195,7 @@
 	}
 
 	.mobile-nav .nav-link:nth-child(4),
-	.mobile-nav .nav-link:nth-child(n + 6) {
+	.mobile-nav .nav-link:nth-child(n + 7) {
 		display: none;
 	}
 

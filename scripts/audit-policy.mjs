@@ -74,6 +74,10 @@ const identityRetentionMigration = await readFile(
 	'supabase/migrations/20261119132000_v2_wo017_retention.sql',
 	'utf8',
 );
+const coverMigration = await readFile(
+	'supabase/migrations/20261119160000_v2_wo018_covers.sql',
+	'utf8',
+);
 const retentionScript = await readFile('scripts/retention.mjs', 'utf8');
 const restoreScript = await readFile('scripts/restore-metadata.mjs', 'utf8');
 const hook = await readFile('src/hooks.server.ts', 'utf8');
@@ -111,9 +115,10 @@ const tables = [
 	...qualityMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...hookMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...identityMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...coverMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['29 owner-scoped public tables', tables.length === 29],
+	['30 owner-scoped public tables', tables.length === 30],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -379,6 +384,18 @@ const checks = [
 			identityRetentionMigration.includes('prune_visual_continuity_reports') &&
 			identityRetentionMigration.includes('prune_character_identity_profile_versions') &&
 			identityRetentionMigration.includes('dif.continuity_prune'),
+	],
+	[
+		'cover revisions are owner-readable, immutable and server-written',
+		coverMigration.includes('cover_revisions') &&
+			coverMigration.includes('force row level security') &&
+			coverMigration.includes('grant select on table public.cover_revisions to authenticated') &&
+			coverMigration.includes('grant execute on function public.save_cover_revision') &&
+			coverMigration.includes('cover_revision_is_immutable') &&
+			coverMigration.includes('cover_revision_conflict') &&
+			coverMigration.includes('cover_frame_asset_invalid') &&
+			coverMigration.includes('prune_cover_revisions') &&
+			coverMigration.includes('dif.cover_prune'),
 	],
 	[
 		'render quotas, health and ops scripts are server-only and dry-run first',

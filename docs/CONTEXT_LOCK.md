@@ -210,6 +210,14 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner authorized merge/promotion on 2026-11-14; PR #55 squash-merged at `326c576`; issue #24 closed; checkpoint **PROMOTED**. WO-008 (#25) is next.
 
+## V2 Context Lock — WO-018 (#35)
+
+- **Base revalidated:** `main` `2617b67` (checkpoint WO-017 promoted). Branch: `feat/dif-v2-wo-018`.
+- **Issue inventory:** WO-001–017 **MERGED/CLOSED/PROMOTED**; WO-018/#35 em execução; WO-014 blocked by 019–021 + OPS.
+- **Scope:** capas/posters/cards determinísticos sobre frames privados; 4 presets; formatos 9:16/3:4/4:5; foco, safe zones, versões e downloads owner-only.
+- **Delivered locally:** `cover_revisions` service-write/owner-read; render Sharp on demand; `/app/covers` na nav; approve/restore; PNG/JPEG/ZIP com guarda 4 MB; capa aprovada no episódio; hash versionado; quota exercitada; policy 32/30; PgTAP 196/196.
+- **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROPOSED**. WO-019 (#36) é a próxima.
+
 ## V2 Context Lock — WO-017 (#34)
 
 - **Base revalidated:** `main` `174e045` (checkpoint WO-016 promoted). Branch: `feat/dif-v2-wo-017`.

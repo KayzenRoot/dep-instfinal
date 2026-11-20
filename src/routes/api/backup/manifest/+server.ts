@@ -32,6 +32,7 @@ const TABLES = [
 	'character_identity_profiles',
 	'character_identity_profile_versions',
 	'visual_continuity_reports',
+	'cover_revisions',
 ] as const;
 
 export const GET: RequestHandler = async (event) => {

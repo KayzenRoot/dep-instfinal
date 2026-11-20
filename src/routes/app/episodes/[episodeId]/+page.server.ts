@@ -150,6 +150,14 @@ export const load: PageServerLoad = async (event) => {
 		error(503, 'Não foi possível preparar o contexto narrativo e canônico.');
 	}
 	const continuityWarnings = await loadContinuityWarnings(db, owner.id, episodeId);
+	const { data: approvedCovers } = await db
+		.from('cover_revisions')
+		.select('id,revision_number,template_id,format,created_at')
+		.eq('owner_id', owner.id)
+		.eq('episode_id', episodeId)
+		.eq('status', 'APPROVED')
+		.order('revision_number', { ascending: false })
+		.limit(6);
 	return {
 		episode,
 		scenes: scenesResult.data ?? [],
@@ -161,6 +169,7 @@ export const load: PageServerLoad = async (event) => {
 		decisions,
 		narrativeContext,
 		continuityWarnings,
+		approvedCovers: approvedCovers ?? [],
 		ownerId: owner.id,
 		aiProvider: availableGenerationProvider(deploymentOidcToken(event.request)),
 	};
