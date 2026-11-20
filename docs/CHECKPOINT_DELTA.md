@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-OPS-015-021 — extensões operacionais (2026-11-20) — PROMOTED
+
+- **Status:** **PROMOTED**; code/test head `77d5626`; CI `44787029917` PASS (351+3 unit, PgTAP 247/247, E2E 19/19, policy 36/41, Sonar PASS); auditoria independente **APPROVED WITH RESIDUALS**; squash-merged em `c7490e8` (PR #69).
+- **Base:** `main` `3950ccb` (checkpoint WO-021 promovido).
+- **Delivered:** `episode_revisions` incluído no backup/restore; policy deriva as 41 tabelas de todas as migrations e exige cobertura exata; restore exige summary com 41 chaves e `shaVerified` derivado; backup/restore local executado (41/41 contagens, join 768, QA 5/5, metadata/coverage OK, mídia fail-closed para 3 temporários ausentes); matriz de quotas/retenção e limites manuais documentados.
+- **Limits:** backup só `public` (sem Auth/senha/mídia/URLs); restore remoto, R2 lifecycle/GC e Auth restore manuais; ACL Windows/criptografia local pendentes; quotas de posts/imports de retenção sem poda automática.
+- **Next:** WO-014 (#31) release V2 — bloqueada por credencial Supabase para migrations no hosted.
+
 ## DIF-V2-WO-021 — Bíblia audiovisual, presets e herança (2026-11-20) — PROMOTED
 
 - **Status:** **PROMOTED**; code/test head `f32cc97`; CI `44776291945` PASS (351+3 unit, PgTAP 247/247, E2E 19/19, policy 35/41, Sonar PASS); reauditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b83dd44` (PR #68); issue #38 fechada.

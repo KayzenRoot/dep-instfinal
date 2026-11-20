@@ -1,6 +1,6 @@
 # DIF-V2-WO-013 — Hardening operacional: quotas, backup, retenção e recuperação
 
-**Status:** **PROMOTED (núcleo)**; unit **210+3**, PgTAP **155/155**, policy **29/25** no núcleo (após OPS 015–021: **36/41**), E2E **14/14**; CI `44410994788` e ARM64 `44410995020` em `fa236af` PASS; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b1a1eaf` (PR #61); issue #30 fechada. **Extensões OPS 015–021 concluídas** em `docs/V2_OPS_015_021.md` (backup/restore das 41 tabelas, `episode_revisions` incluído, policy 36/41). Sem deploy de worker/VPS.
+**Status:** **PROMOTED (núcleo)**; unit **210+3**, PgTAP **155/155**, policy **29/25** no núcleo (após OPS 015–021: **36/41**), E2E **14/14**; CI `44410994788` e ARM64 `44410995020` em `fa236af` PASS; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b1a1eaf` (PR #61); issue #30 fechada. **Extensões OPS 015–021 concluídas e promovidas** em `docs/V2_OPS_015_021.md` (backup/restore das 41 tabelas, `episode_revisions` incluído, policy 36/41, merge `c7490e8`). Sem deploy de worker/VPS.
 **Base:** `main` `7d15076` (checkpoint WO-012 promovido).
 **Escopo:** WO-013 (#30) — núcleo operacional (quotas, limites de worker, saúde, backup/restore, retenção dry-run). As extensões OPS-2026-11-12 ligadas às WOs 015–021 foram concluídas em `docs/V2_OPS_015_021.md`, sem infraestrutura duplicada.
 

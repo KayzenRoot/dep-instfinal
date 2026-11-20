@@ -1,7 +1,7 @@
 # DIF-V2-OPS-015-021 — evidence
 
 Date: 2026-11-20 (America/Sao_Paulo)
-Branch: `feat/dif-v2-ops-015-021` (base `main` `3950ccb`)
+Branch: `feat/dif-v2-ops-015-021` (base `main` `3950ccb`) · head `77d5626` · merge `c7490e8`
 
 ## Static
 
@@ -13,8 +13,8 @@ Branch: `feat/dif-v2-ops-015-021` (base `main` `3950ccb`)
 - `npm run lint`: PASS.
 - `npm test`: **351 passed + 3 skipped** (CI baseline).
 - `npm run test:db`: **247/247** PgTAP PASS.
-- CI quality `44782439445` PASS (10m59s), Sonar/Socket/Vercel PASS.
-- Auditoria independente: **APPROVED WITH RESIDUALS**; findings textuais corrigidos antes do merge.
+- CI quality `44787029917` PASS (9m33s), Sonar/Socket/Vercel PASS.
+- Auditoria independente: **APPROVED WITH RESIDUALS**; findings corrigidos e PR #69 squash-merged em `c7490e8`.
 
 ## Backup / restore (local disposable stack)
 

@@ -213,10 +213,10 @@ Revalidate before any external action if `main` changes; the feature branch is r
 ## V2 Context Lock — WO-021 (#38)
 
 - **Base revalidated:** `main` `2fcfd89` (checkpoint WO-020 promoted). Branch: `feat/dif-v2-wo-021`.
-- **Issue inventory:** WO-001–021 **MERGED/CLOSED/PROMOTED**; OPS 015–021 são a próxima etapa; WO-014 release depende de OPS.
+- **Issue inventory:** WO-001–021 **MERGED/CLOSED/PROMOTED**; OPS 015–021 **PROMOTED** (`c7490e8`); WO-014 release é a próxima etapa.
 - **Scope:** presets versionados por série/temporada, overrides por episódio/cena, precedência/origem/versão por campo, snapshot no plano, export/import JSON owner-only, preview de assets aprovados.
 - **Delivered:** 4 tabelas RLS + quota 200 + clear RPC; `/app/style`; `/api/style`; timeline opt-in e drift; legendas/fonte/área segura no render; CTA/template no final e capa no fluxo; PgTAP 247; policy 35/41; E2E 19/19.
-- **Gate:** atendido; CI `44776291945` PASS, reauditoria **APPROVED WITH RESIDUALS**, PR #68 squash-merged em `b83dd44`, issue #38 fechada; checkpoint **PROMOTED**. OPS 015–021 é a próxima etapa; WO-014 release segue bloqueada até OPS.
+- **Gate:** atendido; CI `44776291945` PASS, reauditoria **APPROVED WITH RESIDUALS**, PR #68 squash-merged em `b83dd44`, issue #38 fechada; checkpoint **PROMOTED**. OPS 015–021 foi promovida em `c7490e8`; WO-014 release é a próxima etapa.
 
 ## V2 Context Lock — WO-020 (#37)
 

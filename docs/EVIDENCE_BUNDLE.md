@@ -1,5 +1,19 @@
 # DIF Studio — Evidence Bundle
 
+## V2 OPS 015–021 — extensões operacionais (2026-11-20) — PROMOTED
+
+- **Work Order:** `DIF-V2-OPS-015-021` · refs #30 · epic #17
+- **Base:** `main` `3950ccb`; head `77d5626`; merge `c7490e8` (PR #69)
+- **Status:** **PROMOTED**; CI `44787029917` PASS (351+3 unit, PgTAP 247/247, E2E 19/19, policy 36/41, Sonar PASS); auditoria independente **APPROVED WITH RESIDUALS**.
+
+| Check    | Result     | Evidence                                                                     |
+| -------- | ---------- | ---------------------------------------------------------------------------- |
+| Coverage | PASS       | backup/restore com 41/41 tabelas, incl. `episode_revisions` (173)            |
+| Policy   | PASS       | 36 invariantes; tabelas derivadas de todas as migrations                     |
+| Restore  | PASS local | 41/41 counts, SHA, join 768, QA 5/5, metadata/coverage OK; mídia fail-closed |
+| Security | PASS       | fail-closed, sem Auth/senha/mídia/URLs no dump                               |
+| Limits   | —          | restore remoto/R2/Auth manual; ACL local pendente; quotas sem poda           |
+
 ## V2 WO-021 — Bíblia audiovisual, presets e herança (2026-11-20) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-021` · issue #38 · epic #17
