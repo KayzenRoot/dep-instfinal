@@ -213,10 +213,10 @@ Revalidate before any external action if `main` changes; the feature branch is r
 ## V2 Context Lock — WO-018 (#35)
 
 - **Base revalidated:** `main` `2617b67` (checkpoint WO-017 promoted). Branch: `feat/dif-v2-wo-018`.
-- **Issue inventory:** WO-001–017 **MERGED/CLOSED/PROMOTED**; WO-018/#35 em execução; WO-014 blocked by 019–021 + OPS.
+- **Issue inventory:** WO-001–018 **MERGED/CLOSED/PROMOTED**; WO-019/#36 é a próxima; WO-014 blocked by 019–021 + OPS.
 - **Scope:** capas/posters/cards determinísticos sobre frames privados; 4 presets; formatos 9:16/3:4/4:5; foco, safe zones, versões e downloads owner-only.
 - **Delivered locally:** `cover_revisions` service-write/owner-read; render Sharp on demand; `/app/covers` na nav; approve/restore; PNG/JPEG/ZIP com guarda 4 MB; capa aprovada no episódio; hash versionado; quota exercitada; policy 32/30; PgTAP 196/196.
-- **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROPOSED**. WO-019 (#36) é a próxima.
+- **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROMOTED** (`62c30eb`, PR #65). WO-019 (#36) é a próxima.
 
 ## V2 Context Lock — WO-017 (#34)
 

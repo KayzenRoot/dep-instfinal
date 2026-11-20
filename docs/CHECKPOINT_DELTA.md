@@ -1,12 +1,20 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-018 — Capas, posters e cards (2026-11-19) — PROPOSED
+## DIF-V2-WO-018 — Capas, posters e cards (2026-11-19) — PROMOTED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 196/196, policy 32/30; CI `44639723116` PASS em `f0acc7b` (287+3, E2E 16/16, Sonar PASS); auditoria final **APPROVED WITH RESIDUALS**. Sem merge/deploy.
+- **Status:** **PROMOTED**; code/test head `f0acc7b`; CI `44639723116` PASS (287+3, PgTAP 196/196, E2E 16/16, Sonar PASS), docs-only `866d972` CI `44642167315` PASS; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `62c30eb` (PR #65); issue #35 fechada.
 - **Base:** `main` `2617b67` (checkpoint WO-017 promovido); branch `feat/dif-v2-wo-018`.
-- **Delivered:** configs de capa versionadas sobre frames privados existentes; 4 presets; 9:16/3:4/4:5 com safe zones; render Sharp sob demanda; `/app/covers`; aprovação/restauração; PNG/JPEG/ZIP owner-only; sem bytes gerados persistidos.
-- **Limits:** sem extração de frame do vídeo; fonte do ambiente; texto heurístico; render por demanda; quota 500 sem poda UI.
-- **Gate:** CI + auditoria independente + autorização contínua do owner; WO-019 (#36) é a próxima.
+- **Delivered:** configs de capa versionadas sobre frames privados existentes; 4 presets; 9:16/3:4/4:5 com safe zones; render Sharp sob demanda; `/app/covers`; aprovação/restauração; PNG/JPEG/ZIP owner-only; capa aprovada no episódio; hash versionado; sem bytes gerados persistidos.
+- **Limits:** sem extração de frame do vídeo; fonte do ambiente; texto heurístico; render por demanda; quota 500 sem poda UI; sem golden cross-host; write path do hash exige versão explícita antes de um bump.
+- **Gate:** atendido; WO-019 (#36) é a próxima.
+
+## V2 checkpoint promotion — WO-018 (2026-11-19)
+
+- **Owner decision:** continuidade autônoma registrada nas mensagens “continue de onde parou”; PR #65 squash-merged em `62c30eb`; issue #35 fechada.
+- **Audit:** três rodadas independentes; H1–H4 e M1–M7 corrigidos/reduzidos; veredito final **APPROVED WITH RESIDUALS** sem CRITICAL/HIGH.
+- **Evidence:** unit 287+3, PgTAP 196/196 (quota incluída), policy 32/30, E2E 16/16 com screenshots 360/768/1440; CI `44639723116`; migration `20261119160000_v2_wo018_covers.sql`.
+- **Residuals:** sem golden image cross-host; E2E sem frame real/Cloudinary; non-owner autenticado sem E2E de `/api/covers`; aviso 409/502 e fallback ZIP >4 MB sem E2E; hash v1 e RPC grava versão fixa; frames só de assets já vinculados; render sem cache.
+- **Next:** WO-019 (#36) CTA A/B e finais; WO-014 release segue bloqueada por 019–021 e OPS.
 
 ## DIF-V2-WO-017 — Continuidade visual e Character Identity Kit (2026-11-19) — PROMOTED
 

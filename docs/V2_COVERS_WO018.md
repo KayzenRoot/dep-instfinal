@@ -1,6 +1,6 @@
 # DIF-V2-WO-018 — Capas, posters e cards
 
-**Status:** implementação completa em `feat/dif-v2-wo-018`; CI `44639723116` PASS no head `f0acc7b` (287+3 unit, PgTAP 196/196, E2E 16/16, Sonar PASS); auditoria independente final **APPROVED WITH RESIDUALS**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** **PROMOTED**; CI `44639723116` PASS no code head `f0acc7b` (287+3 unit, PgTAP 196/196, E2E 16/16, Sonar PASS); auditoria independente final **APPROVED WITH RESIDUALS**; squash-merged em `62c30eb` (PR #65); issue #35 fechada. Sem deploy nesta WO.
 **Base:** `main` `2617b67` (checkpoint WO-017 promovido).
 **Escopo:** WO-018 (#35), dependente de WO-003/004/011/012/016.
 

@@ -1,10 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-018 — Capas, posters e cards (2026-11-19) — PROPOSED
+## V2 WO-018 — Capas, posters e cards (2026-11-19) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-018` · issue #35 · epic #17
 - **Base:** `main` `2617b67` (checkpoint WO-017 promovido); branch `feat/dif-v2-wo-018`
-- **Status:** code/test head `f0acc7b`; CI `44639723116` PASS (287+3 unit, PgTAP **196/196**, E2E 16/16, Sonar PASS); policy 32/30. Checkpoint **PROPOSED**.
+- **Status:** **PROMOTED**; code/test head `f0acc7b`; CI `44639723116` PASS (287+3 unit, PgTAP **196/196**, E2E 16/16, Sonar PASS); docs-only `866d972` CI `44642167315` PASS; squash-merged em `62c30eb` (PR #65); issue #35 fechada. Auditoria final **APPROVED WITH RESIDUALS**.
 - **Auditoria:** rodada 1 **CORRECTION REQUIRED**; rodada 2 **APPROVED WITH RESIDUALS** em `922cf38`; rodada final incorpora série dentro do crop, `hash_version` lida, quota PgTAP, determinismo, transparência e screenshots 360/768/1440.
 
 | Check   | Result     | Evidence                                                                                  |
