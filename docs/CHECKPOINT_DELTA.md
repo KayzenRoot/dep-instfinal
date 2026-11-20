@@ -2,7 +2,7 @@
 
 ## DIF-V2-WO-019 — Finais A/B e CTA cinematográfica (2026-11-20) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 210/210, policy 33/31, unit 306+3, E2E local do finale PASS; CI hosted e auditoria final pendentes. Sem merge/deploy.
+- **Status:** **PROPOSED — NOT PROMOTED**; CI `44676921244` PASS em `ff00957` (307+3 unit, PgTAP 210/210, E2E 17/17, Sonar PASS), policy 33/31; correções da auditoria aplicadas; auditoria delta final pendente. Sem merge/deploy.
 - **Base:** `main` `c94409d` (checkpoint WO-018 promovido); branch `feat/dif-v2-wo-019`.
 - **Delivered:** configs de final A/B versionadas com snapshot das duas escolhas; 6 presets × 2 layouts; ASS + SFX determinísticos no fim do MP4; `/app/finale`; anexo ao plano; stale/409; export ZIP; gate de finale sem escolhas.
 - **Limits:** card 2D sem geração de vídeo; labels fixos das escolhas; janela no fim; sem UI de poda; sem golden cross-host; voto continua manual V1.

@@ -1,6 +1,6 @@
 # DIF-V2-WO-019 — Finais A/B, CTA cinematográfica e votação manual
 
-**Status:** implementação completa em `feat/dif-v2-wo-019`; unit/render/action, PgTAP 210/210, policy 33/31, build e E2E local do final A/B PASS; CI hosted e auditoria independente **PENDENTES**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** implementação completa; CI `44676921244` PASS em `ff00957` (307+3 unit, PgTAP 210/210, E2E 17/17, Sonar PASS), policy 33/31; correções da auditoria aplicadas; auditoria delta final **PENDENTE**. Sem merge/deploy; checkpoint **PROPOSED**.
 **Base:** `main` `c94409d` (checkpoint WO-018 promovido).
 **Escopo:** WO-019 (#36), dependente de WO-004/008/010/011/012 e do par de escolhas V1.
 
@@ -28,6 +28,8 @@
 - A janela é sempre o fim do episódio; não há arraste da posição na timeline nesta WO.
 - O SFX é sintetizado por fórmula; não usa biblioteca licenciada nem asset externo.
 - O histórico visível é limitado a 30 revisões; a poda é service-only e preserva APPROVED.
+- Consequências multilinha do V1 são aceitas no snapshot do cânone; apenas labels/prompt/rodapé passam por `printableText`.
+- A migration `20261120090000` é a primeira aplicação desta WO e nunca foi deployada; não existe ambiente com o schema anterior. Cards sintéticos locais das rodadas de auditoria foram removidos, então não há backfill a executar. O CI usa banco fresco.
 
 ## Critérios de aceitação
 
@@ -50,7 +52,7 @@
 
 ## Testes planejados/executados
 
-- Unit: 10 testes — 6 presets, safe area dos 2 layouts, wrap/overflow de labels, ASS com A/B/prompt/rodapé, escape e movimento reduzido, janela inválida, hash de escolhas/config (incluindo consequência), WAV determinístico/volume, plano com CTA conflitante, overflow e fim real.
+- Unit: 11 testes — 6 presets, safe area dos 2 layouts, wrap/overflow de labels, ASS com A/B/prompt/rodapé, escape e movimento reduzido, janela inválida, consequência multilinha vs label sem newline, hash de escolhas/config (incluindo consequência), WAV determinístico/volume, plano com CTA conflitante, overflow e fim real.
 - Render/composição: 4 testes — filtro ASS do card após legendas, mute de narração na janela, mux de narração sem SFX e burn-in FFmpeg sobre frame verde com checagem de cobertura/luma/acentos + SFX.
 - Actions: 4 testes — geração sequencial de 2 layouts, preset inválido, anexo ao plano no fim do episódio e conflito stale.
 - PgTAP 210: owner read, escrita direta negada, segundo owner isolado, RPC versionada, poda preservando APPROVED, quota 200 exercitada, episódio sem escolhas e episódio publicado bloqueados.

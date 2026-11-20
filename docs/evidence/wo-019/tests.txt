@@ -2,6 +2,8 @@
 
 Date: 2026-11-20 (America/Sao_Paulo)
 Branch: `feat/dif-v2-wo-019` (base `main` `c94409d`)
+Code/test head: `ff00957`
+CI: `44676921244` PASS (307+3 unit, PgTAP 210/210, E2E 17/17, Sonar PASS)
 
 ## Static
 
@@ -13,11 +15,12 @@ Branch: `feat/dif-v2-wo-019` (base `main` `c94409d`)
 
 ## Unit / action / render
 
-- Unit suite: **306 passed + 3 skipped** locally.
-- `choice-end-card.test.ts`: 10/10 — six presets, safe areas for split/stacked, label wrap and
+- Unit suite: **307 passed + 3 skipped** locally.
+- `choice-end-card.test.ts`: 11/11 — six presets, safe areas for split/stacked, label wrap and
   overflow error, ASS A/B/prompt/footer with `\an7` geometry, escaping and reduced motion, invalid
-  window, choice/config hashes including `consequence`, deterministic WAV/volume, CTA conflict,
-  text overflow and real-timeline-end enforcement.
+  window, multiline consequence accepted while labels reject newlines, choice/config hashes
+  including `consequence`, deterministic WAV/volume, CTA conflict, text overflow and
+  real-timeline-end enforcement.
 - `render-composition.test.ts`: ASS card filter chained after captions; narration mute only inside
   the card window in both mix and narration-only paths.
 - `render-compose.integration.test.ts`: FFmpeg burns the A/B card over a green frame and checks
@@ -28,7 +31,8 @@ Branch: `feat/dif-v2-wo-019` (base `main` `c94409d`)
 
 ## E2E
 
-- `e2e/finale.spec.ts` local PASS (41.8 s): login, nav “Final A/B”, synthetic episode + two
+- CI: **17/17** E2E PASS in 6.2 min.
+- `e2e/finale.spec.ts` local PASS (33.2 s): login, nav “Final A/B”, synthetic episode + two
   choices, generate split+stacked, approve, ASS/JSON/WAV downloads, `finale/end-card.ass` inside
   the export ZIP, anonymous 401/403/404, consequence-only change via the V1 RPC (three stale
   revisions and API 409), then label change, screenshots 360/768/1440.
@@ -39,7 +43,10 @@ Branch: `feat/dif-v2-wo-019` (base `main` `c94409d`)
 - PgTAP: owner read, direct write denied, second owner isolated, revision conflict, APPROVED
   preservation under prune, draft quota 200 exercised (200 drafts + approved allowed, 201st draft
   blocked), episode without two choices blocked, published episode blocked.
-- The RPC receives the exact choices snapshot and rejects concurrent snapshot drift.
+- The RPC receives the exact choices snapshot (labels/consequences trimmed and compared) and rejects
+  concurrent snapshot drift.
+- The migration is the first application of this WO and was never deployed; no environment holds
+  the prior schema and synthetic local cards were removed, so no backfill is required.
 - Quota/prune are service-only; the UI lists the latest 30 revisions but approved is fetched
   independently, so it does not disappear behind newer drafts.
 

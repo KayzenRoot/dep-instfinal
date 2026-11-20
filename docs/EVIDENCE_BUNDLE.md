@@ -4,7 +4,7 @@
 
 - **Work Order:** `DIF-V2-WO-019` · issue #36 · epic #17
 - **Base:** `main` `c94409d` (checkpoint WO-018 promovido); branch `feat/dif-v2-wo-019`
-- **Status:** implementação + provas locais; unit **306+3**, PgTAP **210/210**, policy 33/31, build e E2E local do finale PASS; CI hosted e auditoria pendentes. Checkpoint **PROPOSED**.
+- **Status:** code/test head `ff00957`; CI `44676921244` PASS (**307+3** unit, PgTAP **210/210**, E2E **17/17**, Sonar PASS); policy 33/31. Correções da auditoria aplicadas; auditoria delta final pendente. Checkpoint **PROPOSED**.
 
 | Check   | Result     | Evidence                                                                                      |
 | ------- | ---------- | --------------------------------------------------------------------------------------------- |
@@ -13,10 +13,10 @@
 | Render  | PASS local | ASS standalone após legendas; frame FFmpeg com luma escura e acentos; SFX WAV + loudnorm      |
 | UI      | PASS local | `/app/finale` gera/aprova/restaura, prévia 9:16, downloads e anexo à timeline                 |
 | Privacy | PASS local | `choice_end_cards` owner-read/service-write; API owner-only/no-store; anônimo negado          |
-| History | PASS local | append-only, optimize revision, prune preservando APPROVED, quota 200 exercitada              |
+| History | PASS local | append-only, prune preservando APPROVED, quota de 200 drafts exercitada + snapshot no RPC     |
 | PgTAP   | PASS local | 210/210 com RLS, imutabilidade, quota, episódio sem escolhas e publicado                      |
 | Policy  | PASS local | 33 invariantes / 31 tabelas; backup/restore incluem choice_end_cards                          |
-| CI      | PENDENTE   | quality/Sonar/E2E no head do PR                                                               |
+| CI      | PASS       | `44676921244` em `ff00957`: quality/Sonar/E2E, 307+3, PgTAP 210 e E2E 17                      |
 | Limites | —          | card 2D, sem voto automático, labels fixos, janela no fim, sem golden cross-host              |
 
 ## V2 WO-018 — Capas, posters e cards (2026-11-19) — PROMOTED
