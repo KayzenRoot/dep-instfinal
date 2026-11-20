@@ -104,7 +104,7 @@ test('owner builds, approves and invalidates the two-choice end card', async ({
 	await callRpc(request, token, 'save_episode_choices', {
 		p_episode_id: episodeId,
 		p_option_1_label: 'ENTRAR',
-		p_option_1_consequence: 'A personagem entra e tranca a porta.',
+		p_option_1_consequence: 'A personagem entra e tranca a porta.\nNinguém sai.',
 		p_option_2_label: 'FUGIR',
 		p_option_2_consequence: 'A personagem foge da sala.',
 	});
@@ -116,7 +116,7 @@ test('owner builds, approves and invalidates the two-choice end card', async ({
 	await callRpc(request, token, 'save_episode_choices', {
 		p_episode_id: episodeId,
 		p_option_1_label: 'ENTRAR AGORA',
-		p_option_1_consequence: 'A personagem entra e tranca a porta.',
+		p_option_1_consequence: 'A personagem entra e tranca a porta.\nNinguém sai.',
 		p_option_2_label: 'FUGIR',
 		p_option_2_consequence: 'A personagem foge da sala.',
 	});

@@ -31,6 +31,17 @@ const printableText = (minimum: number, maximum: number) =>
 		.max(maximum)
 		.refine((value) => !/\p{Cc}/u.test(value), 'Texto não pode conter caracteres de controle.');
 
+/** Consequences are hashed for the stale gate but never rendered, so V1 newlines are valid. */
+const consequenceText = z
+	.string()
+	.trim()
+	.min(1)
+	.max(4_000)
+	.refine(
+		(value) => !/\p{Cc}/u.test(value.replaceAll(/[\n\r\t]/g, '')),
+		'Consequência não pode conter caracteres de controle além de quebras de linha.',
+	);
+
 export const choiceEndCardConfigSchema = z.object({
 	schemaVersion: z.literal(1),
 	templateId: z.enum(CHOICE_END_CARD_TEMPLATE_IDS),
@@ -52,7 +63,7 @@ export const choiceEndCardChoiceSchema = z.object({
 	id: uuid,
 	optionKey: z.enum(['1', '2']),
 	label: printableText(1, 180),
-	consequence: printableText(1, 4_000),
+	consequence: consequenceText,
 });
 
 export type ChoiceEndCardChoice = z.infer<typeof choiceEndCardChoiceSchema>;

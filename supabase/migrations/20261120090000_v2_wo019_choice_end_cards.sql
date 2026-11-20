@@ -133,7 +133,7 @@ begin
   select jsonb_agg(
       jsonb_build_object(
         'id', c.id, 'optionKey', c.option_key,
-        'label', c.label, 'consequence', c.consequence
+        'label', btrim(c.label), 'consequence', btrim(c.consequence)
       )
       order by c.option_key
     )

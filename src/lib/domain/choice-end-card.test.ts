@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	choiceEndCardChoiceSchema,
 	choiceEndCardConfigSchema,
 	type ChoiceEndCardConfig,
 } from '#lib/schemas/choice-end-card.js';
@@ -164,6 +165,17 @@ describe('end card ASS overlay', () => {
 });
 
 describe('end card hashes and audio', () => {
+	it('accepts V1 multiline consequences without letting labels carry newlines', () => {
+		const parsed = choiceEndCardChoiceSchema.parse({
+			...choices[0],
+			consequence: 'Primeira linha.\nSegunda linha.\tCom tab.',
+		});
+		expect(parsed.consequence).toContain('\n');
+		expect(
+			choiceEndCardChoiceSchema.safeParse({ ...choices[0], label: 'ENTRAR\nAGORA' }).success,
+		).toBe(false);
+	});
+
 	it('hashes choices deterministically and changes with labels', () => {
 		expect(choiceSetHash(choices)).toBe(choiceSetHash([...choices].reverse()));
 		expect(choiceSetHash(choices)).not.toBe(
