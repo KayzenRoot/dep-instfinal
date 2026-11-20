@@ -1,12 +1,20 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-021 — Bíblia audiovisual, presets e herança (2026-11-20) — PROPOSED / NOT PROMOTED
+## DIF-V2-WO-021 — Bíblia audiovisual, presets e herança (2026-11-20) — PROMOTED
 
-- **Status:** auditoria round 1 **CORRECTION REQUIRED**; correções HIGH/MEDIUM aplicadas; CI final/reauditoria/merge pendentes. Sem deploy.
+- **Status:** **PROMOTED**; code/test head `f32cc97`; CI `44776291945` PASS (351+3 unit, PgTAP 247/247, E2E 19/19, policy 35/41, Sonar PASS); reauditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b83dd44` (PR #68); issue #38 fechada.
 - **Base:** `main` `2fcfd89` (checkpoint WO-020 promovido); branch `feat/dif-v2-wo-021`.
-- **Delivered:** presets versionados por série/temporada com revisão imutável e quota 200; overrides owner-only por episódio/cena com clear real e `reducedMotion` tri-state; precedência/origem/versão por campo; snapshot congelado no plano com opt-in explícito; legenda/fonte/área segura aplicadas no render; CTA/template no final; clipe-amostra sintético; `/app/style`; export/import JSON estrito; auditoria de SFX; 4 tabelas RLS.
-- **Limits:** SFX/voz/capa/final permanecem referências para telas especializadas; amostra é sintética; backup/restore das novas tabelas não exercitado; sem backfill de séries existentes; falta E2E de render antigo byte-idêntico.
-- **Gate:** pendente de CI/auditoria; WO-014 release segue bloqueada por OPS 015–021.
+- **Delivered:** presets versionados por série/temporada com revisão imutável, quota 200 e clear real; overrides owner-only por episódio/cena com `reducedMotion` tri-state; precedência/origem/versão por campo; snapshot congelado no plano com opt-in explícito e snapshot autoritativo do servidor; legenda/fonte/área segura no render/export; CTA/template/capa no fluxo de geração; preview com amostra, áudio de SFX, capa/narração aprovadas e final; `/app/style`; export/import JSON estrito; auditoria de SFX; 4 tabelas RLS.
+- **Limits:** sem golden/E2E de render antigo byte-idêntico; voz/SFX não são auto-injetados em planos antigos; backup/restore não executado; histórico integral de revisões ainda serializado ao cliente; amostra é sintética; sem backfill de séries existentes.
+- **Gate:** atendido; OPS 015–021 e WO-014 release seguem como próximos.
+
+## V2 checkpoint promotion — WO-021 (2026-11-20)
+
+- **Owner decision:** continuidade autônoma registrada; PR #68 squash-merged em `b83dd44`; issue #38 fechada.
+- **Audit:** duas rodadas independentes; H1 (timeline 360), H2 (paginação do bulk), M1 (snapshot do cliente), M2 (override vazio/`none`), M3 (versão por campo/preview), M7/M8 e LOW corrigidos; veredito final **APPROVED WITH RESIDUALS** sem HIGH.
+- **Evidence:** unit 351+3, PgTAP 247/247, policy 35/41, E2E 19/19, Sonar PASS; CI `44776291945`; migrations `20261120130000`, `20261120131000`, `20261120132000`.
+- **Residuals:** sem golden/E2E de render antigo byte-idêntico; voz/SFX/capa/final são referências e não auto-injetados; backup/restore não executado; histórico integral de revisões serializado; capa preview em 9:16 fixo; defaults do finale sem guard de estilo; drift ignora `versions` no topo; erros de queries de capa/final silenciosos.
+- **Next:** OPS 015–021; depois WO-014 release.
 
 ## DIF-V2-WO-020 — Laboratório de retenção (2026-11-20) — PROMOTED
 

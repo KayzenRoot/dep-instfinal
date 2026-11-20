@@ -1,10 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-021 — Bíblia audiovisual, presets e herança (2026-11-20) — PROPOSED / NOT PROMOTED
+## V2 WO-021 — Bíblia audiovisual, presets e herança (2026-11-20) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-021` · issue #38 · epic #17
 - **Base:** `main` `2fcfd89` (checkpoint WO-020 promovido); branch `feat/dif-v2-wo-021`
-- **Status:** auditoria independente round 1 **CORRECTION REQUIRED**; correções HIGH/MEDIUM aplicadas; CI final/reauditoria, merge e promoção pendentes. Sem deploy.
+- **Status:** **PROMOTED**; code/test head `f32cc97`; CI `44776291945` PASS (351+3 unit, PgTAP 247/247, E2E 19/19, policy 35/41, Sonar PASS); reauditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b83dd44` (PR #68); issue #38 fechada. Sem deploy.
 
 | Check      | Result     | Evidence                                                                                   |
 | ---------- | ---------- | ------------------------------------------------------------------------------------------ |
@@ -18,8 +18,8 @@
 | PgTAP      | PASS local | 247/247 RLS, imutabilidade, concorrência, quota 200, clear owner-only                      |
 | Policy     | PASS local | 35 invariantes / 41 tabelas; backup/restore incluem as 4 tabelas                           |
 | E2E        | PASS local | duas séries, overrides, clear, export/import estrito, screenshots 360/768/1440             |
-| CI         | PENDENTE   | quality/Sonar/E2E no HEAD final                                                            |
-| Limites    | —          | render aplica cor/legenda/fonte; SFX/voz/capa/final são referências; backup não exercitado |
+| CI         | PASS       | `44776291945` em `f32cc97`: quality/Sonar/Socket/Vercel, E2E 19/19                         |
+| Limites    | —          | render aplica cor/legenda/fonte; voz/SFX/capa/final são referências; backup não exercitado |
 
 ## V2 WO-020 — Laboratório de retenção (2026-11-20) — PROMOTED
 

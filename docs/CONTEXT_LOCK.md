@@ -210,6 +210,14 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner authorized merge/promotion on 2026-11-14; PR #55 squash-merged at `326c576`; issue #24 closed; checkpoint **PROMOTED**. WO-008 (#25) is next.
 
+## V2 Context Lock — WO-021 (#38)
+
+- **Base revalidated:** `main` `2fcfd89` (checkpoint WO-020 promoted). Branch: `feat/dif-v2-wo-021`.
+- **Issue inventory:** WO-001–021 **MERGED/CLOSED/PROMOTED**; OPS 015–021 são a próxima etapa; WO-014 release depende de OPS.
+- **Scope:** presets versionados por série/temporada, overrides por episódio/cena, precedência/origem/versão por campo, snapshot no plano, export/import JSON owner-only, preview de assets aprovados.
+- **Delivered:** 4 tabelas RLS + quota 200 + clear RPC; `/app/style`; `/api/style`; timeline opt-in e drift; legendas/fonte/área segura no render; CTA/template no final e capa no fluxo; PgTAP 247; policy 35/41; E2E 19/19.
+- **Gate:** atendido; CI `44776291945` PASS, reauditoria **APPROVED WITH RESIDUALS**, PR #68 squash-merged em `b83dd44`, issue #38 fechada; checkpoint **PROMOTED**. OPS 015–021 é a próxima etapa; WO-014 release segue bloqueada até OPS.
+
 ## V2 Context Lock — WO-020 (#37)
 
 - **Base revalidated:** `main` `59ec14c` (checkpoint WO-019 promoted). Branch: `feat/dif-v2-wo-020`.

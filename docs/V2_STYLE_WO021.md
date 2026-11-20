@@ -1,7 +1,7 @@
 # DIF-V2-WO-021 — Bíblia audiovisual, presets e herança
 
 **Issue:** #38 · **Branch:** `feat/dif-v2-wo-021` · **Base:** `main` `2fcfd89`
-**Status:** implementação concluída localmente; PR Draft/CI/auditoria independente pendentes. Sem deploy e sem promoção de checkpoint.
+**Status:** **PROMOTED**; code/test head `f32cc97`; CI `44776291945` PASS (351+3 unit, PgTAP 247/247, E2E 19/19, policy 35/41, Sonar PASS); reauditoria final **APPROVED WITH RESIDUALS**; squash-merged em `b83dd44` (PR #68); issue #38 fechada. Sem deploy.
 
 ## Objetivo entregue
 
@@ -49,18 +49,20 @@ Legendas e tipografia são aplicadas no render/export a partir do snapshot conge
 
 ## Testes e provas
 
-| Suíte                                | Resultado                                                                                                                                                     |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit/domain `style-bible.test.ts`    | 9 testes: precedência/versões, todos os 19 campos com cena vencendo, hash determinístico, import/export estrito, cenas congeladas, drift, fallback de SFX     |
-| Unit/actions `style-actions.test.ts` | 8 testes: save, override esparso, limpeza vazia, `reducedMotion=false`, SFX explícito, aprovação da revisão clicada, JSON inválido, conflito 409              |
-| Unit/plan `video-edit-plans.test.ts` | 3 testes: opt-in explícito, snapshot no plano + injeção de cor, neutro/color explícito preservados                                                            |
-| Unit/caption `style-caption.test.ts` | 3 testes: mapeamento horror→VHS, área segura e fonte no ASS; legado sem snapshot intacto                                                                      |
-| Unit/licença `style-bible.test.ts`   | 2 testes: asset ausente e sem licença comercial/social antes de qualquer escrita                                                                              |
-| PgTAP `rls_and_integrity.sql`        | **247/247** — RLS das 4 tabelas, revisão imutável, conflito, escopo inválido, leitura por owner, escrita direta negada, quota 200, clear owner-only           |
-| Policy audit                         | **35 invariantes / 41 tabelas**                                                                                                                               |
-| E2E `style.spec.ts`                  | 2 séries com estilos distintos, sem contaminação; override de episódio/cena; export sem segredos; import DRAFT-only; títulos longos; screenshots 360/768/1440 |
-| Build/typecheck/lint                 | `npm run build`, `npm run check`, `npm run lint` PASS                                                                                                         |
-| Suíte unit/integração completa       | **350 passed + 3 skipped**                                                                                                                                    |
+| Suíte                                    | Resultado                                                                                                                                                              |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit/domain `style-bible.test.ts`        | 9 testes: precedência/versões, todos os 19 campos com cena vencendo, hash determinístico, import/export estrito, cenas congeladas, drift, fallback de SFX              |
+| Unit/actions `style-actions.test.ts`     | 10 testes: save, override esparso, limpeza, `reducedMotion=false`, SFX explícito, clear explícito, aprovação por revisão, revisão ausente, JSON inválido, conflito 409 |
+| Unit/plan `video-edit-plans.test.ts`     | 3 testes: opt-in explícito, snapshot no plano + injeção de cor, neutro/color explícito preservados                                                                     |
+| Unit/save `video-edit-plan-save.test.ts` | 4 testes: save comum preserva snapshot, snapshot forjado ignorado, plano legado intacto, opt-in aplica estilo/cor                                                      |
+| Unit/bulk `style-bible-bulk.test.ts`     | 1 teste: paginação >1.000 revisões mantém latest/approved                                                                                                              |
+| Unit/caption `style-caption.test.ts`     | 3 testes: mapeamento horror→VHS, área segura e fonte no ASS; legado sem snapshot intacto                                                                               |
+| Unit/licença `style-bible.test.ts`       | 2 testes: asset ausente e sem licença comercial/social antes de qualquer escrita                                                                                       |
+| PgTAP `rls_and_integrity.sql`            | **247/247** — RLS das 4 tabelas, revisão imutável, conflito, escopo inválido, leitura por owner, escrita direta negada, quota 200, clear owner-only                    |
+| Policy audit                             | **35 invariantes / 41 tabelas**                                                                                                                                        |
+| E2E `style.spec.ts`                      | 2 séries com estilos distintos, sem contaminação; override de episódio/cena; export sem segredos; import DRAFT-only; títulos longos; screenshots 360/768/1440          |
+| Build/typecheck/lint                     | `npm run build`, `npm run check`, `npm run lint` PASS                                                                                                                  |
+| Suíte unit/integração completa           | **351 passed + 3 skipped**                                                                                                                                             |
 
 ## Matriz de aceitação
 

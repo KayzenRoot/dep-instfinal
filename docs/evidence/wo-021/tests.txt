@@ -1,7 +1,7 @@
 # DIF-V2-WO-021 — evidence
 
 Date: 2026-11-20 (America/Sao_Paulo)
-Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
+Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`) · code/test head `f32cc97` · merge `b83dd44` · CI `44776291945`
 
 ## Static
 
@@ -30,9 +30,9 @@ Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
   latest/approved preservados.
 - `style-caption.test.ts`: **3/3** — horror→VHS, safe zone, ASS font and legacy track
   unchanged without a snapshot.
-- `video-edit-plan-save.test.ts`: **4/4** — ordinary save preserves the stored snapshot,
+- `video-edit-plan-save.test.ts`: **5/5** — ordinary save preserves the stored snapshot,
   legacy plan without snapshot stays unchanged, explicit opt-in applies style/color.
-- Full unit/integration suite: **350 passed + 3 skipped**.
+- Full unit/integration suite: **351 passed + 3 skipped** no CI final.
 
 ## E2E
 
@@ -85,10 +85,12 @@ Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
   audio, the approved cover image via the private API, the approved end-card
   revision and the approved narration take audio; SFX application remains a documented reference.
 
-## Pending / residuals
+## Outcome
 
-- PR Draft, final CI quality/Sonar/E2E, independent re-audit of the final SHA, merge
-  and checkpoint promotion.
+- CI `44776291945` PASS: 351+3 unit, PgTAP 247/247, policy 35/41, E2E 19/19, Sonar PASS.
+- Reauditoria final **APPROVED WITH RESIDUALS**; squash-merged at `b83dd44` (PR #68); issue #38 closed; checkpoint promoted.
+
+## Residuals
 - No E2E of an already-rendered plan staying byte-identical after a preset revision;
   the frozen snapshot/hash is proven by unit/design, not a rendered golden.
 - Voice and SFX application remain validated references for their specialized screens;
