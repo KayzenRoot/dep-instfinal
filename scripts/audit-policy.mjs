@@ -82,6 +82,10 @@ const endCardMigration = await readFile(
 	'supabase/migrations/20261120090000_v2_wo019_choice_end_cards.sql',
 	'utf8',
 );
+const retentionLabMigration = await readFile(
+	'supabase/migrations/20261120110000_v2_wo020_retention_lab.sql',
+	'utf8',
+);
 const retentionScript = await readFile('scripts/retention.mjs', 'utf8');
 const restoreScript = await readFile('scripts/restore-metadata.mjs', 'utf8');
 const hook = await readFile('src/hooks.server.ts', 'utf8');
@@ -121,9 +125,10 @@ const tables = [
 	...identityMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...coverMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...endCardMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...retentionLabMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['31 owner-scoped public tables', tables.length === 31],
+	['37 owner-scoped public tables', tables.length === 37],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -413,6 +418,19 @@ const checks = [
 			endCardMigration.includes('end_card_requires_two_choices') &&
 			endCardMigration.includes('prune_choice_end_cards') &&
 			endCardMigration.includes('dif.end_card_prune'),
+	],
+	[
+		'retention lab is owner-read, service-written and idempotent',
+		retentionLabMigration.includes('published_posts') &&
+			retentionLabMigration.includes('analytics_snapshots') &&
+			retentionLabMigration.includes('retention_history_is_immutable') &&
+			retentionLabMigration.includes(
+				'grant select on table public.analytics_snapshots to authenticated',
+			) &&
+			retentionLabMigration.includes('grant execute on function public.save_analytics_snapshot') &&
+			retentionLabMigration.includes('grant execute on function public.delete_published_post') &&
+			retentionLabMigration.includes('snapshot_hash') &&
+			retentionLabMigration.includes('unique (owner_id, post_id, snapshot_hash)'),
 	],
 	[
 		'render quotas, health and ops scripts are server-only and dry-run first',

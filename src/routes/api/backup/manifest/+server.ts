@@ -34,6 +34,12 @@ const TABLES = [
 	'visual_continuity_reports',
 	'cover_revisions',
 	'choice_end_cards',
+	'published_posts',
+	'published_post_versions',
+	'creative_variants',
+	'retention_imports',
+	'analytics_snapshots',
+	'retention_experiments',
 ] as const;
 
 export const GET: RequestHandler = async (event) => {

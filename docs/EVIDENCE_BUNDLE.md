@@ -1,5 +1,24 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-020 — Laboratório de retenção (2026-11-20) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-020` · issue #37 · epic #17
+- **Base:** `main` `59ec14c` (checkpoint WO-019 promovido); branch `feat/dif-v2-wo-020`
+- **Status:** implementação + provas locais; unit **318+3**, PgTAP **229/229**, policy 34/37, build e E2E local PASS; CI `44694433465` PASS em `02d9cae` (318+3 unit, PgTAP 229/229, E2E 18/18, Sonar PASS); auditoria delta pendente. Checkpoint **PROPOSED**.
+
+| Check   | Result     | Evidence                                                                             |
+| ------- | ---------- | ------------------------------------------------------------------------------------ |
+| Model   | PASS local | posts versionados, variantes, snapshots imutáveis, imports e experimentos owner-only |
+| Metrics | PASS local | fórmulas v1 com numerador/denominador; NULL ≠ zero; watch > duração rejeitado        |
+| Compare | PASS local | mesma plataforma, janelas ±20%, views ≥1000; senão NOT_COMPARABLE/INSUFFICIENT       |
+| UI      | PASS local | `/app/retention` cadastra, importa CSV, mostra origem/denominador, compara e remove  |
+| Privacy | PASS local | owner-read/service-write; URLs nunca fetched; sem dados de espectadores              |
+| Export  | PASS local | CSV/JSON owner-only, no-store, proteção de fórmula CSV                               |
+| PgTAP   | PASS local | 229/229 RLS, idempotência, supersedes, imutabilidade, experimento e cascata          |
+| Policy  | PASS local | 34 invariantes / 37 tabelas; backup/restore incluem as 6 tabelas                     |
+| CI      | PENDENTE   | quality/Sonar/E2E no head do PR                                                      |
+| Limites | —          | sem API/scraping; descritivo, não causal; sem significância; CSV = último snapshot   |
+
 ## V2 WO-019 — Finais A/B e CTA cinematográfica (2026-11-20) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-019` · issue #36 · epic #17
