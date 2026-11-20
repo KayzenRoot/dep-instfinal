@@ -352,6 +352,7 @@ export async function loadPresetsBulk(
 				.select('*')
 				.eq('owner_id', owner.id)
 				.in('preset_id', chunk)
+				.order('preset_id')
 				.order('revision_number', { ascending: false })
 				.range(from, from + 999);
 			if (error)
