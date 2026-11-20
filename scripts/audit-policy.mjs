@@ -99,6 +99,7 @@ const styleBibleClearMigration = await readFile(
 	'utf8',
 );
 const retentionScript = await readFile('scripts/retention.mjs', 'utf8');
+const backupScript = await readFile('scripts/backup-metadata.mjs', 'utf8');
 const restoreScript = await readFile('scripts/restore-metadata.mjs', 'utf8');
 const hook = await readFile('src/hooks.server.ts', 'utf8');
 const config = await readFile('src/lib/server/config.ts', 'utf8');
@@ -142,6 +143,25 @@ const tables = [
 ].map((match) => match[1]);
 const checks = [
 	['41 owner-scoped public tables', tables.length === 41],
+	[
+		'backup and restore cover every public table',
+		(() => {
+			const backupBlock = backupScript.match(/const tableNames = \[([\s\S]*?)\];/)?.[1] ?? '';
+			const restoreBlock =
+				restoreScript.match(/const allowedTables = new Set\(\[([\s\S]*?)\]\);/)?.[1] ?? '';
+			const backupTables = [...backupBlock.matchAll(/'([a-z][a-z0-9_]*)'/g)].map(
+				(match) => match[1],
+			);
+			const restoreTables = [...restoreBlock.matchAll(/'([a-z][a-z0-9_]*)'/g)].map(
+				(match) => match[1],
+			);
+			return (
+				backupTables.length === tables.length &&
+				restoreTables.length === tables.length &&
+				tables.every((table) => backupTables.includes(table) && restoreTables.includes(table))
+			);
+		})(),
+	],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&

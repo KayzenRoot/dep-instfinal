@@ -66,6 +66,7 @@ const tableNames = [
 	'characters',
 	'lore_facts',
 	'episodes',
+	'episode_revisions',
 	'scenes',
 	'choices',
 	'polls',

@@ -37,6 +37,7 @@ const allowedTables = new Set([
 	'characters',
 	'lore_facts',
 	'episodes',
+	'episode_revisions',
 	'scenes',
 	'choices',
 	'polls',

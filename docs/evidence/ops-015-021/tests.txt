@@ -1,0 +1,37 @@
+# DIF-V2-OPS-015-021 — evidence
+
+Date: 2026-11-20 (America/Sao_Paulo)
+Branch: `feat/dif-v2-ops-015-021` (base `main` `3950ccb`)
+
+## Static
+
+- `npm run audit:policy`: **36 invariants / 41 tables** PASS, including the new
+  “backup and restore cover every public table” invariant.
+- Backup/restore table lists: **41/41** tables each (`episode_revisions` restored to
+  the lists after the audit gap).
+- `npm run check`, `npm run lint`, `npm run build`, `npm run test:db`: expected PASS
+  on the final SHA (rerun before PR).
+
+## Backup / restore (local disposable stack)
+
+- Command: `npm run backup:metadata -- --out-dir <private dir outside repo>`.
+- 41/41 table counts captured; `episode_revisions = 173`.
+- SHA-256 of `schema.sql` and `data.sql` verified before restore (`shaVerified: true`).
+- Restore target: `dif_restore_test` in `supabase_db_dif-studio-local` (disposable).
+- Result:
+  - `countMismatches: []`
+  - `episodeSceneJoinRows: 768`
+  - `readyJobsWithMatchingQaHash: 5/5` (`expectedReadyJobsWithQa: 5`)
+  - `metadataOk: true`, `coverageOk: true`, `artifactsWithoutQa: 0`
+  - `mediaOk: false`, `ok: false` only because 3 temporary E2E MP4 paths no longer
+    existed (`missing`); 2 local artifacts were `verified_local`.
+- This is the intended fail-closed behavior: metadata counts and hashes are proven,
+  while missing media is reported instead of silently accepted.
+- No Auth users, passwords, media bytes, signed URLs or secrets were included.
+
+## Not exercised
+
+- Remote/hosted restore (requires separate approved runbook/target).
+- R2 lifecycle/GC (manual; bucket token lacks lifecycle permission).
+- Auth identity restore (manual step).
+- Full media-byte backup (out of scope by design).
