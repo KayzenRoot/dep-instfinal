@@ -10,6 +10,11 @@ import {
 import { videoEditPlanSchema, type VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
 import { loadAudioAssets } from './audio-library.js';
 import { assertAudioEventsUsable, AudioEventError } from '#lib/domain/audio-events.js';
+import {
+	buildPlanEndCardSnapshot,
+	ChoiceEndCardError,
+	loadApprovedEndCardSnapshot,
+} from './choice-end-card.js';
 
 export class VideoEditPlanError extends Error {
 	constructor(
@@ -254,7 +259,32 @@ export async function saveVideoEditPlan(input: {
 	changeNote?: string;
 }): Promise<number> {
 	const context = await loadEditPlanContext(input.db, input.owner, input.episodeId);
-	const plan = validateForContext(input.plan, context);
+	let linkedPlan = input.plan;
+	if (input.plan.endCard) {
+		try {
+			const { card, choices } = await loadApprovedEndCardSnapshot({
+				db: input.db,
+				owner: input.owner,
+				episodeId: input.episodeId,
+				cardId: input.plan.endCard.cardId,
+				cardRevision: input.plan.endCard.cardRevision,
+			});
+			linkedPlan = {
+				...input.plan,
+				endCard: buildPlanEndCardSnapshot({
+					card,
+					choices,
+					startMs: input.plan.endCard.startMs,
+					endMs: input.plan.endCard.endMs,
+				}),
+			};
+		} catch (cause) {
+			if (cause instanceof ChoiceEndCardError)
+				throw new VideoEditPlanError(cause.status, cause.code, cause.message);
+			throw cause;
+		}
+	}
+	const plan = validateForContext(linkedPlan, context);
 	await assertPlanAudioAssets(input.db, input.owner.id, plan);
 	if (!input.adminDb)
 		throw new VideoEditPlanError(

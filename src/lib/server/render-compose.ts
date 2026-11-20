@@ -176,6 +176,7 @@ export async function renderPlanToFile(input: {
 	ffprobePath?: string;
 	vhsIntensity?: 0 | 1 | 2 | 3;
 	captionAssPath?: string;
+	endCardAssPath?: string;
 	timeoutMs?: number;
 	narration?: NarrationRenderInput;
 	audioEvents?: AudioMixEvent[];
@@ -197,13 +198,25 @@ export async function renderPlanToFile(input: {
 	const videoPath = hasAudio ? `${absoluteOutput}.video.mp4` : absoluteOutput;
 	let captionDir: string | null = null;
 	let captionAssFile: string | undefined;
+	let endCardAssFile: string | undefined;
+	if (input.captionAssPath || input.endCardAssPath) {
+		captionDir = await mkdtemp(join(tmpdir(), 'dif-ass-'));
+	}
 	if (input.captionAssPath) {
-		captionDir = await mkdtemp(join(tmpdir(), 'dif-caption-ass-'));
 		captionAssFile = 'captions.ass';
 		try {
-			await copyFile(input.captionAssPath, join(captionDir, captionAssFile));
+			await copyFile(input.captionAssPath, join(captionDir!, captionAssFile));
 		} catch (cause) {
-			await rm(captionDir, { recursive: true, force: true });
+			await rm(captionDir!, { recursive: true, force: true });
+			throw cause;
+		}
+	}
+	if (input.endCardAssPath) {
+		endCardAssFile = 'endcard.ass';
+		try {
+			await copyFile(input.endCardAssPath, join(captionDir!, endCardAssFile));
+		} catch (cause) {
+			await rm(captionDir!, { recursive: true, force: true });
 			throw cause;
 		}
 	}
@@ -212,6 +225,7 @@ export async function renderPlanToFile(input: {
 			ffmpegPath: input.ffmpegPath,
 			vhsIntensity: input.vhsIntensity,
 			captionAssFile,
+			endCardAssFile,
 			width: expectedWidth,
 			height: expectedHeight,
 			quality: input.quality,
@@ -243,6 +257,15 @@ export async function renderPlanToFile(input: {
 				silenceWindows: acceptedDirectorEvents(input.plan.director, 'SILENCE_BEFORE_REVEAL').map(
 					(event) => ({ startMs: event.startMs, durationMs: event.durationMs }),
 				),
+				narrationMuteWindows:
+					input.plan.endCard?.narration === 'mute'
+						? [
+								{
+									startMs: input.plan.endCard.startMs,
+									durationMs: input.plan.endCard.endMs - input.plan.endCard.startMs,
+								},
+							]
+						: undefined,
 			});
 		} else if (input.narration) {
 			mux = buildNarrationMuxCommand({
@@ -252,6 +275,15 @@ export async function renderPlanToFile(input: {
 				videoDurationMs: command.expectedDurationMs,
 				narrationDurationMs: input.narration.durationMs,
 				volumeDb: (input.narration.volumeDb ?? 0) + (input.masterGainDb ?? 0),
+				muteWindows:
+					input.plan.endCard?.narration === 'mute'
+						? [
+								{
+									startMs: input.plan.endCard.startMs,
+									durationMs: input.plan.endCard.endMs - input.plan.endCard.startMs,
+								},
+							]
+						: undefined,
 			});
 		}
 		const audioCommand = mix ?? mux;

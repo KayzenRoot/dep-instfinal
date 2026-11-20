@@ -78,6 +78,10 @@ const coverMigration = await readFile(
 	'supabase/migrations/20261119160000_v2_wo018_covers.sql',
 	'utf8',
 );
+const endCardMigration = await readFile(
+	'supabase/migrations/20261120090000_v2_wo019_choice_end_cards.sql',
+	'utf8',
+);
 const retentionScript = await readFile('scripts/retention.mjs', 'utf8');
 const restoreScript = await readFile('scripts/restore-metadata.mjs', 'utf8');
 const hook = await readFile('src/hooks.server.ts', 'utf8');
@@ -116,9 +120,10 @@ const tables = [
 	...hookMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...identityMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...coverMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...endCardMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['30 owner-scoped public tables', tables.length === 30],
+	['31 owner-scoped public tables', tables.length === 31],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -396,6 +401,18 @@ const checks = [
 			coverMigration.includes('cover_frame_asset_invalid') &&
 			coverMigration.includes('prune_cover_revisions') &&
 			coverMigration.includes('dif.cover_prune'),
+	],
+	[
+		'end cards are owner-readable, immutable, server-written and tied to two choices',
+		endCardMigration.includes('choice_end_cards') &&
+			endCardMigration.includes('force row level security') &&
+			endCardMigration.includes('grant select on table public.choice_end_cards to authenticated') &&
+			endCardMigration.includes('grant execute on function public.save_choice_end_card') &&
+			endCardMigration.includes('choice_end_card_is_immutable') &&
+			endCardMigration.includes('end_card_revision_conflict') &&
+			endCardMigration.includes('end_card_requires_two_choices') &&
+			endCardMigration.includes('prune_choice_end_cards') &&
+			endCardMigration.includes('dif.end_card_prune'),
 	],
 	[
 		'render quotas, health and ops scripts are server-only and dry-run first',

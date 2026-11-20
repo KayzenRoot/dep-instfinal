@@ -210,6 +210,14 @@ Revalidate before any external action if `main` changes; the feature branch is r
 - **Tests:** PgTAP **108/108**, policy **25 invariants/22 tables**, unit **116 + 2 skipped**, typecheck/lint/build PASS, real FFmpeg mux integration PASS, real Piper TTS opt-in PASS, 232-word synthetic TTS **94.552 s / −2,8 dBFS / −19,5 LUFS / 8,7 MB**; ARM64 **81 s de áudio em 8,86 s, RTF 0,109, 282 MB RSS**, hosted CI `43590151067` **SUCCESS** with E2E **12/12** (timeline narrada READY em 31,3s), owner-boundary narration 401 and responsive layout PASS.
 - **Gate:** owner authorized merge/promotion on 2026-11-14; PR #55 squash-merged at `326c576`; issue #24 closed; checkpoint **PROMOTED**. WO-008 (#25) is next.
 
+## V2 Context Lock — WO-019 (#36)
+
+- **Base revalidated:** `main` `c94409d` (checkpoint WO-018 promoted). Branch: `feat/dif-v2-wo-019`.
+- **Issue inventory:** WO-001–018 **MERGED/CLOSED/PROMOTED**; WO-019/#36 em execução; WO-020–021 e OPS bloqueiam WO-014.
+- **Scope:** CTA A/B cinematográfica a partir das duas escolhas V1; 6 presets, 2 layouts, ASS 9:16, SFX local, anexo à timeline, stale gate e export.
+- **Delivered locally:** `choice_end_cards` service-write/owner-read; `/app/finale` na nav; aprovação/restauração; ASS/JSON/WAV/ZIP; `plan.endCard` validado no servidor; stale 409; PgTAP 210; policy 33/31.
+- **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROPOSED**. WO-020 (#37) é a próxima.
+
 ## V2 Context Lock — WO-018 (#35)
 
 - **Base revalidated:** `main` `2617b67` (checkpoint WO-017 promoted). Branch: `feat/dif-v2-wo-018`.

@@ -1,5 +1,24 @@
 # DIF Studio — Evidence Bundle
 
+## V2 WO-019 — Finais A/B e CTA cinematográfica (2026-11-20) — PROPOSED
+
+- **Work Order:** `DIF-V2-WO-019` · issue #36 · epic #17
+- **Base:** `main` `c94409d` (checkpoint WO-018 promovido); branch `feat/dif-v2-wo-019`
+- **Status:** code/test head `ff00957`; CI `44676921244` PASS (**307+3** unit, PgTAP **210/210**, E2E **17/17**, Sonar PASS); policy 33/31. Correções da auditoria aplicadas; auditoria delta final pendente. Checkpoint **PROPOSED**.
+
+| Check   | Result     | Evidence                                                                                      |
+| ------- | ---------- | --------------------------------------------------------------------------------------------- |
+| Config  | PASS local | `ChoiceEndCardConfig` versionado; 6 presets, 2 layouts, janela, SFX, narração explícita       |
+| Canon   | PASS local | snapshot das 2 escolhas + revisão; hash versionado; stale → 409; final sem escolhas bloqueado |
+| Render  | PASS local | ASS standalone após legendas; frame FFmpeg com luma escura e acentos; SFX WAV + loudnorm      |
+| UI      | PASS local | `/app/finale` gera/aprova/restaura, prévia 9:16, downloads e anexo à timeline                 |
+| Privacy | PASS local | `choice_end_cards` owner-read/service-write; API owner-only/no-store; anônimo negado          |
+| History | PASS local | append-only, prune preservando APPROVED, quota de 200 drafts exercitada + snapshot no RPC     |
+| PgTAP   | PASS local | 210/210 com RLS, imutabilidade, quota, episódio sem escolhas e publicado                      |
+| Policy  | PASS local | 33 invariantes / 31 tabelas; backup/restore incluem choice_end_cards                          |
+| CI      | PASS       | `44676921244` em `ff00957`: quality/Sonar/E2E, 307+3, PgTAP 210 e E2E 17                      |
+| Limites | —          | card 2D, sem voto automático, labels fixos, janela no fim, sem golden cross-host              |
+
 ## V2 WO-018 — Capas, posters e cards (2026-11-19) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-018` · issue #35 · epic #17

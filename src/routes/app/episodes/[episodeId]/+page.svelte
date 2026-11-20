@@ -409,6 +409,9 @@
 			<a class="export-link" href={resolve(`/app/covers?episodeId=${data.episode.id}`)}>
 				Gerar capas e posters <span aria-hidden="true">↗</span>
 			</a>
+			<a class="export-link" href={resolve(`/app/finale?episodeId=${data.episode.id}`)}>
+				Montar final A/B <span aria-hidden="true">↗</span>
+			</a>
 			{#if data.approvedCovers.length}
 				<div class="approved-covers">
 					<h3>Capa aprovada</h3>

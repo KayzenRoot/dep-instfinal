@@ -1,6 +1,12 @@
 import type { EditPlanClip, VideoEditPlan } from '#lib/schemas/video-edit-plan.js';
-import { assertPreviewLayout, defaultPreview, PlatformPreviewError } from './platform-preview.js';
+import {
+	assertPreviewLayout,
+	defaultPreview,
+	PlatformPreviewError,
+	resolvePreviewLayout,
+} from './platform-preview.js';
 import { captionTextFitsBox, wrapCtaText } from './caption-metrics.js';
+import { buildEndCardAss, EndCardError } from './choice-end-card.js';
 
 export class EditPlanError extends Error {
 	constructor(
@@ -303,6 +309,30 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 			throw new EditPlanError('EDIT_PLAN_CTA_INVALID', 'CTA habilitada exige texto.');
 		if (plan.cta.endMs <= plan.cta.startMs || plan.cta.endMs > plan.durationMs)
 			throw new EditPlanError('EDIT_PLAN_CTA_INVALID', 'Janela da CTA inválida.');
+	}
+
+	if (plan.endCard) {
+		if (plan.cta?.enabled)
+			throw new EditPlanError(
+				'EDIT_PLAN_END_CARD_CTA_CONFLICT',
+				'Desative a CTA de texto antes de usar o final A/B.',
+			);
+		const renderEndMs = Math.max(...plan.clips.map((clip) => clip.timelineEndMs), 0);
+		if (
+			plan.endCard.endMs > plan.durationMs ||
+			plan.endCard.endMs !== renderEndMs ||
+			plan.endCard.endMs - plan.endCard.startMs !== plan.endCard.durationMs
+		)
+			throw new EditPlanError(
+				'EDIT_PLAN_END_CARD_WINDOW',
+				'O final A/B precisa terminar no fim real da timeline renderizada.',
+			);
+		try {
+			buildEndCardAss(plan.endCard, resolvePreviewLayout(plan.preview).profile.safeArea);
+		} catch (cause) {
+			if (cause instanceof EndCardError) throw new EditPlanError(cause.code, cause.message);
+			throw cause;
+		}
 	}
 
 	if (plan.director) {

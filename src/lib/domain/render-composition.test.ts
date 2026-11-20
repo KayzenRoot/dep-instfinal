@@ -206,6 +206,54 @@ describe('director render windows', () => {
 		);
 	});
 
+	it('burns a standalone end-card ASS after captions and rejects unsafe names', () => {
+		const plan = buildDefaultEditPlan(context());
+		const command = buildRenderCommand(plan, inputs(plan), '/tmp/out.mp4', {
+			captionAssFile: 'captions.ass',
+			endCardAssFile: 'endcard.ass',
+		});
+		expect(command.filterGraph).toContain('ass=filename=captions.ass[captioned]');
+		expect(command.filterGraph).toContain('[captioned]ass=filename=endcard.ass[endcard]');
+		expect(() =>
+			buildRenderCommand(plan, inputs(plan), '/tmp/out.mp4', {
+				endCardAssFile: '../endcard.ass',
+			}),
+		).toThrow(RenderCompositionError);
+	});
+
+	it('can mute narration only during the end card', () => {
+		const command = buildAudioMixCommand({
+			videoPath: '/tmp/output.mp4',
+			outputPath: '/tmp/final.mp4',
+			videoDurationMs: 120_000,
+			narration: { path: '/tmp/voice.wav', durationMs: 120_000 },
+			events: [
+				{
+					id: '44444444-4444-4444-8444-444444444444',
+					path: '/tmp/endcard.wav',
+					kind: 'SFX',
+					startMs: 114_000,
+					durationMs: 6_000,
+					sourceInMs: 0,
+					gainDb: 0,
+					fadeInMs: 60,
+					fadeOutMs: 120,
+					pan: 0,
+					distance: 0.5,
+					loop: false,
+					ducking: false,
+					spatialPreset: 'none',
+					spatialMode: 'stereo_pan',
+					intensity: 1,
+				},
+			],
+			narrationMuteWindows: [{ startMs: 114_000, durationMs: 6_000 }],
+		});
+		const graph = command.args[command.args.indexOf('-filter_complex') + 1]!;
+		expect(graph).toContain("[narrbase]volume=0:enable='between(t,114.000,120.000)'[narrmute]");
+		expect(graph).toContain('[narrmute]');
+	});
+
 	it('duck-mutes music only inside accepted silence windows', () => {
 		const command = buildAudioMixCommand({
 			videoPath: '/tmp/output.mp4',
@@ -255,6 +303,20 @@ describe('director render windows', () => {
 });
 
 describe('narration mux command', () => {
+	it('mutes narration inside the card window when there are no SFX events', () => {
+		const command = buildNarrationMuxCommand({
+			videoPath: '/tmp/output.mp4',
+			narrationPath: '/tmp/voice.wav',
+			outputPath: '/tmp/final.mp4',
+			videoDurationMs: 120_000,
+			narrationDurationMs: 120_000,
+			muteWindows: [{ startMs: 114_000, durationMs: 6_000 }],
+		});
+		expect(command.args[command.args.indexOf('-af') + 1]).toContain(
+			"volume=0:enable='between(t,114.000,120.000)'",
+		);
+	});
+
 	it('copies video, pads audio to the exact duration and reports timing', () => {
 		const command = buildNarrationMuxCommand({
 			videoPath: '/tmp/output.mp4',

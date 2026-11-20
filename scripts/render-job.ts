@@ -17,7 +17,8 @@ import { inspectRenderArtifact } from '../src/lib/server/quality-inspector.js';
 import { recordQualityReport } from '../src/lib/server/quality-reports.js';
 import type { AudioMixEvent } from '../src/lib/domain/render-composition.js';
 import { buildCaptionAss } from '../src/lib/domain/captions.js';
-import { layoutFromPlan } from '../src/lib/domain/platform-preview.js';
+import { buildEndCardAss, buildEndCardSfxWav } from '../src/lib/domain/choice-end-card.js';
+import { layoutFromPlan, resolvePreviewLayout } from '../src/lib/domain/platform-preview.js';
 import { captionTrackSchema, type CaptionTrack } from '../src/lib/schemas/captions.js';
 
 function required(name: string): string {
@@ -337,6 +338,45 @@ async function main() {
 				'utf8',
 			);
 		}
+		let endCardAssPath: string | undefined;
+		if (validated.endCard) {
+			endCardAssPath = join(work, 'endcard.ass');
+			await writeFile(
+				endCardAssPath,
+				buildEndCardAss(
+					validated.endCard,
+					resolvePreviewLayout(validated.preview).profile.safeArea,
+				),
+				'utf8',
+			);
+			const sfx = buildEndCardSfxWav(
+				validated.endCard.sfx,
+				validated.endCard.endMs - validated.endCard.startMs,
+				validated.endCard.sfxVolumeDb,
+			);
+			if (sfx) {
+				const sfxPath = join(work, 'endcard-sfx.wav');
+				await writeFile(sfxPath, sfx);
+				audioInputs.push({
+					id: crypto.randomUUID(),
+					path: sfxPath,
+					kind: 'SFX',
+					startMs: validated.endCard.startMs,
+					durationMs: validated.endCard.endMs - validated.endCard.startMs,
+					sourceInMs: 0,
+					gainDb: 0,
+					fadeInMs: 60,
+					fadeOutMs: 120,
+					pan: 0,
+					distance: 0.5,
+					loop: false,
+					ducking: false,
+					spatialPreset: 'none',
+					spatialMode: 'stereo_pan',
+					intensity: 1,
+				});
+			}
+		}
 		const outputPath = join(work, 'output.mp4');
 		const configuredVhs = Number(process.env.WORKER_VHS_INTENSITY ?? 1);
 		const vhsIntensity: 0 | 1 | 2 | 3 =
@@ -348,6 +388,7 @@ async function main() {
 			vhsIntensity,
 			timeoutMs: 600_000,
 			captionAssPath,
+			endCardAssPath,
 			narration: narrationInput,
 			audioEvents: audioInputs,
 			masterGainDb: validated.audio?.masterGainDb,
@@ -433,6 +474,7 @@ async function main() {
 						endMs: validated.cta.endMs,
 					}
 				: null,
+			endCard: validated.endCard ?? null,
 			bucket: localOutput ? 'local-test' : bucket,
 			objectKey: localArtifactPath ?? objectKey,
 			durationMs: output.durationMs,

@@ -36,6 +36,8 @@ export interface RenderCompositionOptions {
 	vhsIntensity?: 0 | 1 | 2 | 3;
 	/** ASS filename relative to the working directory chosen by the renderer. */
 	captionAssFile?: string;
+	/** Standalone ASS overlay for the approved two-choice end card. */
+	endCardAssFile?: string;
 }
 
 export interface RenderCommand {
@@ -219,6 +221,15 @@ export function buildRenderCommand(
 		filters.push(`[${current}]ass=filename=${options.captionAssFile}[captioned]`);
 		current = 'captioned';
 	}
+	if (options.endCardAssFile) {
+		if (!/^[A-Za-z0-9._-]+$/.test(options.endCardAssFile))
+			throw new RenderCompositionError(
+				'RENDER_END_CARD_PATH_UNSAFE',
+				'O nome do ASS do final A/B deve ser simples e relativo.',
+			);
+		filters.push(`[${current}]ass=filename=${options.endCardAssFile}[endcard]`);
+		current = 'endcard';
+	}
 	const vhsWindows = acceptedDirectorEvents(plan.director, 'VHS_STATIC');
 	if (vhsWindows.length) {
 		const enable = vhsWindows
@@ -306,6 +317,7 @@ export function buildNarrationMuxCommand(input: {
 	narrationDurationMs: number;
 	volumeDb?: number;
 	toleranceMs?: number;
+	muteWindows?: Array<{ startMs: number; durationMs: number }>;
 }): NarrationMuxCommand {
 	if (!input.videoPath || !input.narrationPath || !input.outputPath)
 		throw new RenderCompositionError('RENDER_MUX_INPUT_INVALID', 'Mux de narração inválido.');
@@ -336,7 +348,20 @@ export function buildNarrationMuxCommand(input: {
 		);
 	const volume = Math.max(-12, Math.min(6, input.volumeDb ?? 0));
 	const duration = (input.videoDurationMs / 1000).toFixed(3);
-	const filter = `volume=${volume}dB,apad=whole_dur=${duration},atrim=0:${duration}`;
+	const muteEnable = input.muteWindows?.length
+		? input.muteWindows
+				.map(
+					(window) =>
+						`between(t,${(window.startMs / 1000).toFixed(3)},${((window.startMs + window.durationMs) / 1000).toFixed(3)})`,
+				)
+				.join('+')
+		: null;
+	const filter = [
+		`volume=${volume}dB`,
+		...(muteEnable ? [`volume=0:enable='${muteEnable}'`] : []),
+		`apad=whole_dur=${duration}`,
+		`atrim=0:${duration}`,
+	].join(',');
 	return {
 		args: [
 			'-y',
@@ -447,6 +472,7 @@ export function buildAudioMixCommand(input: {
 	events: AudioMixEvent[];
 	masterGainDb?: number;
 	silenceWindows?: Array<{ startMs: number; durationMs: number }>;
+	narrationMuteWindows?: Array<{ startMs: number; durationMs: number }>;
 }): AudioMixCommand {
 	if (!input.videoPath || !input.outputPath)
 		throw new RenderCompositionError('RENDER_MIX_INPUT_INVALID', 'Mix de áudio inválido.');
@@ -490,6 +516,16 @@ export function buildAudioMixCommand(input: {
 		narrationLabel = 'narrbase';
 		inputs.push(input.narration.path);
 		inputIndex += 1;
+		if (input.narrationMuteWindows?.length) {
+			const muteEnable = input.narrationMuteWindows
+				.map(
+					(window) =>
+						`between(t,${(window.startMs / 1000).toFixed(3)},${((window.startMs + window.durationMs) / 1000).toFixed(3)})`,
+				)
+				.join('+');
+			filters.push(`[narrbase]volume=0:enable='${muteEnable}'[narrmute]`);
+			narrationLabel = 'narrmute';
+		}
 	}
 	const duckedBus: string[] = [];
 	const unduckedBus: string[] = [];
