@@ -2,7 +2,7 @@
 
 ## DIF-V2-WO-020 — Laboratório de retenção (2026-11-20) — PROPOSED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 229/229, policy 34/37, unit 318+3, E2E local PASS; CI hosted e auditoria final pendentes. Sem merge/deploy.
+- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 229/229, policy 34/37, unit 318+3, E2E local PASS; CI `44689704303` PASS em `474ebc8`; auditoria delta final pendente. Sem merge/deploy.
 - **Base:** `main` `59ec14c` (checkpoint WO-019 promovido); branch `feat/dif-v2-wo-020`.
 - **Delivered:** posts versionados, variantes ligadas a hook/capa/final, snapshots idempotentes imutáveis, import CSV com NULL, experimentos A/B observacionais, dashboard/export/delete owner-only.
 - **Limits:** sem API/scraping; comparação descritiva sem significância; CSV exporta último snapshot; sem UI de edição de variante/poda; sem dados de espectadores.
