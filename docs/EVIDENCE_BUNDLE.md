@@ -1,10 +1,10 @@
 # DIF Studio — Evidence Bundle
 
-## V2 WO-020 — Laboratório de retenção (2026-11-20) — PROPOSED
+## V2 WO-020 — Laboratório de retenção (2026-11-20) — PROMOTED
 
 - **Work Order:** `DIF-V2-WO-020` · issue #37 · epic #17
 - **Base:** `main` `59ec14c` (checkpoint WO-019 promovido); branch `feat/dif-v2-wo-020`
-- **Status:** implementação + provas locais; unit **318+3**, PgTAP **229/229**, policy 34/37, build e E2E local PASS; CI `44694433465` PASS em `02d9cae` (318+3 unit, PgTAP 229/229, E2E 18/18, Sonar PASS); auditoria delta pendente. Checkpoint **PROPOSED**.
+- **Status:** **PROMOTED**; code/test head `02d9cae`; CI `44694433465` PASS (318+3 unit, PgTAP 229/229, E2E 18/18, Sonar PASS), docs-only `f22a4f7` CI `44696127263` PASS, policy 34/37; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `d9dd82b` (PR #67); issue #37 fechada.
 
 | Check   | Result     | Evidence                                                                             |
 | ------- | ---------- | ------------------------------------------------------------------------------------ |

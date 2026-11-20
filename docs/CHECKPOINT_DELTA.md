@@ -1,12 +1,20 @@
 # Checkpoint Delta — CD06
 
-## DIF-V2-WO-020 — Laboratório de retenção (2026-11-20) — PROPOSED
+## DIF-V2-WO-020 — Laboratório de retenção (2026-11-20) — PROMOTED
 
-- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 229/229, policy 34/37, unit 318+3, E2E local PASS; CI `44694433465` PASS em `02d9cae`; auditoria delta final pendente. Sem merge/deploy.
+- **Status:** **PROMOTED**; code/test head `02d9cae`; CI `44694433465` PASS (318+3 unit, PgTAP 229/229, E2E 18/18, Sonar PASS), docs-only `f22a4f7` CI `44696127263` PASS, policy 34/37; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `d9dd82b` (PR #67); issue #37 fechada.
 - **Base:** `main` `59ec14c` (checkpoint WO-019 promovido); branch `feat/dif-v2-wo-020`.
-- **Delivered:** posts versionados, variantes ligadas a hook/capa/final, snapshots idempotentes imutáveis, import CSV com NULL, experimentos A/B observacionais, dashboard/export/delete owner-only.
-- **Limits:** sem API/scraping; comparação descritiva sem significância; CSV exporta último snapshot; sem UI de edição de variante/poda; sem dados de espectadores.
-- **Gate:** CI + auditoria independente + autorização contínua do owner; WO-021 (#38) é a próxima.
+- **Delivered:** posts versionados, variantes ligadas a hook APPLIED/capa/final APPROVED, snapshots idempotentes imutáveis com duração/métrica pinadas, import CSV estrito com NULL, experimentos A/B observacionais pinados, dashboard/gráficos/histórico/export/delete owner-only.
+- **Limits:** sem API/scraping; comparação descritiva sem significância; CSV exporta último snapshot; sem UI de edição de variante/poda; sem dados de espectadores; experimentos criados antes de snapshot não ficam pinados.
+- **Gate:** atendido; WO-021 (#38) é a próxima.
+
+## V2 checkpoint promotion — WO-020 (2026-11-20)
+
+- **Owner decision:** continuidade autônoma; PR #67 squash-merged em `d9dd82b`; issue #37 fechada.
+- **Audit:** três rodadas independentes; H1–H4, gráfico NULL→0, cap PostgREST, stale/experimento/hash e AC3 corrigidos; veredito final **APPROVED WITH RESIDUALS** sem HIGH.
+- **Evidence:** unit 318+3, PgTAP 229/229, policy 34/37, E2E 18/18, Sonar PASS; CI `44694433465`; migration `20261120110000_v2_wo020_retention_lab.sql`.
+- **Residuals:** experimentos criados antes de snapshots não pinados; sem teste >1000 snapshots; fórmula histórica só v1; CSV latest-only; `import_id` nulo; import repetido cria versão de post; sem E2E de retificação; migração alterada in-place (sem ambiente anterior deployado); backup/restore não exercitado.
+- **Next:** WO-021 (#38) StyleBible; depois OPS 015–021 e WO-014 release.
 
 ## DIF-V2-WO-019 — Finais A/B e CTA cinematográfica (2026-11-20) — PROMOTED
 

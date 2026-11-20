@@ -1,6 +1,6 @@
 # DIF-V2-WO-020 — Laboratório de retenção e métricas manuais
 
-**Status:** implementação em `feat/dif-v2-wo-020`; CI `44694433465` PASS em `02d9cae` (318+3 unit, PgTAP 229/229, E2E 18/18, Sonar PASS), policy 34/37; auditoria delta final **PENDENTE**. Sem merge/deploy; checkpoint **PROPOSED**.
+**Status:** **PROMOTED**; CI `44694433465` PASS em `02d9cae` (318+3 unit, PgTAP 229/229, E2E 18/18, Sonar PASS), policy 34/37; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `d9dd82b` (PR #67); issue #37 fechada. Sem deploy nesta WO.
 **Base:** `main` `59ec14c` (checkpoint WO-019 promovido).
 **Escopo:** WO-020 (#37), dependente de WO-012/015/018/019 e do fluxo manual V1.
 

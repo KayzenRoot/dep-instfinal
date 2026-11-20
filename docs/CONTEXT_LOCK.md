@@ -213,10 +213,10 @@ Revalidate before any external action if `main` changes; the feature branch is r
 ## V2 Context Lock — WO-020 (#37)
 
 - **Base revalidated:** `main` `59ec14c` (checkpoint WO-019 promoted). Branch: `feat/dif-v2-wo-020`.
-- **Issue inventory:** WO-001–019 **MERGED/CLOSED/PROMOTED**; WO-020/#37 em execução; WO-021 e OPS bloqueiam WO-014.
+- **Issue inventory:** WO-001–020 **MERGED/CLOSED/PROMOTED**; WO-021/#38 é a próxima; OPS bloqueiam WO-014.
 - **Scope:** métricas agregadas fornecidas manualmente/CSV; posts, variantes, snapshots, A/B observacional, export/delete, sem API social.
 - **Delivered locally:** 6 tabelas owner-read/service-write; `/app/retention`; CSV/JSON export; stale/idempotência/immutabilidade; PgTAP 229; policy 34/37.
-- **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROPOSED**. WO-021 (#38) é a próxima.
+- **Gate:** CI, auditoria independente e autorização contínua do owner; checkpoint **PROMOTED** (`d9dd82b`, PR #67). WO-021 (#38) é a próxima.
 
 ## V2 Context Lock — WO-019 (#36)
 
