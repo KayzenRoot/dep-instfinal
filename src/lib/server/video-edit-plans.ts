@@ -346,7 +346,7 @@ export async function saveVideoEditPlan(input: {
 			throw cause;
 		}
 	}
-	let styledPlan = linkedPlan;
+	let styledPlan: VideoEditPlan;
 	if (
 		shouldApplyStyleSnapshot({
 			expectedVersion: input.expectedVersion,
