@@ -28,8 +28,14 @@
 	const metricLabel = $derived(
 		data.metrics.find((metric) => metric.id === data.metric)?.label ?? data.metric,
 	);
+	const engagementPosts = $derived(
+		chartPosts.filter((post) => post.latestSnapshot?.computed.engagementRate != null),
+	);
 	const maxEngagement = $derived(
-		Math.max(0.01, ...chartPosts.map((post) => post.latestSnapshot?.computed.engagementRate ?? 0)),
+		Math.max(
+			0.01,
+			...engagementPosts.map((post) => post.latestSnapshot?.computed.engagementRate ?? 0),
+		),
 	);
 
 	function variantLabel(id: string): string {
@@ -38,9 +44,25 @@
 		return `${variant.platform} · ${variant.postLabel} · ${variant.label}`;
 	}
 
-	function variantViews(id: string): string {
-		const variant = allVariants.find((candidate) => candidate.id === id);
-		return formatNumber(variant?.views ?? null);
+	type ComparisonExperiment = (typeof data.comparisons)[number]['experiment'];
+	function experimentSnapshot(experiment: ComparisonExperiment, side: 'A' | 'B') {
+		const id = side === 'A' ? experiment.snapshotAId : experiment.snapshotBId;
+		if (!id) return null;
+		for (const post of data.context?.posts ?? []) {
+			const match = post.snapshots.find((snapshot) => snapshot.id === id);
+			if (match) return match;
+		}
+		return null;
+	}
+
+	function experimentViews(experiment: ComparisonExperiment, side: 'A' | 'B'): string {
+		return formatNumber(experimentSnapshot(experiment, side)?.metrics.views ?? null);
+	}
+
+	function experimentPinned(experiment: ComparisonExperiment, side: 'A' | 'B'): string {
+		const snapshot = experimentSnapshot(experiment, side);
+		if (!snapshot) return 'snapshot não pinado';
+		return `v${snapshot.revision} · ${snapshot.source} · ${formatDate(snapshot.periodStart)}–${formatDate(snapshot.periodEnd)}`;
 	}
 
 	function formatMetric(value: number | null, metric: string): string {
@@ -167,26 +189,36 @@
 					</svg>
 				</figure>
 				<figure>
-					<figcaption>Engajamento observado por publicação (%)</figcaption>
-					<svg viewBox="0 0 340 120" role="img" aria-label="Gráfico de engajamento por publicação">
-						<line x1="10" y1="100" x2="330" y2="100" class="axis"></line>
-						{#each chartPosts as post, index (post.id)}
-							{@const value = post.latestSnapshot?.computed.engagementRate ?? 0}
-							{@const width = Math.max(8, Math.round(300 / chartPosts.length) - 6)}
-							<rect
-								x={12 + index * (300 / chartPosts.length)}
-								y={100 - Math.round((value / maxEngagement) * 82)}
-								{width}
-								height={Math.round((value / maxEngagement) * 82)}
-								class="bar engagement"
-							>
-								<title>{post.label || post.url}: {formatRate(value)}</title>
-							</rect>
-						{/each}
-						<text x="330" y="112" text-anchor="end" class="axis-label"
-							>{formatRate(maxEngagement)}</text
+					<figcaption>
+						Engajamento observado por publicação (%) — apenas taxas calculáveis
+					</figcaption>
+					{#if engagementPosts.length}
+						<svg
+							viewBox="0 0 340 120"
+							role="img"
+							aria-label="Gráfico de engajamento por publicação"
 						>
-					</svg>
+							<line x1="10" y1="100" x2="330" y2="100" class="axis"></line>
+							{#each engagementPosts as post, index (post.id)}
+								{@const value = post.latestSnapshot?.computed.engagementRate ?? 0}
+								{@const width = Math.max(8, Math.round(300 / engagementPosts.length) - 6)}
+								<rect
+									x={12 + index * (300 / engagementPosts.length)}
+									y={100 - Math.round((value / maxEngagement) * 82)}
+									{width}
+									height={Math.round((value / maxEngagement) * 82)}
+									class="bar engagement"
+								>
+									<title>{post.label || post.url}: {formatRate(value)}</title>
+								</rect>
+							{/each}
+							<text x="330" y="112" text-anchor="end" class="axis-label"
+								>{formatRate(maxEngagement)}</text
+							>
+						</svg>
+					{:else}
+						<p class="missing">Nenhuma taxa calculável; valores ausentes não viram zero.</p>
+					{/if}
 				</figure>
 			</div>
 		{/if}
@@ -312,14 +344,16 @@
 						{#if entry.experiment.hypothesis}<small>{entry.experiment.hypothesis}</small>{/if}
 						<p>{entry.comparison.summary}</p>
 						<small
-							>A: {variantLabel(entry.experiment.variantAId)} · views {variantViews(
-								entry.experiment.variantAId,
-							)}</small
+							>A: {variantLabel(entry.experiment.variantAId)} · views {experimentViews(
+								entry.experiment,
+								'A',
+							)} · {experimentPinned(entry.experiment, 'A')}</small
 						>
 						<small
-							>B: {variantLabel(entry.experiment.variantBId)} · views {variantViews(
-								entry.experiment.variantBId,
-							)}</small
+							>B: {variantLabel(entry.experiment.variantBId)} · views {experimentViews(
+								entry.experiment,
+								'B',
+							)} · {experimentPinned(entry.experiment, 'B')}</small
 						>
 						<small>
 							{metricLabel}: A {formatMetric(entry.comparison.valueA, data.metric)} · B {formatMetric(

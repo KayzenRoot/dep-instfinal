@@ -270,6 +270,39 @@ function parseSnapshot(row: SnapshotRow, fallbackDurationMs: number): RetentionS
 	};
 }
 
+const RETENTION_PAGE_SIZE = 1_000;
+
+async function loadPagedRows<T>(
+	db: SupabaseClient,
+	table: 'creative_variants' | 'analytics_snapshots',
+	ownerId: string,
+	postIds: string[],
+	orderColumn: string,
+	ascending: boolean,
+): Promise<T[]> {
+	const rows: T[] = [];
+	for (let from = 0; from < 50_000; from += RETENTION_PAGE_SIZE) {
+		const { data, error } = await db
+			.from(table)
+			.select('*')
+			.eq('owner_id', ownerId)
+			.in('post_id', postIds)
+			.order(orderColumn, { ascending })
+			.order('created_at', { ascending: false })
+			.range(from, from + RETENTION_PAGE_SIZE - 1);
+		if (error)
+			throw new RetentionServiceError(
+				503,
+				'RETENTION_LOAD_FAILED',
+				'Não foi possível carregar a retenção.',
+			);
+		const page = (data ?? []) as T[];
+		rows.push(...page);
+		if (page.length < RETENTION_PAGE_SIZE) break;
+	}
+	return rows;
+}
+
 export async function loadRetentionContext(
 	db: SupabaseClient,
 	owner: User,
@@ -323,31 +356,17 @@ export async function loadRetentionContext(
 	let variants: VariantRow[] = [];
 	let snapshots: SnapshotRow[] = [];
 	if (postIds.length) {
-		const [variantsResult, snapshotsResult] = await Promise.all([
-			db
-				.from('creative_variants')
-				.select('*')
-				.eq('owner_id', owner.id)
-				.in('post_id', postIds)
-				.order('created_at')
-				.limit(5_000),
-			db
-				.from('analytics_snapshots')
-				.select('*')
-				.eq('owner_id', owner.id)
-				.in('post_id', postIds)
-				.order('revision_number', { ascending: false })
-				.order('created_at', { ascending: false })
-				.limit(5_000),
+		[variants, snapshots] = await Promise.all([
+			loadPagedRows<VariantRow>(db, 'creative_variants', owner.id, postIds, 'created_at', true),
+			loadPagedRows<SnapshotRow>(
+				db,
+				'analytics_snapshots',
+				owner.id,
+				postIds,
+				'revision_number',
+				false,
+			),
 		]);
-		if (variantsResult.error || snapshotsResult.error)
-			throw new RetentionServiceError(
-				503,
-				'RETENTION_LOAD_FAILED',
-				'Não foi possível carregar a retenção.',
-			);
-		variants = (variantsResult.data ?? []) as VariantRow[];
-		snapshots = (snapshotsResult.data ?? []) as SnapshotRow[];
 	}
 	const historyByPost = new Map<string, RetentionSnapshot[]>();
 	const latestByPost = new Map<string, RetentionSnapshot>();
@@ -482,7 +501,7 @@ export async function saveCreativeVariant(input: {
 	return data;
 }
 
-export function snapshotHash(input: AnalyticsSnapshotInput): string {
+export function snapshotHash(input: AnalyticsSnapshotInput, durationMs: number): string {
 	return createHash('sha256')
 		.update(
 			canonicalJson({
@@ -491,6 +510,7 @@ export function snapshotHash(input: AnalyticsSnapshotInput): string {
 				periodEnd: input.periodEnd,
 				source: input.source,
 				metrics: input.metrics,
+				episodeDurationMs: durationMs,
 			}),
 		)
 		.digest('hex');
@@ -519,7 +539,7 @@ export async function saveAnalyticsSnapshot(input: {
 			'RETENTION_WRITE_UNAVAILABLE',
 			'O writer de retenção não está configurado.',
 		);
-	const hash = snapshotHash(parsed.data);
+	const hash = snapshotHash(parsed.data, input.durationMs);
 	const { data: existing } = await input.db
 		.from('analytics_snapshots')
 		.select('revision_number')
@@ -711,8 +731,9 @@ export function variantObservation(
 	variant: RetentionPost['variants'][number],
 	snapshotId?: string | null,
 ): VariantObservation | null {
-	const snapshot =
-		post.snapshots.find((candidate) => candidate.id === snapshotId) ?? post.latestSnapshot;
+	const snapshot = snapshotId
+		? post.snapshots.find((candidate) => candidate.id === snapshotId)
+		: post.latestSnapshot;
 	if (!snapshot) return null;
 	return {
 		platform: post.platform,

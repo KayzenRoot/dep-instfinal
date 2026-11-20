@@ -159,6 +159,8 @@ test('owner records, imports, compares and deletes retention data', async ({ pag
 	await expect(page.locator('.post-card').filter({ hasText: 'CSV B' })).toContainText(
 		'INDISPONÍVEL',
 	);
+	await expect(page.locator('.bar.engagement')).toHaveCount(4);
+	await expect(page.locator('.charts')).toContainText('apenas taxas calculáveis');
 
 	const exported = await page.request.get(
 		`/api/retention/export?episodeId=${episodeId}&format=csv`,

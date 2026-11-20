@@ -27,15 +27,18 @@ Branch: `feat/dif-v2-wo-020` (base `main` `59ec14c`)
   manual snapshots, A/B observational comparison, CSV import with NULL interactions, CSV/JSON export,
   anonymous 401, delete, screenshots 360/768/1440.
 - Dashboard shows origin/period/denominator, marks missing values as `INDISPONÍVEL`, renders SVG
-  views/engagement bars and per-post snapshot history with supersedes/retification.
+  views bars plus engagement bars only for calculable rates (CSV B with NULL interactions has no
+  0% bar), and per-post snapshot history with supersedes/retification.
+- Variants/snapshots are paginated with `.range()` (1000/page); experiments show the pinned
+  snapshot revision/source/period and fail closed when the pinned snapshot is absent.
 
 ## Database / retention
 
 - `published_posts`, `published_post_versions`, `creative_variants`, `analytics_snapshots`,
   `retention_imports`, `retention_experiments` are owner-read/service-write with forced RLS.
-- Snapshots/versions/imports are immutable; snapshots are idempotent by `(post, snapshot_hash)`,
-  pin `episode_duration_ms`/`metric_version`, and retifications append a new revision with
-  `supersedes_snapshot_id`.
+- Snapshots/versions/imports are immutable; snapshots are idempotent by `(post, snapshot_hash)`
+  that includes `episode_duration_ms`, pin `metric_version`, and retifications append a new revision
+  with `supersedes_snapshot_id`.
 - Experiments pin `variant_a_snapshot_id`/`variant_b_snapshot_id` and reject variants from the same
   post; concurrent snapshot revisions use an advisory lock.
 - PgTAP: owner read, direct insert denied, second owner isolated, post version, variants A/B,

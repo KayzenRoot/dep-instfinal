@@ -94,6 +94,7 @@ export const load: PageServerLoad = async (event) => {
 			.select('id,label,variant_key')
 			.eq('owner_id', owner.id)
 			.eq('episode_id', selectedEpisode.id)
+			.eq('status', 'APPLIED')
 			.order('created_at', { ascending: false })
 			.limit(20),
 		db

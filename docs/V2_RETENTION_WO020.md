@@ -41,15 +41,18 @@
 - **Limites por owner:** variantes e snapshots são buscados com `.in('post_id', postIds)` depois dos posts, sem limite global que esconda o episódio.
 - **Números estritos:** formulário e CSV rejeitam `1.000`, `1,5`, `1.234,5` e texto; apenas dígitos (e ponto decimal na conclusão). Erro por linha é exibido.
 - **CSV injection:** células perigosas são citadas e cada linha recebe apóstrofo; vírgulas/quebras não criam registros sem escape.
-- **Snapshot/experimento pinados:** `episode_duration_ms` e `metric_version` ficam no snapshot; experimentos guardam os snapshots A/B usados e rejeitam variantes do mesmo post.
-- **Histórico/gráficos:** dashboard tem barras SVG de views/engajamento, histórico por post com revisões/supersedes e select de retificação; A/B mostra variante, post, views e unidade.
-- **Resiliência:** snapshot histórico inválido gera warning e não derruba a página/export; conflito de revisão concorrente usa advisory lock e 409, não falso duplicado.
+- **Snapshot/experimento pinados:** `episode_duration_ms` e `metric_version` ficam no snapshot; experimentos guardam os snapshots A/B usados e rejeitam variantes do mesmo post; a UI mostra revisão/origem/período pinados e não cai para o latest se o pinado faltar.
+- **Gráficos sem NULL→0:** barras de engajamento só incluem taxas calculáveis; CSV B sem interações não ganha barra 0% (E2E verifica 4 barras para 5 posts).
+- **Paginação PostgREST:** variantes/snapshots são lidos com `.range()` em páginas de 1000 até esgotar, em vez de um `.limit(5000)` clampado.
+- **Hash com duração:** `episode_duration_ms` entra no `snapshot_hash`, permitindo retificar apenas o denominador.
+- **Histórico/gráficos:** dashboard tem barras SVG de views/engajamento, histórico por post com revisões/supersedes e select de retificação; A/B mostra variante, post, views, unidade, revisão/origem/período.
+- **Resiliência:** snapshot histórico inválido gera warning e não derruba a página/export; conflito de revisão concorrente usa advisory lock e 409, não falso duplicado; hooks DRAFT não aparecem no formulário.
 
 ## Testes planejados/executados
 
 - Unit: 11 testes — fórmulas com NULL/zero/amostra baixa/discrepância, interações parciais vs completas, watch =105% rejeitado, comparabilidade por plataforma/período/amostra/métrica, linguagem não causal, CSV quoted/CRLF, linha malformada, número ambíguo, injeção de fórmula com vírgula/newline.
 - PgTAP 229: RLS owner/nonowner, escrita direta negada, post/versão, variante A/B em posts distintos, snapshot idempotente com duração pinada e supersedes, imutabilidade, experimento, delete em cascata.
-- E2E: login/nav, cria posts TikTok+Reels, variantes, snapshots, experimento observacional, CSV com NULL, export CSV/JSON, anônimo negado, remoção e screenshots 360/768/1440.
+- E2E: login/nav, cria posts TikTok+Reels com snapshots, variantes, experimento observacional, cross-platform `NOT_COMPARABLE`, CSV com NULL (sem barra 0%), origem MANUAL, export CSV/JSON, anônimo negado, remoção e screenshots 360/768/1440.
 - Policy: 34 invariantes / 37 tabelas; backup/restore incluem as tabelas de retenção.
 
 ## Riscos e residuais
@@ -61,7 +64,7 @@
 - Sem UI de edição de post/variante; correções de post criam versão, variantes são imutáveis.
 - Sem poda de snapshots/imports; limites de 5000 snapshots/post e 5000 linhas/CSV.
 - Gráficos são barras SVG simples por último snapshot, não séries temporais completas; histórico aparece em lista por post.
-- Export CSV inclui o último snapshot por post; JSON inclui todas as revisões e imports. Não há export de `published_post_versions`.
+- Export CSV inclui o último snapshot por post; JSON inclui as revisões carregadas (paginadas) e as 20 importações mais recentes. Não há export de `published_post_versions`.
 
 ## Gate
 
