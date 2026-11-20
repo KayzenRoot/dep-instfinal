@@ -15,6 +15,22 @@ function fileBase(templateId: string, layout: string): string {
 	return `final-ab-${templateId}-${layout}`;
 }
 
+function fileResponse(
+	body: BodyInit,
+	contentType: string,
+	filename: string,
+	download: boolean,
+): Response {
+	return new Response(body, {
+		headers: {
+			'content-type': contentType,
+			'cache-control': 'private, no-store',
+			'content-disposition': `${download ? 'attachment' : 'inline'}; filename="${filename}"`,
+			'x-content-type-options': 'nosniff',
+		},
+	});
+}
+
 export const GET: RequestHandler = async (event) => {
 	const { db, owner } = ownerDatabase(event);
 	const revision = await loadChoiceEndCard(db, owner, event.params.revisionId);
@@ -22,10 +38,14 @@ export const GET: RequestHandler = async (event) => {
 	const context = await loadChoiceEndCardContext(db, owner, revision.episodeId);
 	if (!context) error(404, 'Episódio do final A/B não encontrado.');
 	if (
+		context.choiceRevisionNumber !== revision.choiceRevisionNumber ||
 		context.choices.length !== 2 ||
 		choiceSetHash(context.choices) !== choiceSetHash(revision.choices)
 	)
-		error(409, 'As escolhas mudaram. Revise e aprove um novo final A/B antes de exportar.');
+		error(
+			409,
+			'O roteiro ou as escolhas mudaram. Revise e aprove um novo final A/B antes de exportar.',
+		);
 	const requestedProfile = event.url.searchParams.get('profile') ?? 'tiktok';
 	const profile = (PROFILES as readonly string[]).includes(requestedProfile)
 		? (requestedProfile as ProfileId)
@@ -69,26 +89,16 @@ export const GET: RequestHandler = async (event) => {
 		revision.config.sfxVolumeDb,
 	);
 
-	if (format === 'json') {
-		return new Response(JSON.stringify(payload, null, 2), {
-			headers: {
-				'content-type': 'application/json; charset=utf-8',
-				'cache-control': 'private, no-store',
-				'content-disposition': `${download ? 'attachment' : 'inline'}; filename="${base}.json"`,
-				'x-content-type-options': 'nosniff',
-			},
-		});
-	}
+	if (format === 'json')
+		return fileResponse(
+			JSON.stringify(payload, null, 2),
+			'application/json; charset=utf-8',
+			`${base}.json`,
+			download,
+		);
 	if (format === 'wav') {
 		if (!wav) error(404, 'Este final A/B está configurado sem SFX.');
-		return new Response(wav as unknown as BodyInit, {
-			headers: {
-				'content-type': 'audio/wav',
-				'cache-control': 'private, no-store',
-				'content-disposition': `${download ? 'attachment' : 'inline'}; filename="${base}.wav"`,
-				'x-content-type-options': 'nosniff',
-			},
-		});
+		return fileResponse(wav as unknown as BodyInit, 'audio/wav', `${base}.wav`, download);
 	}
 	if (format === 'zip') {
 		const stream = new PassThrough();
@@ -99,22 +109,13 @@ export const GET: RequestHandler = async (event) => {
 		archive.append(JSON.stringify(payload, null, 2), { name: `${base}.json` });
 		if (wav) archive.append(wav, { name: `${base}.wav` });
 		void archive.finalize();
-		return new Response(Readable.toWeb(stream) as ReadableStream, {
-			headers: {
-				'content-type': 'application/zip',
-				'cache-control': 'private, no-store',
-				'content-disposition': `attachment; filename="${base}.zip"`,
-				'x-content-type-options': 'nosniff',
-			},
-		});
+		return fileResponse(
+			Readable.toWeb(stream) as ReadableStream,
+			'application/zip',
+			`${base}.zip`,
+			true,
+		);
 	}
 	if (format !== 'ass') error(400, 'Formato de final A/B inválido.');
-	return new Response(ass, {
-		headers: {
-			'content-type': 'text/plain; charset=utf-8',
-			'cache-control': 'private, no-store',
-			'content-disposition': `${download ? 'attachment' : 'inline'}; filename="${base}.ass"`,
-			'x-content-type-options': 'nosniff',
-		},
-	});
+	return fileResponse(ass, 'text/plain; charset=utf-8', `${base}.ass`, download);
 };

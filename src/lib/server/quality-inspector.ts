@@ -740,6 +740,15 @@ export async function inspectRenderArtifact(
 
 	if (input.plan.endCard) {
 		try {
+			const renderEndMs = Math.max(...input.plan.clips.map((clip) => clip.timelineEndMs), 0);
+			if (
+				input.plan.endCard.endMs !== renderEndMs ||
+				input.plan.endCard.endMs - input.plan.endCard.startMs !== input.plan.endCard.durationMs
+			)
+				throw new EndCardError(
+					'END_CARD_WINDOW_INVALID',
+					'O final A/B não termina no fim real da timeline renderizada.',
+				);
 			buildEndCardAss(
 				input.plan.endCard,
 				resolvePreviewLayout(input.plan.preview).profile.safeArea,

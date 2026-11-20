@@ -317,8 +317,16 @@ export function validateEditPlan(plan: VideoEditPlan, context: EditPlanContext):
 				'EDIT_PLAN_END_CARD_CTA_CONFLICT',
 				'Desative a CTA de texto antes de usar o final A/B.',
 			);
-		if (plan.endCard.endMs > plan.durationMs || plan.endCard.endMs - plan.endCard.startMs < 3_000)
-			throw new EditPlanError('EDIT_PLAN_END_CARD_WINDOW', 'Janela do final A/B inválida.');
+		const renderEndMs = Math.max(...plan.clips.map((clip) => clip.timelineEndMs), 0);
+		if (
+			plan.endCard.endMs > plan.durationMs ||
+			plan.endCard.endMs !== renderEndMs ||
+			plan.endCard.endMs - plan.endCard.startMs !== plan.endCard.durationMs
+		)
+			throw new EditPlanError(
+				'EDIT_PLAN_END_CARD_WINDOW',
+				'O final A/B precisa terminar no fim real da timeline renderizada.',
+			);
 		try {
 			buildEndCardAss(plan.endCard, resolvePreviewLayout(plan.preview).profile.safeArea);
 		} catch (cause) {

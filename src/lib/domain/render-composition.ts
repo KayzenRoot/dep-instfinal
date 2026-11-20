@@ -317,6 +317,7 @@ export function buildNarrationMuxCommand(input: {
 	narrationDurationMs: number;
 	volumeDb?: number;
 	toleranceMs?: number;
+	muteWindows?: Array<{ startMs: number; durationMs: number }>;
 }): NarrationMuxCommand {
 	if (!input.videoPath || !input.narrationPath || !input.outputPath)
 		throw new RenderCompositionError('RENDER_MUX_INPUT_INVALID', 'Mux de narração inválido.');
@@ -347,7 +348,20 @@ export function buildNarrationMuxCommand(input: {
 		);
 	const volume = Math.max(-12, Math.min(6, input.volumeDb ?? 0));
 	const duration = (input.videoDurationMs / 1000).toFixed(3);
-	const filter = `volume=${volume}dB,apad=whole_dur=${duration},atrim=0:${duration}`;
+	const muteEnable = input.muteWindows?.length
+		? input.muteWindows
+				.map(
+					(window) =>
+						`between(t,${(window.startMs / 1000).toFixed(3)},${((window.startMs + window.durationMs) / 1000).toFixed(3)})`,
+				)
+				.join('+')
+		: null;
+	const filter = [
+		`volume=${volume}dB`,
+		...(muteEnable ? [`volume=0:enable='${muteEnable}'`] : []),
+		`apad=whole_dur=${duration}`,
+		`atrim=0:${duration}`,
+	].join(',');
 	return {
 		args: [
 			'-y',

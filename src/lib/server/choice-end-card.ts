@@ -60,6 +60,7 @@ export interface ChoiceEndCardContext {
 	choices: ChoiceEndCardChoice[];
 	choiceRevisionNumber: number;
 	revisions: ChoiceEndCardRevision[];
+	approved: ChoiceEndCardRevision | null;
 	latestRevision: number;
 }
 
@@ -105,6 +106,12 @@ function choiceEquals(left: ChoiceEndCardChoice[], right: ChoiceEndCardChoice[])
 }
 
 function mapRpcError(error: { code?: string; message?: string }): ChoiceEndCardError {
+	if (error.code === '40001' && error.message?.includes('choice_snapshot_conflict'))
+		return new ChoiceEndCardError(
+			409,
+			'END_CARD_STALE',
+			'O roteiro ou as escolhas mudaram durante o salvamento. Revise e gere um novo final A/B.',
+		);
 	if (error.code === '40001')
 		return new ChoiceEndCardError(
 			409,
@@ -147,39 +154,51 @@ export async function loadChoiceEndCardContext(
 	owner: User,
 	episodeId: string,
 ): Promise<ChoiceEndCardContext | null> {
-	const [episodeResult, choicesResult, revisionsResult, revisionResult] = await Promise.all([
-		db
-			.from('episodes')
-			.select(
-				'id,title,episode_number,duration_ms,status,seasons(planned_episode_count,series(title))',
-			)
-			.eq('owner_id', owner.id)
-			.eq('id', episodeId)
-			.maybeSingle(),
-		db
-			.from('choices')
-			.select('id,option_key,label')
-			.eq('owner_id', owner.id)
-			.eq('episode_id', episodeId)
-			.order('option_key'),
-		db
-			.from('choice_end_cards')
-			.select(
-				'id,episode_id,revision_number,choice_revision_number,choices_snapshot,config,config_hash,hash_version,status,created_at',
-			)
-			.eq('owner_id', owner.id)
-			.eq('episode_id', episodeId)
-			.order('revision_number', { ascending: false })
-			.limit(30),
-		db
-			.from('episode_revisions')
-			.select('revision_number')
-			.eq('owner_id', owner.id)
-			.eq('episode_id', episodeId)
-			.order('revision_number', { ascending: false })
-			.limit(1)
-			.maybeSingle(),
-	]);
+	const [episodeResult, choicesResult, revisionsResult, revisionResult, approvedResult] =
+		await Promise.all([
+			db
+				.from('episodes')
+				.select(
+					'id,title,episode_number,duration_ms,status,seasons(planned_episode_count,series(title))',
+				)
+				.eq('owner_id', owner.id)
+				.eq('id', episodeId)
+				.maybeSingle(),
+			db
+				.from('choices')
+				.select('id,option_key,label,consequence')
+				.eq('owner_id', owner.id)
+				.eq('episode_id', episodeId)
+				.order('option_key'),
+			db
+				.from('choice_end_cards')
+				.select(
+					'id,episode_id,revision_number,choice_revision_number,choices_snapshot,config,config_hash,hash_version,status,created_at',
+				)
+				.eq('owner_id', owner.id)
+				.eq('episode_id', episodeId)
+				.order('revision_number', { ascending: false })
+				.limit(30),
+			db
+				.from('episode_revisions')
+				.select('revision_number')
+				.eq('owner_id', owner.id)
+				.eq('episode_id', episodeId)
+				.order('revision_number', { ascending: false })
+				.limit(1)
+				.maybeSingle(),
+			db
+				.from('choice_end_cards')
+				.select(
+					'id,episode_id,revision_number,choice_revision_number,choices_snapshot,config,config_hash,hash_version,status,created_at',
+				)
+				.eq('owner_id', owner.id)
+				.eq('episode_id', episodeId)
+				.eq('status', 'APPROVED')
+				.order('revision_number', { ascending: false })
+				.limit(1)
+				.maybeSingle(),
+		]);
 	if (episodeResult.error)
 		throw new ChoiceEndCardError(
 			503,
@@ -187,7 +206,7 @@ export async function loadChoiceEndCardContext(
 			'Não foi possível carregar o episódio.',
 		);
 	if (!episodeResult.data) return null;
-	if (choicesResult.error || revisionsResult.error || revisionResult.error)
+	if (choicesResult.error || revisionsResult.error || revisionResult.error || approvedResult.error)
 		throw new ChoiceEndCardError(
 			503,
 			'END_CARD_LOAD_FAILED',
@@ -203,6 +222,7 @@ export async function loadChoiceEndCardContext(
 			id: choice.id,
 			optionKey: choice.option_key,
 			label: choice.label,
+			consequence: choice.consequence,
 		});
 		if (!parsed.success)
 			throw new ChoiceEndCardError(
@@ -231,6 +251,7 @@ export async function loadChoiceEndCardContext(
 				? Number(revisionResult.data.revision_number)
 				: 1,
 		revisions,
+		approved: approvedResult.data ? parseRevision(approvedResult.data as ChoiceEndCardRow) : null,
 		latestRevision: revisions[0]?.revision ?? 0,
 	};
 }
@@ -267,10 +288,21 @@ export async function saveChoiceEndCard(input: {
 	expectedRevision: number;
 	config: ChoiceEndCardConfig;
 	status?: 'DRAFT' | 'APPROVED';
+	/** Revision the card content came from; approval/restore must not rebase a stale card. */
+	sourceChoiceRevision?: number;
 }): Promise<number> {
 	const context = await loadChoiceEndCardContext(input.db, input.owner, input.episodeId);
 	if (!context)
 		throw new ChoiceEndCardError(404, 'END_CARD_EPISODE_NOT_FOUND', 'Episódio não encontrado.');
+	if (
+		input.sourceChoiceRevision !== undefined &&
+		input.sourceChoiceRevision !== context.choiceRevisionNumber
+	)
+		throw new ChoiceEndCardError(
+			409,
+			'END_CARD_STALE',
+			'O roteiro ou as escolhas mudaram. Revise e aprove um novo final A/B.',
+		);
 	if (context.choices.length !== 2)
 		throw new ChoiceEndCardError(
 			409,
@@ -309,6 +341,7 @@ export async function saveChoiceEndCard(input: {
 		p_owner_id: input.owner.id,
 		p_episode_id: input.episodeId,
 		p_expected_revision: input.expectedRevision,
+		p_choices_snapshot: context.choices,
 		p_config: config.data,
 		p_config_hash: choiceEndCardConfigHash(config.data, context.choices),
 		p_status: input.status ?? 'DRAFT',
@@ -355,24 +388,42 @@ export async function loadApprovedEndCardSnapshot(input: {
 			'END_CARD_NOT_APPROVED',
 			'Aprove o final A/B antes de anexá-lo à timeline.',
 		);
-	const { data: currentRows, error: choicesError } = await input.db
-		.from('choices')
-		.select('id,option_key,label')
-		.eq('owner_id', input.owner.id)
-		.eq('episode_id', input.episodeId)
-		.order('option_key');
-	if (choicesError)
+	const [choicesResult, revisionResult] = await Promise.all([
+		input.db
+			.from('choices')
+			.select('id,option_key,label,consequence')
+			.eq('owner_id', input.owner.id)
+			.eq('episode_id', input.episodeId)
+			.order('option_key'),
+		input.db
+			.from('episode_revisions')
+			.select('revision_number')
+			.eq('owner_id', input.owner.id)
+			.eq('episode_id', input.episodeId)
+			.order('revision_number', { ascending: false })
+			.limit(1)
+			.maybeSingle(),
+	]);
+	const currentRows = choicesResult.data;
+	const choicesError = choicesResult.error;
+	const revisionError = revisionResult.error;
+	if (choicesError || revisionError)
 		throw new ChoiceEndCardError(
 			503,
 			'END_CARD_LOAD_FAILED',
 			'Não foi possível validar as escolhas atuais.',
 		);
+	const currentRevision =
+		typeof revisionResult.data?.revision_number === 'number'
+			? Number(revisionResult.data.revision_number)
+			: 1;
 	const current: ChoiceEndCardChoice[] = [];
 	for (const row of currentRows ?? []) {
 		const parsed = choiceEndCardChoicesSchema.element.safeParse({
 			id: row.id,
 			optionKey: row.option_key,
 			label: row.label,
+			consequence: row.consequence,
 		});
 		if (!parsed.success)
 			throw new ChoiceEndCardError(
@@ -382,7 +433,11 @@ export async function loadApprovedEndCardSnapshot(input: {
 			);
 		current.push(parsed.data);
 	}
-	if (current.length !== 2 || !choiceEquals(card.choices, current))
+	if (
+		card.choiceRevisionNumber !== currentRevision ||
+		current.length !== 2 ||
+		!choiceEquals(card.choices, current)
+	)
 		throw new ChoiceEndCardError(
 			409,
 			'END_CARD_STALE',

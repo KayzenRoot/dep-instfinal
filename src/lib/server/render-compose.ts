@@ -275,6 +275,15 @@ export async function renderPlanToFile(input: {
 				videoDurationMs: command.expectedDurationMs,
 				narrationDurationMs: input.narration.durationMs,
 				volumeDb: (input.narration.volumeDb ?? 0) + (input.masterGainDb ?? 0),
+				muteWindows:
+					input.plan.endCard?.narration === 'mute'
+						? [
+								{
+									startMs: input.plan.endCard.startMs,
+									durationMs: input.plan.endCard.endMs - input.plan.endCard.startMs,
+								},
+							]
+						: undefined,
 			});
 		}
 		const audioCommand = mix ?? mux;

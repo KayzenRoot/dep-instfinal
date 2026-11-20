@@ -42,7 +42,7 @@ export const END_CARD_TEMPLATES: Record<ChoiceEndCardTemplateId, EndCardTemplate
 		panel: '#2a160b',
 		accent: '#ffb347',
 		text: '#fff2df',
-		font: 'DejaVu Serif, Georgia, serif',
+		font: 'Georgia',
 	},
 	stamped: {
 		id: 'stamped',
@@ -53,7 +53,7 @@ export const END_CARD_TEMPLATES: Record<ChoiceEndCardTemplateId, EndCardTemplate
 		panel: '#efe6d1',
 		accent: '#a31616',
 		text: '#1b1510',
-		font: 'Courier New, monospace',
+		font: 'Courier New',
 	},
 	signal: {
 		id: 'signal',
@@ -64,7 +64,7 @@ export const END_CARD_TEMPLATES: Record<ChoiceEndCardTemplateId, EndCardTemplate
 		panel: '#06191c',
 		accent: '#46f3ff',
 		text: '#d8feff',
-		font: 'DejaVu Sans Mono, Consolas, monospace',
+		font: 'Consolas',
 	},
 	cctv: {
 		id: 'cctv',
@@ -75,7 +75,7 @@ export const END_CARD_TEMPLATES: Record<ChoiceEndCardTemplateId, EndCardTemplate
 		panel: '#06180c',
 		accent: '#7dff9b',
 		text: '#ddffe5',
-		font: 'DejaVu Sans Mono, Consolas, monospace',
+		font: 'Consolas',
 	},
 	split: {
 		id: 'split',
@@ -86,7 +86,7 @@ export const END_CARD_TEMPLATES: Record<ChoiceEndCardTemplateId, EndCardTemplate
 		panel: '#f2f2f2',
 		accent: '#ffffff',
 		text: '#050505',
-		font: 'DejaVu Sans, Arial, sans-serif',
+		font: 'Arial',
 		splitPanelB: { panel: '#050505', text: '#f2f2f2' },
 	},
 	analog: {
@@ -98,7 +98,7 @@ export const END_CARD_TEMPLATES: Record<ChoiceEndCardTemplateId, EndCardTemplate
 		panel: '#151300',
 		accent: '#ffe600',
 		text: '#fffbcc',
-		font: 'DejaVu Sans, Arial, sans-serif',
+		font: 'Arial',
 	},
 };
 
@@ -242,7 +242,7 @@ function assTime(milliseconds: number): string {
 function rectangle(box: EndCardBox, color: string, borderColor?: string, fade = false): string {
 	const border = borderColor ? `\\bord4\\3c${assColor(borderColor)}` : '\\bord0';
 	const fadeTag = fade ? '\\fad(180,220)' : '';
-	return `{\\p1\\pos(${box.x},${box.y})${fadeTag}\\c${assColor(color)}${border}}m 0 0 l ${box.width} 0 l ${box.width} ${box.height} l 0 ${box.height}{\\p0}`;
+	return `{\\an7\\p1\\pos(${box.x},${box.y})${fadeTag}\\c${assColor(color)}${border}}m 0 0 l ${box.width} 0 l ${box.width} ${box.height} l 0 ${box.height}{\\p0}`;
 }
 
 function textEvent(input: {
@@ -280,7 +280,7 @@ export function buildEndCardAss(endCard: EditPlanEndCard, safeArea: EndCardBox):
 	if (
 		endCard.durationMs < END_CARD_MIN_MS ||
 		endCard.durationMs > END_CARD_MAX_MS ||
-		endCard.endMs - endCard.startMs < END_CARD_MIN_MS
+		endCard.endMs - endCard.startMs !== endCard.durationMs
 	)
 		throw new EndCardError('END_CARD_WINDOW_INVALID', 'A janela do final A/B é inválida.');
 	if (endCard.endMs > 150_000)

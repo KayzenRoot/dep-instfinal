@@ -16,6 +16,7 @@ export function choiceSetHash(choices: ChoiceEndCardChoice[]): string {
 						id: choice.id,
 						optionKey: choice.optionKey,
 						label: choice.label,
+						consequence: choice.consequence,
 					})),
 			),
 		)
@@ -45,6 +46,7 @@ export function choiceEndCardConfigHash(
 						id: choice.id,
 						optionKey: choice.optionKey,
 						label: choice.label,
+						consequence: choice.consequence,
 					})),
 				template: {
 					version: template.version,

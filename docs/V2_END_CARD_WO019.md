@@ -31,21 +31,30 @@
 
 ## Critérios de aceitação
 
-| Critério                                                                                     | Estado       | Evidência                                                                                             |
-| -------------------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------- |
-| Episódio com ENTRAR/FUGIR produz CTA fiel, 9:16, 2 layouts, animação/som configuráveis        | PASS         | 6 presets × 2 layouts; ASS/FFmpeg; E2E gera split+stacked e aprova; preview 9:16                       |
-| Mudança de texto no roteiro aprovado invalida CTA antigo e exige revisão                       | PASS         | hash/snapshot; card stale; API 409; E2E altera escolha via RPC e vê 3 revisões stale                   |
-| Final sem opções não recebe escolha inventada, erro ou voto fictício                          | PASS         | RPC exige exatamente 2 escolhas; PgTAP cobre episódio sem escolhas; UI mostra aviso de finale vazio     |
-| Preview e MP4 legíveis; SFX dentro dos níveis; redução de movimento                            | PASS parcial | teste FFmpeg extrai frame e verifica luma/acentos; loudnorm/alimiter; `reducedMotion` remove fades      |
-| Voto manual segue fluxo V1, sem scraper ou automação                                            | PASS         | nenhuma tabela/RPC de voto nova; card apenas lê `choices`; export orienta o voto manual                |
+| Critério                                                                               | Estado       | Evidência                                                                                           |
+| -------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------- |
+| Episódio com ENTRAR/FUGIR produz CTA fiel, 9:16, 2 layouts, animação/som configuráveis | PASS         | 6 presets × 2 layouts; ASS/FFmpeg; E2E gera split+stacked e aprova; preview 9:16                    |
+| Mudança de texto no roteiro aprovado invalida CTA antigo e exige revisão               | PASS         | hash/snapshot; card stale; API 409; E2E altera escolha via RPC e vê 3 revisões stale                |
+| Final sem opções não recebe escolha inventada, erro ou voto fictício                   | PASS         | RPC exige exatamente 2 escolhas; PgTAP cobre episódio sem escolhas; UI mostra aviso de finale vazio |
+| Preview e MP4 legíveis; SFX dentro dos níveis; redução de movimento                    | PASS parcial | teste FFmpeg extrai frame e verifica luma/acentos; loudnorm/alimiter; `reducedMotion` remove fades  |
+| Voto manual segue fluxo V1, sem scraper ou automação                                   | PASS         | nenhuma tabela/RPC de voto nova; card apenas lê `choices`; export orienta o voto manual             |
+
+## Correções pós-auditoria independente
+
+- **C1 — geometria ASS:** retângulos passaram a usar `\an7\pos(...)`, ancorando o canto superior esquerdo. O teste FFmpeg agora compõe sobre frame verde e exige menos de 500 pixels verdes, além de luma escura e acentos visíveis.
+- **H1 — mute da narração:** `buildNarrationMuxCommand` aceita `muteWindows` e aplica `volume=0` na janela do card mesmo quando `sfx: none` e não há eventos de áudio; teste FFmpeg mede volume antes/dentro do card.
+- **H2 — stale real:** o snapshot inclui `consequence`, compara a revisão do episódio e o RPC recebe o snapshot exato, rejeitando mudanças concorrentes (`end_card_choice_snapshot_conflict`). O E2E muda só a consequência (mesmos labels) e confirma stale/409, depois muda o label.
+- **H3 — fim real da timeline:** o card precisa terminar em `max(clip.timelineEndMs)` e ter exatamente `durationMs`; o anexo usa o fim real dos clipes e falha se a timeline for menor que o card.
+- **M1/M5/M6/M7:** anexo usa o `expectedVersion` do formulário; card aprovado é buscado fora do limite de 30; quota conta apenas DRAFTs (aprovadas não travam a quota); fontes usam famílias únicas resolvíveis.
+- **M8:** QA exige janela no fim real; manifesto registra o card completo; E2E aprova e confere `finale/end-card.ass` no ZIP de export.
 
 ## Testes planejados/executados
 
-- Unit: 10 testes — 6 presets, safe area dos 2 layouts, wrap/overflow de labels, ASS com A/B/prompt/rodapé, escape e movimento reduzido, janela inválida, hash de escolhas/config, WAV determinístico/volume, plano com CTA conflitante e overflow.
-- Render/composição: 3 testes — filtro ASS do card após legendas, mute de narração só na janela do card, burn-in FFmpeg com extração de frame e checagem de luma/acentos + SFX.
+- Unit: 10 testes — 6 presets, safe area dos 2 layouts, wrap/overflow de labels, ASS com A/B/prompt/rodapé, escape e movimento reduzido, janela inválida, hash de escolhas/config (incluindo consequência), WAV determinístico/volume, plano com CTA conflitante, overflow e fim real.
+- Render/composição: 4 testes — filtro ASS do card após legendas, mute de narração na janela, mux de narração sem SFX e burn-in FFmpeg sobre frame verde com checagem de cobertura/luma/acentos + SFX.
 - Actions: 4 testes — geração sequencial de 2 layouts, preset inválido, anexo ao plano no fim do episódio e conflito stale.
 - PgTAP 210: owner read, escrita direta negada, segundo owner isolado, RPC versionada, poda preservando APPROVED, quota 200 exercitada, episódio sem escolhas e episódio publicado bloqueados.
-- E2E: entra pela nav “Final A/B”, cria episódio e duas escolhas, gera split+stacked, aprova, baixa ASS/JSON/WAV, nega anônimo, altera escolha pelo RPC V1, verifica stale e 409, screenshots 360/768/1440.
+- E2E: entra pela nav “Final A/B”, cria episódio e duas escolhas, gera split+stacked, aprova, baixa ASS/JSON/WAV, confere `finale/end-card.ass` no ZIP, nega anônimo, altera só a consequência pelo RPC V1 (stale/409) e depois o label, screenshots 360/768/1440.
 - Policy: 33 invariantes / 31 tabelas; backup/restore incluem `choice_end_cards`.
 
 ## Riscos e residuais

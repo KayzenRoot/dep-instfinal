@@ -13,37 +13,44 @@ Branch: `feat/dif-v2-wo-019` (base `main` `c94409d`)
 
 ## Unit / action / render
 
-- Unit suite: **304 passed + 3 skipped** locally.
+- Unit suite: **306 passed + 3 skipped** locally.
 - `choice-end-card.test.ts`: 10/10 — six presets, safe areas for split/stacked, label wrap and
-  overflow error, ASS A/B/prompt/footer, escaping and reduced motion, invalid window, choice and
-  config hashes, deterministic WAV/volume, CTA conflict and text overflow in the plan.
+  overflow error, ASS A/B/prompt/footer with `\an7` geometry, escaping and reduced motion, invalid
+  window, choice/config hashes including `consequence`, deterministic WAV/volume, CTA conflict,
+  text overflow and real-timeline-end enforcement.
 - `render-composition.test.ts`: ASS card filter chained after captions; narration mute only inside
-  the card window.
-- `render-compose.integration.test.ts`: FFmpeg burns the A/B card, mixes synthesized SFX, and the
-  extracted frame has dark luma with thousands of accent pixels.
+  the card window in both mix and narration-only paths.
+- `render-compose.integration.test.ts`: FFmpeg burns the A/B card over a green frame and checks
+  fewer than 500 green pixels plus dark luma/accent pixels; SFX mix; narration-only card window is
+  muted (−24 dB before, below −70 dB inside).
 - `finale-actions.test.ts`: 4/4 — two layouts as sequential revisions, invalid preset, timeline
   attach at episode end, stale conflict mapping.
 
 ## E2E
 
-- `e2e/finale.spec.ts` local PASS (45.9 s): login, nav “Final A/B”, synthetic episode + two
-  choices, generate split+stacked, approve, ASS/JSON/WAV downloads, anonymous 401/403/404,
-  choice change through the V1 RPC, three stale revisions, API 409, screenshots 360/768/1440.
+- `e2e/finale.spec.ts` local PASS (41.8 s): login, nav “Final A/B”, synthetic episode + two
+  choices, generate split+stacked, approve, ASS/JSON/WAV downloads, `finale/end-card.ass` inside
+  the export ZIP, anonymous 401/403/404, consequence-only change via the V1 RPC (three stale
+  revisions and API 409), then label change, screenshots 360/768/1440.
 
 ## Database / retention
 
 - `choice_end_cards` owner-read/service-write, immutable, hash versioned.
 - PgTAP: owner read, direct write denied, second owner isolated, revision conflict, APPROVED
-  preservation under prune, quota 200 exercised (200 allowed, 201st blocked), episode without two
-  choices blocked, published episode blocked.
-- Quota/prune are service-only; the UI lists the latest 30 revisions.
+  preservation under prune, draft quota 200 exercised (200 drafts + approved allowed, 201st draft
+  blocked), episode without two choices blocked, published episode blocked.
+- The RPC receives the exact choices snapshot and rejects concurrent snapshot drift.
+- Quota/prune are service-only; the UI lists the latest 30 revisions but approved is fetched
+  independently, so it does not disappear behind newer drafts.
 
 ## Rendering / limits measured locally
 
 - ASS uses 1080×1920 PlayRes and the TikTok safe area `{x:48,y:180,width:984,height:1500}`.
-- The card window is at the end of the plan; narration is muted by default only during that window.
+- The card window must end exactly at `max(clip.timelineEndMs)` and equal the configured duration;
+  narration is muted by default only during that window, with or without SFX events.
 - SFX is a deterministic 48 kHz stereo 16-bit WAV synthesized in-process; the mix applies
   `loudnorm=I=-16:TP=-1.5` and `alimiter=0.891`.
+- `restore`/`approve` carry the source choice revision and cannot rebase a stale card.
 - No generated card bytes are stored; only config, choice snapshot and hash.
 
 ## Security / privacy

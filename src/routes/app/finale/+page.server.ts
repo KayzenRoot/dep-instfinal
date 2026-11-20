@@ -118,7 +118,11 @@ export const load: PageServerLoad = async (event) => {
 		};
 	const currentHash = context.choices.length === 2 ? choiceSetHash(context.choices) : null;
 	const staleRevisionIds = context.revisions
-		.filter((revision) => choiceSetHash(revision.choices) !== currentHash)
+		.filter(
+			(revision) =>
+				revision.choiceRevisionNumber !== context.choiceRevisionNumber ||
+				choiceSetHash(revision.choices) !== currentHash,
+		)
 		.map((revision) => revision.id);
 	let plan: {
 		version: number;
@@ -231,6 +235,7 @@ export const actions: Actions = {
 				expectedRevision,
 				config: revision.config,
 				status: 'APPROVED',
+				sourceChoiceRevision: revision.choiceRevisionNumber,
 			});
 		} catch (cause) {
 			const info = messageFor(cause);
@@ -256,6 +261,7 @@ export const actions: Actions = {
 				episodeId: revision.episodeId,
 				expectedRevision,
 				config: revision.config,
+				sourceChoiceRevision: revision.choiceRevisionNumber,
 			});
 		} catch (cause) {
 			const info = messageFor(cause);
@@ -278,14 +284,18 @@ export const actions: Actions = {
 			const planContext = await loadEditPlanContext(db, owner, episodeId);
 			const stored = await loadEditPlan(db, owner, episodeId);
 			const base = stored.plan?.plan ?? defaultEditPlan(planContext);
-			const endMs = base.durationMs;
-			const startMs = Math.max(0, endMs - revision.config.durationMs);
+			const endMs = Math.max(...base.clips.map((clip) => clip.timelineEndMs), 0);
+			const startMs = endMs - revision.config.durationMs;
+			if (endMs < revision.config.durationMs)
+				return fail(409, {
+					message: 'A timeline é mais curta que o final A/B. Ajuste a duração do card.',
+				});
 			version = await saveVideoEditPlan({
 				db,
 				adminDb: createSupabaseAdminClient(),
 				owner,
 				episodeId,
-				expectedVersion: stored.plan?.current_version ?? 0,
+				expectedVersion: Number(expectedVersionRaw),
 				plan: {
 					...base,
 					episodeRevisionNumber: planContext.episodeRevisionNumber,

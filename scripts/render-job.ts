@@ -474,17 +474,7 @@ async function main() {
 						endMs: validated.cta.endMs,
 					}
 				: null,
-			endCard: validated.endCard
-				? {
-						cardId: validated.endCard.cardId,
-						cardRevision: validated.endCard.cardRevision,
-						templateId: validated.endCard.templateId,
-						layout: validated.endCard.layout,
-						startMs: validated.endCard.startMs,
-						endMs: validated.endCard.endMs,
-						sfx: validated.endCard.sfx,
-					}
-				: null,
+			endCard: validated.endCard ?? null,
 			bucket: localOutput ? 'local-test' : bucket,
 			objectKey: localArtifactPath ?? objectKey,
 			durationMs: output.durationMs,

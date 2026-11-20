@@ -9,6 +9,7 @@ import {
 	serviceKey,
 	supabaseUrl,
 } from './supabase.js';
+import { readZipTextEntry } from './zip.js';
 
 test('owner builds, approves and invalidates the two-choice end card', async ({
 	page,
@@ -62,6 +63,13 @@ test('owner builds, approves and invalidates the two-choice end card', async ({
 		label: 'FUGIR',
 		consequence: 'A personagem foge da sala.',
 	});
+	await callRpc(request, token, 'save_episode_choices', {
+		p_episode_id: episodeId,
+		p_option_1_label: 'ENTRAR',
+		p_option_1_consequence: 'A personagem entra na sala.',
+		p_option_2_label: 'FUGIR',
+		p_option_2_consequence: 'A personagem foge da sala.',
+	});
 
 	await page.goto('/login');
 	await page.getByLabel('E-mail do proprietário').fill(process.env.E2E_OWNER_EMAIL!);
@@ -105,11 +113,16 @@ test('owner builds, approves and invalidates the two-choice end card', async ({
 	expect(wav.headers()['content-type']).toContain('audio/wav');
 	const anonymous = await request.get(`/api/end-cards/${revisionId}?format=ass`);
 	expect([401, 403, 404]).toContain(anonymous.status());
+	const exported = await page.request.get(`/api/export/${episodeId}?media=lite`);
+	expect(exported.status()).toBe(200);
+	expect(readZipTextEntry(Buffer.from(await exported.body()), 'finale/end-card.ass')).toContain(
+		'ENTRAR',
+	);
 
 	await callRpc(request, token, 'save_episode_choices', {
 		p_episode_id: episodeId,
-		p_option_1_label: 'ENTRAR AGORA',
-		p_option_1_consequence: 'A personagem entra na sala.',
+		p_option_1_label: 'ENTRAR',
+		p_option_1_consequence: 'A personagem entra e tranca a porta.',
 		p_option_2_label: 'FUGIR',
 		p_option_2_consequence: 'A personagem foge da sala.',
 	});
@@ -117,6 +130,16 @@ test('owner builds, approves and invalidates the two-choice end card', async ({
 	await expect(page.locator('.stale')).toHaveCount(3);
 	const blocked = await page.request.get(`/api/end-cards/${revisionId}?format=ass`);
 	expect(blocked.status()).toBe(409);
+
+	await callRpc(request, token, 'save_episode_choices', {
+		p_episode_id: episodeId,
+		p_option_1_label: 'ENTRAR AGORA',
+		p_option_1_consequence: 'A personagem entra e tranca a porta.',
+		p_option_2_label: 'FUGIR',
+		p_option_2_consequence: 'A personagem foge da sala.',
+	});
+	await page.goto(`/app/finale?episodeId=${episodeId}`);
+	await expect(page.locator('.stale')).toHaveCount(3);
 
 	const screenshotDirectory = path.join(process.cwd(), 'test-results', 'screenshots');
 	await mkdir(screenshotDirectory, { recursive: true });

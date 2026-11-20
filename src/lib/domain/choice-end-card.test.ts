@@ -23,8 +23,18 @@ import {
 } from './video-edit-plan.js';
 
 const choices = [
-	{ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', optionKey: '1' as const, label: 'ENTRAR' },
-	{ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', optionKey: '2' as const, label: 'FUGIR' },
+	{
+		id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+		optionKey: '1' as const,
+		label: 'ENTRAR',
+		consequence: 'Entra na sala.',
+	},
+	{
+		id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+		optionKey: '2' as const,
+		label: 'FUGIR',
+		consequence: 'Foge da sala.',
+	},
 ];
 
 const config: ChoiceEndCardConfig = choiceEndCardConfigSchema.parse({
@@ -159,6 +169,9 @@ describe('end card hashes and audio', () => {
 		expect(choiceSetHash(choices)).not.toBe(
 			choiceSetHash([choices[0]!, { ...choices[1]!, label: 'CORRER' }]),
 		);
+		expect(choiceSetHash(choices)).not.toBe(
+			choiceSetHash([choices[0]!, { ...choices[1]!, consequence: 'Outro destino.' }]),
+		);
 		const hash = choiceEndCardConfigHash(config, choices);
 		expect(hash).toBe(choiceEndCardConfigHash({ ...config }, choices));
 		expect(hash).not.toBe(choiceEndCardConfigHash({ ...config, prompt: 'Outro' }, choices));
@@ -214,6 +227,12 @@ describe('end card in the edit plan', () => {
 		expect(() =>
 			validateEditPlan(
 				{ ...plan, endCard: { ...endCard, startMs: 89_000, endMs: 91_000 } },
+				context(),
+			),
+		).toThrow(EditPlanError);
+		expect(() =>
+			validateEditPlan(
+				{ ...plan, endCard: { ...endCard, startMs: 78_000, endMs: 84_000 } },
 				context(),
 			),
 		).toThrow(EditPlanError);

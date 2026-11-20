@@ -438,7 +438,7 @@ describe.skipIf(!enabled)('FFmpeg end-card burn-in integration', () => {
 	it('burns the A/B card and synthesizes its SFX into the final MP4', async () => {
 		const workspace = await mkdtemp(join(tmpdir(), 'dif-endcard-'));
 		try {
-			const { plan, inputs } = twoClipPlan(workspace);
+			const { plan, inputs } = twoClipPlan(workspace, 'color=c=0x00ff00:s=180x320:r=30');
 			const endCard = {
 				schemaVersion: 1 as const,
 				templateId: 'doors' as const,
@@ -457,8 +457,18 @@ describe.skipIf(!enabled)('FFmpeg end-card burn-in integration', () => {
 				startMs: 0,
 				endMs: 4_000,
 				choices: [
-					{ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', optionKey: '1' as const, label: 'ENTRAR' },
-					{ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', optionKey: '2' as const, label: 'FUGIR' },
+					{
+						id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+						optionKey: '1' as const,
+						label: 'ENTRAR',
+						consequence: 'Entra.',
+					},
+					{
+						id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+						optionKey: '2' as const,
+						label: 'FUGIR',
+						consequence: 'Foge.',
+					},
 				],
 			};
 			const assPath = join(workspace, 'endcard.ass');
@@ -522,6 +532,7 @@ describe.skipIf(!enabled)('FFmpeg end-card burn-in integration', () => {
 				.raw()
 				.toBuffer({ resolveWithObject: true });
 			let accentPixels = 0;
+			let greenPixels = 0;
 			let lumaSum = 0;
 			for (let index = 0; index < frame.data.length; index += 3) {
 				const red = frame.data[index]!;
@@ -529,14 +540,113 @@ describe.skipIf(!enabled)('FFmpeg end-card burn-in integration', () => {
 				const blue = frame.data[index + 2]!;
 				lumaSum += 0.2126 * red + 0.7152 * green + 0.0722 * blue;
 				if (red > 150 && green > 90 && blue < 120) accentPixels += 1;
+				if (green > 180 && red < 80 && blue < 80) greenPixels += 1;
 			}
 			const pixels = frame.info.width * frame.info.height;
 			expect(lumaSum / pixels).toBeLessThan(100);
+			expect(greenPixels).toBeLessThan(500);
 			expect(accentPixels).toBeGreaterThan(1_000);
 		} finally {
 			await rm(workspace, { recursive: true, force: true });
 		}
 	}, 180_000);
+});
+
+describe.skipIf(!enabled)('FFmpeg end-card narration gate', () => {
+	it('mutes narration inside the card even without SFX events', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'dif-endcard-mute-'));
+		try {
+			const { plan, inputs } = twoClipPlan(workspace);
+			const narrationPath = join(workspace, 'voice.wav');
+			execFileSync(
+				'ffmpeg',
+				[
+					'-y',
+					'-hide_banner',
+					'-loglevel',
+					'error',
+					'-f',
+					'lavfi',
+					'-i',
+					'sine=frequency=440:sample_rate=48000:duration=4',
+					'-af',
+					'volume=0.2,pan=stereo|c0=c0|c1=c0',
+					'-c:a',
+					'pcm_s16le',
+					narrationPath,
+				],
+				{ timeout: 60_000, windowsHide: true },
+			);
+			const output = await renderPlanToFile({
+				plan: {
+					...plan,
+					endCard: {
+						schemaVersion: 1,
+						templateId: 'doors',
+						layout: 'stacked',
+						durationMs: 3_000,
+						prompt: 'Qual caminho?',
+						footer: 'Comente A ou B',
+						reveal: 'instant',
+						reducedMotion: true,
+						sfx: 'none',
+						sfxVolumeDb: -12,
+						narration: 'mute',
+						cardId: '55555555-5555-4555-8555-555555555555',
+						cardRevision: 1,
+						choiceRevisionNumber: 1,
+						startMs: 1_000,
+						endMs: 4_000,
+						choices: [
+							{
+								id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+								optionKey: '1' as const,
+								label: 'ENTRAR',
+								consequence: 'Entra.',
+							},
+							{
+								id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+								optionKey: '2' as const,
+								label: 'FUGIR',
+								consequence: 'Foge.',
+							},
+						],
+					},
+				},
+				assets: inputs,
+				outputPath: join(workspace, 'output.mp4'),
+				narration: { path: narrationPath, durationMs: 4_000, takeId: 'narr-1' },
+				timeoutMs: 120_000,
+			});
+			const levelAt = (seconds: number) => {
+				const result = spawnSync(
+					'ffmpeg',
+					[
+						'-hide_banner',
+						'-ss',
+						String(seconds),
+						'-t',
+						'0.2',
+						'-i',
+						output.path,
+						'-af',
+						'volumedetect',
+						'-f',
+						'null',
+						'-',
+					],
+					{ encoding: 'utf8', windowsHide: true },
+				);
+				const match = /max_volume: (-?\d+(?:\.\d+)?) dB/.exec(result.stderr);
+				expect(match).toBeTruthy();
+				return Number(match?.[1]);
+			};
+			expect(levelAt(0.4)).toBeGreaterThan(-40);
+			expect(levelAt(2.4)).toBeLessThan(-70);
+		} finally {
+			await rm(workspace, { recursive: true, force: true });
+		}
+	}, 120_000);
 });
 
 describe.skipIf(!enabled)('FFmpeg crossfade integration', () => {

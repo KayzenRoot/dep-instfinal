@@ -33,11 +33,11 @@ async function loadEndCardExportState(
 ): Promise<{ approvedEndCard: ChoiceEndCardRevision | null; endCardStale: boolean }> {
 	try {
 		const cardContext = await loadChoiceEndCardContext(db, owner, episodeId);
-		const approvedEndCard =
-			cardContext?.revisions.find((revision) => revision.status === 'APPROVED') ?? null;
+		const approvedEndCard = cardContext?.approved ?? null;
 		const endCardStale = Boolean(
 			approvedEndCard &&
-			(cardContext?.choices.length !== 2 ||
+			(cardContext?.choiceRevisionNumber !== approvedEndCard.choiceRevisionNumber ||
+				cardContext?.choices.length !== 2 ||
 				choiceSetHash(cardContext.choices) !== choiceSetHash(approvedEndCard.choices)),
 		);
 		return { approvedEndCard, endCardStale };

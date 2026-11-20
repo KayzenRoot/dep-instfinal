@@ -303,6 +303,20 @@ describe('director render windows', () => {
 });
 
 describe('narration mux command', () => {
+	it('mutes narration inside the card window when there are no SFX events', () => {
+		const command = buildNarrationMuxCommand({
+			videoPath: '/tmp/output.mp4',
+			narrationPath: '/tmp/voice.wav',
+			outputPath: '/tmp/final.mp4',
+			videoDurationMs: 120_000,
+			narrationDurationMs: 120_000,
+			muteWindows: [{ startMs: 114_000, durationMs: 6_000 }],
+		});
+		expect(command.args[command.args.indexOf('-af') + 1]).toContain(
+			"volume=0:enable='between(t,114.000,120.000)'",
+		);
+	});
+
 	it('copies video, pads audio to the exact duration and reports timing', () => {
 		const command = buildNarrationMuxCommand({
 			videoPath: '/tmp/output.mp4',

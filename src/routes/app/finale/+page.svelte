@@ -18,14 +18,13 @@
 	let sfx = $state(defaults.sfx);
 	let sfxVolumeDb = $state(defaults.sfxVolumeDb);
 	let narration = $state(defaults.narration);
+	let previewProfile = $state<'tiktok' | 'reels'>('tiktok');
 
 	const selectedTemplate = $derived(END_CARD_TEMPLATES[templateId]);
 	const choices = $derived(data.context?.choices ?? []);
 	const latestRevision = $derived(data.context?.latestRevision ?? 0);
 	const stale = $derived(new Set(data.staleRevisionIds));
-	const approved = $derived(
-		data.context?.revisions.find((revision) => revision.status === 'APPROVED') ?? null,
-	);
+	const approved = $derived(data.context?.approved ?? null);
 	const attached = $derived(Boolean(data.plan?.endCardId));
 
 	function templateLabel(id: string): string {
@@ -179,11 +178,27 @@
 
 		<section class="panel">
 			<h2>Prévia segura</h2>
+			<div class="profile-toggle" role="group" aria-label="Perfil de prévia">
+				{#each [{ id: 'tiktok', label: 'TikTok' }, { id: 'reels', label: 'Reels' }] as profile (profile.id)}
+					<button
+						type="button"
+						class:active={previewProfile === profile.id}
+						onclick={() => (previewProfile = profile.id as 'tiktok' | 'reels')}
+					>
+						{profile.label}
+					</button>
+				{/each}
+			</div>
 			<div
-				class="endcard-preview tpl-{selectedTemplate.id}"
+				class="endcard-preview tpl-{selectedTemplate.id} profile-{previewProfile}"
 				style={`--card-bg:${selectedTemplate.background};--card-panel:${selectedTemplate.panel};--card-accent:${selectedTemplate.accent};--card-text:${selectedTemplate.text}`}
 			>
 				<div class="safe-outline" aria-hidden="true"></div>
+				<div class="ui-mock" aria-hidden="true">
+					<span class="ui-top">{previewProfile === 'tiktok' ? 'Para você' : 'Reels'}</span>
+					<span class="ui-actions">♡ 💬 ↗</span>
+					<span class="ui-caption">@arquivo · som original</span>
+				</div>
 				<header>{prompt}</header>
 				<div class="choices-preview {layout}">
 					{#each choices as choice (choice.id)}
@@ -201,8 +216,10 @@
 				>
 			</div>
 			<p class="hint">
-				{selectedTemplate.description} A simulação mostra a área segura; o ASS final usa a mesma geometria
-				conservadora do perfil TikTok.
+				{selectedTemplate.description} A simulação mostra a área segura de {previewProfile ===
+				'tiktok'
+					? 'TikTok'
+					: 'Reels'}; o ASS final usa a geometria conservadora do perfil TikTok.
 			</p>
 			{#if approved}
 				<div class="attach">
@@ -377,11 +394,57 @@
 		border-radius: var(--radius-sm);
 		overflow: hidden;
 	}
+	.profile-toggle {
+		display: flex;
+		gap: 0.35rem;
+	}
+	.profile-toggle button {
+		font-size: 0.7rem;
+		padding: 0.2rem 0.5rem;
+	}
+	.profile-toggle button.active {
+		border-color: var(--phosphor);
+		color: var(--phosphor);
+	}
 	.safe-outline {
 		position: absolute;
-		inset: 9.4% 4.4%;
+		inset: 9.4% 4.4% 12.5%;
 		border: 1px dashed rgb(255 255 255 / 30%);
 		pointer-events: none;
+	}
+	.profile-reels .safe-outline {
+		inset: 11.5% 4.4% 14%;
+	}
+	.ui-mock {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		font-size: 0.58rem;
+		opacity: 0.75;
+	}
+	.ui-top {
+		position: absolute;
+		top: 4.5%;
+		left: 8%;
+		font-weight: 700;
+	}
+	.ui-actions {
+		position: absolute;
+		right: 3.5%;
+		bottom: 28%;
+		display: grid;
+		gap: 0.6rem;
+		text-align: center;
+	}
+	.ui-caption {
+		position: absolute;
+		left: 8%;
+		right: 18%;
+		bottom: 5%;
+		line-height: 1.3;
+	}
+	.profile-reels .ui-actions {
+		bottom: 30%;
 	}
 	.endcard-preview header {
 		font-weight: 700;

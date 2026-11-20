@@ -52,6 +52,7 @@ export const choiceEndCardChoiceSchema = z.object({
 	id: uuid,
 	optionKey: z.enum(['1', '2']),
 	label: printableText(1, 180),
+	consequence: printableText(1, 4_000),
 });
 
 export type ChoiceEndCardChoice = z.infer<typeof choiceEndCardChoiceSchema>;
@@ -89,6 +90,12 @@ export const editPlanEndCardSchema = choiceEndCardConfigSchema
 				code: 'custom',
 				path: ['endMs'],
 				message: 'Fim do final A/B deve ser depois do início.',
+			});
+		if (value.endMs - value.startMs !== value.durationMs)
+			context.addIssue({
+				code: 'custom',
+				path: ['endMs'],
+				message: 'A janela do final A/B deve ter exatamente a duração configurada.',
 			});
 		if (value.endMs - value.startMs < END_CARD_MIN_MS)
 			context.addIssue({

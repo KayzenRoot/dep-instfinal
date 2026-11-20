@@ -26,6 +26,28 @@ const narrativeContext = vi.hoisted(() => ({
 		hypotheticalBranch: null,
 	})),
 }));
+const endCards = vi.hoisted(() => {
+	class ChoiceEndCardError extends Error {}
+	return {
+		ChoiceEndCardError,
+		loadChoiceEndCardContext: vi.fn(async () => ({
+			episode: {
+				id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+				title: 'Fixture episode',
+				number: 1,
+				durationMs: 120_000,
+				status: 'DRAFT',
+				isFinale: false,
+				seriesTitle: 'Fixture series',
+			},
+			choices: [],
+			choiceRevisionNumber: 1,
+			revisions: [],
+			approved: null,
+			latestRevision: 0,
+		})),
+	};
+});
 const appConfig = vi.hoisted(() => ({
 	getAppConfig: vi.fn(() => ({
 		cloudinaryConfigured: true,
@@ -39,6 +61,7 @@ vi.mock('cloudinary', () => ({ v2: cloudinary }));
 vi.mock('#lib/server/authorized.js', () => authorized);
 vi.mock('#lib/server/config.js', () => appConfig);
 vi.mock('#lib/server/narrative-context.js', () => narrativeContext);
+vi.mock('#lib/server/choice-end-card.js', () => endCards);
 
 import { GET as exportEpisode } from '../export/[episodeId]/+server.js';
 import { GET as privateMedia } from './[assetId]/+server.js';

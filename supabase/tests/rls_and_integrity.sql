@@ -2345,12 +2345,28 @@ values
   ('11111111-1111-4111-8111-111111111111', 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3', '1', 'ENTRAR', 'A personagem entra.'),
   ('11111111-1111-4111-8111-111111111111', 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3', '2', 'FUGIR', 'A personagem foge.');
 
+create or replace function pg_temp.end_card_snapshot(p_episode_id uuid)
+returns jsonb language sql stable
+as $$
+  select jsonb_agg(
+    jsonb_build_object(
+      'id', c.id, 'optionKey', c.option_key,
+      'label', c.label, 'consequence', c.consequence
+    )
+    order by c.option_key
+  )
+  from public.choices c
+  where c.owner_id = '11111111-1111-4111-8111-111111111111'
+    and c.episode_id = p_episode_id;
+$$;
+
 set local role service_role;
 select lives_ok(
   $$select public.save_choice_end_card(
       '11111111-1111-4111-8111-111111111111',
       'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
       0,
+      pg_temp.end_card_snapshot('b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
       jsonb_build_object(
         'schemaVersion', 1, 'templateId', 'doors', 'layout', 'stacked',
         'durationMs', 6000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
@@ -2366,6 +2382,7 @@ select throws_ok(
       '11111111-1111-4111-8111-111111111111',
       'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
       0,
+      pg_temp.end_card_snapshot('b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
       jsonb_build_object(
         'schemaVersion', 1, 'templateId', 'doors', 'layout', 'stacked',
         'durationMs', 6000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
@@ -2382,6 +2399,7 @@ select lives_ok(
       '11111111-1111-4111-8111-111111111111',
       'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
       1,
+      pg_temp.end_card_snapshot('b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
       jsonb_build_object(
         'schemaVersion', 1, 'templateId', 'cctv', 'layout', 'split',
         'durationMs', 8000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
@@ -2397,6 +2415,7 @@ select lives_ok(
       '11111111-1111-4111-8111-111111111111',
       'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
       2,
+      pg_temp.end_card_snapshot('b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
       jsonb_build_object(
         'schemaVersion', 1, 'templateId', 'analog', 'layout', 'stacked',
         'durationMs', 6000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
@@ -2459,15 +2478,18 @@ select
   '11111111-1111-4111-8111-111111111111',
   'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
   revision, 1,
-  (select jsonb_agg(jsonb_build_object('id', id, 'optionKey', option_key, 'label', label) order by option_key)
+  (select jsonb_agg(jsonb_build_object(
+      'id', id, 'optionKey', option_key,
+      'label', label, 'consequence', consequence
+    ) order by option_key)
    from public.choices
    where episode_id = 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
   '{}'::jsonb, repeat('c', 64)
-from generate_series(4, 201) as revision;
+from generate_series(4, 202) as revision;
 select is(
   (select count(*) from public.choice_end_cards
    where episode_id = 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
-  200::bigint, 'end card quota allows exactly 200 revisions per episode'
+  201::bigint, 'end card quota allows exactly 200 drafts plus approved revisions'
 );
 select throws_ok(
   $$insert into public.choice_end_cards (
@@ -2475,17 +2497,18 @@ select throws_ok(
       choices_snapshot, config, config_hash
     ) values (
       '11111111-1111-4111-8111-111111111111',
-      'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3', 202, 1,
+      'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3', 203, 1,
       '[]'::jsonb, '{}'::jsonb, repeat('c', 64)
     );$$,
   '23514', 'choice_end_card_quota',
-  'end card quota blocks the 201st revision'
+  'end card quota blocks the 201st draft'
 );
 select throws_ok(
   $$select public.save_choice_end_card(
       '11111111-1111-4111-8111-111111111111',
       'b4b4b4b4-b4b4-44b4-84b4-b4b4b4b4b4b4',
       0,
+      '[]'::jsonb,
       jsonb_build_object(
         'schemaVersion', 1, 'templateId', 'doors', 'layout', 'stacked',
         'durationMs', 6000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
@@ -2502,6 +2525,7 @@ select throws_ok(
       '11111111-1111-4111-8111-111111111111',
       'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       0,
+      '[]'::jsonb,
       jsonb_build_object(
         'schemaVersion', 1, 'templateId', 'doors', 'layout', 'stacked',
         'durationMs', 6000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',

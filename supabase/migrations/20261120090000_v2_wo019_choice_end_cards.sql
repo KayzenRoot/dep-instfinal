@@ -61,8 +61,9 @@ language plpgsql
 set search_path = pg_catalog, public
 as $$
 begin
-  if (select count(*) from public.choice_end_cards
-      where owner_id = new.owner_id and episode_id = new.episode_id) >= 200 then
+  if new.status = 'DRAFT' and (select count(*) from public.choice_end_cards
+      where owner_id = new.owner_id and episode_id = new.episode_id
+        and status = 'DRAFT') >= 200 then
     raise exception 'choice_end_card_quota' using errcode = '23514';
   end if;
   return new;
@@ -77,6 +78,7 @@ create or replace function public.save_choice_end_card(
   p_owner_id uuid,
   p_episode_id uuid,
   p_expected_revision integer,
+  p_choices_snapshot jsonb,
   p_config jsonb,
   p_config_hash text,
   p_status text default 'DRAFT'
@@ -129,7 +131,10 @@ begin
   end if;
 
   select jsonb_agg(
-      jsonb_build_object('id', c.id, 'optionKey', c.option_key, 'label', c.label)
+      jsonb_build_object(
+        'id', c.id, 'optionKey', c.option_key,
+        'label', c.label, 'consequence', c.consequence
+      )
       order by c.option_key
     )
     into v_choices
@@ -137,6 +142,13 @@ begin
   where c.owner_id = p_owner_id and c.episode_id = p_episode_id;
   if v_choices is null or jsonb_array_length(v_choices) <> 2 then
     raise exception 'end_card_requires_two_choices' using errcode = '23514';
+  end if;
+  if jsonb_typeof(p_choices_snapshot) is distinct from 'array'
+    or jsonb_array_length(p_choices_snapshot) <> 2 then
+    raise exception 'end_card_choices_snapshot_invalid' using errcode = '23514';
+  end if;
+  if v_choices is distinct from p_choices_snapshot then
+    raise exception 'end_card_choice_snapshot_conflict' using errcode = '40001';
   end if;
 
   select coalesce(max(r.revision_number), 1)
@@ -158,15 +170,15 @@ begin
     choices_snapshot, config, config_hash, hash_version, status
   ) values (
     p_owner_id, p_episode_id, v_revision, v_choice_revision,
-    v_choices, p_config, p_config_hash, 1, p_status
+    p_choices_snapshot, p_config, p_config_hash, 1, p_status
   );
   return v_revision;
 end;
 $$;
 
-revoke all on function public.save_choice_end_card(uuid, uuid, integer, jsonb, text, text)
+revoke all on function public.save_choice_end_card(uuid, uuid, integer, jsonb, jsonb, text, text)
   from public, anon, authenticated;
-grant execute on function public.save_choice_end_card(uuid, uuid, integer, jsonb, text, text)
+grant execute on function public.save_choice_end_card(uuid, uuid, integer, jsonb, jsonb, text, text)
   to service_role;
 
 create or replace function public.prune_choice_end_cards(

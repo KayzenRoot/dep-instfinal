@@ -55,8 +55,18 @@ import { actions } from './+page.server.js';
 const episodeId = '11111111-1111-4111-8111-111111111111';
 const revisionId = '22222222-2222-4222-8222-222222222222';
 const choices = [
-	{ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', optionKey: '1', label: 'ENTRAR' },
-	{ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', optionKey: '2', label: 'FUGIR' },
+	{
+		id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+		optionKey: '1',
+		label: 'ENTRAR',
+		consequence: 'Entra.',
+	},
+	{
+		id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+		optionKey: '2',
+		label: 'FUGIR',
+		consequence: 'Foge.',
+	},
 ];
 const config = {
 	schemaVersion: 1,
@@ -117,6 +127,7 @@ describe('finale page actions', () => {
 			choices,
 			choiceRevisionNumber: 7,
 			revisions: [],
+			approved: null,
 			latestRevision: 0,
 		});
 		cards.saveChoiceEndCard.mockResolvedValueOnce(1).mockResolvedValueOnce(2);
@@ -147,7 +158,21 @@ describe('finale page actions', () => {
 			sceneDurationMs: 6_000,
 			fps: 30,
 			tracks: [{ id: 'video-main', kind: 'video', label: 'Vídeo principal' }],
-			clips: [],
+			clips: [
+				{
+					id: '33333333-3333-4333-8333-333333333333',
+					sceneId: '44444444-4444-4444-8444-444444444444',
+					assetId: '55555555-5555-4555-8555-555555555555',
+					trackId: 'video-main',
+					sourceInMs: 0,
+					sourceOutMs: 90_000,
+					timelineStartMs: 0,
+					timelineEndMs: 90_000,
+					transition: 'cut',
+					transitionMs: 0,
+					gainDb: 0,
+				},
+			],
 			captions: { template: 'clean' },
 			cta: null,
 		});
@@ -196,7 +221,7 @@ describe('finale page actions', () => {
 		expect(plans.saveVideoEditPlan).toHaveBeenCalledWith(
 			expect.objectContaining({
 				episodeId,
-				expectedVersion: 0,
+				expectedVersion: 2,
 				plan: expect.objectContaining({
 					endCard: expect.objectContaining({
 						cardId: revisionId,
