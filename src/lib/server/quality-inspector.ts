@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { acceptedDirectorEvents } from '#lib/domain/edit-director.js';
 import { captionTextFitsBox, wrapCtaText } from '#lib/domain/caption-metrics.js';
 import { assessColorRange } from '#lib/domain/color-quality.js';
+import { buildEndCardAss, EndCardError } from '#lib/domain/choice-end-card.js';
 import {
 	assertPreviewLayout,
 	PlatformPreviewError,
@@ -735,6 +736,35 @@ export async function inspectRenderArtifact(
 		}
 	} else {
 		checks.push(check('CTA', 'CTA de duas escolhas', 'PASS', 'CTA desativada no plano.'));
+	}
+
+	if (input.plan.endCard) {
+		try {
+			buildEndCardAss(
+				input.plan.endCard,
+				resolvePreviewLayout(input.plan.preview).profile.safeArea,
+			);
+			checks.push(
+				check(
+					'END_CARD',
+					'Final A/B',
+					'PASS',
+					`Card ${input.plan.endCard.templateId}/${input.plan.endCard.layout} com duas escolhas dentro da área segura.`,
+					{
+						evidence: [
+							{ detail: `card ${input.plan.endCard.cardId}@${input.plan.endCard.cardRevision}` },
+							{ detail: `window ${input.plan.endCard.startMs}..${input.plan.endCard.endMs} ms` },
+						],
+					},
+				),
+			);
+		} catch (cause) {
+			const message =
+				cause instanceof EndCardError ? cause.message : 'Final A/B inválido para render.';
+			checks.push(check('END_CARD', 'Final A/B', 'BLOCKED', message, { severity: 'HIGH' }));
+		}
+	} else {
+		checks.push(check('END_CARD', 'Final A/B', 'PASS', 'Final A/B desativado no plano.'));
 	}
 
 	if (input.narrationExpected) {

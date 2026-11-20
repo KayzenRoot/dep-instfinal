@@ -3,11 +3,13 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
+import sharp from 'sharp';
 import { buildSceneTimeline } from '#lib/domain/timeline.js';
 import { buildDefaultEditPlan } from '#lib/domain/video-edit-plan.js';
 import { buildRenderCommand } from '#lib/domain/render-composition.js';
 import { renderPlanToFile } from './render-compose.js';
 import { buildCaptionAss } from '#lib/domain/captions.js';
+import { buildEndCardAss, buildEndCardSfxWav } from '#lib/domain/choice-end-card.js';
 import type { AudioMixEvent } from '#lib/domain/render-composition.js';
 import { captionTrackSchema } from '#lib/schemas/captions.js';
 
@@ -426,6 +428,111 @@ describe.skipIf(!enabled)('FFmpeg caption burn-in integration', () => {
 			expect(maxX).toBeLessThanOrEqual(830);
 			expect(minY).toBeGreaterThanOrEqual(560);
 			expect(maxY).toBeLessThanOrEqual(840);
+		} finally {
+			await rm(workspace, { recursive: true, force: true });
+		}
+	}, 180_000);
+});
+
+describe.skipIf(!enabled)('FFmpeg end-card burn-in integration', () => {
+	it('burns the A/B card and synthesizes its SFX into the final MP4', async () => {
+		const workspace = await mkdtemp(join(tmpdir(), 'dif-endcard-'));
+		try {
+			const { plan, inputs } = twoClipPlan(workspace);
+			const endCard = {
+				schemaVersion: 1 as const,
+				templateId: 'doors' as const,
+				layout: 'split' as const,
+				durationMs: 4_000,
+				prompt: 'Qual caminho você escolhe?',
+				footer: 'Comente A ou B',
+				reveal: 'progressive' as const,
+				reducedMotion: false,
+				sfx: 'beep' as const,
+				sfxVolumeDb: -12,
+				narration: 'mute' as const,
+				cardId: '55555555-5555-4555-8555-555555555555',
+				cardRevision: 1,
+				choiceRevisionNumber: 1,
+				startMs: 0,
+				endMs: 4_000,
+				choices: [
+					{ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', optionKey: '1' as const, label: 'ENTRAR' },
+					{ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', optionKey: '2' as const, label: 'FUGIR' },
+				],
+			};
+			const assPath = join(workspace, 'endcard.ass');
+			await writeFile(
+				assPath,
+				buildEndCardAss(endCard, { x: 48, y: 180, width: 984, height: 1_500 }),
+				'utf8',
+			);
+			const sfxPath = join(workspace, 'endcard.wav');
+			await writeFile(sfxPath, buildEndCardSfxWav('beep', 4_000, -12)!);
+			const output = await renderPlanToFile({
+				plan,
+				assets: inputs,
+				outputPath: join(workspace, 'output.mp4'),
+				endCardAssPath: assPath,
+				audioEvents: [
+					{
+						id: '66666666-6666-4666-8666-666666666666',
+						path: sfxPath,
+						kind: 'SFX',
+						startMs: 0,
+						durationMs: 4_000,
+						sourceInMs: 0,
+						gainDb: 0,
+						fadeInMs: 60,
+						fadeOutMs: 120,
+						pan: 0,
+						distance: 0.5,
+						loop: false,
+						ducking: false,
+						spatialPreset: 'none',
+						spatialMode: 'stereo_pan',
+						intensity: 1,
+					},
+				],
+				timeoutMs: 180_000,
+			});
+			expect(output.audio).not.toBeNull();
+			expect(output.durationMs).toBeGreaterThanOrEqual(3_900);
+
+			const framePath = join(workspace, 'card.png');
+			execFileSync(
+				'ffmpeg',
+				[
+					'-y',
+					'-hide_banner',
+					'-loglevel',
+					'error',
+					'-ss',
+					'2.0',
+					'-i',
+					output.path,
+					'-frames:v',
+					'1',
+					framePath,
+				],
+				{ timeout: 60_000, windowsHide: true },
+			);
+			const frame = await sharp(framePath)
+				.removeAlpha()
+				.raw()
+				.toBuffer({ resolveWithObject: true });
+			let accentPixels = 0;
+			let lumaSum = 0;
+			for (let index = 0; index < frame.data.length; index += 3) {
+				const red = frame.data[index]!;
+				const green = frame.data[index + 1]!;
+				const blue = frame.data[index + 2]!;
+				lumaSum += 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+				if (red > 150 && green > 90 && blue < 120) accentPixels += 1;
+			}
+			const pixels = frame.info.width * frame.info.height;
+			expect(lumaSum / pixels).toBeLessThan(100);
+			expect(accentPixels).toBeGreaterThan(1_000);
 		} finally {
 			await rm(workspace, { recursive: true, force: true });
 		}

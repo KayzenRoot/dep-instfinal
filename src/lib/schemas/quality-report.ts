@@ -97,6 +97,7 @@ export const CRITICAL_QUALITY_CHECKS = [
 	'SAFE_AREA',
 	'CAPTIONS',
 	'CTA',
+	'END_CARD',
 ] as const;
 
 export type DownloadBlockReason =

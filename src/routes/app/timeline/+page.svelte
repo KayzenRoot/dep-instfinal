@@ -403,6 +403,11 @@
 	<p class="eyebrow">MONTAGEM</p>
 	<h1>Timeline canônica</h1>
 	<p class="lede">Versione a montagem sem alterar o roteiro, as escolhas ou o cânone publicado.</p>
+	{#if data.selectedEpisode}
+		<a class="finale-link" href={resolve(`/app/finale?episodeId=${data.selectedEpisode.id}`)}>
+			Montar final A/B do episódio <span aria-hidden="true">↗</span>
+		</a>
+	{/if}
 </section>
 
 <form class="episode-picker" method="GET">
@@ -926,6 +931,12 @@
 	.lede {
 		max-width: 62ch;
 		color: var(--muted);
+	}
+	.finale-link {
+		width: fit-content;
+		color: var(--phosphor);
+		font-size: 0.8rem;
+		text-decoration: none;
 	}
 	.episode-picker,
 	.editor-toolbar,

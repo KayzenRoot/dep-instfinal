@@ -90,6 +90,7 @@ const tableNames = [
 	'character_identity_profile_versions',
 	'visual_continuity_reports',
 	'cover_revisions',
+	'choice_end_cards',
 ];
 const counts = {};
 for (const table of tableNames) {

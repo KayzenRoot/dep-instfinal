@@ -24,6 +24,24 @@ export async function insertRow(
 	if (!response.ok()) throw new Error(`${table}: ${await response.text()}`);
 }
 
+export async function callRpc(
+	request: APIRequestContext,
+	token: string,
+	fn: string,
+	args: Record<string, unknown>,
+): Promise<void> {
+	if (!supabaseUrl) throw new Error('missing local Supabase env');
+	const response = await request.post(`${supabaseUrl}/rest/v1/rpc/${fn}`, {
+		headers: {
+			apikey: anonKey ?? serviceKey ?? '',
+			Authorization: `Bearer ${token}`,
+			'content-type': 'application/json',
+		},
+		data: args,
+	});
+	if (!response.ok()) throw new Error(`${fn}: ${await response.text()}`);
+}
+
 export async function ownerAccessToken(request: APIRequestContext): Promise<string> {
 	if (!supabaseUrl || !anonKey) throw new Error('missing local Supabase anon env');
 	const response = await request.post(`${supabaseUrl}/auth/v1/token?grant_type=password`, {

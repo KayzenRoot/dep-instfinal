@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(196);
+select plan(210);
 
 do $$
 declare
@@ -16,7 +16,7 @@ declare
     'voice_direction_plans', 'narration_takes',
     'caption_tracks', 'audio_assets', 'render_quality_reports', 'hook_variants',
     'character_identity_profiles', 'character_identity_profile_versions',
-    'visual_continuity_reports', 'cover_revisions'
+    'visual_continuity_reports', 'cover_revisions', 'choice_end_cards'
   ];
   v_rls boolean;
   v_policy_count integer;
@@ -64,7 +64,7 @@ begin
       'voice_direction_plans', 'narration_takes', 'caption_tracks', 'audio_assets',
       'render_quality_reports', 'hook_variants',
       'character_identity_profiles', 'character_identity_profile_versions',
-      'visual_continuity_reports', 'cover_revisions'
+      'visual_continuity_reports', 'cover_revisions', 'choice_end_cards'
     ) then
       if v_policy_count <> 1 then raise exception 'edit plan policies must be read-only'; end if;
       if has_table_privilege('authenticated', format('public.%I', v_table), 'INSERT')
@@ -2331,6 +2331,187 @@ select throws_ok(
     );$$,
   '23514', 'cover_revision_quota',
   'cover quota blocks the 501st revision'
+);
+reset role;
+
+insert into public.episodes (id, owner_id, season_id, episode_number, title, duration_ms)
+values
+  ('b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3', '11111111-1111-4111-8111-111111111111',
+   'f6f6f6f6-f6f6-46f6-86f6-f6f6f6f6f6f6', 10, 'End card draft', 90000),
+  ('b4b4b4b4-b4b4-44b4-84b4-b4b4b4b4b4b4', '11111111-1111-4111-8111-111111111111',
+   'f6f6f6f6-f6f6-46f6-86f6-f6f6f6f6f6f6', 11, 'End card without choices', 90000);
+insert into public.choices (owner_id, episode_id, option_key, label, consequence)
+values
+  ('11111111-1111-4111-8111-111111111111', 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3', '1', 'ENTRAR', 'A personagem entra.'),
+  ('11111111-1111-4111-8111-111111111111', 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3', '2', 'FUGIR', 'A personagem foge.');
+
+set local role service_role;
+select lives_ok(
+  $$select public.save_choice_end_card(
+      '11111111-1111-4111-8111-111111111111',
+      'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
+      0,
+      jsonb_build_object(
+        'schemaVersion', 1, 'templateId', 'doors', 'layout', 'stacked',
+        'durationMs', 6000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
+        'reveal', 'progressive', 'reducedMotion', false,
+        'sfx', 'beep', 'sfxVolumeDb', -12, 'narration', 'mute'
+      ),
+      repeat('d', 64), 'DRAFT'
+    );$$,
+  'service role stores the first end card revision'
+);
+select throws_ok(
+  $$select public.save_choice_end_card(
+      '11111111-1111-4111-8111-111111111111',
+      'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
+      0,
+      jsonb_build_object(
+        'schemaVersion', 1, 'templateId', 'doors', 'layout', 'stacked',
+        'durationMs', 6000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
+        'reveal', 'progressive', 'reducedMotion', false,
+        'sfx', 'beep', 'sfxVolumeDb', -12, 'narration', 'mute'
+      ),
+      repeat('d', 64), 'DRAFT'
+    );$$,
+  '40001', 'end_card_revision_conflict',
+  'end card revisions require the current revision'
+);
+select lives_ok(
+  $$select public.save_choice_end_card(
+      '11111111-1111-4111-8111-111111111111',
+      'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
+      1,
+      jsonb_build_object(
+        'schemaVersion', 1, 'templateId', 'cctv', 'layout', 'split',
+        'durationMs', 8000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
+        'reveal', 'instant', 'reducedMotion', true,
+        'sfx', 'rumble', 'sfxVolumeDb', -15, 'narration', 'keep'
+      ),
+      repeat('e', 64), 'APPROVED'
+    );$$,
+  'service role appends an approved end card'
+);
+select lives_ok(
+  $$select public.save_choice_end_card(
+      '11111111-1111-4111-8111-111111111111',
+      'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
+      2,
+      jsonb_build_object(
+        'schemaVersion', 1, 'templateId', 'analog', 'layout', 'stacked',
+        'durationMs', 6000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
+        'reveal', 'progressive', 'reducedMotion', false,
+        'sfx', 'none', 'sfxVolumeDb', -12, 'narration', 'mute'
+      ),
+      repeat('f', 64), 'DRAFT'
+    );$$,
+  'service role appends a newer end card draft'
+);
+select is(
+  (select count(*) from public.choice_end_cards
+   where episode_id = 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
+  3::bigint, 'end card history stores the snapshot and both revisions'
+);
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.choice_end_cards
+   where episode_id = 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
+  3::bigint, 'owner can read end card revisions'
+);
+select throws_ok(
+  $$insert into public.choice_end_cards (
+      owner_id, episode_id, revision_number, choice_revision_number,
+      choices_snapshot, config, config_hash
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3', 4, 1, '[]'::jsonb, '{}'::jsonb, repeat('a', 64)
+    );$$,
+  '42501', 'permission denied for table choice_end_cards',
+  'owner cannot insert end card revisions directly'
+);
+select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
+select is(
+  (select count(*) from public.choice_end_cards
+   where episode_id = 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
+  0::bigint, 'second owner cannot read end card revisions'
+);
+reset role;
+set local role service_role;
+select is(
+  public.prune_choice_end_cards(
+    '11111111-1111-4111-8111-111111111111',
+    'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
+    1
+  ), 1,
+  'service role prunes older end card revisions'
+);
+select is(
+  (select count(*) from public.choice_end_cards
+   where episode_id = 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
+  2::bigint, 'end card retention keeps the approved card and the newest draft'
+);
+insert into public.choice_end_cards (
+  owner_id, episode_id, revision_number, choice_revision_number,
+  choices_snapshot, config, config_hash
+)
+select
+  '11111111-1111-4111-8111-111111111111',
+  'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3',
+  revision, 1,
+  (select jsonb_agg(jsonb_build_object('id', id, 'optionKey', option_key, 'label', label) order by option_key)
+   from public.choices
+   where episode_id = 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
+  '{}'::jsonb, repeat('c', 64)
+from generate_series(4, 201) as revision;
+select is(
+  (select count(*) from public.choice_end_cards
+   where episode_id = 'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3'),
+  200::bigint, 'end card quota allows exactly 200 revisions per episode'
+);
+select throws_ok(
+  $$insert into public.choice_end_cards (
+      owner_id, episode_id, revision_number, choice_revision_number,
+      choices_snapshot, config, config_hash
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3', 202, 1,
+      '[]'::jsonb, '{}'::jsonb, repeat('c', 64)
+    );$$,
+  '23514', 'choice_end_card_quota',
+  'end card quota blocks the 201st revision'
+);
+select throws_ok(
+  $$select public.save_choice_end_card(
+      '11111111-1111-4111-8111-111111111111',
+      'b4b4b4b4-b4b4-44b4-84b4-b4b4b4b4b4b4',
+      0,
+      jsonb_build_object(
+        'schemaVersion', 1, 'templateId', 'doors', 'layout', 'stacked',
+        'durationMs', 6000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
+        'reveal', 'progressive', 'reducedMotion', false,
+        'sfx', 'beep', 'sfxVolumeDb', -12, 'narration', 'mute'
+      ),
+      repeat('d', 64), 'DRAFT'
+    );$$,
+  '23514', 'end_card_requires_two_choices',
+  'an episode without a choice pair cannot receive an invented end card'
+);
+select throws_ok(
+  $$select public.save_choice_end_card(
+      '11111111-1111-4111-8111-111111111111',
+      'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      0,
+      jsonb_build_object(
+        'schemaVersion', 1, 'templateId', 'doors', 'layout', 'stacked',
+        'durationMs', 6000, 'prompt', 'Qual caminho?', 'footer', 'Comente A ou B',
+        'reveal', 'progressive', 'reducedMotion', false,
+        'sfx', 'beep', 'sfxVolumeDb', -12, 'narration', 'mute'
+      ),
+      repeat('d', 64), 'DRAFT'
+    );$$,
+  '55000', 'end_card_episode_published',
+  'published episodes cannot receive a new end card'
 );
 reset role;
 

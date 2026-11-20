@@ -17,6 +17,36 @@ import { firstRelation } from '#lib/server/relations.js';
 import { loadNarrativeContext } from '#lib/server/narrative-context.js';
 import { identityBundleJson, loadSeriesIdentityRecords } from '#lib/server/character-identity.js';
 import { loadLatestVisualContinuityReport } from '#lib/server/visual-continuity.js';
+import {
+	ChoiceEndCardError,
+	loadChoiceEndCardContext,
+	type ChoiceEndCardRevision,
+} from '#lib/server/choice-end-card.js';
+import { buildEndCardAss } from '#lib/domain/choice-end-card.js';
+import { choiceSetHash } from '#lib/domain/choice-end-card-hash.js';
+import { PLATFORM_PREVIEW_PROFILES } from '#lib/domain/platform-preview.js';
+
+async function loadEndCardExportState(
+	db: Parameters<typeof loadChoiceEndCardContext>[0],
+	owner: Parameters<typeof loadChoiceEndCardContext>[1],
+	episodeId: string,
+): Promise<{ approvedEndCard: ChoiceEndCardRevision | null; endCardStale: boolean }> {
+	try {
+		const cardContext = await loadChoiceEndCardContext(db, owner, episodeId);
+		const approvedEndCard =
+			cardContext?.revisions.find((revision) => revision.status === 'APPROVED') ?? null;
+		const endCardStale = Boolean(
+			approvedEndCard &&
+			(cardContext?.choices.length !== 2 ||
+				choiceSetHash(cardContext.choices) !== choiceSetHash(approvedEndCard.choices)),
+		);
+		return { approvedEndCard, endCardStale };
+	} catch (cause) {
+		if (cause instanceof ChoiceEndCardError)
+			error(503, 'Não foi possível carregar o final A/B para a exportação.');
+		throw cause;
+	}
+}
 
 function safeTime(value: number): string {
 	return `${(value / 1000).toFixed(3)}s`;
@@ -100,6 +130,12 @@ export const GET: RequestHandler = async (event) => {
 					typeof scene.updated_at === 'string' && scene.updated_at > continuityReport.createdAt,
 			)
 		: false;
+	const { approvedEndCard, endCardStale } = await loadEndCardExportState(db, owner, episode.id);
+	if (endCardStale)
+		error(
+			409,
+			'As escolhas mudaram depois da aprovação do final A/B. Revise e aprove um novo card antes de exportar.',
+		);
 	const sceneMedia = scenes.flatMap((scene) =>
 		[
 			scene.start_frame_asset_id
@@ -254,6 +290,25 @@ export const GET: RequestHandler = async (event) => {
 			label: choice.label,
 			consequence: choice.consequence,
 		})),
+		finale: approvedEndCard
+			? {
+					status: 'APPROVED',
+					revisionId: approvedEndCard.id,
+					revision: approvedEndCard.revision,
+					templateId: approvedEndCard.config.templateId,
+					layout: approvedEndCard.config.layout,
+					durationMs: approvedEndCard.config.durationMs,
+					sfx: approvedEndCard.config.sfx,
+					narration: approvedEndCard.config.narration,
+					choices: approvedEndCard.choices.map((choice) => ({
+						key: choice.optionKey,
+						label: choice.label,
+					})),
+					assPath: 'finale/end-card.ass',
+					jsonPath: 'finale/end-card.json',
+					choicesPath: 'finale/choices.md',
+				}
+			: null,
 		continuity: {
 			status: narrativeContext.latestPreviousCanon?.status ?? 'NO_PREVIOUS_PUBLISHED_EPISODE',
 			previousEpisodeId: narrativeContext.latestPreviousCanon?.episodeId ?? null,
@@ -391,6 +446,60 @@ export const GET: RequestHandler = async (event) => {
 		archive.append(buildContinuityReportMarkdown(latestContinuity.report, String(episode.title)), {
 			name: 'continuity/checklist.md',
 		});
+	}
+	if (approvedEndCard) {
+		let ass = '';
+		try {
+			ass = buildEndCardAss(
+				{
+					...approvedEndCard.config,
+					cardId: approvedEndCard.id,
+					cardRevision: approvedEndCard.revision,
+					choiceRevisionNumber: approvedEndCard.choiceRevisionNumber,
+					startMs: 0,
+					endMs: approvedEndCard.config.durationMs,
+					choices: approvedEndCard.choices,
+				},
+				PLATFORM_PREVIEW_PROFILES.tiktok.safeArea,
+			);
+		} catch {
+			error(409, 'O texto do final A/B aprovado não cabe mais na área segura.');
+		}
+		archive.append(ass, { name: 'finale/end-card.ass' });
+		archive.append(
+			`${JSON.stringify(
+				{
+					format: 'dif-studio-choice-end-card/v1',
+					revisionId: approvedEndCard.id,
+					revision: approvedEndCard.revision,
+					choiceRevisionNumber: approvedEndCard.choiceRevisionNumber,
+					config: approvedEndCard.config,
+					choices: approvedEndCard.choices,
+					safeArea: PLATFORM_PREVIEW_PROFILES.tiktok.safeArea,
+				},
+				null,
+				2,
+			)}\n`,
+			{ name: 'finale/end-card.json' },
+		);
+		archive.append(
+			[
+				'# Final A/B aprovado',
+				'',
+				...approvedEndCard.choices.map(
+					(choice) => `- **${choice.optionKey === '1' ? 'A' : 'B'}**: ${choice.label}`,
+				),
+				'',
+				`Preset: ${approvedEndCard.config.templateId} · layout: ${approvedEndCard.config.layout} · ${approvedEndCard.config.durationMs / 1000}s`,
+				`Prompt: ${approvedEndCard.config.prompt}`,
+				`Rodapé: ${approvedEndCard.config.footer}`,
+				`Narração sob o card: ${approvedEndCard.config.narration === 'mute' ? 'silenciada' : 'mantida (explícito)'}`,
+				'',
+				'O voto continua manual e verificado no fluxo V1; este arquivo não coleta votos nem escolhe um resultado.',
+				'',
+			].join('\n'),
+			{ name: 'finale/choices.md' },
+		);
 	}
 	archive.append(`${timelineRows}\r\n`, { name: 'timeline.csv' });
 	archive.append(episode.narration_pt_br ?? '', { name: 'narration/narration-pt-BR.txt' });

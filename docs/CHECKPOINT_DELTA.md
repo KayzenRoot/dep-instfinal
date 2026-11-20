@@ -1,5 +1,13 @@
 # Checkpoint Delta — CD06
 
+## DIF-V2-WO-019 — Finais A/B e CTA cinematográfica (2026-11-20) — PROPOSED
+
+- **Status:** **PROPOSED — NOT PROMOTED**; PgTAP 210/210, policy 33/31, unit 304+3, E2E local do finale PASS; CI hosted e auditoria final pendentes. Sem merge/deploy.
+- **Base:** `main` `c94409d` (checkpoint WO-018 promovido); branch `feat/dif-v2-wo-019`.
+- **Delivered:** configs de final A/B versionadas com snapshot das duas escolhas; 6 presets × 2 layouts; ASS + SFX determinísticos no fim do MP4; `/app/finale`; anexo ao plano; stale/409; export ZIP; gate de finale sem escolhas.
+- **Limits:** card 2D sem geração de vídeo; labels fixos das escolhas; janela no fim; sem UI de poda; sem golden cross-host; voto continua manual V1.
+- **Gate:** CI + auditoria independente + autorização contínua do owner; WO-020 (#37) é a próxima.
+
 ## DIF-V2-WO-018 — Capas, posters e cards (2026-11-19) — PROMOTED
 
 - **Status:** **PROMOTED**; code/test head `f0acc7b`; CI `44639723116` PASS (287+3, PgTAP 196/196, E2E 16/16, Sonar PASS), docs-only `866d972` CI `44642167315` PASS; auditoria final **APPROVED WITH RESIDUALS**; squash-merged em `62c30eb` (PR #65); issue #35 fechada.

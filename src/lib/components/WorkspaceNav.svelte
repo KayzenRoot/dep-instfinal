@@ -31,6 +31,12 @@
 			glyph: 'frames',
 		},
 		{
+			path: '/app/finale',
+			href: resolve('/app/finale'),
+			label: 'Final A/B',
+			glyph: 'branch',
+		},
+		{
 			path: '/app/library',
 			href: resolve('/app/library'),
 			label: 'Biblioteca visual',
@@ -195,7 +201,7 @@
 	}
 
 	.mobile-nav .nav-link:nth-child(4),
-	.mobile-nav .nav-link:nth-child(n + 7) {
+	.mobile-nav .nav-link:nth-child(n + 8) {
 		display: none;
 	}
 

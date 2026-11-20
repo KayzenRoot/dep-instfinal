@@ -1,0 +1,62 @@
+# WO-019 — evidence
+
+Date: 2026-11-20 (America/Sao_Paulo)
+Branch: `feat/dif-v2-wo-019` (base `main` `c94409d`)
+
+## Static
+
+- `npm run check`: 0 errors / 0 warnings
+- `npm run lint`: PASS
+- `npm run audit:policy`: **33 invariants / 31 tables** PASS
+- `npm run build`: PASS (@sveltejs/adapter-node)
+- `npm run test:db`: **210/210** PgTAP PASS
+
+## Unit / action / render
+
+- Unit suite: **304 passed + 3 skipped** locally.
+- `choice-end-card.test.ts`: 10/10 — six presets, safe areas for split/stacked, label wrap and
+  overflow error, ASS A/B/prompt/footer, escaping and reduced motion, invalid window, choice and
+  config hashes, deterministic WAV/volume, CTA conflict and text overflow in the plan.
+- `render-composition.test.ts`: ASS card filter chained after captions; narration mute only inside
+  the card window.
+- `render-compose.integration.test.ts`: FFmpeg burns the A/B card, mixes synthesized SFX, and the
+  extracted frame has dark luma with thousands of accent pixels.
+- `finale-actions.test.ts`: 4/4 — two layouts as sequential revisions, invalid preset, timeline
+  attach at episode end, stale conflict mapping.
+
+## E2E
+
+- `e2e/finale.spec.ts` local PASS (45.9 s): login, nav “Final A/B”, synthetic episode + two
+  choices, generate split+stacked, approve, ASS/JSON/WAV downloads, anonymous 401/403/404,
+  choice change through the V1 RPC, three stale revisions, API 409, screenshots 360/768/1440.
+
+## Database / retention
+
+- `choice_end_cards` owner-read/service-write, immutable, hash versioned.
+- PgTAP: owner read, direct write denied, second owner isolated, revision conflict, APPROVED
+  preservation under prune, quota 200 exercised (200 allowed, 201st blocked), episode without two
+  choices blocked, published episode blocked.
+- Quota/prune are service-only; the UI lists the latest 30 revisions.
+
+## Rendering / limits measured locally
+
+- ASS uses 1080×1920 PlayRes and the TikTok safe area `{x:48,y:180,width:984,height:1500}`.
+- The card window is at the end of the plan; narration is muted by default only during that window.
+- SFX is a deterministic 48 kHz stereo 16-bit WAV synthesized in-process; the mix applies
+  `loudnorm=I=-16:TP=-1.5` and `alimiter=0.891`.
+- No generated card bytes are stored; only config, choice snapshot and hash.
+
+## Security / privacy
+
+- `choice_end_cards` RLS owner-read/service-write; direct authenticated insert/update denied.
+- `/api/end-cards/[revisionId]` owner-only, `private, no-store`, no permanent URL; anonymous denied
+  in E2E; stale choices return 409.
+- ASS text is stripped of control characters and braces/backslashes are escaped.
+- No vote scraping, no social posting, no paid API/GPU.
+
+## Limits verified
+
+- Labels come from V1 choices; long labels that do not fit are rejected with a layout suggestion.
+- The card is positioned at the end of the episode; no drag positioning in this WO.
+- E2E covers the attach action, not a full MP4 render with video assets attached.
+- No golden image across hosts/fonts; UI preview is an approximation of the ASS.
