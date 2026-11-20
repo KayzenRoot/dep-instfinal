@@ -116,6 +116,11 @@ test('two series keep distinct style bibles, overrides stay local and import is 
 	await expect(betaPreview).toContainText('Comente B');
 	expect(await betaPreview.getAttribute('style')).toContain('--accent:#00ff00');
 
+	// Opening the scope without an episode defaults the preview to that scope.
+	await openStyle(`/app/style?scopeType=SERIES&scopeId=${seriesB.seriesId}`);
+	await expect(page.locator('.effective-preview')).toContainText('Comente B');
+	await expect(page.locator('.effective-preview')).toHaveClass(/font-serif/);
+
 	// Episode override wins over the series without editing the preset.
 	await openStyle(seriesUrl(seriesA.seriesId, seriesA.episodeId));
 	const episodePanel = page

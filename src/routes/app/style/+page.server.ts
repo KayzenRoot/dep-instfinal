@@ -110,9 +110,10 @@ function redirectFor(form: FormData, suffix: string): never {
 	const scopeType = readFormText(form, 'scopeType') || 'SERIES';
 	const scopeId = readFormText(form, 'scopeId');
 	const episodeId = readFormText(form, 'episodeId');
+	const sceneId = readFormText(form, 'sceneId');
 	redirect(
 		303,
-		`/app/style?scopeType=${scopeType}&scopeId=${scopeId}${episodeId ? `&episodeId=${episodeId}` : ''}&${suffix}`,
+		`/app/style?scopeType=${scopeType}&scopeId=${scopeId}${episodeId ? `&episodeId=${episodeId}` : ''}${sceneId ? `&sceneId=${sceneId}` : ''}&${suffix}`,
 	);
 }
 
@@ -123,14 +124,24 @@ export const load: PageServerLoad = async (event) => {
 		event.url.searchParams.get('scopeType') === 'SEASON' ? 'SEASON' : 'SERIES'
 	) as StyleScopeType;
 	const requestedScopeId = event.url.searchParams.get('scopeId');
-	const fallbackScopeId =
-		scopeType === 'SERIES' ? (context.series[0]?.id ?? '') : (context.seasons[0]?.id ?? '');
-	const scopeId = requestedScopeId || fallbackScopeId;
+	const scopeOptions = scopeType === 'SERIES' ? context.series : context.seasons;
+	const fallbackScopeId = scopeOptions[0]?.id ?? '';
+	const scopeId = scopeOptions.some((option) => option.id === requestedScopeId)
+		? requestedScopeId!
+		: fallbackScopeId;
 	const selectedPreset =
 		context.presets.find(
 			(preset) => preset.scopeType === scopeType && preset.scopeId === scopeId,
 		) ?? null;
-	const episodeId = event.url.searchParams.get('episodeId') || context.episodes[0]?.id || '';
+	const scopeEpisodes = context.episodes.filter((episode) =>
+		scopeType === 'SERIES' ? episode.seriesId === scopeId : episode.seasonId === scopeId,
+	);
+	const requestedEpisodeId = event.url.searchParams.get('episodeId');
+	const episodeId =
+		scopeEpisodes.find((episode) => episode.id === requestedEpisodeId)?.id ??
+		scopeEpisodes[0]?.id ??
+		context.episodes[0]?.id ??
+		'';
 	let preview = null;
 	let previewError: string | null = null;
 	let scenes: Array<{ id: string; index: number }> = [];
@@ -269,7 +280,7 @@ export const actions: Actions = {
 				owner,
 				payload: {
 					...source,
-					name: readFormText(form, 'targetName') || `${source.name} (cópia)`,
+					name: (readFormText(form, 'targetName') || `${source.name} (cópia)`).slice(0, 80),
 					scopeType: readFormText(form, 'targetScopeType'),
 					scopeId: readFormText(form, 'targetScopeId'),
 				},
@@ -322,7 +333,7 @@ export const actions: Actions = {
 				episodeId,
 				config: overrideFromForm(form),
 			});
-			redirect(303, `/app/style?episodeId=${episodeId}&saved=override`);
+			redirectFor(form, 'saved=override');
 		} catch (cause) {
 			rethrowRedirect(cause);
 			const info = messageFor(cause);
@@ -333,7 +344,6 @@ export const actions: Actions = {
 		const { db, owner } = ownerDatabase(event);
 		const form = await event.request.formData();
 		const sceneId = readFormText(form, 'sceneId');
-		const episodeId = readFormText(form, 'episodeId');
 		if (!sceneId) return fail(400, { message: 'Cena inválida.' });
 		try {
 			await saveSceneStyleOverride({
@@ -343,7 +353,7 @@ export const actions: Actions = {
 				sceneId,
 				config: overrideFromForm(form),
 			});
-			redirect(303, `/app/style?episodeId=${episodeId}&saved=scene-override`);
+			redirectFor(form, 'saved=scene-override');
 		} catch (cause) {
 			rethrowRedirect(cause);
 			const info = messageFor(cause);
