@@ -128,6 +128,14 @@ describe('style bible resolution', () => {
 			}).success,
 		).toBe(false);
 		expect(styleOverrideSchema.parse({})).toEqual({});
+		expect(
+			styleOverrideSchema.safeParse({
+				sfxAssetIds: [
+					'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
+					'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
+				],
+			}).success,
+		).toBe(false);
 	});
 
 	it('withdraws only missing or unlicensed SFX and keeps the rest', () => {

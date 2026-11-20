@@ -169,7 +169,9 @@ export const load: PageServerLoad = async (event) => {
 		}
 	}
 	const notice = event.url.searchParams.get('saved') ? event.url.searchParams.get('saved') : null;
-	const selectedSceneId = event.url.searchParams.get('sceneId') || (scenes[0]?.id ?? '');
+	const requestedSceneId = event.url.searchParams.get('sceneId');
+	const selectedSceneId =
+		scenes.find((scene) => scene.id === requestedSceneId)?.id ?? scenes[0]?.id ?? '';
 	return {
 		context,
 		scopeType,

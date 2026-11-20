@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { COLOR_PRESETS } from '#lib/domain/color-grade.js';
+	import { DEFAULT_STYLE_CONFIG } from '#lib/domain/style-bible.js';
 	import { COVER_TEMPLATE_LIST } from '#lib/domain/cover.js';
 	import { END_CARD_TEMPLATE_LIST } from '#lib/domain/choice-end-card.js';
 	import {
@@ -44,29 +45,7 @@
 	}: Props = $props();
 
 	let name = $state(untrack(() => presetName));
-	let draft = $state({
-		...(untrack(() => config) ?? {
-			paletteBackground: '#08090b',
-			paletteForeground: '#e8e2d6',
-			paletteAccent: '#b6ff9a',
-			paletteMuted: '#8a8a8a',
-			colorPresetId: 'neutral',
-			colorStrength: 1,
-			fontFamily: 'sans',
-			captionTemplate: 'clean',
-			captionSafeZone: 'tiktok',
-			motion: 'restrained',
-			reducedMotion: false,
-			vhsIntensity: 1,
-			sfxCategory: 'none',
-			sfxAssetIds: [],
-			voiceStyle: 'neutral',
-			openingHookKind: 'none',
-			coverTemplateId: 'noir',
-			endCardTemplateId: 'doors',
-			ctaPrompt: 'Comente A ou B',
-		}),
-	});
+	let draft = $state({ ...(untrack(() => config) ?? DEFAULT_STYLE_CONFIG) });
 	const existing = untrack(() => override);
 	let strengthPct = $state(Math.round((untrack(() => config?.colorStrength ?? 1) as number) * 100));
 	let sfxIds = $state((untrack(() => config?.sfxAssetIds) ?? []).join(', '));
@@ -111,7 +90,8 @@
 				<select
 					name="colorPresetId"
 					value={draft.colorPresetId}
-					onchange={(event) => (draft.colorPresetId = selectValue(event))}
+					onchange={(event) =>
+						(draft.colorPresetId = selectValue(event) as StyleConfig['colorPresetId'])}
 				>
 					{#each Object.values(COLOR_PRESETS) as preset (preset.id)}
 						<option value={preset.id}>{preset.label}</option>
@@ -129,7 +109,7 @@
 				<select
 					name="fontFamily"
 					value={draft.fontFamily}
-					onchange={(event) => (draft.fontFamily = selectValue(event))}
+					onchange={(event) => (draft.fontFamily = selectValue(event) as StyleConfig['fontFamily'])}
 				>
 					{#each STYLE_FONT_FAMILIES as value (value)}
 						<option {value}>{value}</option>
@@ -141,7 +121,8 @@
 				<select
 					name="captionTemplate"
 					value={draft.captionTemplate}
-					onchange={(event) => (draft.captionTemplate = selectValue(event))}
+					onchange={(event) =>
+						(draft.captionTemplate = selectValue(event) as StyleConfig['captionTemplate'])}
 				>
 					{#each STYLE_CAPTION_TEMPLATES as value (value)}
 						<option {value}>{value}</option>
@@ -153,7 +134,8 @@
 				<select
 					name="captionSafeZone"
 					value={draft.captionSafeZone}
-					onchange={(event) => (draft.captionSafeZone = selectValue(event))}
+					onchange={(event) =>
+						(draft.captionSafeZone = selectValue(event) as StyleConfig['captionSafeZone'])}
 				>
 					{#each STYLE_CAPTION_SAFE_ZONES as value (value)}
 						<option {value}>{value}</option>
@@ -167,7 +149,7 @@
 				<select
 					name="motion"
 					value={draft.motion}
-					onchange={(event) => (draft.motion = selectValue(event))}
+					onchange={(event) => (draft.motion = selectValue(event) as StyleConfig['motion'])}
 				>
 					{#each STYLE_MOTION as value (value)}
 						<option {value}>{value}</option>
@@ -179,7 +161,8 @@
 				<select
 					name="vhsIntensity"
 					value={draft.vhsIntensity}
-					onchange={(event) => (draft.vhsIntensity = Number(selectValue(event)))}
+					onchange={(event) =>
+						(draft.vhsIntensity = Number(selectValue(event)) as StyleConfig['vhsIntensity'])}
 				>
 					{#each [0, 1, 2, 3] as value (value)}
 						<option {value}>{value}</option>
@@ -197,7 +180,8 @@
 				<select
 					name="sfxCategory"
 					value={draft.sfxCategory}
-					onchange={(event) => (draft.sfxCategory = selectValue(event))}
+					onchange={(event) =>
+						(draft.sfxCategory = selectValue(event) as StyleConfig['sfxCategory'])}
 				>
 					{#each STYLE_SFX_CATEGORIES as value (value)}
 						<option {value}>{value}</option>
@@ -215,7 +199,7 @@
 				<select
 					name="voiceStyle"
 					value={draft.voiceStyle}
-					onchange={(event) => (draft.voiceStyle = selectValue(event))}
+					onchange={(event) => (draft.voiceStyle = selectValue(event) as StyleConfig['voiceStyle'])}
 				>
 					{#each STYLE_VOICE_STYLES as value (value)}
 						<option {value}>{value}</option>
@@ -227,7 +211,8 @@
 				<select
 					name="openingHookKind"
 					value={draft.openingHookKind}
-					onchange={(event) => (draft.openingHookKind = selectValue(event))}
+					onchange={(event) =>
+						(draft.openingHookKind = selectValue(event) as StyleConfig['openingHookKind'])}
 				>
 					{#each STYLE_OPENING_HOOKS as value (value)}
 						<option {value}>{value}</option>
@@ -241,7 +226,8 @@
 				<select
 					name="coverTemplateId"
 					value={draft.coverTemplateId}
-					onchange={(event) => (draft.coverTemplateId = selectValue(event))}
+					onchange={(event) =>
+						(draft.coverTemplateId = selectValue(event) as StyleConfig['coverTemplateId'])}
 				>
 					{#each COVER_TEMPLATE_LIST as template (template.id)}
 						<option value={template.id}>{template.label}</option>
@@ -253,7 +239,8 @@
 				<select
 					name="endCardTemplateId"
 					value={draft.endCardTemplateId}
-					onchange={(event) => (draft.endCardTemplateId = selectValue(event))}
+					onchange={(event) =>
+						(draft.endCardTemplateId = selectValue(event) as StyleConfig['endCardTemplateId'])}
 				>
 					{#each END_CARD_TEMPLATE_LIST as template (template.id)}
 						<option value={template.id}>{template.label}</option>

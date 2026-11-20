@@ -40,7 +40,10 @@ const styleFields = {
 	reducedMotion: z.boolean(),
 	vhsIntensity: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
 	sfxCategory: z.enum(STYLE_SFX_CATEGORIES),
-	sfxAssetIds: z.array(uuid).max(8),
+	sfxAssetIds: z
+		.array(uuid)
+		.max(8)
+		.refine((ids) => new Set(ids).size === ids.length, 'SFX duplicado.'),
 	voiceStyle: z.enum(STYLE_VOICE_STYLES),
 	openingHookKind: z.enum(STYLE_OPENING_HOOKS),
 	coverTemplateId: z.enum(COVER_TEMPLATE_IDS),
