@@ -44,7 +44,7 @@ This procedure was executed against the hosted `dif` project and a local Supabas
 - `style_presets` e `style_preset_revisions` são owner-read/service-write; revisões são imutáveis e nunca sobrescrevem um plano ou render antigo.
 - Cada preset aceita até **200 revisões** (`style_revision_quota`). Ao atingir o limite, duplique o preset para continuar; não há poda automática de histórico aprovado.
 - Overrides de episódio/cena são upserts pequenos, sem histórico próprio; `reducedMotion` aceita herdar/true/false. Enviar o formulário todo vazio chama `clear_*_style_override` e a camada volta a herdar.
-- Planos novos congelam o estilo no primeiro save. Planos existentes só recebem uma revisão nova quando o owner marca “Aplicar estilo atual” no timeline ou reconstrói; saves comuns preservam o snapshot. O render aplica cor, legenda, área segura e fonte ao snapshot; SFX/voz/capa/final continuam referências das telas especializadas.
+- Planos novos congelam o estilo no primeiro save quando há preset/override configurado; sem estilo, nenhum snapshot é inventado. Planos existentes só recebem uma revisão nova quando o owner marca “Aplicar estilo atual” no timeline ou reconstrói; saves comuns preservam o snapshot. O render aplica cor, legenda, área segura e fonte ao snapshot; SFX/voz/capa/final continuam referências das telas especializadas.
 - SFX referenciados são revalidados na resolução do snapshot. Assets removidos ou sem licença comercial/social são retirados do config efetivo com warning (`STYLE_SFX_UNAVAILABLE`/`STYLE_SFX_LICENSE`), sem alterar o preset aprovado.
 - Backup/restore scripts incluem as quatro tabelas; a execução deste ciclo ficou pendente. Restaure presets antes das revisões e overrides depois de episódios/cenas para respeitar as FKs.
 

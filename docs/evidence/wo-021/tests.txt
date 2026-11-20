@@ -17,7 +17,7 @@ Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
   all 19 fields with SCENE winning, per-field source/version, explicit false/zero,
   deterministic hash, strict import envelope (`v1`, unknown field rejected), frozen
   scene snapshots, drift by revision/config/scene, SFX fallback.
-- `style-actions.test.ts`: **8/8** — full save parsing, sparse episode override,
+- `style-actions.test.ts`: **10/10** — full save parsing, sparse episode override,
   empty override → clear RPC, `reducedMotion=false`, explicit empty SFX list,
   approval of the clicked revision with `expectedRevision`, malformed import JSON →
   400 before write, stale conflict → 409.
@@ -26,9 +26,13 @@ Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
 - `video-edit-plans.test.ts`: **3/3** — explicit style opt-in (new plan or checked
   save), snapshot freeze, color injection only when absent, neutral/explicit color
   preserved.
+- `style-bible-bulk.test.ts`: **1/1** — 1.200 revisões paginadas além do cap de 1.000,
+  latest/approved preservados.
 - `style-caption.test.ts`: **3/3** — horror→VHS, safe zone, ASS font and legacy track
   unchanged without a snapshot.
-- Full unit/integration suite: **343 passed + 3 skipped**.
+- `video-edit-plan-save.test.ts`: **4/4** — ordinary save preserves the stored snapshot,
+  legacy plan without snapshot stays unchanged, explicit opt-in applies style/color.
+- Full unit/integration suite: **343 passed + 3 skipped** no último ciclo completo; testes de save-plan/bulk/clear adicionados depois (total esperado ~350; reexecutar no HEAD final).
 
 ## E2E
 
@@ -75,9 +79,11 @@ Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
 - The timeline only applies a new style on a new plan or when **“Aplicar estilo atual”**
   is checked (or rebuild); normal saves preserve the stored snapshot, and legacy plans
   without a snapshot are flagged instead of silently changed.
-- `/app/finale` uses `endCardTemplateId` and `ctaPrompt` as defaults for a new card.
-- `/app/style` shows a synthetic sample clip with caption, CTA and cover/final/voice/SFX
-  badges, plus links to the specialized screens.
+- `/app/finale` uses `endCardTemplateId` and `ctaPrompt` as defaults for a new card;
+  `/app/covers` preselects `coverTemplateId` when a style exists.
+- `/app/style` shows a synthetic sample clip with caption, CTA, the first licensed SFX
+  audio, the approved cover image via the private API, the approved end-card
+  revision and the approved narration take audio; SFX application remains a documented reference.
 
 ## Pending / residuals
 
@@ -85,8 +91,8 @@ Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
   and checkpoint promotion.
 - No E2E of an already-rendered plan staying byte-identical after a preset revision;
   the frozen snapshot/hash is proven by unit/design, not a rendered golden.
-- SFX, voice and cover/end-card templates remain validated references for their
-  specialized screens; they are not auto-injected into existing plans.
+- Voice and SFX application remain validated references for their specialized screens;
+  they are not auto-injected into existing plans.
 - Backup/restore of the four new tables was not executed in this cycle.
 - `/app/style` still serializes full revision history to the client (bounded by 200
   revisions/preset); presets are owner-only and few.

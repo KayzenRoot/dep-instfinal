@@ -84,6 +84,8 @@
 			imported: 'Preset importado como DRAFT.',
 			override: 'Override do episódio salvo.',
 			'scene-override': 'Override da cena salvo.',
+			'override-cleared': 'Override do episódio removido; a camada volta a herdar.',
+			'scene-override-cleared': 'Override da cena removido; a camada volta a herdar.',
 		};
 		return labels[value] ?? 'Alteração salva.';
 	}
@@ -215,7 +217,11 @@
 				</div>
 				<span class="sample-kicker">AMOSTRA SINTÉTICA · {data.preview.config.motion}</span>
 				<strong>A casa não responde</strong>
-				<p class="sample-caption">Só mais uma fita.</p>
+				{#if data.preview.config.captionTemplate === 'none'}
+					<p class="sample-caption caption-off">Legendas desligadas nesta camada.</p>
+				{:else}
+					<p class="sample-caption">Só mais uma fita.</p>
+				{/if}
 				<p class="sample-cta">{data.preview.config.ctaPrompt}</p>
 				<div class="sample-badges">
 					<span>Capa {data.preview.config.coverTemplateId}</span>
@@ -229,6 +235,56 @@
 					{Math.round(data.preview.config.colorStrength * 100)}%
 				</small>
 			</div>
+			{#if data.preview.config.sfxAssetIds[0]}
+				<div class="sfx-preview">
+					<span>SFX do estilo (primeiro asset)</span>
+					<audio
+						controls
+						preload="none"
+						src={resolve('/api/audio/[assetId]', {
+							assetId: data.preview.config.sfxAssetIds[0],
+						})}
+					></audio>
+				</div>
+			{/if}
+			{#if data.approvedCover || data.approvedEndCard}
+				<div class="approved-assets">
+					<h3>Aprovados no episódio</h3>
+					{#if data.approvedCover}
+						<figure>
+							<img
+								src={`${resolve('/api/covers/[revisionId]', {
+									revisionId: data.approvedCover.id,
+								})}?format=9:16&output=jpeg&preview=1`}
+								alt={`Capa aprovada na revisão ${data.approvedCover.revision}`}
+							/>
+							<figcaption>
+								Capa v{data.approvedCover.revision} · {data.approvedCover.format}
+							</figcaption>
+						</figure>
+					{/if}
+					{#if data.approvedEndCard}
+						<p>
+							Final v{data.approvedEndCard.revision} ·
+							{data.approvedEndCard.templateId} · “{data.approvedEndCard.prompt}”
+						</p>
+					{/if}
+					{#if data.approvedNarration}
+						<div class="sfx-preview">
+							<span
+								>Narração aprovada · {Math.round(data.approvedNarration.durationMs / 1000)}s</span
+							>
+							<audio
+								controls
+								preload="none"
+								src={resolve('/api/narration/takes/[takeId]', {
+									takeId: data.approvedNarration.id,
+								})}
+							></audio>
+						</div>
+					{/if}
+				</div>
+			{/if}
 			{#each data.preview.warnings as warning (warning)}
 				<p class="notice warnbox" role="status">{warningLabels[warning] ?? warning}</p>
 			{/each}
@@ -689,6 +745,12 @@
 		padding: 0.35rem 0.45rem;
 		background: rgb(0 0 0 / 62%);
 	}
+	.effective-preview .caption-off {
+		background: transparent;
+		color: var(--muted);
+		font-weight: 400;
+		font-style: italic;
+	}
 	.effective-preview .sample-cta {
 		color: var(--accent);
 		text-transform: uppercase;
@@ -713,6 +775,41 @@
 		position: relative;
 		color: var(--muted);
 		font-size: 0.62rem;
+	}
+	.approved-assets {
+		display: grid;
+		gap: 0.4rem;
+		align-items: start;
+	}
+	.approved-assets h3 {
+		margin: 0;
+		font-size: 0.8rem;
+	}
+	.approved-assets figure {
+		display: grid;
+		gap: 0.2rem;
+		margin: 0;
+	}
+	.approved-assets img {
+		width: 100%;
+		max-width: 11rem;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--line);
+	}
+	.approved-assets figcaption,
+	.approved-assets p {
+		margin: 0;
+		color: var(--muted);
+		font-size: 0.68rem;
+	}
+	.sfx-preview {
+		display: grid;
+		gap: 0.25rem;
+		font-size: 0.7rem;
+		color: var(--muted);
+	}
+	.sfx-preview audio {
+		width: 100%;
 	}
 	.swatches {
 		display: flex;
@@ -824,16 +921,25 @@
 	.quiet {
 		background: transparent;
 	}
+	.zone-tiktok .sample-caption {
+		margin-bottom: 10%;
+	}
+	.zone-stories .sample-caption {
+		margin-bottom: 20%;
+	}
+	.zone-feed .sample-caption {
+		margin-bottom: 2%;
+	}
 	.font-serif {
-		font-family: Georgia, 'Times New Roman', serif;
+		font-family: 'DejaVu Serif', Georgia, 'Times New Roman', serif;
 	}
 	.font-sans {
-		font-family: 'Inter', 'Helvetica Neue', sans-serif;
+		font-family: 'DejaVu Sans', Arial, 'Helvetica Neue', sans-serif;
 	}
 	.font-mono {
-		font-family: 'DejaVu Sans Mono', monospace;
+		font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
 	}
 	.font-display {
-		font-family: 'Impact', 'Arial Black', sans-serif;
+		font-family: 'DejaVu Sans', 'Arial Black', sans-serif;
 	}
 </style>

@@ -109,7 +109,9 @@
 									type="checkbox"
 									name="templates"
 									value={template.id}
-									checked={['noir', 'vhs_polaroid', 'archive'].includes(template.id)}
+									defaultChecked={data.styleCoverTemplate
+										? template.id === data.styleCoverTemplate
+										: ['noir', 'vhs_polaroid', 'archive'].includes(template.id)}
 								/>
 								{template.label}
 							</label>

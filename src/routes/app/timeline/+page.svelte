@@ -973,6 +973,23 @@
 		color: var(--muted);
 		white-space: nowrap;
 	}
+	.episode-picker,
+	.editor-toolbar {
+		flex-wrap: wrap;
+		max-width: 100%;
+	}
+	.episode-picker select {
+		min-width: 0;
+		max-width: 100%;
+	}
+	.editor-toolbar input[type='text'] {
+		flex: 1 1 12rem;
+		min-width: 0;
+	}
+	.apply-style {
+		white-space: normal;
+		min-width: 0;
+	}
 	.plan-actions,
 	.history {
 		display: flex;

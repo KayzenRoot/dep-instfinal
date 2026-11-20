@@ -37,7 +37,7 @@ test('two series keep distinct style bibles, overrides stay local and import is 
 		episodeTitle: `Fita beta ${suffix}`,
 		durationMs: 90_000,
 	});
-	await insertEpisodeHierarchy(request, {
+	const longSeries = await insertEpisodeHierarchy(request, {
 		token,
 		suffix: `${suffix}-long`,
 		seriesTitle: `Arquivo ${suffix} ${'registro-'.repeat(8)}`,
@@ -172,6 +172,23 @@ test('two series keep distinct style bibles, overrides stay local and import is 
 	await expect(page.locator('.revision')).toHaveCount(3);
 	await expect(page.locator('.effective-preview')).toContainText('Comente B');
 	await expect(page.locator('.effective-preview')).toHaveClass(/font-serif/);
+
+	// An entirely empty sparse form clears the episode override back to the series.
+	await openStyle(seriesUrl(seriesA.seriesId, seriesA.episodeId));
+	const clearPanel = page
+		.locator('section.panel')
+		.filter({ has: page.getByRole('heading', { name: 'Override do episódio' }) });
+	await clearPanel.getByRole('button', { name: 'Limpar override' }).click();
+	await expect(page.locator('.notice.success')).toContainText('Override do episódio removido');
+	await expect(page.locator('.effective-preview small')).toContainText('horror');
+
+	// Long episode titles must not widen the timeline picker at narrow widths.
+	await page.setViewportSize({ width: 360, height: 900 });
+	await page.goto(`/app/timeline?episodeId=${longSeries.episodeId}`);
+	const timelineFits = await page.evaluate(
+		() => document.documentElement.scrollWidth <= window.innerWidth,
+	);
+	expect(timelineFits, 'timeline should not overflow at 360px').toBe(true);
 
 	await captureResponsivePages(page, {
 		url: seriesUrl(seriesA.seriesId, seriesA.episodeId),

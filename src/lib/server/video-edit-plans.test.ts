@@ -48,31 +48,23 @@ function snapshot(overrides: Record<string, unknown> = {}): StyleSnapshot {
 
 describe('shouldApplyStyleSnapshot', () => {
 	it('applies automatically only to a brand-new plan or an explicit opt-in', () => {
-		expect(
-			shouldApplyStyleSnapshot({ expectedVersion: 0, hasSnapshot: false, applyStyle: false }),
-		).toBe(true);
-		expect(
-			shouldApplyStyleSnapshot({ expectedVersion: 4, hasSnapshot: false, applyStyle: false }),
-		).toBe(false);
-		expect(
-			shouldApplyStyleSnapshot({ expectedVersion: 4, hasSnapshot: true, applyStyle: false }),
-		).toBe(false);
-		expect(
-			shouldApplyStyleSnapshot({ expectedVersion: 4, hasSnapshot: true, applyStyle: true }),
-		).toBe(true);
+		expect(shouldApplyStyleSnapshot({ expectedVersion: 0, applyStyle: false })).toBe(true);
+		expect(shouldApplyStyleSnapshot({ expectedVersion: 4, applyStyle: false })).toBe(false);
+		expect(shouldApplyStyleSnapshot({ expectedVersion: 4, applyStyle: true })).toBe(true);
 	});
 });
 
 describe('attachStyleSnapshot', () => {
 	it('freezes the resolved style and injects color when the plan has none', () => {
 		const original = plan();
-		const styled = attachStyleSnapshot(original, snapshot());
+		const styled = attachStyleSnapshot(original, snapshot({ captionTemplate: 'horror' }));
 		expect(styled.styleBible).toMatchObject({
 			presetId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
 			presetRevision: 4,
 			presetHash: 'a'.repeat(64),
 		});
 		expect(styled.styleBible?.scenes?.[0]?.sources.captionTemplate).toBe('SCENE');
+		expect(styled.captions.template).toBe('horror');
 		expect(styled.color).toMatchObject({ presetId: 'cctv', presetVersion: 1, strength: 65 });
 		expect(original.styleBible).toBeUndefined();
 		expect(original.color).toBeUndefined();

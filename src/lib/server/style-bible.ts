@@ -337,27 +337,36 @@ export async function clearSceneStyleOverride(input: {
 	return data === true;
 }
 
-async function loadPresetsBulk(
+export async function loadPresetsBulk(
 	db: SupabaseClient,
 	owner: User,
 	rows: PresetRow[],
 ): Promise<StylePreset[]> {
 	const ids = rows.map((row) => row.id);
 	const revisionsByPreset = new Map<string, StyleRevision[]>();
-	for (let index = 0; index < ids.length; index += 50) {
-		const { data, error } = await db
-			.from('style_preset_revisions')
-			.select('*')
-			.eq('owner_id', owner.id)
-			.in('preset_id', ids.slice(index, index + 50))
-			.order('revision_number', { ascending: false });
-		if (error)
-			throw new StyleServiceError(503, 'STYLE_LOAD_FAILED', 'Não foi possível carregar o estilo.');
-		for (const revision of (data ?? []) as RevisionRow[]) {
-			const parsed = parseRevision(revision);
-			const list = revisionsByPreset.get(revision.preset_id) ?? [];
-			list.push(parsed);
-			revisionsByPreset.set(revision.preset_id, list);
+	for (let index = 0; index < ids.length; index += 25) {
+		const chunk = ids.slice(index, index + 25);
+		for (let from = 0; ; from += 1_000) {
+			const { data, error } = await db
+				.from('style_preset_revisions')
+				.select('*')
+				.eq('owner_id', owner.id)
+				.in('preset_id', chunk)
+				.order('revision_number', { ascending: false })
+				.range(from, from + 999);
+			if (error)
+				throw new StyleServiceError(
+					503,
+					'STYLE_LOAD_FAILED',
+					'Não foi possível carregar o estilo.',
+				);
+			for (const revision of (data ?? []) as RevisionRow[]) {
+				const parsed = parseRevision(revision);
+				const list = revisionsByPreset.get(revision.preset_id) ?? [];
+				list.push(parsed);
+				revisionsByPreset.set(revision.preset_id, list);
+			}
+			if ((data ?? []).length < 1_000) break;
 		}
 	}
 	return rows.map((preset) => {

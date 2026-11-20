@@ -224,6 +224,44 @@ describe('style page actions', () => {
 		);
 	});
 
+	it('clears an episode override through the explicit action', async () => {
+		await expect(
+			(actions.clearOverride as (event: never) => Promise<unknown>)(event({ episodeId })),
+		).rejects.toMatchObject({
+			status: 303,
+			location: expect.stringContaining('saved=override-cleared'),
+		});
+		expect(style.clearEpisodeStyleOverride).toHaveBeenCalledWith(
+			expect.objectContaining({ episodeId }),
+		);
+	});
+
+	it('rejects approval without an explicit revision', async () => {
+		style.loadStylePageContext.mockResolvedValue({
+			presets: [
+				{
+					id: presetId,
+					scopeType: 'SERIES',
+					scopeId,
+					name: 'Noir',
+					latestRevision: 4,
+					revisions: [{ revision: 4, status: 'DRAFT', config }],
+					approved: null,
+				},
+			],
+			series: [],
+			seasons: [],
+			episodes: [],
+			episodeOverrides: [],
+			sceneOverrides: [],
+		});
+		const result = (await (actions.approve as (event: never) => Promise<unknown>)(
+			event({ presetId, scopeType: 'SERIES', scopeId, episodeId }),
+		)) as { status: number };
+		expect(result.status).toBe(400);
+		expect(style.saveStylePreset).not.toHaveBeenCalled();
+	});
+
 	it('rejects malformed import JSON with a readable 400 before any write', async () => {
 		const result = (await (actions.import as (event: never) => Promise<unknown>)(
 			event({

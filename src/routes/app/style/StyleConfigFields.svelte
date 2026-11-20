@@ -448,7 +448,16 @@
 			CTA (herdar)
 			<input name="ctaPrompt" maxlength="80" value={existing?.ctaPrompt ?? ''} />
 		</label>
-		<button type="submit">{submitLabel}</button>
+		<div class="override-actions">
+			<button type="submit">{submitLabel}</button>
+			<button
+				type="submit"
+				class="quiet"
+				formaction={mode === 'scene' ? '?/clearSceneOverride' : '?/clearOverride'}
+			>
+				Limpar override
+			</button>
+		</div>
 	</form>
 {/if}
 
@@ -478,6 +487,14 @@
 	.hint {
 		color: var(--muted);
 		font-size: 0.72rem;
+	}
+	.override-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+	.quiet {
+		background: transparent;
 	}
 	input[type='color'] {
 		height: 2.2rem;

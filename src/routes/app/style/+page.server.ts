@@ -15,6 +15,8 @@ import {
 	StyleServiceError,
 	type StylePreset,
 } from '#lib/server/style-bible.js';
+import { choiceEndCardConfigSchema } from '#lib/schemas/choice-end-card.js';
+import { loadVoicePlan } from '#lib/server/narration.js';
 import {
 	styleConfigSchema,
 	styleOverrideSchema,
@@ -149,6 +151,14 @@ export const load: PageServerLoad = async (event) => {
 	let preview = null;
 	let previewError: string | null = null;
 	let scenes: Array<{ id: string; index: number }> = [];
+	let approvedCover: { id: string; revision: number; format: string } | null = null;
+	let approvedEndCard: {
+		id: string;
+		revision: number;
+		templateId: string;
+		prompt: string;
+	} | null = null;
+	let approvedNarration: { id: string; durationMs: number } | null = null;
 	if (episodeId) {
 		try {
 			preview = await resolveEpisodeStyleSnapshot(db, owner, episodeId);
@@ -164,6 +174,62 @@ export const load: PageServerLoad = async (event) => {
 				id: row.id as string,
 				index: Number(row.scene_index),
 			}));
+			const [coverResult, endCardResult] = await Promise.all([
+				db
+					.from('cover_revisions')
+					.select('id,revision_number,format')
+					.eq('owner_id', owner.id)
+					.eq('episode_id', episodeId)
+					.eq('status', 'APPROVED')
+					.order('revision_number', { ascending: false })
+					.limit(1)
+					.maybeSingle(),
+				db
+					.from('choice_end_cards')
+					.select('id,revision_number,config')
+					.eq('owner_id', owner.id)
+					.eq('episode_id', episodeId)
+					.eq('status', 'APPROVED')
+					.order('revision_number', { ascending: false })
+					.limit(1)
+					.maybeSingle(),
+			]);
+			if (coverResult.data)
+				approvedCover = {
+					id: coverResult.data.id as string,
+					revision: Number(coverResult.data.revision_number),
+					format: String(coverResult.data.format),
+				};
+			if (endCardResult.data) {
+				const config = choiceEndCardConfigSchema.safeParse(endCardResult.data.config);
+				if (config.success)
+					approvedEndCard = {
+						id: endCardResult.data.id as string,
+						revision: Number(endCardResult.data.revision_number),
+						templateId: config.data.templateId,
+						prompt: config.data.prompt,
+					};
+			}
+			try {
+				const voice = await loadVoicePlan(db, owner, episodeId);
+				if (voice?.plan.takeId) {
+					const { data: take } = await db
+						.from('narration_takes')
+						.select('id,duration_ms')
+						.eq('owner_id', owner.id)
+						.eq('episode_id', episodeId)
+						.eq('id', voice.plan.takeId)
+						.eq('status', 'READY')
+						.maybeSingle();
+					if (take)
+						approvedNarration = {
+							id: take.id as string,
+							durationMs: Number(take.duration_ms),
+						};
+				}
+			} catch {
+				approvedNarration = null;
+			}
 		} catch (cause) {
 			preview = null;
 			previewError =
@@ -186,6 +252,9 @@ export const load: PageServerLoad = async (event) => {
 		preview,
 		previewError,
 		scenes,
+		approvedCover,
+		approvedEndCard,
+		approvedNarration,
 		notice,
 		error: null,
 	};
@@ -224,10 +293,10 @@ export const actions: Actions = {
 			const preset = presetFor(context.presets, readFormText(form, 'presetId'));
 			if (!preset) throw new StyleServiceError(404, 'STYLE_NOT_FOUND', 'Preset não encontrado.');
 			const requestedRevision = Number(readFormText(form, 'revision'));
-			const source =
-				preset.revisions.find((revision) => revision.revision === requestedRevision) ??
-				preset.revisions[0];
-			if (!source) throw new StyleServiceError(404, 'STYLE_NOT_FOUND', 'Preset sem revisão.');
+			if (!Number.isSafeInteger(requestedRevision) || requestedRevision < 1)
+				return fail(400, { message: 'Revisão para aprovar inválida.' });
+			const source = preset.revisions.find((revision) => revision.revision === requestedRevision);
+			if (!source) throw new StyleServiceError(404, 'STYLE_NOT_FOUND', 'Revisão não encontrada.');
 			await saveStylePreset({
 				db,
 				adminDb: createSupabaseAdminClient(),
@@ -353,6 +422,44 @@ export const actions: Actions = {
 				});
 			}
 			redirectFor(form, 'saved=override');
+		} catch (cause) {
+			rethrowRedirect(cause);
+			const info = messageFor(cause);
+			return fail(info.status, { message: info.message });
+		}
+	},
+	clearOverride: async (event) => {
+		const { db, owner } = ownerDatabase(event);
+		const form = await event.request.formData();
+		const episodeId = readFormText(form, 'episodeId');
+		if (!episodeId) return fail(400, { message: 'Episódio inválido.' });
+		try {
+			await clearEpisodeStyleOverride({
+				db,
+				adminDb: createSupabaseAdminClient(),
+				owner,
+				episodeId,
+			});
+			redirectFor(form, 'saved=override-cleared');
+		} catch (cause) {
+			rethrowRedirect(cause);
+			const info = messageFor(cause);
+			return fail(info.status, { message: info.message });
+		}
+	},
+	clearSceneOverride: async (event) => {
+		const { db, owner } = ownerDatabase(event);
+		const form = await event.request.formData();
+		const sceneId = readFormText(form, 'sceneId');
+		if (!sceneId) return fail(400, { message: 'Cena inválida.' });
+		try {
+			await clearSceneStyleOverride({
+				db,
+				adminDb: createSupabaseAdminClient(),
+				owner,
+				sceneId,
+			});
+			redirectFor(form, 'saved=scene-override-cleared');
 		} catch (cause) {
 			rethrowRedirect(cause);
 			const info = messageFor(cause);
