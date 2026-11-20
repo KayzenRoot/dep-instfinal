@@ -15,6 +15,8 @@ import {
 	ChoiceEndCardError,
 	loadApprovedEndCardSnapshot,
 } from './choice-end-card.js';
+import { resolveEpisodeStyleSnapshot, StyleServiceError } from './style-bible.js';
+import type { StyleSnapshot } from '#lib/schemas/style-bible.js';
 
 export class VideoEditPlanError extends Error {
 	constructor(
@@ -239,6 +241,23 @@ async function assertPlanAudioAssets(
 	}
 }
 
+export function attachStyleSnapshot(plan: VideoEditPlan, styleBible: StyleSnapshot): VideoEditPlan {
+	const styled = { ...plan, styleBible };
+	if (!styled.color && styleBible.config.colorPresetId !== 'neutral') {
+		return {
+			...styled,
+			color: {
+				presetId: styleBible.config.colorPresetId,
+				presetVersion: 1,
+				strength: Math.round(styleBible.config.colorStrength * 100),
+				referenceClipId: null,
+				overrides: [],
+			},
+		};
+	}
+	return styled;
+}
+
 export function validateForContext(plan: VideoEditPlan, context: EditPlanContext): VideoEditPlan {
 	try {
 		return validateEditPlan(plan, context);
@@ -284,7 +303,16 @@ export async function saveVideoEditPlan(input: {
 			throw cause;
 		}
 	}
-	const plan = validateForContext(linkedPlan, context);
+	let styledPlan: VideoEditPlan;
+	try {
+		const styleBible = await resolveEpisodeStyleSnapshot(input.db, input.owner, input.episodeId);
+		styledPlan = attachStyleSnapshot(linkedPlan, styleBible);
+	} catch (cause) {
+		if (cause instanceof StyleServiceError)
+			throw new VideoEditPlanError(cause.status, cause.code, cause.message);
+		throw cause;
+	}
+	const plan = validateForContext(styledPlan, context);
 	await assertPlanAudioAssets(input.db, input.owner.id, plan);
 	if (!input.adminDb)
 		throw new VideoEditPlanError(

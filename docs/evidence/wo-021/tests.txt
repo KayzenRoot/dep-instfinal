@@ -1,0 +1,63 @@
+# DIF-V2-WO-021 — evidence
+
+Date: 2026-11-20 (America/Sao_Paulo)
+Branch: `feat/dif-v2-wo-021` (base `main` `2fcfd89`)
+
+## Static
+
+- `npm run check`: 0 errors / 0 warnings
+- `npm run lint`: PASS
+- `npm run audit:policy`: **35 invariants / 41 tables** PASS
+- `npm run build`: PASS (@sveltejs/adapter-node)
+- `npm run test:db`: **242/242** PgTAP PASS
+
+## Unit / domain
+
+- `style-bible.test.ts`: **9/9** — precedence DEFAULT<SERIES<SEASON<EPISODE<SCENE,
+  all 19 fields with SCENE winning, explicit false/zero, deterministic hash, strict
+  import envelope (`v1`, unknown field rejected), frozen scene snapshots, drift by
+  revision/config/scene.
+- `style-actions.test.ts`: **6/6** — full save parsing, sparse episode override,
+  explicit empty SFX list on a scene, approval with `expectedRevision`,
+  malformed import JSON → 400 before write, stale conflict → 409.
+- `video-edit-plans.test.ts`: **2/2** — `attachStyleSnapshot` freezes the snapshot and
+  injects color only when absent; neutral or explicit plan color preserved.
+- Full unit/integration suite: **335 passed + 3 skipped**.
+
+## E2E
+
+- `e2e/style.spec.ts` local PASS (38s, chromium):
+  - two series with radically different styles (mono/horror/red/CTA A vs
+    serif/clean/green/CTA B) and no cross-contamination in previews;
+  - episode override (caption clean) wins over the series and keeps CTA A;
+  - scene override (`feed`) appears in the frozen scene snapshot while the
+    series preset export still contains `horror`/`tiktok`;
+  - export JSON is owner-only (anonymous 401), contains no `http`/`supabase`/`secret`;
+  - import into the other series creates only a DRAFT (3 revisions) and the
+    approved preview stays on series B;
+  - responsive screenshots 360/768/1440 with no horizontal overflow, including a
+    deliberately long series/episode title and accumulated studio data.
+- `e2e/owner-boundary.spec.ts` targeted rerun PASS **11/11** (9.6m), including the
+  studio viewport sweep at `/app/style` 360/768/1440. The first full local run hit a
+  pre-existing Windows screenshot filename (`?`) failure and an owner-journey timeout
+  under machine load; both were fixed/retried and are not app regressions.
+
+## Database / integrity
+
+- `style_presets`, `style_preset_revisions`, `episode_style_overrides`,
+  `scene_style_overrides`: forced RLS, owner-select only, `service_role` writes via
+  SECURITY DEFINER RPCs.
+- Revisions immutable (`55000`), optimistic revision check (`40001`), invalid scope
+  (`23514`), direct authenticated writes denied (`42501`), second owner sees zero rows.
+- Quota trigger allows 200 revisions per preset and blocks the 201st with
+  `style_revision_quota`.
+- Config is a strict allowlist: enums, `#rrggbb`, known template IDs, owner-scoped SFX
+  UUIDs; no URLs, binaries, shell or FFmpeg filters.
+- SFX references are validated against `audio_assets` license flags on preset/override
+  save and re-audited on snapshot resolution; missing/unlicensed IDs are removed and
+  reported as warnings.
+
+## Pending
+
+- PR Draft, CI quality/Sonar/E2E, independent audit, merge and checkpoint promotion.
+- Full local E2E suite not yet rerun after the new spec (only `style.spec.ts`).

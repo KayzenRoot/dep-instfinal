@@ -479,6 +479,17 @@
 		</div>
 	{/if}
 
+	{#if data.styleDrift?.stale}
+		<div class="notice warning" role="status">
+			<p>
+				O plano congela o estilo na revisão
+				{data.styleDrift.capturedRevision ?? 'ausente'}; a série/temporada está na revisão
+				{data.styleDrift.currentRevision ?? 'indisponível'}. Render e export continuam usando o
+				snapshot congelado. Salvar o plano aplica o estilo atual como uma nova versão (opt-in).
+			</p>
+		</div>
+	{/if}
+
 	{#if editError}
 		<p class="notice error" role="alert">{editError}</p>
 	{/if}

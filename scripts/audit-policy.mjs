@@ -86,6 +86,14 @@ const retentionLabMigration = await readFile(
 	'supabase/migrations/20261120110000_v2_wo020_retention_lab.sql',
 	'utf8',
 );
+const styleBibleMigration = await readFile(
+	'supabase/migrations/20261120130000_v2_wo021_style_bible.sql',
+	'utf8',
+);
+const styleBibleQuotaMigration = await readFile(
+	'supabase/migrations/20261120131000_v2_wo021_style_quota.sql',
+	'utf8',
+);
 const retentionScript = await readFile('scripts/retention.mjs', 'utf8');
 const restoreScript = await readFile('scripts/restore-metadata.mjs', 'utf8');
 const hook = await readFile('src/hooks.server.ts', 'utf8');
@@ -126,9 +134,10 @@ const tables = [
 	...coverMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...endCardMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 	...retentionLabMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
+	...styleBibleMigration.matchAll(/^create table public\.(\w+)\s*\(/gm),
 ].map((match) => match[1]);
 const checks = [
-	['37 owner-scoped public tables', tables.length === 37],
+	['41 owner-scoped public tables', tables.length === 41],
 	[
 		'every table has forced RLS',
 		migration.includes('enable row level security') &&
@@ -431,6 +440,21 @@ const checks = [
 			retentionLabMigration.includes('grant execute on function public.delete_published_post') &&
 			retentionLabMigration.includes('snapshot_hash') &&
 			retentionLabMigration.includes('unique (owner_id, post_id, snapshot_hash)'),
+	],
+	[
+		'style bibles are owner-read, server-written and revision-immutable',
+		styleBibleMigration.includes('style_presets') &&
+			styleBibleMigration.includes('style_preset_revisions') &&
+			styleBibleMigration.includes('episode_style_overrides') &&
+			styleBibleMigration.includes('scene_style_overrides') &&
+			styleBibleMigration.includes('force row level security') &&
+			styleBibleMigration.includes('grant select on table public.style_presets to authenticated') &&
+			styleBibleMigration.includes('grant execute on function public.save_style_preset_revision') &&
+			styleBibleMigration.includes('style_revision_is_immutable') &&
+			styleBibleMigration.includes('style_revision_conflict') &&
+			styleBibleMigration.includes('dif.style_prune') &&
+			styleBibleQuotaMigration.includes('style_preset_revisions_quota') &&
+			styleBibleQuotaMigration.includes('style_revision_quota'),
 	],
 	[
 		'render quotas, health and ops scripts are server-only and dry-run first',

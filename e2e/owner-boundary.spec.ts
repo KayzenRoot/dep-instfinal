@@ -711,6 +711,7 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 		'/app/editor',
 		'/app/director',
 		'/app/hooks',
+		'/app/style',
 		episodeId ? `/app/color?episodeId=${episodeId}` : '/app/color',
 		episodeId ? `/app/covers?episodeId=${episodeId}` : '/app/covers',
 		'/app/settings',
@@ -726,7 +727,13 @@ test('authenticated studio pages fit 360, 768, and 1440 pixel viewports', async 
 				() => document.documentElement.scrollWidth <= window.innerWidth,
 			);
 			expect(fits, `${route} should not overflow at ${width}px`).toBe(true);
-			const slug = route === '/app' ? 'home' : route.replaceAll('/', '-').replace(/^-/, '');
+			const slug =
+				route === '/app'
+					? 'home'
+					: route
+							.replaceAll('/', '-')
+							.replace(/[^a-z0-9-]/gi, '-')
+							.replace(/^-+|-+$/g, '');
 			await page.screenshot({
 				path: path.join(screenshotDirectory, `app-${slug}-${width}.png`),
 				fullPage: true,

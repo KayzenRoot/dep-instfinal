@@ -39,6 +39,14 @@ The Free project was backed up without relying on provider snapshots:
 
 This procedure was executed against the hosted `dif` project and a local Supabase target on 2026-11-11; the restored counts matched the export, the owner login returned 200, anonymous REST returned 401, and the private Cloudinary image returned 235 bytes with a matching SHA-256. Auth passwords are intentionally re-provisioned, not copied from the backup.
 
+## Bíblia audiovisual — retenção e cotas (WO-021)
+
+- `style_presets` e `style_preset_revisions` são owner-read/service-write; revisões são imutáveis e nunca sobrescrevem um plano ou render antigo.
+- Cada preset aceita até **200 revisões** (`style_revision_quota`). Ao atingir o limite, duplique o preset para continuar; não há poda automática de histórico aprovado.
+- Overrides de episódio/cena são upserts pequenos, sem histórico próprio; a remoção limpa o override e a camada volta a herdar.
+- SFX referenciados são revalidados na resolução do snapshot. Assets removidos ou sem licença comercial/social são retirados do config efetivo com warning (`STYLE_SFX_UNAVAILABLE`/`STYLE_SFX_LICENSE`), sem alterar o preset aprovado.
+- Backup/restore incluem as quatro tabelas. Restaure presets antes das revisões e overrides depois de episódios/cenas para respeitar as FKs.
+
 ## Temporary public access via Cloudflare Tunnel (owner-authorized)
 
 The owner may expose the local production server through a free Cloudflare quick tunnel for private use:

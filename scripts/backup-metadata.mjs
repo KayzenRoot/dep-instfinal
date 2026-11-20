@@ -97,6 +97,10 @@ const tableNames = [
 	'retention_imports',
 	'analytics_snapshots',
 	'retention_experiments',
+	'style_presets',
+	'style_preset_revisions',
+	'episode_style_overrides',
+	'scene_style_overrides',
 ];
 const counts = {};
 for (const table of tableNames) {

@@ -43,6 +43,12 @@
 			glyph: 'archive',
 		},
 		{
+			path: '/app/style',
+			href: resolve('/app/style'),
+			label: 'Estilo',
+			glyph: 'book',
+		},
+		{
 			path: '/app/library',
 			href: resolve('/app/library'),
 			label: 'Biblioteca visual',

@@ -475,6 +475,7 @@ async function main() {
 					}
 				: null,
 			endCard: validated.endCard ?? null,
+			styleBible: validated.styleBible ?? null,
 			bucket: localOutput ? 'local-test' : bucket,
 			objectKey: localArtifactPath ?? objectKey,
 			durationMs: output.durationMs,
