@@ -6,7 +6,9 @@ Branch: `feat/dif-v2-wo-014` (base `main` `7c175e5`)
 ## Local/CI baseline
 
 - `main` code/test head V2 `f32cc97`: CI `44776291945` PASS — unit **351+3**,
-  PgTAP **247/247**, policy 35/41, E2E **19/19**, Sonar PASS.
+  PgTAP **247/247**, policy 35/41, E2E **19/19**. OPS `77d5626` has quality + Sonar PASS.
+  The docs-only `7c175e5` passed the quality workflow; the separate SonarCloud gate failed
+  on pre-existing duplication, not new application code.
 - OPS head `77d5626`: CI `44787029917` PASS — unit **351+3**, PgTAP **247/247**,
   policy **36/41**, E2E **19/19**, Sonar PASS.
 - `main` docs checkpoints: `3950ccb` (WO-021) and `7c175e5` (OPS) CI PASS.
@@ -24,7 +26,7 @@ Authenticated owner session against `https://dif-studio.vercel.app`:
 | `/app` | 200 |
 | `/app/series` | 200 |
 | `/app/episodes` | 200 |
-| `/timeline` | timed out / V2 data unavailable |
+| `/app/timeline` | timed out / V2 data unavailable |
 | `/app/style` | **500 Internal Error** |
 
 Hosted Supabase `zottgifcocnjguhmnezx`:
@@ -47,7 +49,9 @@ Hosted Supabase `zottgifcocnjguhmnezx`:
 - PASS: `/health`, `/login`, anonymous boundaries for media/video/health/style.
 - FAIL: 7 V2 schema markers missing (`video_assets`, `video_edit_plans`, `render_jobs`,
   `cover_revisions`, `choice_end_cards`, `published_posts`, `style_presets`).
-- Exit non-zero; production must not be declared V2-complete.
+- Exit 1. Invalid-key run also exits 1 with `Supabase publishable/anon key is invalid`;
+  regression tests cover invalid key, RLS-coded 401/403 and PGRST205.
+- Production must not be declared V2-complete.
 
 ## Migration runner dry-run
 
