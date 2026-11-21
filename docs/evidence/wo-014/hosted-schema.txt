@@ -57,7 +57,8 @@ PRODUCTION SWITCH (2026-11-21)
 - GET /api/render-jobs/health: 200; service role configured; queue empty; no active worker.
 - POST /api/video/uploads with empty body: 400 INVALID_INPUT after the R2 backend check.
 - npm run check:r2: PASS head bucket, put, get, delete.
-- CI 44897148295 (quality) PASS; SonarCloud, Socket and Vercel Preview PASS.
+- Cloudinary: api.ping OK; private upload via production /api/media/upload -> upload=success; media_asset READY; test asset deleted from Cloudinary and DB.
+- CI 44899106284 (quality) PASS; SonarCloud, Socket and Vercel Preview PASS.
 
 NOTES
 - Owner acceptance with a real episode and a render-worker run are still pending.

@@ -31,13 +31,14 @@
 - `npm run release:smoke` → PASS em health, login, 4 boundaries anônimos, key preflight e 7 tabelas V2.
 - `GET /api/render-jobs/health` → 200: service role configurada; fila vazia e sem worker ativo.
 - R2: `POST /api/video/uploads` com corpo vazio → 400 `INVALID_INPUT` (o backend R2 é verificado antes da validação do corpo); `npm run check:r2` → PASS HeadBucket/Put/Get/Delete.
-- CI `44897148295` (quality) PASS; SonarCloud, Socket e Vercel Preview PASS.
+- Cloudinary: `cloudinary.api.ping()` OK; upload privado real via `/api/media/upload` concluído (`?upload=success`, asset `READY`); o asset de teste foi removido do Cloudinary e do banco.
+- CI `44899106284` (quality) PASS; SonarCloud, Socket e Vercel Preview PASS.
 
 ## Pendências para encerrar WO-014
 
 - Aceitação real do owner com episódio Flow 90–150 s, 15 clipes, narração, SFX/música, legendas, CTA/2 escolhas e MP4 revisado (QA humano de som/imagem) em produção.
 - Subir o worker de render autorizado e executar um render completo; a fila está vazia e sem worker ativo.
-- Cloudinary secret rotation e smoke de mídia privada.
+- Cloudinary secret rotation (o smoke de upload privado já passou em 21/11).
 - Depois da aceitação, promover o checkpoint final e fechar a issue #31.
 
 ## Script de migrations
