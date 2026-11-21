@@ -1,0 +1,54 @@
+DIF-V2-WO-014 — hosted schema evidence
+Date: 2026-11-21
+Project: dif-studio (gzjsjxkxyvgvixvnusrv)
+Region: us-west-2 / Oregon
+Owner org: BrainBot
+
+MIGRATIONS
+- Command: npx supabase db push --include-all (database URL read from a private file)
+- Migrations in repository: 38 (V1 + 29 V2)
+- Result: "Finished supabase db push."
+
+POSTGREST INTROSPECTION (service role)
+- expectedTables: 41
+- exposedDefinitions: 41
+- missing: []
+- extra: []
+
+BOUNDARY PROBES
+- series: service 200; anon 401 / 42501
+- video_assets: service 200; anon 401 / 42501
+- video_edit_plans: service 200; anon 401 / 42501
+- render_jobs: service 200; anon 401 / 42501
+- cover_revisions: service 200; anon 401 / 42501
+- choice_end_cards: service 200; anon 401 / 42501
+- published_posts: service 200; anon 401 / 42501
+- style_presets: service 200; anon 401 / 42501
+
+OWNER
+- Auth user owner@dif.local has app_metadata.dif_studio_owner=true.
+- Local login OK against the new project.
+- GET /app/style: 200; heading "Estilo da série".
+- GET /app/timeline: 200; heading "Timeline canônica".
+- UI create series: insert succeeded, owner_id matched the configured owner; test row removed afterwards.
+
+RELEASE SMOKE (new .env.smoke)
+PASS health
+PASS login
+PASS anonymous boundary /api/media/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+PASS anonymous boundary /api/video/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+PASS anonymous boundary /api/render-jobs/health
+PASS anonymous boundary /api/style/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+PASS schema key preflight
+PASS schema table video_assets
+PASS schema table video_edit_plans
+PASS schema table render_jobs
+PASS schema table cover_revisions
+PASS schema table choice_end_cards
+PASS schema table published_posts
+PASS schema table style_presets
+Smoke passed.
+
+NOTES
+- Production Vercel still targets the old inaccessible project; redeploy with the new env vars is pending.
+- No secret value is included in this file; credentials remain in private local files.

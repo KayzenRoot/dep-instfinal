@@ -8,7 +8,7 @@ const baseUrl = (process.env.PROD_BASE_URL ?? 'https://dif-studio.vercel.app').r
 const supabaseUrl = (process.env.PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
 const supabaseKey =
 	process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
-const expectedProjectRef = process.env.EXPECTED_SUPABASE_PROJECT_REF ?? 'zottgifcocnjguhmnezx';
+const expectedProjectRef = process.env.EXPECTED_SUPABASE_PROJECT_REF ?? '';
 const v2Tables = [
 	'video_assets',
 	'video_edit_plans',
@@ -62,31 +62,38 @@ if (!supabaseUrl || !supabaseKey) {
 	fail('PUBLIC_SUPABASE_URL and publishable/anon key are required for schema probe');
 } else {
 	const parsedUrl = new URL(supabaseUrl);
-	if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== `${expectedProjectRef}.supabase.co`)
-		fail(`project host mismatch: expected https://${expectedProjectRef}.supabase.co`);
-
-	async function probe(table) {
-		const response = await get(`${supabaseUrl}/rest/v1/${table}?select=id&limit=1`, {
-			headers: { apikey: supabaseKey, authorization: `Bearer ${supabaseKey}` },
-		});
-		const body = await response.json().catch(() => null);
-		return { status: response.status, body };
-	}
-
-	const v1 = await probe('series');
-	const keyStatus = classifyKeyPreflight(v1.status, v1.body);
-	if (keyStatus === 'invalid') {
-		fail('Supabase publishable/anon key is invalid');
-	} else if (keyStatus !== 'valid') {
-		fail(`schema key preflight HTTP ${v1.status}`);
+	const hostMatches =
+		/^[a-z0-9]{20}$/.test(expectedProjectRef) &&
+		parsedUrl.protocol === 'https:' &&
+		parsedUrl.hostname === `${expectedProjectRef}.supabase.co`;
+	if (!hostMatches) {
+		fail(
+			`project host mismatch: set EXPECTED_SUPABASE_PROJECT_REF to the 20-char ref behind ${parsedUrl.origin}`,
+		);
 	} else {
-		pass('schema key preflight');
-		for (const table of v2Tables) {
-			const result = await probe(table);
-			const tableStatus = classifyTableProbe(result.status, result.body);
-			if (tableStatus === 'missing') fail(`schema missing table ${table}`);
-			else if (tableStatus === 'present') pass(`schema table ${table}`);
-			else fail(`schema probe ${table} HTTP ${result.status}`);
+		async function probe(table) {
+			const response = await get(`${supabaseUrl}/rest/v1/${table}?select=id&limit=1`, {
+				headers: { apikey: supabaseKey, authorization: `Bearer ${supabaseKey}` },
+			});
+			const body = await response.json().catch(() => null);
+			return { status: response.status, body };
+		}
+
+		const v1 = await probe('series');
+		const keyStatus = classifyKeyPreflight(v1.status, v1.body);
+		if (keyStatus === 'invalid') {
+			fail('Supabase publishable/anon key is invalid');
+		} else if (keyStatus !== 'valid') {
+			fail(`schema key preflight HTTP ${v1.status}`);
+		} else {
+			pass('schema key preflight');
+			for (const table of v2Tables) {
+				const result = await probe(table);
+				const tableStatus = classifyTableProbe(result.status, result.body);
+				if (tableStatus === 'missing') fail(`schema missing table ${table}`);
+				else if (tableStatus === 'present') pass(`schema table ${table}`);
+				else fail(`schema probe ${table} HTTP ${result.status}`);
+			}
 		}
 	}
 }

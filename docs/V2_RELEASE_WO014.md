@@ -1,7 +1,7 @@
 # DIF-V2-WO-014 — Release V2: regressão integral, auditoria e deploy validado
 
 **Issue:** #31 · **Branch:** `feat/dif-v2-wo-014` · **Base:** `main` `7c175e5`
-**Status:** **BLOCKED** — código/testes/regressão prontos; o deploy validado não pode concluir sem migrations no Supabase hospedado. O Vercel já serve o código V2, mas o projeto hospedado ainda tem apenas o schema V1. O PR #70 mantém ferramentas/docs de release, sem merge/deploy.
+**Status:** **PENDENTE DEPLOY** — Supabase de produção pronto e validado; o Vercel Production ainda aponta para o projeto antigo. Falta atualizar as envs, republicar e executar a aceitação real do owner.
 
 ## Pré-requisitos atendidos
 
@@ -12,36 +12,31 @@
 - Worker/render local e ARM64 benchmark das WOs anteriores aprovados.
 - Sem HIGH/CRITICAL conhecido; auditorias independentes finais de WO-021 e OPS **APPROVED WITH RESIDUALS**.
 
-## Bloqueio atual (produção)
+## Novo Supabase de produção (21/11/2026)
 
-- `https://dif-studio.vercel.app/health` → 200; `/login` → 200; `/app`, `/app/series`, `/app/episodes` → 200 com owner real.
-- `https://dif-studio.vercel.app/app/style` → **HTTP 500** para o owner; o projeto Supabase hospedado `zottgifcocnjguhmnezx` não tem as tabelas V2 (`GET /rest/v1/style_presets` → PGRST205).
-- O workspace não tem Supabase PAT nem database password:
-  - `npx supabase projects list` → “Invalid access token”;
-  - não existe `C:\Users\csn19\.zcode\dif-secrets\supabase-pat.txt`;
-  - não há Vercel CLI autenticado (o deploy Vercel vem da integração Git).
-- Sem credencial não é possível aplicar as **29 migrations V2** (`20261112170000`–`20261120132000`) nem executar o smoke de produção. Não há caminho DDL via PostgREST/anon.
+- O projeto antigo `zottgifcocnjguhmnezx` não está acessível pela conta logada (“You do not have access to this project”). Por direção do owner (“crie nesse projeto logado tudo novo”), foi criado o projeto `dif-studio` (`gzjsjxkxyvgvixvnusrv`, organização BrainBot, us-west-2/Oregon, plano Nano).
+- As **38 migrations** do repositório (V1 + 29 V2) foram aplicadas com `npx supabase db push --include-all`; a database password ficou apenas em arquivo privado local.
+- Introspecção PostgREST: **41/41 tabelas** esperadas, nenhuma faltante ou extra. Sondas com service role retornam 200; sondas anônimas em `series` e nas 7 tabelas V2 retornam 401/`42501` (RLS sem acesso anônimo).
+- O owner `owner@dif.local` foi criado com `app_metadata.dif_studio_owner=true`; as credenciais ficam somente em arquivo privado local.
+- Validação local contra o projeto novo: login do owner OK; `/app/style` e `/app/timeline` renderizam (sem 500); criação de série via UI gravou com o `owner_id` correto e a linha de teste foi removida.
+- `npm run release:smoke` com `.env.smoke` do projeto novo: PASS em health, login, boundaries anônimos, preflight de chave e nas 7 tabelas V2.
+- O projeto está vazio: os dados V1 antigos não foram migrados porque o projeto antigo está inacessível. A direção “tudo novo” foi tratada como recomeço limpo.
 
-## Como desbloquear
+## Pendência atual (Vercel)
 
-1. O owner fornece um PAT Supabase (`sbp_...`) em `C:\Users\csn19\.zcode\dif-secrets\supabase-pat.txt` **ou** roda `npx supabase login`/`link --project-ref zottgifcocnjguhmnezx` **ou** fornece a database password por arquivo privado.
-2. Antes de aplicar, gerar backup do schema hospedado (Management API/`pg_dump`) e confirmar que o schema atual é V1.
-3. Dry-run (não lê o PAT):
-   ```sh
-   SUPABASE_PROJECT_REF=zottgifcocnjguhmnezx node scripts/apply-hosted-migrations.mjs
-   ```
-4. Executar via arquivo de PAT (não coloque o segredo no histórico do shell):
-   ```sh
-   SUPABASE_PROJECT_REF=zottgifcocnjguhmnezx \
-     node scripts/apply-hosted-migrations.mjs --execute \
-       --token-file "C:/Users/csn19/.zcode/dif-secrets/supabase-pat.txt" \
-       --confirm-project zottgifcocnjguhmnezx
-   ```
-   O script recusa schema V2 já presente sem ledger, exige confirmação explícita do projeto, grava um ledger privado por migration aplicada, aceita `--resume` apenas com ledger correspondente e compara o conjunto exato de 41 tabelas (não apenas a contagem). `--from` anterior a `20261112170000` exige `--allow-v1` explícito.
-5. Smoke: crie `.env.smoke` (ignorado pelo Git) com `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `EXPECTED_SUPABASE_PROJECT_REF=zottgifcocnjguhmnezx`; `npm run release:smoke` usa `--env-file-if-exists=.env.smoke`, valida dono configurado, boundaries anônimos e marcadores V2; depois owner login, `/app/style`, `/app/timeline`, upload R2, download privado, render worker, MP4 1080×1920, backup/rollback.
-6. Só depois promover o checkpoint final para **APROVADO**.
+- `https://dif-studio.vercel.app` continua configurado com o Supabase antigo; por isso `/app/style` ainda responde 500 em produção.
+- É necessário atualizar no Vercel Production: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_OWNER_USER_ID` para o projeto `gzjsjxkxyvgvixvnusrv`, mantendo Cloudinary/R2 existentes, e republicar o deployment.
+- O workspace não tem Vercel CLI autenticado (`vercel whoami` sem credenciais; token local inválido) nem PAT. A atualização exige login no dashboard do Vercel no navegador controlado.
+- Depois do redeploy: rodar `npm run release:smoke` novamente, validar `/app/style` e `/app/timeline` em produção, upload/download R2, render worker, MP4 1080×1920 e a aceitação do owner.
 
-Saída atual de `npm run release:smoke` (2026-11-20): health/login/boundaries PASS; **7 tabelas V2 ausentes** (`video_assets`, `video_edit_plans`, `render_jobs`, `cover_revisions`, `choice_end_cards`, `published_posts`, `style_presets`), exit 1. Chave inválida é FAIL explícito (não conta como tabela presente). O script é read-only e impede declarar release completa com schema V1.
+## Como concluir o deploy
+
+1. Autenticar no dashboard do Vercel no navegador controlado e abrir o projeto `dif-studio`.
+2. Em Settings → Environment Variables → Production, substituir as cinco variáveis Supabase pelos valores privados do projeto novo (não colar segredos em chat/ticket).
+3. Republicar o deployment de `main` (ou o preview validado) e confirmar `/health` com `supabase:true` e `owner:true`.
+4. Rodar o smoke e a aceitação; só então promover o checkpoint final para **APROVADO**.
+
+Saída de `npm run release:smoke` (2026-11-21, `.env.smoke` novo): PASS health; PASS login; PASS 4 boundaries anônimos; PASS schema key preflight; PASS 7 tabelas V2; exit 0. O smoke exige `EXPECTED_SUPABASE_PROJECT_REF` explícito e recusa validar um host diferente.
 
 ## Script de migrations
 
@@ -55,15 +50,16 @@ Saída atual de `npm run release:smoke` (2026-11-20): health/login/boundaries PA
 - não imprime token nem SQL; falha com HTTP/status e trecho normalizado;
 - compara o conjunto exato de tabelas (14 V1 + 27 V2 = 41), reportando faltantes/extras.
 
+O caminho alternativo usado neste release foi `npx supabase db push --include-all` com a database password privada, porque o PAT do owner não estava disponível. O script permanece como caminho auditável para os próximos projetos.
+
 ## Pendências humanas/operacionais
 
 - Aceitação real do owner com episódio Flow 90–150 s, 15 clipes, narração, SFX/música, legendas, CTA/2 escolhas, MP4 revisado (QA humano de som/imagem).
 - Configurar/validar envs R2 no Vercel Production e worker isolado autorizado.
-- Backup hospedado antes das migrations e ensaio de rollback/roll-forward.
 - Cloudinary secret rotation e smoke de mídia privada.
 
 ## Riscos
 
-- V2 code em produção sem schema V2 deixa rotas novas em 500 (V1 core continua 200). Não declarar release completa.
-- As migrations são majoritariamente aditivas (também incluem grants/constraints), mas devem ser aplicadas com backup, em ordem e com ledger; o script falha fechado.
+- Até o redeploy do Vercel, o código V2 continua servido contra o schema V1 antigo e as rotas novas permanecem em 500.
+- O projeto novo está vazio; a aceitação deve usar conteúdo novo, não os dados antigos inacessíveis.
 - Sem Vercel CLI, rollback de alias depende do dashboard/integração Git.
