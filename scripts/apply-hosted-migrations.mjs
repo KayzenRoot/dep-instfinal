@@ -9,7 +9,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { isAbsolute, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import process from 'node:process';
 
 async function main() {
@@ -121,7 +121,7 @@ async function main() {
 	}
 
 	async function writeLedger() {
-		await mkdir(join(homedir(), '.dif-studio'), { recursive: true, mode: 0o700 });
+		await mkdir(dirname(ledgerPath), { recursive: true, mode: 0o700 });
 		await writeFile(ledgerPath, JSON.stringify(ledger, null, 2), { mode: 0o600 });
 	}
 
