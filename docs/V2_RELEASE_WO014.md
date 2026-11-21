@@ -1,7 +1,7 @@
 # DIF-V2-WO-014 — Release V2: regressão integral, auditoria e deploy validado
 
 **Issue:** #31 · **Branch:** `feat/dif-v2-wo-014` · **Base:** `main` `7c175e5`
-**Status:** **PENDENTE DEPLOY** — Supabase de produção pronto e validado; o Vercel Production ainda aponta para o projeto antigo. Falta atualizar as envs, republicar e executar a aceitação real do owner.
+**Status:** **DEPLOY VALIDADO EM PRODUÇÃO** — o Vercel Production usa o novo Supabase e o smoke/páginas V2 passam. Falta apenas a aceitação real do owner (episódio + QA humano) para o checkpoint final.
 
 ## Pré-requisitos atendidos
 
@@ -22,21 +22,23 @@
 - `npm run release:smoke` com `.env.smoke` do projeto novo: PASS em health, login, boundaries anônimos, preflight de chave e nas 7 tabelas V2.
 - O projeto está vazio: os dados V1 antigos não foram migrados porque o projeto antigo está inacessível. A direção “tudo novo” foi tratada como recomeço limpo.
 
-## Pendência atual (Vercel)
+## Deploy de produção (21/11/2026)
 
-- `https://dif-studio.vercel.app` continua configurado com o Supabase antigo; por isso `/app/style` ainda responde 500 em produção.
-- É necessário atualizar no Vercel Production: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_OWNER_USER_ID` para o projeto `gzjsjxkxyvgvixvnusrv`, mantendo Cloudinary/R2 existentes, e republicar o deployment.
-- O workspace não tem Vercel CLI autenticado (`vercel whoami` sem credenciais; token local inválido) nem PAT. A atualização exige login no dashboard do Vercel no navegador controlado.
-- Depois do redeploy: rodar `npm run release:smoke` novamente, validar `/app/style` e `/app/timeline` em produção, upload/download R2, render worker, MP4 1080×1920 e a aceitação do owner.
+- Vercel Production atualizado pelo dashboard: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `SUPABASE_OWNER_USER_ID` (Production + Preview), `SUPABASE_SERVICE_ROLE_KEY` (Production + Preview) e `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET`/`R2_ENDPOINT` (Production); Cloudinary, `GEMINI_API_KEY` e `APP_ORIGIN` foram preservados.
+- Redeploy de `main` `7c175e5` concluído; deployment `59dQjeSfTvrFy41EeiLno9bst193` Ready no domínio `dif-studio.vercel.app`.
+- `https://dif-studio.vercel.app/health` → 200 (`supabase:true`, `owner:true`); login do owner OK.
+- `GET /app/style` → **200** (“Estilo da série”); `GET /app/timeline` → **200**.
+- `npm run release:smoke` → PASS em health, login, 4 boundaries anônimos, key preflight e 7 tabelas V2.
+- `GET /api/render-jobs/health` → 200: service role configurada; fila vazia e sem worker ativo.
+- R2: `POST /api/video/uploads` com corpo vazio → 400 `INVALID_INPUT` (o backend R2 é verificado antes da validação do corpo); `npm run check:r2` → PASS HeadBucket/Put/Get/Delete.
+- CI `44897148295` (quality) PASS; SonarCloud, Socket e Vercel Preview PASS.
 
-## Como concluir o deploy
+## Pendências para encerrar WO-014
 
-1. Autenticar no dashboard do Vercel no navegador controlado e abrir o projeto `dif-studio`.
-2. Em Settings → Environment Variables → Production, substituir as cinco variáveis Supabase pelos valores privados do projeto novo (não colar segredos em chat/ticket).
-3. Republicar o deployment de `main` (ou o preview validado) e confirmar `/health` com `supabase:true` e `owner:true`.
-4. Rodar o smoke e a aceitação; só então promover o checkpoint final para **APROVADO**.
-
-Saída de `npm run release:smoke` (2026-11-21, `.env.smoke` novo): PASS health; PASS login; PASS 4 boundaries anônimos; PASS schema key preflight; PASS 7 tabelas V2; exit 0. O smoke exige `EXPECTED_SUPABASE_PROJECT_REF` explícito e recusa validar um host diferente.
+- Aceitação real do owner com episódio Flow 90–150 s, 15 clipes, narração, SFX/música, legendas, CTA/2 escolhas e MP4 revisado (QA humano de som/imagem) em produção.
+- Subir o worker de render autorizado e executar um render completo; a fila está vazia e sem worker ativo.
+- Cloudinary secret rotation e smoke de mídia privada.
+- Depois da aceitação, promover o checkpoint final e fechar a issue #31.
 
 ## Script de migrations
 
@@ -52,14 +54,8 @@ Saída de `npm run release:smoke` (2026-11-21, `.env.smoke` novo): PASS health; 
 
 O caminho alternativo usado neste release foi `npx supabase db push --include-all` com a database password privada, porque o PAT do owner não estava disponível. O script permanece como caminho auditável para os próximos projetos.
 
-## Pendências humanas/operacionais
-
-- Aceitação real do owner com episódio Flow 90–150 s, 15 clipes, narração, SFX/música, legendas, CTA/2 escolhas, MP4 revisado (QA humano de som/imagem).
-- Configurar/validar envs R2 no Vercel Production e worker isolado autorizado.
-- Cloudinary secret rotation e smoke de mídia privada.
-
 ## Riscos
 
-- Até o redeploy do Vercel, o código V2 continua servido contra o schema V1 antigo e as rotas novas permanecem em 500.
-- O projeto novo está vazio; a aceitação deve usar conteúdo novo, não os dados antigos inacessíveis.
-- Sem Vercel CLI, rollback de alias depende do dashboard/integração Git.
+- O banco novo está vazio; a aceitação deve usar conteúdo novo, não os dados antigos inacessíveis.
+- O worker de render não está ativo em produção; jobs ficam na fila até o worker autorizado subir.
+- Sem Vercel CLI autenticado, rollback de alias depende do dashboard/integração Git.

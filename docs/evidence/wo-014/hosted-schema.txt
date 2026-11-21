@@ -49,6 +49,16 @@ PASS schema table published_posts
 PASS schema table style_presets
 Smoke passed.
 
+PRODUCTION SWITCH (2026-11-21)
+- Vercel Production updated: PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY and SUPABASE_OWNER_USER_ID (Production + Preview); SUPABASE_SERVICE_ROLE_KEY (Production + Preview); R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_ENDPOINT (Production).
+- Redeploy of main 7c175e5 completed: deployment 59dQjeSfTvrFy41EeiLno9bst193 Ready; domain dif-studio.vercel.app.
+- GET /health: 200 {"status":"ok","configured":{"supabase":true,"owner":true}}.
+- Owner login: OK; GET /app/style: 200, heading "Estilo da série"; GET /app/timeline: 200.
+- GET /api/render-jobs/health: 200; service role configured; queue empty; no active worker.
+- POST /api/video/uploads with empty body: 400 INVALID_INPUT after the R2 backend check.
+- npm run check:r2: PASS head bucket, put, get, delete.
+- CI 44897148295 (quality) PASS; SonarCloud, Socket and Vercel Preview PASS.
+
 NOTES
-- Production Vercel still targets the old inaccessible project; redeploy with the new env vars is pending.
+- Owner acceptance with a real episode and a render-worker run are still pending.
 - No secret value is included in this file; credentials remain in private local files.
