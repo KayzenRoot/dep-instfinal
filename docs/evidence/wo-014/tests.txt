@@ -1,0 +1,71 @@
+# DIF-V2-WO-014 — release evidence
+
+Date: 2026-11-20 (America/Sao_Paulo)
+Branch: `feat/dif-v2-wo-014` (base `main` `7c175e5`)
+
+## Local/CI baseline
+
+- `main` code/test head V2 `f32cc97`: CI `44776291945` PASS — unit **351+3**,
+  PgTAP **247/247**, policy 35/41, E2E **19/19**. OPS `77d5626` has quality + Sonar PASS.
+  The docs-only `7c175e5` passed the quality workflow; the separate SonarCloud gate failed
+  on pre-existing duplication, not new application code.
+- OPS head `77d5626`: CI `44787029917` PASS — unit **351+3**, PgTAP **247/247**,
+  policy **36/41**, E2E **19/19**, Sonar PASS.
+- `main` docs checkpoints: `3950ccb` (WO-021) and `7c175e5` (OPS) passed the quality
+  workflow; both are docs-only, and the separate SonarCloud gate failed on pre-existing
+  duplication rather than new application code.
+- Backup/restore local: 41/41 table counts, SHA verified, join 768, QA 5/5,
+  metadata/coverage OK; media fail-closed for 3 absent temp MP4s.
+
+## Production observations (2026-11-20)
+
+Authenticated owner session against `https://dif-studio.vercel.app`:
+
+| Route | Status |
+| --- | --- |
+| `/health` | 200 |
+| `/login` | 200 |
+| `/app` | 200 |
+| `/app/series` | 200 |
+| `/app/episodes` | 200 |
+| `/app/timeline` | timed out / V2 data unavailable |
+| `/app/style` | **500 Internal Error** |
+
+Hosted Supabase `zottgifcocnjguhmnezx`:
+
+- `GET /rest/v1/style_presets` → HTTP 404 `PGRST205` (table missing);
+- same for `cover_revisions` and other V2 tables;
+- V1 tables/services remain reachable through the app.
+
+## Credential preflight
+
+- `npx supabase projects list` → `Invalid access token`.
+- No `supabase-pat.txt` in `C:\Users\csn19\.zcode\dif-secrets`.
+- No Vercel CLI credentials; production deploys come from the Git integration.
+- Therefore the 29 V2 migrations cannot be applied and the release is **BLOCKED**.
+
+## Release smoke (2026-11-20)
+
+`npm run release:smoke` against production:
+
+- PASS: `/health`, `/login`, anonymous boundaries for media/video/health/style.
+- FAIL: 7 V2 schema markers missing (`video_assets`, `video_edit_plans`, `render_jobs`,
+  `cover_revisions`, `choice_end_cards`, `published_posts`, `style_presets`).
+- Exit 1. Invalid-key run also exits 1 with `Supabase publishable/anon key is invalid`;
+  regression tests cover invalid key, RLS-coded 401/403 and PGRST205.
+- Production must not be declared V2-complete.
+
+## Migration runner dry-run
+
+`SUPABASE_PROJECT_REF=zottgifcocnjguhmnezx node scripts/apply-hosted-migrations.mjs`
+lists **29 migrations** from `20261112170000` and performs no network write in
+dry-run. `--execute` requires an owner PAT (`--token-file` or env) and `--confirm-project`,
+writes an atomic ledger, refuses V2 markers without `--resume`, and compares the exact
+41-table set.
+
+## Not yet executed
+
+- Hosted migration apply/backup and production smoke.
+- Worker isolated deployment/authorization.
+- Real owner 90–150 s Flow acceptance and human AV QA.
+- R2 lifecycle/GC, remote restore, Auth restore.

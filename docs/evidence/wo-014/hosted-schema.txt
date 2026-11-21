@@ -1,0 +1,65 @@
+DIF-V2-WO-014 — hosted schema evidence
+Date: 2026-11-21
+Project: dif-studio (gzjsjxkxyvgvixvnusrv)
+Region: us-west-2 / Oregon
+Owner org: BrainBot
+
+MIGRATIONS
+- Command: npx supabase db push --include-all (database URL read from a private file)
+- Migrations in repository: 38 (V1 + 29 V2)
+- Result: "Finished supabase db push."
+
+POSTGREST INTROSPECTION (service role)
+- expectedTables: 41
+- exposedDefinitions: 41
+- missing: []
+- extra: []
+
+BOUNDARY PROBES
+- series: service 200; anon 401 / 42501
+- video_assets: service 200; anon 401 / 42501
+- video_edit_plans: service 200; anon 401 / 42501
+- render_jobs: service 200; anon 401 / 42501
+- cover_revisions: service 200; anon 401 / 42501
+- choice_end_cards: service 200; anon 401 / 42501
+- published_posts: service 200; anon 401 / 42501
+- style_presets: service 200; anon 401 / 42501
+
+OWNER
+- Auth user owner@dif.local has app_metadata.dif_studio_owner=true.
+- Local login OK against the new project.
+- GET /app/style: 200; heading "Estilo da série".
+- GET /app/timeline: 200; heading "Timeline canônica".
+- UI create series: insert succeeded, owner_id matched the configured owner; test row removed afterwards.
+
+RELEASE SMOKE (new .env.smoke)
+PASS health
+PASS login
+PASS anonymous boundary /api/media/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+PASS anonymous boundary /api/video/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+PASS anonymous boundary /api/render-jobs/health
+PASS anonymous boundary /api/style/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+PASS schema key preflight
+PASS schema table video_assets
+PASS schema table video_edit_plans
+PASS schema table render_jobs
+PASS schema table cover_revisions
+PASS schema table choice_end_cards
+PASS schema table published_posts
+PASS schema table style_presets
+Smoke passed.
+
+PRODUCTION SWITCH (2026-11-21)
+- Vercel Production updated: PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY and SUPABASE_OWNER_USER_ID (Production + Preview); SUPABASE_SERVICE_ROLE_KEY (Production + Preview); R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_ENDPOINT (Production).
+- Redeploy of main 7c175e5 completed: deployment 59dQjeSfTvrFy41EeiLno9bst193 Ready; domain dif-studio.vercel.app.
+- GET /health: 200 {"status":"ok","configured":{"supabase":true,"owner":true}}.
+- Owner login: OK; GET /app/style: 200, heading "Estilo da série"; GET /app/timeline: 200.
+- GET /api/render-jobs/health: 200; service role configured; queue empty; no active worker.
+- POST /api/video/uploads with empty body: 400 INVALID_INPUT after the R2 backend check.
+- npm run check:r2: PASS head bucket, put, get, delete.
+- Cloudinary: api.ping OK; private upload via production /api/media/upload -> upload=success; media_asset READY; test asset deleted from Cloudinary and DB.
+- CI 44899106284 (quality) PASS; SonarCloud, Socket and Vercel Preview PASS.
+
+NOTES
+- Owner acceptance with a real episode and a render-worker run are still pending.
+- No secret value is included in this file; credentials remain in private local files.
