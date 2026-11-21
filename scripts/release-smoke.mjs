@@ -61,14 +61,13 @@ for (const path of [
 if (!supabaseUrl || !supabaseKey) {
 	fail('PUBLIC_SUPABASE_URL and publishable/anon key are required for schema probe');
 } else {
-	const host = new URL(supabaseUrl).hostname;
-	const projectRef = host.split('.')[0];
-	if (projectRef !== expectedProjectRef)
-		fail(`project ref mismatch: expected ${expectedProjectRef}, got ${projectRef}`);
+	const parsedUrl = new URL(supabaseUrl);
+	if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== `${expectedProjectRef}.supabase.co`)
+		fail(`project host mismatch: expected https://${expectedProjectRef}.supabase.co`);
 
 	async function probe(table) {
 		const response = await get(`${supabaseUrl}/rest/v1/${table}?select=id&limit=1`, {
-			headers: { apikey: supabaseKey },
+			headers: { apikey: supabaseKey, authorization: `Bearer ${supabaseKey}` },
 		});
 		const body = await response.json().catch(() => null);
 		return { status: response.status, body };

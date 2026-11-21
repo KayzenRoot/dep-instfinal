@@ -10,7 +10,7 @@ export function classifyKeyPreflight(status, body) {
 	)
 		return 'invalid';
 	if (status === 200) return 'valid';
-	if ([401, 403].includes(status) && body?.code) return 'valid';
+	if ([401, 403].includes(status) && body?.code === '42501') return 'valid';
 	return 'unknown';
 }
 
@@ -18,6 +18,6 @@ export function classifyKeyPreflight(status, body) {
 export function classifyTableProbe(status, body) {
 	if (status === 200) return 'present';
 	if (status === 404 && body?.code === 'PGRST205') return 'missing';
-	if ([401, 403].includes(status) && body?.code && body.code !== 'PGRST205') return 'present';
+	if ([401, 403].includes(status) && body?.code === '42501') return 'present';
 	return 'unknown';
 }

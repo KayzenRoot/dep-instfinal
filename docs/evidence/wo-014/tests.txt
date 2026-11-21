@@ -11,7 +11,9 @@ Branch: `feat/dif-v2-wo-014` (base `main` `7c175e5`)
   on pre-existing duplication, not new application code.
 - OPS head `77d5626`: CI `44787029917` PASS — unit **351+3**, PgTAP **247/247**,
   policy **36/41**, E2E **19/19**, Sonar PASS.
-- `main` docs checkpoints: `3950ccb` (WO-021) and `7c175e5` (OPS) CI PASS.
+- `main` docs checkpoints: `3950ccb` (WO-021) and `7c175e5` (OPS) passed the quality
+  workflow; both are docs-only, and the separate SonarCloud gate failed on pre-existing
+  duplication rather than new application code.
 - Backup/restore local: 41/41 table counts, SHA verified, join 768, QA 5/5,
   metadata/coverage OK; media fail-closed for 3 absent temp MP4s.
 
@@ -57,8 +59,9 @@ Hosted Supabase `zottgifcocnjguhmnezx`:
 
 `SUPABASE_PROJECT_REF=zottgifcocnjguhmnezx node scripts/apply-hosted-migrations.mjs`
 lists **29 migrations** from `20261112170000` and performs no network write in
-dry-run. `--execute` requires an owner PAT `sbp_...` and refuses if V2 markers
-already exist.
+dry-run. `--execute` requires an owner PAT (`--token-file` or env) and `--confirm-project`,
+writes an atomic ledger, refuses V2 markers without `--resume`, and compares the exact
+41-table set.
 
 ## Not yet executed
 

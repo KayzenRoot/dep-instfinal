@@ -7,7 +7,7 @@
 //     --execute --confirm-project <ref>
 // Never prints the token or full SQL responses.
 import { existsSync } from 'node:fs';
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import process from 'node:process';
@@ -122,8 +122,12 @@ async function main() {
 
 	async function writeLedger() {
 		await mkdir(dirname(ledgerPath), { recursive: true, mode: 0o700 });
-		await writeFile(ledgerPath, JSON.stringify(ledger, null, 2), { mode: 0o600 });
+		const temporary = `${ledgerPath}.tmp`;
+		await writeFile(temporary, JSON.stringify(ledger, null, 2), { mode: 0o600 });
+		await rename(temporary, ledgerPath);
 	}
+
+	await writeLedger();
 
 	const before = await query(
 		"select tablename from pg_tables where schemaname = 'public' order by tablename",
@@ -140,9 +144,12 @@ async function main() {
 		console.log(`Resuming from ledger with ${ledger.applied.length} applied migrations.`);
 	}
 
+	let appliedNow = 0;
+	let skipped = 0;
 	for (const file of files) {
 		if (ledger.applied.includes(file)) {
 			console.log(`SKIP ${file} (ledger)`);
+			skipped += 1;
 			continue;
 		}
 		const sql = await readFile(`${MIGRATION_DIR}/${file}`, 'utf8');
@@ -150,6 +157,7 @@ async function main() {
 		await query(sql);
 		ledger.applied.push(file);
 		await writeLedger();
+		appliedNow += 1;
 		console.log(`OK ${file}`);
 	}
 
@@ -165,7 +173,9 @@ async function main() {
 		throw new Error(
 			`Schema mismatch: missing=[${missing.join(', ')}], extra=[${extra.join(', ')}].`,
 		);
-	console.log(`Applied ${files.length} migrations; ${actualTables.size} public tables match.`);
+	console.log(
+		`Applied ${appliedNow} new migrations (${skipped} skipped); ${actualTables.size} public tables match.`,
+	);
 }
 
 main().catch((cause) => {

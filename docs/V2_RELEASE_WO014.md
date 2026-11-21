@@ -38,7 +38,7 @@
        --confirm-project zottgifcocnjguhmnezx
    ```
    O script recusa schema V2 já presente sem ledger, exige confirmação explícita do projeto, grava um ledger privado por migration aplicada, aceita `--resume` apenas com ledger correspondente e compara o conjunto exato de 41 tabelas (não apenas a contagem). `--from` anterior a `20261112170000` exige `--allow-v1` explícito.
-5. Smoke: `npm run release:smoke` lê `.env` (`PUBLIC_SUPABASE_URL`, publishable/anon key) e valida `EXPECTED_SUPABASE_PROJECT_REF` (default `zottgifcocnjguhmnezx`), dono configurado, boundaries anônimos e marcadores V2; depois owner login, `/app/style`, `/app/timeline`, upload R2, download privado, render worker, MP4 1080×1920, backup/rollback.
+5. Smoke: crie `.env.smoke` (ignorado pelo Git) com `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `EXPECTED_SUPABASE_PROJECT_REF=zottgifcocnjguhmnezx`; `npm run release:smoke` usa `--env-file-if-exists=.env.smoke`, valida dono configurado, boundaries anônimos e marcadores V2; depois owner login, `/app/style`, `/app/timeline`, upload R2, download privado, render worker, MP4 1080×1920, backup/rollback.
 6. Só depois promover o checkpoint final para **APROVADO**.
 
 Saída atual de `npm run release:smoke` (2026-11-20): health/login/boundaries PASS; **7 tabelas V2 ausentes** (`video_assets`, `video_edit_plans`, `render_jobs`, `cover_revisions`, `choice_end_cards`, `published_posts`, `style_presets`), exit 1. Chave inválida é FAIL explícito (não conta como tabela presente). O script é read-only e impede declarar release completa com schema V1.
