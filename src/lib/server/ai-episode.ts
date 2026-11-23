@@ -221,42 +221,63 @@ function parseModelJson(text: string): unknown {
 	}
 }
 
+const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash'] as const;
+
+async function generateWithGemini(prompt: string, key: string, model: string): Promise<unknown> {
+	const result = await postJson(
+		`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+		{ 'x-goog-api-key': key },
+		{
+			contents: [{ role: 'user', parts: [{ text: prompt }] }],
+			generationConfig: {
+				responseMimeType: 'application/json',
+				responseJsonSchema: geminiEpisodeJsonSchema,
+				maxOutputTokens: 24000,
+				thinkingConfig: { thinkingLevel: 'minimal' },
+			},
+		},
+	);
+	const candidates = result.candidates;
+	const first = Array.isArray(candidates) ? candidates[0] : null;
+	const finishReason =
+		first && typeof first === 'object'
+			? (first as { finishReason?: string }).finishReason
+			: undefined;
+	if (finishReason === 'MAX_TOKENS')
+		throw new AiGenerationError(
+			'INVALID_OUTPUT',
+			'O Gemini interrompeu o roteiro por limite de tokens. Tente novamente.',
+		);
+	const parts =
+		first && typeof first === 'object'
+			? (first as { content?: { parts?: Array<{ text?: string }> } }).content?.parts
+			: null;
+	const text = parts?.map((part) => part.text ?? '').join('') ?? '';
+	if (!text.trim())
+		throw new AiGenerationError('INVALID_OUTPUT', 'A geração não retornou um roteiro.');
+	return parseModelJson(text);
+}
+
 /** Never invoke this function before verifying the Supabase owner session and rate limit. */
 export async function generateEpisodeJson(prompt: string, oidcToken?: string): Promise<unknown> {
 	const geminiKey = process.env.GEMINI_API_KEY?.trim();
 	if (geminiKey) {
-		const result = await postJson(
-			'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',
-			{ 'x-goog-api-key': geminiKey },
-			{
-				contents: [{ role: 'user', parts: [{ text: prompt }] }],
-				generationConfig: {
-					responseMimeType: 'application/json',
-					responseJsonSchema: geminiEpisodeJsonSchema,
-					maxOutputTokens: 24000,
-					thinkingConfig: { thinkingLevel: 'minimal' },
-				},
-			},
+		let unavailable: AiGenerationError | null = null;
+		for (const model of GEMINI_MODELS) {
+			try {
+				return await generateWithGemini(prompt, geminiKey, model);
+			} catch (cause) {
+				if (cause instanceof AiGenerationError && cause.code === 'UNAVAILABLE') {
+					unavailable = cause;
+					continue;
+				}
+				throw cause;
+			}
+		}
+		throw (
+			unavailable ??
+			new AiGenerationError('UNAVAILABLE', 'Nenhum modelo Gemini respondeu; tente novamente.')
 		);
-		const candidates = result.candidates;
-		const first = Array.isArray(candidates) ? candidates[0] : null;
-		const finishReason =
-			first && typeof first === 'object'
-				? (first as { finishReason?: string }).finishReason
-				: undefined;
-		if (finishReason === 'MAX_TOKENS')
-			throw new AiGenerationError(
-				'INVALID_OUTPUT',
-				'O Gemini interrompeu o roteiro por limite de tokens. Tente novamente.',
-			);
-		const parts =
-			first && typeof first === 'object'
-				? (first as { content?: { parts?: Array<{ text?: string }> } }).content?.parts
-				: null;
-		const text = parts?.map((part) => part.text ?? '').join('') ?? '';
-		if (!text.trim())
-			throw new AiGenerationError('INVALID_OUTPUT', 'A geração não retornou um roteiro.');
-		return parseModelJson(text);
 	}
 
 	const token =
