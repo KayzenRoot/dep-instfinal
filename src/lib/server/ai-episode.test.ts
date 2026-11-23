@@ -93,6 +93,24 @@ describe('pacote de IA do DIF Studio', () => {
 		expect(args[0]).toContain('/models/gemini-3.5-flash-lite:generateContent');
 	});
 
+	it('faz fallback quando o modelo primário está indisponível', async () => {
+		vi.stubEnv('GEMINI_API_KEY', 'test-only-key');
+		const mockFetch = vi
+			.fn()
+			.mockResolvedValueOnce(new Response('unavailable', { status: 503 }))
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }] }),
+					{ status: 200 },
+				),
+			);
+		vi.stubGlobal('fetch', mockFetch);
+		await expect(generateEpisodeJson('test')).resolves.toEqual({ ok: true });
+		const calls = mockFetch.mock.calls.map((call) => call[0] as string);
+		expect(calls[0]).toContain('/models/gemini-3.5-flash-lite:generateContent');
+		expect(calls[1]).toContain('/models/gemini-3.5-flash:generateContent');
+	});
+
 	it('valida 15 cenas e duas consequências para 120 segundos', () => {
 		const result = validateGeneratedEpisode({ narrative, scenes }, 120000, 8000, false);
 		expect(result.scenes).toHaveLength(15);
