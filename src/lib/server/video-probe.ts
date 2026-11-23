@@ -1,7 +1,5 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { AppConfig } from './config.js';
-import { getAppConfig } from './config.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -198,19 +196,4 @@ export class FixtureVideoProbe implements VideoProbe {
 		if (path.includes('invalid')) throw new Error('Synthetic invalid video fixture.');
 		return { ...this.result };
 	}
-}
-
-let cachedProbe: VideoProbe | null | undefined;
-
-export function getVideoProbe(config: AppConfig = getAppConfig()): VideoProbe | null {
-	if (cachedProbe !== undefined) return cachedProbe;
-	if (config.videoProbeDriver === 'ffprobe') cachedProbe = new FfprobeVideoProbe();
-	else if (config.videoProbeDriver === 'fixture')
-		cachedProbe = import.meta.env.DEV ? new FixtureVideoProbe() : null;
-	else cachedProbe = null;
-	return cachedProbe;
-}
-
-export function resetVideoProbeForTest(): void {
-	cachedProbe = undefined;
 }

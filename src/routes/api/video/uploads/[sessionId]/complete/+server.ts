@@ -4,7 +4,7 @@ import { ownerDatabase } from '#lib/server/authorized.js';
 import { getAppConfig } from '#lib/server/config.js';
 import { createSupabaseAdminClient } from '#lib/server/supabase.js';
 import { completeUploadSession } from '#lib/server/video-assets.js';
-import { getVideoProbe } from '#lib/server/video-probe.js';
+import { getVideoProbe } from '#lib/server/video-probe-config.js';
 import { videoBackend, videoErrorResponse } from '#lib/server/video-http.js';
 import { videoUploadCompleteSchema } from '#lib/schemas/video.js';
 

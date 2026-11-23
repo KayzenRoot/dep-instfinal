@@ -42,7 +42,7 @@ export interface NarrationTake {
 	episode_id: string;
 	plan_version: number;
 	source: 'UPLOAD' | 'TTS';
-	status: 'READY' | 'REJECTED';
+	status: 'PENDING' | 'VALIDATING' | 'READY' | 'REJECTED';
 	sha256: string;
 	byte_size: number;
 	duration_ms: number;
@@ -56,6 +56,10 @@ export interface NarrationTake {
 	model_id: string | null;
 	model_license: string | null;
 	model_sha256: string | null;
+	safe_error_code?: string | null;
+	validated_at?: string | null;
+	updated_at?: string;
+	validation_attempts?: number;
 	created_at: string;
 }
 
@@ -362,6 +366,8 @@ export async function storeNarrationTake(input: {
 	bytes: Buffer;
 	fileName: string;
 	source: 'UPLOAD' | 'TTS';
+	/** Store as PENDING and let the external media worker probe/loudness-check it. */
+	deferValidation?: boolean;
 	modelId?: string | null;
 	modelLicense?: string | null;
 	modelSha256?: string | null;
@@ -380,34 +386,48 @@ export async function storeNarrationTake(input: {
 	const localPath = join(directory, input.fileName.replace(/[^A-Za-z0-9._-]/g, '_'));
 	try {
 		await writeFile(localPath, input.bytes);
-		const probed = await probeAudio(localPath);
-		if (probed.durationMs < 1_000 || probed.durationMs > 600_000)
-			throw new NarrationError(422, 'NARRATION_DURATION_INVALID', 'Duração do áudio inválida.');
-		if (probed.channels < 1 || probed.channels > 2 || probed.sampleRate < 8_000)
-			throw new NarrationError(422, 'NARRATION_AUDIO_INVALID', 'Formato de áudio inválido.');
 		const extension = input.fileName.split('.').at(-1)?.toLowerCase() ?? 'wav';
-		const expectedFormats =
-			extension === 'mp3' ? ['mp3'] : extension === 'm4a' ? ['mp4', 'm4a', 'mov'] : ['wav'];
-		if (!expectedFormats.some((format) => probed.format.toLowerCase().includes(format)))
-			throw new NarrationError(
-				415,
-				'NARRATION_FORMAT_MISMATCH',
-				'A extensão não corresponde ao formato real do áudio.',
-			);
-		const loudness = await measureLoudness(localPath);
-		if (loudness.peakDb === null && loudness.truePeakDb === null)
-			throw new NarrationError(
-				422,
-				'NARRATION_LOUDNESS_FAILED',
-				'Não foi possível medir o nível do áudio.',
-			);
-		if (
-			(loudness.truePeakDb !== null && loudness.truePeakDb > -0.5) ||
-			(loudness.peakDb !== null && loudness.peakDb > -0.5)
-		)
-			throw new NarrationError(422, 'NARRATION_CLIPPING', 'O áudio está com clipping.');
-		if (loudness.peakDb !== null && loudness.peakDb < -60)
-			throw new NarrationError(422, 'NARRATION_SILENT', 'O áudio não tem voz audível.');
+		let probed: {
+			durationMs: number;
+			format: string;
+			sampleRate: number;
+			channels: number;
+		} = { durationMs: 1_000, format: extension, sampleRate: 8_000, channels: 1 };
+		let loudness: Awaited<ReturnType<typeof measureLoudness>> = {
+			peakDb: null,
+			rmsDb: null,
+			truePeakDb: null,
+			lufs: null,
+		};
+		if (!input.deferValidation) {
+			probed = await probeAudio(localPath);
+			if (probed.durationMs < 1_000 || probed.durationMs > 600_000)
+				throw new NarrationError(422, 'NARRATION_DURATION_INVALID', 'Duração do áudio inválida.');
+			if (probed.channels < 1 || probed.channels > 2 || probed.sampleRate < 8_000)
+				throw new NarrationError(422, 'NARRATION_AUDIO_INVALID', 'Formato de áudio inválido.');
+			const expectedFormats =
+				extension === 'mp3' ? ['mp3'] : extension === 'm4a' ? ['mp4', 'm4a', 'mov'] : ['wav'];
+			if (!expectedFormats.some((format) => probed.format.toLowerCase().includes(format)))
+				throw new NarrationError(
+					415,
+					'NARRATION_FORMAT_MISMATCH',
+					'A extensão não corresponde ao formato real do áudio.',
+				);
+			loudness = await measureLoudness(localPath);
+			if (loudness.peakDb === null && loudness.truePeakDb === null)
+				throw new NarrationError(
+					422,
+					'NARRATION_LOUDNESS_FAILED',
+					'Não foi possível medir o nível do áudio.',
+				);
+			if (
+				(loudness.truePeakDb !== null && loudness.truePeakDb > -0.5) ||
+				(loudness.peakDb !== null && loudness.peakDb > -0.5)
+			)
+				throw new NarrationError(422, 'NARRATION_CLIPPING', 'O áudio está com clipping.');
+			if (loudness.peakDb !== null && loudness.peakDb < -60)
+				throw new NarrationError(422, 'NARRATION_SILENT', 'O áudio não tem voz audível.');
+		}
 		const takeId = crypto.randomUUID();
 		const audioContentType =
 			extension === 'mp3' ? 'audio/mpeg' : extension === 'm4a' ? 'audio/mp4' : 'audio/wav';
@@ -424,9 +444,10 @@ export async function storeNarrationTake(input: {
 				id: takeId,
 				owner_id: input.owner.id,
 				episode_id: input.episodeId,
-				plan_version: input.planVersion,
+				plan_version: Math.max(1, input.planVersion),
 				source: input.source,
-				status: 'READY',
+				status: input.deferValidation ? 'PENDING' : 'READY',
+				validated_at: input.deferValidation ? null : new Date().toISOString(),
 				bucket: stored.bucket,
 				object_key: stored.key,
 				sha256,
