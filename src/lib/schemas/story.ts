@@ -41,64 +41,81 @@ export const loreSchema = z.object({
 	status: z.enum(['ACTIVE', 'SUPERSEDED', 'ARCHIVED']).default('ACTIVE'),
 });
 
-export const episodeCreateSchema = z.object({
-	seasonId: z.string().uuid(),
-	episodeNumber: z.coerce.number().int().min(1).max(99),
-	title: requiredText(180),
-	durationSeconds: z.coerce.number().int().min(90).max(150),
-	sceneDurationMs: z.coerce
-		.number()
-		.int()
-		.refine((value) => [4_000, 6_000, 8_000].includes(value), {
-			message: 'A duração da cena precisa ser 4, 6 ou 8 segundos.',
-		})
-		.default(8_000),
-	isSeasonFinale: z.boolean().default(false),
-});
+function enforceClipQuota(
+	value: { durationSeconds: number; sceneDurationMs: number },
+	context: z.RefinementCtx,
+) {
+	const scenes = Math.ceil((value.durationSeconds * 1_000) / value.sceneDurationMs);
+	if (scenes > 15)
+		context.addIssue({
+			code: 'custom',
+			path: ['sceneDurationMs'],
+			message: 'A duração e a cena resultam em mais de 15 clipes; ajuste a duração ou a cena.',
+		});
+}
 
-export const episodeEditSchema = z.object({
-	episodeId: z.string().uuid(),
-	title: requiredText(180),
-	logline: optionalText(1_000),
-	hook: optionalText(2_000),
-	narrative: optionalText(30_000),
-	reveal: optionalText(2_000),
-	cliffhanger: optionalText(2_000),
-	narrationPtBr: optionalText(30_000),
-	screenSuggestion: optionalText(4_000),
-	soundSuggestion: optionalText(2_000),
-	tiktokTitle: optionalText(300),
-	tiktokCta: optionalText(500),
-	tiktokDescription: optionalText(2_200),
-	instagramTitle: optionalText(300),
-	instagramCta: optionalText(500),
-	instagramDescription: optionalText(2_200),
-	coverText: optionalText(300),
-	tiktokCoverText: optionalText(300),
-	instagramCoverText: optionalText(300),
-	tiktokHashtags: optionalText(1_000),
-	instagramHashtags: optionalText(1_000),
-	aiDisclosure: optionalText(1_000),
-	effectsList: optionalText(8_000),
-	assemblyNotes: optionalText(8_000),
-	targetPlatforms: z
-		.array(z.enum(['TIKTOK', 'REELS', 'STORIES', 'FEED']))
-		.max(4)
-		.default([]),
-	aspectPreset: z.enum(['9:16', '4:5', '3:4']).default('9:16'),
-	creditModel: optionalText(160),
-	creditCostPerClip: z.coerce.number().int().min(0).max(10_000).default(0),
-	durationSeconds: z.coerce.number().int().min(90).max(150),
-	sceneDurationMs: z.coerce
-		.number()
-		.int()
-		.refine((value) => [4_000, 6_000, 8_000].includes(value), {
-			message: 'A duração da cena precisa ser 4, 6 ou 8 segundos.',
-		})
-		.default(8_000),
-	speechSpeedWpm: z.coerce.number().int().min(80).max(220).default(145),
-	isSeasonFinale: z.boolean().default(false),
-});
+export const episodeCreateSchema = z
+	.object({
+		seasonId: z.string().uuid(),
+		episodeNumber: z.coerce.number().int().min(1).max(99),
+		title: requiredText(180),
+		durationSeconds: z.coerce.number().int().min(90).max(150),
+		sceneDurationMs: z.coerce
+			.number()
+			.int()
+			.refine((value) => [4_000, 6_000, 8_000].includes(value), {
+				message: 'A duração da cena precisa ser 4, 6 ou 8 segundos.',
+			})
+			.default(8_000),
+		isSeasonFinale: z.boolean().default(false),
+	})
+	.superRefine(enforceClipQuota);
+
+export const episodeEditSchema = z
+	.object({
+		episodeId: z.string().uuid(),
+		title: requiredText(180),
+		logline: optionalText(1_000),
+		hook: optionalText(2_000),
+		narrative: optionalText(30_000),
+		reveal: optionalText(2_000),
+		cliffhanger: optionalText(2_000),
+		narrationPtBr: optionalText(30_000),
+		screenSuggestion: optionalText(4_000),
+		soundSuggestion: optionalText(2_000),
+		tiktokTitle: optionalText(300),
+		tiktokCta: optionalText(500),
+		tiktokDescription: optionalText(2_200),
+		instagramTitle: optionalText(300),
+		instagramCta: optionalText(500),
+		instagramDescription: optionalText(2_200),
+		coverText: optionalText(300),
+		tiktokCoverText: optionalText(300),
+		instagramCoverText: optionalText(300),
+		tiktokHashtags: optionalText(1_000),
+		instagramHashtags: optionalText(1_000),
+		aiDisclosure: optionalText(1_000),
+		effectsList: optionalText(8_000),
+		assemblyNotes: optionalText(8_000),
+		targetPlatforms: z
+			.array(z.enum(['TIKTOK', 'REELS', 'STORIES', 'FEED']))
+			.max(4)
+			.default([]),
+		aspectPreset: z.enum(['9:16', '4:5', '3:4']).default('9:16'),
+		creditModel: optionalText(160),
+		creditCostPerClip: z.coerce.number().int().min(0).max(10_000).default(0),
+		durationSeconds: z.coerce.number().int().min(90).max(150),
+		sceneDurationMs: z.coerce
+			.number()
+			.int()
+			.refine((value) => [4_000, 6_000, 8_000].includes(value), {
+				message: 'A duração da cena precisa ser 4, 6 ou 8 segundos.',
+			})
+			.default(8_000),
+		speechSpeedWpm: z.coerce.number().int().min(80).max(220).default(145),
+		isSeasonFinale: z.boolean().default(false),
+	})
+	.superRefine(enforceClipQuota);
 
 export const narrativeResponseSchema = z
 	.object({
