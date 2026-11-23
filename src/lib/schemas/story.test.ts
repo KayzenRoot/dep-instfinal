@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	choiceEditSchema,
 	episodeCreateSchema,
+	episodeEditSchema,
 	pollResultSchema,
 	narrativeResponseSchema,
 	seriesSchema,
@@ -29,6 +30,35 @@ describe('story input validation', () => {
 				isSeasonFinale: false,
 			}).success,
 		).toBe(false);
+	});
+
+	it('caps episodes at the 15-clip quota', () => {
+		const create = {
+			seasonId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+			episodeNumber: '1',
+			title: 'Piloto',
+			isSeasonFinale: false,
+		};
+		expect(
+			episodeCreateSchema.safeParse({ ...create, durationSeconds: '90', sceneDurationMs: '6000' })
+				.success,
+		).toBe(true);
+		expect(
+			episodeCreateSchema.safeParse({ ...create, durationSeconds: '120', sceneDurationMs: '6000' })
+				.success,
+		).toBe(false);
+		expect(
+			episodeCreateSchema.safeParse({ ...create, durationSeconds: '120', sceneDurationMs: '8000' })
+				.success,
+		).toBe(true);
+		const edit = {
+			episodeId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+			title: 'Piloto',
+			durationSeconds: '120',
+			sceneDurationMs: '6000',
+		};
+		expect(episodeEditSchema.safeParse(edit).success).toBe(false);
+		expect(episodeEditSchema.safeParse({ ...edit, sceneDurationMs: '8000' }).success).toBe(true);
 	});
 
 	it('rejects identical interactive choices and non-integer vote counts', () => {
