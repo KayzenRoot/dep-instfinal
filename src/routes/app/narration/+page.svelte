@@ -17,6 +17,7 @@
 	let editorKey = $state('');
 	let compareA = $state<string | null>(null);
 	let compareB = $state<string | null>(null);
+	const readyTakes = $derived(data.takes.filter((take) => take.status === 'READY'));
 
 	$effect(() => {
 		const key = `${data.selectedEpisode?.id ?? ''}:${data.storedPlan?.currentVersion ?? 0}`;
@@ -27,7 +28,7 @@
 	});
 
 	$effect(() => {
-		const ids = data.takes.map((take) => take.id);
+		const ids = readyTakes.map((take) => take.id);
 		if (!compareA || !ids.includes(compareA)) compareA = ids[0] ?? null;
 		if (!compareB || !ids.includes(compareB)) compareB = ids[1] ?? ids[0] ?? null;
 	});
@@ -338,14 +339,14 @@
 					</li>
 				{/each}
 			</ul>
-			{#if data.takes.length > 1}
+			{#if readyTakes.length > 1}
 				<div class="compare">
 					<h3>Comparar takes</h3>
 					<div class="compare-grid">
 						<label
 							>Take A
 							<select bind:value={compareA}>
-								{#each data.takes as take (take.id)}
+								{#each readyTakes as take (take.id)}
 									<option value={take.id}>{take.source} · {take.duration_ms} ms</option>
 								{/each}
 							</select>
@@ -353,7 +354,7 @@
 						<label
 							>Take B
 							<select bind:value={compareB}>
-								{#each data.takes as take (take.id)}
+								{#each readyTakes as take (take.id)}
 									<option value={take.id}>{take.source} · {take.duration_ms} ms</option>
 								{/each}
 							</select>
