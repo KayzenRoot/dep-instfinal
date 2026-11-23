@@ -1,13 +1,13 @@
 # DIF-V2-WO-014 — Release V2: regressão integral, auditoria e deploy validado
 
-**Issue:** #31 · **Branch:** `feat/dif-v2-wo-014` · **Base:** `main` `3eb3fe6`
-**Status:** **MÍDIA CORRIGIDA E VALIDADA; ACEITAÇÃO REAL PENDENTE** — o validador assíncrono foi implantado e testado em produção; restam a aceitação real do owner, a quota de cenas, o Gemini e a operação do worker autorizado.
+**Issue:** #31 · **Branch:** `feat/dif-v2-wo-014` · **Base:** `main` `8518a69`
+**Status:** **ACEITAÇÃO TÉCNICA COMPLETA; ACEITAÇÃO REAL E OPERAÇÃO 24/7 PENDENTES** — mídia, quota, Gemini, Cloudinary e workers contínuos foram corrigidos e validados; falta o episódio real do owner e hospedar os workers em um host sempre ativo.
 
 ## Pré-requisitos atendidos
 
 - WO-001–013 e WO-015–021 **PROMOTED**, com checkpoints reconciliados; OPS 015–021 **PROMOTED** (`c7490e8`).
 - `main` `7c175e5` com quality workflow docs-only PASS; o gate SonarCloud separado falhou nesse commit de docs por duplicação pré-existente, sem código novo. Code/test head V2 `f32cc97` com CI `44776291945` PASS; OPS `77d5626` com CI `44787029917` PASS.
-- Unit **356 + 3 skipped**, PgTAP **250/250**, policy **36/41**, E2E **19/19**, Sonar/Socket PASS; CI final `45250357305` PASS.
+- Unit **358 + 3 skipped**, PgTAP **250/250**, policy **36/41**, E2E **19/19**, Sonar/Socket PASS; PRs #71–#74 PASS.
 - Backup/restore local executado (41/41 contagens, SHA, join 768, QA 5/5).
 - Worker/render local e ARM64 benchmark das WOs anteriores aprovados.
 - Sem HIGH/CRITICAL conhecido; auditorias independentes finais de WO-021 e OPS **APPROVED WITH RESIDUALS**.
@@ -40,10 +40,10 @@
 - 15 clipes 1080×1920/6 s enviados pela UI; o worker real local (`WORKER_STUB=0`) renderizou o job `1bba4c9e-d495-43f4-b815-ff9ba113d958`: MP4 H.264/AAC 1080×1920, 90.000 s, 4.275.149 bytes, legendas queimadas; QA WARN 14 PASS/3 WARN/0 BLOCKED/1 NOT_TESTED; avisos reconhecidos e download owner-only 200.
 - Evidência: `docs/evidence/wo-014/browser-acceptance-2026-11-23.txt`.
 - **Resolvido em 23/11:** `VIDEO_PROBE_DRIVER=none` e a ausência de ffprobe/ffmpeg no Vercel agora são tratados por um validador assíncrono: vídeos ficam `QUARANTINED` e narrações `PENDING` até o worker publicar `READY`/`REJECTED`. O teste original usou promoção manual; a correção foi implantada e validada em produção.
-- **HIGH/MEDIUM:** 120 s com cenas de 6 s gera 20 cenas, mas o limite é 15 clipes/episódio; a criação permite um episódio impossível de concluir.
-- **MEDIUM:** geração Gemini retorna HTTP 503 para `gemini-3.5-flash-lite`; a importação manual funciona.
+- **Resolvido em 23/11:** quota de 15 cenas validada na criação e na edição (PR #71); 120 s/6 s é rejeitado e a mensagem cita o limite (PR #74).
+- **Resolvido em 23/11:** o Gemini direto respondeu 503/404; o fallback para o AI Gateway (PR #73) gerou um pacote de 20 cenas em produção (`responseJson` com 29.075 caracteres).
 - **Resolvido em 23/11:** o primeiro upload de narração passou a usar `plan_version >= 1`; a direção pode ser salva antes ou depois do take.
-- **OPERACIONAL:** nenhum worker está implantado em produção; o render e a validação de mídia de teste usaram workers locais.
+- **OPERACIONAL:** workers de mídia e render rodando localmente em modo contínuo; processaram o clipe `41f503e0…` e o render `768f5d3c…` até READY. Para 24/7, precisam de um host sempre ativo.
 
 ## Validador de mídia assíncrono (23/11/2026)
 
@@ -53,13 +53,23 @@
 - Validação em produção após o deploy de `3eb3fe6`: take `8f76610c-1962-45fd-8c59-ee836e2dba8f` passou de `PENDING` para `READY` (90.000 ms) e clipe `b363c009-c448-4aca-a044-c9cf5c4e0704` passou de `QUARANTINED` para `READY` (6.000 ms, 1080×1920) usando o worker real.
 - CI `45250357305` PASS (unit, PgTAP, E2E, Sonar, Socket); PgTAP **250/250**.
 
+## Cloudinary rotation (23/11/2026)
+
+- Nova chave `dif-prod-2026-11-23` (API key `568819519236599`) com papel **Master Admin**; a chave antiga `dif` foi desativada.
+- Vercel Production/Preview e `.env` local atualizados; `api.ping()` e um upload autenticado real passaram em produção (`?upload=success`), e o asset de teste foi removido do Cloudinary e do banco.
+- O secret novo ficou apenas em `C:\Users\csn19\.zcode\dif-secrets\cloudinary-prod-2026-11-23.txt`; os valores antigos foram preservados em `cloudinary-old-before-rotation.txt`.
+- Residual: o secret novo apareceu uma vez em um snapshot local de ferramenta; se este transcript for compartilhado, rotacione novamente.
+
+## Workers contínuos (23/11/2026)
+
+- `media-prod-local` e `render-prod-local` rodando localmente com `WORKER_MAX_JOBS=0`, processando novos uploads e renders automaticamente.
+- O worker de mídia promoveu o clipe `41f503e0-a057-4ca3-9353-542c0bc63047` para READY; o worker de render concluiu o job `768f5d3c-e562-4dac-b2ee-1ea7253565d2` (90 s, 1080×1920, READY).
+- Para operação 24/7, rode `npm run media:validate` e `scripts/render-worker.mjs` em um host sempre ativo com `.env`/`r2.env`; sem workers, uploads e renders ficam fail-closed na fila.
+
 ## Pendências para encerrar WO-014
 
-- Corrigir a incompatibilidade 20 cenas × 15 clipes (validar na criação ou ajustar a quota).
-- Diagnosticar o 503 do Gemini (chave/modelo/fallback) se a geração automática for necessária.
 - Repetir a aceitação real do owner com 15 clipes reais, narração, SFX/música, legendas, CTA/2 escolhas e MP4 revisado em produção, sem workarounds.
-- Subir os workers autorizados de render e de mídia em produção (hoje rodaram apenas localmente).
-- Cloudinary secret rotation.
+- Hospedar os workers de mídia e render em um host sempre ativo (hoje rodam localmente).
 - Depois da aceitação, promover o checkpoint final e fechar a issue #31.
 
 ## Script de migrations
@@ -78,6 +88,7 @@ O caminho alternativo usado neste release foi `npx supabase db push --include-al
 
 ## Riscos
 
-- Uploads ficam fail-closed em `QUARANTINED`/`PENDING` e renders ficam na fila até os workers autorizados (mídia e render) estarem rodando em produção.
+- Os workers de mídia e render rodam hoje na máquina local; se ela desligar, uploads ficam `QUARANTINED`/`PENDING` e renders ficam na fila.
+- O secret novo do Cloudinary apareceu uma vez em snapshot local; se o transcript for compartilhado, rotacione novamente.
 - O banco novo está vazio; a aceitação deve usar conteúdo novo, não os dados antigos inacessíveis.
 - Sem Vercel CLI autenticado, rollback de alias depende do dashboard/integração Git.

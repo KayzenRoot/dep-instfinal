@@ -43,6 +43,14 @@ MEDIA VALIDATOR FIX (same day)
 - The production UI shows "aguardando validação do worker" until READY and only then enables take selection/approval.
 - CI 45250357305 PASS: unit 356 passed + 3 skipped, PgTAP 250/250, E2E 19/19, Sonar/Socket PASS.
 
+FINAL FIXES (same day)
+- PRs #71 (15-clip validation), #72 (Gemini model fallback), #73 (AI Gateway fallback) and #74 (quota message) merged; main 8518a69.
+- Quota: creating 120 s/6 s in production is rejected; the message now cites the 15 scenes/clips limit.
+- Gemini: direct calls returned 503/404; the AI Gateway fallback generated a 20-scene package (responseJson 29,075 characters) in production.
+- Cloudinary: new key dif-prod-2026-11-23 with Master Admin; old dif key disabled; Vercel and local .env updated; authenticated production upload succeeded and the test asset was removed.
+- Workers: continuous media worker promoted clip 41f503e0-a057-4ca3-9353-542c0bc63047 to READY; continuous render worker completed job 768f5d3c-e562-4dac-b2ee-1ea7253565d2 (90 s, 1080x1920, READY).
+- Residual: the new Cloudinary secret appeared once in a local tool snapshot; rotate again if the transcript is shared.
+
 NOTES
 - No secret value is included here. Test media and the render remain in production for owner inspection and can be deleted after acceptance.
 - The core pipeline after inputs are READY works end to end: plan, narration, captions, render, QA, acknowledgement and private download.
