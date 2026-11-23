@@ -1,13 +1,13 @@
 # DIF-V2-WO-014 — Release V2: regressão integral, auditoria e deploy validado
 
-**Issue:** #31 · **Branch:** `feat/dif-v2-wo-014` · **Base:** `main` `7c175e5`
-**Status:** **ACEITAÇÃO TÉCNICA CONCLUÍDA; ACEITAÇÃO REAL BLOQUEADA** — o pipeline completo foi validado em produção, mas uploads de vídeo e narração não são validados no runtime Vercel (sem ffprobe/ffmpeg); o teste usou promoção manual. Corrigir o validador antes da aceitação real do owner.
+**Issue:** #31 · **Branch:** `feat/dif-v2-wo-014` · **Base:** `main` `3eb3fe6`
+**Status:** **MÍDIA CORRIGIDA E VALIDADA; ACEITAÇÃO REAL PENDENTE** — o validador assíncrono foi implantado e testado em produção; restam a aceitação real do owner, a quota de cenas, o Gemini e a operação do worker autorizado.
 
 ## Pré-requisitos atendidos
 
 - WO-001–013 e WO-015–021 **PROMOTED**, com checkpoints reconciliados; OPS 015–021 **PROMOTED** (`c7490e8`).
 - `main` `7c175e5` com quality workflow docs-only PASS; o gate SonarCloud separado falhou nesse commit de docs por duplicação pré-existente, sem código novo. Code/test head V2 `f32cc97` com CI `44776291945` PASS; OPS `77d5626` com CI `44787029917` PASS.
-- Unit **351 + 3 skipped**, PgTAP **247/247**, policy **36/41**, E2E **19/19**, Sonar/Socket PASS.
+- Unit **356 + 3 skipped**, PgTAP **250/250**, policy **36/41**, E2E **19/19**, Sonar/Socket PASS; CI final `45250357305` PASS.
 - Backup/restore local executado (41/41 contagens, SHA, join 768, QA 5/5).
 - Worker/render local e ARM64 benchmark das WOs anteriores aprovados.
 - Sem HIGH/CRITICAL conhecido; auditorias independentes finais de WO-021 e OPS **APPROVED WITH RESIDUALS**.
@@ -39,20 +39,26 @@
 - Série/temporada e dois episódios de teste; o episódio 2 tem 90 s/15 cenas, plano v1 aprovado, take de 90 s e legendas v1 aprovadas.
 - 15 clipes 1080×1920/6 s enviados pela UI; o worker real local (`WORKER_STUB=0`) renderizou o job `1bba4c9e-d495-43f4-b815-ff9ba113d958`: MP4 H.264/AAC 1080×1920, 90.000 s, 4.275.149 bytes, legendas queimadas; QA WARN 14 PASS/3 WARN/0 BLOCKED/1 NOT_TESTED; avisos reconhecidos e download owner-only 200.
 - Evidência: `docs/evidence/wo-014/browser-acceptance-2026-11-23.txt`.
-- **Bloqueio HIGH:** `VIDEO_PROBE_DRIVER=none` e ausência de ffprobe/ffmpeg no Vercel deixam todo upload de vídeo em `QUARANTINED` e fazem o upload de narração falhar com HTTP 422 `NARRATION_AUDIO_INVALID`. O teste só avançou com promoção manual dos 15 assets e inserção manual do take; isso não é um fluxo de produção.
+- **Resolvido em 23/11:** `VIDEO_PROBE_DRIVER=none` e a ausência de ffprobe/ffmpeg no Vercel agora são tratados por um validador assíncrono: vídeos ficam `QUARANTINED` e narrações `PENDING` até o worker publicar `READY`/`REJECTED`. O teste original usou promoção manual; a correção foi implantada e validada em produção.
 - **HIGH/MEDIUM:** 120 s com cenas de 6 s gera 20 cenas, mas o limite é 15 clipes/episódio; a criação permite um episódio impossível de concluir.
 - **MEDIUM:** geração Gemini retorna HTTP 503 para `gemini-3.5-flash-lite`; a importação manual funciona.
-- **MEDIUM:** upload de narração antes de salvar a direção usa `planVersion=0`, violando o check 1..10000.
-- **OPERACIONAL:** nenhum worker está implantado em produção; o job de teste usou worker local.
+- **Resolvido em 23/11:** o primeiro upload de narração passou a usar `plan_version >= 1`; a direção pode ser salva antes ou depois do take.
+- **OPERACIONAL:** nenhum worker está implantado em produção; o render e a validação de mídia de teste usaram workers locais.
+
+## Validador de mídia assíncrono (23/11/2026)
+
+- Migrations `20261123190000_v2_media_validator.sql` e `20261123191000_v2_media_validator_trigger.sql` aplicadas no Supabase hospedado: estados `PENDING`/`VALIDATING`, claim RPCs exclusivas do service role, retry limitado e trigger que permite apenas a transição de validação, mantendo identidade e linhas publicadas imutáveis.
+- `scripts/media-validator.ts` + `npm run media:validate`: baixa o objeto privado do R2, roda ffprobe/ffmpeg, valida container/codec/duração/dimensões/9:16/FPS (vídeo) ou duração/formato/canais/loudness/clipping (narração) e publica `READY` ou `REJECTED`.
+- O web tier grava vídeos em `QUARANTINED` e, quando `VIDEO_PROBE_DRIVER=none`, narrações em `PENDING`; a UI mostra “aguardando validação do worker” e só permite selecionar/aprovar takes `READY`.
+- Validação em produção após o deploy de `3eb3fe6`: take `8f76610c-1962-45fd-8c59-ee836e2dba8f` passou de `PENDING` para `READY` (90.000 ms) e clipe `b363c009-c448-4aca-a044-c9cf5c4e0704` passou de `QUARANTINED` para `READY` (6.000 ms, 1080×1920) usando o worker real.
+- CI `45250357305` PASS (unit, PgTAP, E2E, Sonar, Socket); PgTAP **250/250**.
 
 ## Pendências para encerrar WO-014
 
-- Corrigir a validação de mídia em produção (HIGH): empacotar ffprobe/ffmpeg no runtime ou implementar validador assíncrono no worker; ativar `VIDEO_PROBE_DRIVER=ffprobe` somente com o binário disponível.
 - Corrigir a incompatibilidade 20 cenas × 15 clipes (validar na criação ou ajustar a quota).
-- Corrigir `planVersion=0` no primeiro upload de narração.
 - Diagnosticar o 503 do Gemini (chave/modelo/fallback) se a geração automática for necessária.
 - Repetir a aceitação real do owner com 15 clipes reais, narração, SFX/música, legendas, CTA/2 escolhas e MP4 revisado em produção, sem workarounds.
-- Subir o worker de render autorizado em produção.
+- Subir os workers autorizados de render e de mídia em produção (hoje rodaram apenas localmente).
 - Cloudinary secret rotation.
 - Depois da aceitação, promover o checkpoint final e fechar a issue #31.
 
@@ -72,7 +78,6 @@ O caminho alternativo usado neste release foi `npx supabase db push --include-al
 
 ## Riscos
 
-- Enquanto a validação de mídia não for corrigida, uploads reais ficam em quarentena e a narração não pode ser importada; a aceitação real não é possível sem workaround.
+- Uploads ficam fail-closed em `QUARANTINED`/`PENDING` e renders ficam na fila até os workers autorizados (mídia e render) estarem rodando em produção.
 - O banco novo está vazio; a aceitação deve usar conteúdo novo, não os dados antigos inacessíveis.
-- O worker de render não está ativo em produção; jobs ficam na fila até o worker autorizado subir.
 - Sem Vercel CLI autenticado, rollback de alias depende do dashboard/integração Git.

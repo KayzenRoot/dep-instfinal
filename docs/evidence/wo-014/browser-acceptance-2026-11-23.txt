@@ -36,6 +36,13 @@ BLOCKING FINDINGS
 5. OPERATIONAL — no worker is deployed in production; the queue requires an authorized external worker. The test used a local worker.
 6. MINOR — the timeline audio selector shows "Template suspense 120 s" on a 90 s episode.
 
+MEDIA VALIDATOR FIX (same day)
+- Migrations 20261123190000_v2_media_validator.sql and 20261123191000_v2_media_validator_trigger.sql applied to the hosted database: PENDING/VALIDATING narration states, service-role claim RPCs, bounded retries and a validation-only trigger.
+- scripts/media-validator.ts (npm run media:validate) validates QUARANTINED videos and PENDING narration takes with ffprobe/ffmpeg and publishes READY/REJECTED.
+- After the production deploy of main 3eb3fe6: narration take 8f76610c-1962-45fd-8c59-ee836e2dba8f went PENDING -> READY (90000 ms) and video asset b363c009-c448-4aca-a044-c9cf5c4e0704 went QUARANTINED -> READY (6000 ms, 1080x1920) through the real worker.
+- The production UI shows "aguardando validação do worker" until READY and only then enables take selection/approval.
+- CI 45250357305 PASS: unit 356 passed + 3 skipped, PgTAP 250/250, E2E 19/19, Sonar/Socket PASS.
+
 NOTES
 - No secret value is included here. Test media and the render remain in production for owner inspection and can be deleted after acceptance.
 - The core pipeline after inputs are READY works end to end: plan, narration, captions, render, QA, acknowledgement and private download.
