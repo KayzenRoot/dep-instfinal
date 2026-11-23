@@ -1,7 +1,7 @@
 # DIF-V2-WO-014 — Release V2: regressão integral, auditoria e deploy validado
 
 **Issue:** #31 · **Branch:** `feat/dif-v2-wo-014` · **Base:** `main` `7c175e5`
-**Status:** **DEPLOY VALIDADO EM PRODUÇÃO** — o Vercel Production usa o novo Supabase e o smoke/páginas V2 passam. Falta apenas a aceitação real do owner (episódio + QA humano) para o checkpoint final.
+**Status:** **ACEITAÇÃO TÉCNICA CONCLUÍDA; ACEITAÇÃO REAL BLOQUEADA** — o pipeline completo foi validado em produção, mas uploads de vídeo e narração não são validados no runtime Vercel (sem ffprobe/ffmpeg); o teste usou promoção manual. Corrigir o validador antes da aceitação real do owner.
 
 ## Pré-requisitos atendidos
 
@@ -34,11 +34,26 @@
 - Cloudinary: `cloudinary.api.ping()` OK; upload privado real via `/api/media/upload` concluído (`?upload=success`, asset `READY`); o asset de teste foi removido do Cloudinary e do banco.
 - CI `44899106284` (quality) PASS; SonarCloud, Socket e Vercel Preview PASS.
 
+## Aceitação técnica em produção (23/11/2026)
+
+- Série/temporada e dois episódios de teste; o episódio 2 tem 90 s/15 cenas, plano v1 aprovado, take de 90 s e legendas v1 aprovadas.
+- 15 clipes 1080×1920/6 s enviados pela UI; o worker real local (`WORKER_STUB=0`) renderizou o job `1bba4c9e-d495-43f4-b815-ff9ba113d958`: MP4 H.264/AAC 1080×1920, 90.000 s, 4.275.149 bytes, legendas queimadas; QA WARN 14 PASS/3 WARN/0 BLOCKED/1 NOT_TESTED; avisos reconhecidos e download owner-only 200.
+- Evidência: `docs/evidence/wo-014/browser-acceptance-2026-11-23.txt`.
+- **Bloqueio HIGH:** `VIDEO_PROBE_DRIVER=none` e ausência de ffprobe/ffmpeg no Vercel deixam todo upload de vídeo em `QUARANTINED` e fazem o upload de narração falhar com HTTP 422 `NARRATION_AUDIO_INVALID`. O teste só avançou com promoção manual dos 15 assets e inserção manual do take; isso não é um fluxo de produção.
+- **HIGH/MEDIUM:** 120 s com cenas de 6 s gera 20 cenas, mas o limite é 15 clipes/episódio; a criação permite um episódio impossível de concluir.
+- **MEDIUM:** geração Gemini retorna HTTP 503 para `gemini-3.5-flash-lite`; a importação manual funciona.
+- **MEDIUM:** upload de narração antes de salvar a direção usa `planVersion=0`, violando o check 1..10000.
+- **OPERACIONAL:** nenhum worker está implantado em produção; o job de teste usou worker local.
+
 ## Pendências para encerrar WO-014
 
-- Aceitação real do owner com episódio Flow 90–150 s, 15 clipes, narração, SFX/música, legendas, CTA/2 escolhas e MP4 revisado (QA humano de som/imagem) em produção.
-- Subir o worker de render autorizado e executar um render completo; a fila está vazia e sem worker ativo.
-- Cloudinary secret rotation (o smoke de upload privado já passou em 21/11).
+- Corrigir a validação de mídia em produção (HIGH): empacotar ffprobe/ffmpeg no runtime ou implementar validador assíncrono no worker; ativar `VIDEO_PROBE_DRIVER=ffprobe` somente com o binário disponível.
+- Corrigir a incompatibilidade 20 cenas × 15 clipes (validar na criação ou ajustar a quota).
+- Corrigir `planVersion=0` no primeiro upload de narração.
+- Diagnosticar o 503 do Gemini (chave/modelo/fallback) se a geração automática for necessária.
+- Repetir a aceitação real do owner com 15 clipes reais, narração, SFX/música, legendas, CTA/2 escolhas e MP4 revisado em produção, sem workarounds.
+- Subir o worker de render autorizado em produção.
+- Cloudinary secret rotation.
 - Depois da aceitação, promover o checkpoint final e fechar a issue #31.
 
 ## Script de migrations
@@ -57,6 +72,7 @@ O caminho alternativo usado neste release foi `npx supabase db push --include-al
 
 ## Riscos
 
+- Enquanto a validação de mídia não for corrigida, uploads reais ficam em quarentena e a narração não pode ser importada; a aceitação real não é possível sem workaround.
 - O banco novo está vazio; a aceitação deve usar conteúdo novo, não os dados antigos inacessíveis.
 - O worker de render não está ativo em produção; jobs ficam na fila até o worker autorizado subir.
 - Sem Vercel CLI autenticado, rollback de alias depende do dashboard/integração Git.

@@ -1,0 +1,41 @@
+DIF-V2-WO-014 — browser acceptance in production
+Date: 2026-11-23
+Base: https://dif-studio.vercel.app (main 7c175e5, new Supabase dif-studio)
+Tester: ZCode IAB, authenticated as owner@dif.local
+
+TEST DATA (left in production for owner inspection)
+- Series: Teste de Aceitação 23/11 (112155ff-9203-43f0-ba11-73550fd4615f)
+- Season: Temporada 1 — Fitas Perdidas (3eed95a1-89f1-4b63-89d1-949ae8622767)
+- Episode 1: A Fita sem Data, 120 s / 20 scenes (ccdc4386-5340-4152-8c5c-b4bf7273116e)
+- Episode 2: A Fita sem Data — Render, 90 s / 15 scenes (a39fc0d5-88cb-41ef-a3a0-b59b8a7657e3)
+- Approved plan: 7b5074c8-9671-488a-ab01-218764f39bc4, v1
+- Narration take: 4313bcec-2f05-40de-ba0a-855db53e3048, 90 s
+- Render job: 1bba4c9e-d495-43f4-b815-ff9ba113d958
+
+PASS
+- Owner login and all /app routes load without 500 (dashboard, series, episodes, editor, storyboard, covers, finale, retention, style, library, video, timeline, director, hooks, color, narration, audio, captions, continuity, export, settings).
+- Created series, season (12 planned episodes), episode 1 (120 s / 20 scenes) and episode 2 (90 s / 15 scenes).
+- Imported hand-authored packages: 20 and 15 scenes, scene narration/visual/prompts READY, two distinct choices, revisions appended.
+- Uploaded the same valid 6 s 1080x1920 H.264/AAC clip to all 15 scenes of episode 2 through the Clipes UI; SHA-256 and byte size stored; all 15 reached QUARANTINED.
+- Timeline built from 15 READY clips, saved as v1 and approved.
+- Saved voice direction v1, selected a 90 s take and approved direction+voz v2.
+- Saved captions v1 and approved (15 cues, TikTok safe zone, clean style).
+- Queued a 1080p/standard render; the real worker (WORKER_STUB=0, local process with ffmpeg/ffprobe and production service role/R2) completed it in about 6 minutes.
+- MP4 verified: H.264 1080x1920 30 fps, AAC 48 kHz stereo, 90.000 s, 4,275,149 bytes; captions visibly burned at 5 s ("Caixa de fitas sem etiqueta.") and 30 s ("O relógio marcava uma data futura.").
+- Quality Inspector: WARN, 14 PASS, 3 WARN, 0 BLOCKED, 1 NOT_TESTED (BLACK_FRAMES, FREEZE_FRAMES, SILENCE expected from synthetic solid-color clips; LOUDNESS not tested for this mix).
+- QA acknowledgement accepted with justification; owner download route returned 200 video/mp4 with content-length 4,275,149.
+- Cloudinary private upload (earlier) succeeded and the test asset was removed.
+- R2 credentials: check:r2 PASS HeadBucket/Put/Get/Delete.
+
+BLOCKING FINDINGS
+1. HIGH — production media validation is unavailable. Vercel exposes `VIDEO_PROBE_DRIVER=none` and has no ffprobe/ffmpeg. Video uploads stay QUARANTINED forever ("Aguardando validação do worker"), and narration upload returns HTTP 422 `NARRATION_AUDIO_INVALID` ("O áudio não pôde ser lido.") because `probeAudio` cannot run. There is no worker path in the repo that validates quarantined assets; `render-worker.mjs` only claims render_jobs.
+   - Workaround used for this test only: local ffprobe validation, manual R2 copy and `video_assets` promotion for the 15 clips; direct R2 upload plus a READY `narration_takes` row for the narration. This is not a production flow.
+2. HIGH/MEDIUM — 120 s at 6 s creates 20 scenes, but `VIDEO_MAX_CLIPS_PER_EPISODE` is 15. Episode 1 can never be completed, yet the create-episode UI allows it.
+3. MEDIUM — Gemini generation returns HTTP 503 for `gemini-3.5-flash-lite` with the configured `GEMINI_API_KEY`; the manual JSON import path works.
+4. MEDIUM — narration upload before saving a voice plan uses `planVersion = 0`, which violates the `narration_takes.plan_version between 1 and 10000` constraint even when ffprobe is available.
+5. OPERATIONAL — no worker is deployed in production; the queue requires an authorized external worker. The test used a local worker.
+6. MINOR — the timeline audio selector shows "Template suspense 120 s" on a 90 s episode.
+
+NOTES
+- No secret value is included here. Test media and the render remain in production for owner inspection and can be deleted after acceptance.
+- The core pipeline after inputs are READY works end to end: plan, narration, captions, render, QA, acknowledgement and private download.
