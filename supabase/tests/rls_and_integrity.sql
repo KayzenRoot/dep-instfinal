@@ -2,7 +2,7 @@
 -- The test uses synthetic JWT subjects and rolls back every inserted row.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(247);
+select plan(250);
 
 do $$
 declare
@@ -1543,7 +1543,7 @@ select is(
 select is(
   (select count(*) from public.narration_takes
    where episode_id = 'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6'),
-  2::bigint,
+  3::bigint,
   'owner can read the narration takes'
 );
 select set_config('request.jwt.claims', '{"sub":"22222222-2222-4222-8222-222222222222","app_metadata":{"dif_studio_owner":true}}', true);
