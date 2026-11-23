@@ -51,6 +51,12 @@ FINAL FIXES (same day)
 - Workers: continuous media worker promoted clip 41f503e0-a057-4ca3-9353-542c0bc63047 to READY; continuous render worker completed job 768f5d3c-e562-4dac-b2ee-1ea7253565d2 (90 s, 1080x1920, READY).
 - Residual: the new Cloudinary secret appeared once in a local tool snapshot; rotate again if the transcript is shared.
 
+PERSISTENT WORKERS (same day)
+- scripts/workers-service.mjs supervises the media validator and render worker, restarts a child with backoff, uses a PID lockfile and logs to C:\Users\csn19\.zcode\dif-secrets\worker-logs.
+- Registration as a Windows task/service was denied without elevation; the current persistence uses the user's Startup folder: dif-workers.vbs -> run-workers.cmd (restart loop). It starts at logon.
+- Verified: supervisor plus media and render children active; killing the media child tree caused the supervisor to restart it in about 1 second.
+- Boot-level 24/7 before login still requires an elevated Task Scheduler/Windows Service registration.
+
 NOTES
 - No secret value is included here. Test media and the render remain in production for owner inspection and can be deleted after acceptance.
 - The core pipeline after inputs are READY works end to end: plan, narration, captions, render, QA, acknowledgement and private download.

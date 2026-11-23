@@ -66,10 +66,17 @@
 - O worker de mídia promoveu o clipe `41f503e0-a057-4ca3-9353-542c0bc63047` para READY; o worker de render concluiu o job `768f5d3c-e562-4dac-b2ee-1ea7253565d2` (90 s, 1080×1920, READY).
 - Para operação 24/7, rode `npm run media:validate` e `scripts/render-worker.mjs` em um host sempre ativo com `.env`/`r2.env`; sem workers, uploads e renders ficam fail-closed na fila.
 
+### Serviço persistente nesta máquina (23/11/2026)
+
+- `scripts/workers-service.mjs`: supervisor que mantém os dois workers vivos, reinicia cada filho com backoff, grava logs em `C:\Users\csn19\.zcode\dif-secrets\worker-logs` e evita instância duplicada por lockfile.
+- Como o shell não tem elevação para registrar tarefa/serviço, a inicialização usa o Startup do Windows: `...\Startup\dif-workers.vbs` → `run-workers.cmd` (loop que reinicia o supervisor).
+- Validado: supervisor + mídia + render ativos; ao derrubar o worker de mídia, o supervisor o reiniciou em cerca de 1 s.
+- O Startup roda apenas no logon do usuário. Para 24/7 antes do login/reboot, é preciso elevar e registrar uma tarefa/serviço do Windows.
+
 ## Pendências para encerrar WO-014
 
 - Repetir a aceitação real do owner com 15 clipes reais, narração, SFX/música, legendas, CTA/2 escolhas e MP4 revisado em produção, sem workarounds.
-- Hospedar os workers de mídia e render em um host sempre ativo (hoje rodam localmente).
+- Para 24/7 sem login, elevar e registrar uma tarefa/serviço do Windows; o Startup atual cobre apenas o logon.
 - Depois da aceitação, promover o checkpoint final e fechar a issue #31.
 
 ## Script de migrations
@@ -88,7 +95,7 @@ O caminho alternativo usado neste release foi `npx supabase db push --include-al
 
 ## Riscos
 
-- Os workers de mídia e render rodam hoje na máquina local; se ela desligar, uploads ficam `QUARANTINED`/`PENDING` e renders ficam na fila.
+- Os workers rodam nesta máquina e iniciam no logon; se ela desligar ou o usuário fizer logoff, uploads ficam `QUARANTINED`/`PENDING` e renders ficam na fila.
 - O secret novo do Cloudinary apareceu uma vez em snapshot local; se o transcript for compartilhado, rotacione novamente.
 - O banco novo está vazio; a aceitação deve usar conteúdo novo, não os dados antigos inacessíveis.
 - Sem Vercel CLI autenticado, rollback de alias depende do dashboard/integração Git.
