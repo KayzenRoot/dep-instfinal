@@ -70,7 +70,7 @@
 
 - `scripts/workers-service.mjs`: supervisor que mantém os dois workers vivos, reinicia cada filho com backoff, grava logs em `C:\Users\csn19\.zcode\dif-secrets\worker-logs` e evita instância duplicada por lockfile.
 - Como o shell não tem elevação para registrar tarefa/serviço, a inicialização usa o Startup do Windows: `...\Startup\dif-workers.vbs` → `run-workers.cmd` (loop que reinicia o supervisor).
-- Validado: supervisor + mídia + render ativos; ao derrubar o worker de mídia, o supervisor o reiniciou em cerca de 1 s.
+- Validado: supervisor + mídia + render ativos; ao derrubar o worker de mídia, o supervisor o reiniciou em cerca de 1 s; um upload real pelo serviço promoveu o clipe `f999c4ea…` para READY automaticamente.
 - O Startup roda apenas no logon do usuário. Para 24/7 antes do login/reboot, é preciso elevar e registrar uma tarefa/serviço do Windows.
 
 ## Pendências para encerrar WO-014

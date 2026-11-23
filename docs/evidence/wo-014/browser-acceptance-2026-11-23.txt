@@ -54,7 +54,7 @@ FINAL FIXES (same day)
 PERSISTENT WORKERS (same day)
 - scripts/workers-service.mjs supervises the media validator and render worker, restarts a child with backoff, uses a PID lockfile and logs to C:\Users\csn19\.zcode\dif-secrets\worker-logs.
 - Registration as a Windows task/service was denied without elevation; the current persistence uses the user's Startup folder: dif-workers.vbs -> run-workers.cmd (restart loop). It starts at logon.
-- Verified: supervisor plus media and render children active; killing the media child tree caused the supervisor to restart it in about 1 second.
+- Verified: supervisor plus media and render children active; killing the media child tree caused the supervisor to restart it in about 1 second. A real upload through the persistent service promoted clip f999c4ea-d5e5-4846-8f27-ce5fc4ec7c2e to READY automatically.
 - Boot-level 24/7 before login still requires an elevated Task Scheduler/Windows Service registration.
 
 NOTES
