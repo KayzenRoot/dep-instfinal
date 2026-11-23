@@ -128,7 +128,9 @@ export const actions: Actions = {
 			isSeasonFinale: form.get('isSeasonFinale') === 'on',
 		});
 		if (!parsed.success)
-			return fail(400, { message: 'Revise o número, o título e a duração (90–150 segundos).' });
+			return fail(400, {
+				message: 'Revise o número, o título, a duração (90–150 s) e o limite de 15 cenas/clipes.',
+			});
 		const { data: season, error: seasonError } = await db
 			.from('seasons')
 			.select('id,series_id,planned_episode_count')

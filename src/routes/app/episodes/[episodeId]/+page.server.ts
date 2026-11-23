@@ -277,7 +277,10 @@ export const actions: Actions = {
 			isSeasonFinale: form.get('isSeasonFinale') === 'on',
 		});
 		if (!parsed.success)
-			return fail(400, { message: 'Revise título, duração (90–150s) e campos do roteiro.' });
+			return fail(400, {
+				message:
+					'Revise título, duração (90–150 s), limite de 15 cenas/clipes e campos do roteiro.',
+			});
 		const { data: currentEpisode, error: currentError } = await db
 			.from('episodes')
 			.select('duration_ms,scene_duration_ms,status')
