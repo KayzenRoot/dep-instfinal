@@ -258,35 +258,7 @@ async function generateWithGemini(prompt: string, key: string, model: string): P
 	return parseModelJson(text);
 }
 
-/** Never invoke this function before verifying the Supabase owner session and rate limit. */
-export async function generateEpisodeJson(prompt: string, oidcToken?: string): Promise<unknown> {
-	const geminiKey = process.env.GEMINI_API_KEY?.trim();
-	if (geminiKey) {
-		let unavailable: AiGenerationError | null = null;
-		for (const model of GEMINI_MODELS) {
-			try {
-				return await generateWithGemini(prompt, geminiKey, model);
-			} catch (cause) {
-				if (cause instanceof AiGenerationError && cause.code === 'UNAVAILABLE') {
-					unavailable = cause;
-					continue;
-				}
-				throw cause;
-			}
-		}
-		throw (
-			unavailable ??
-			new AiGenerationError('UNAVAILABLE', 'Nenhum modelo Gemini respondeu; tente novamente.')
-		);
-	}
-
-	const token =
-		process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim() || oidcToken;
-	if (!token)
-		throw new AiGenerationError(
-			'NOT_CONFIGURED',
-			'Nenhuma integração oficial de IA foi configurada.',
-		);
+async function generateWithGateway(prompt: string, token: string): Promise<unknown> {
 	const result = await postJson(
 		'https://ai-gateway.vercel.sh/v1/chat/completions',
 		{ authorization: `Bearer ${token}` },
@@ -308,4 +280,39 @@ export async function generateEpisodeJson(prompt: string, oidcToken?: string): P
 	if (typeof content !== 'string' || !content.trim())
 		throw new AiGenerationError('INVALID_OUTPUT', 'O AI Gateway não retornou um roteiro.');
 	return parseModelJson(content);
+}
+
+/** Never invoke this function before verifying the Supabase owner session and rate limit. */
+export async function generateEpisodeJson(prompt: string, oidcToken?: string): Promise<unknown> {
+	const geminiKey = process.env.GEMINI_API_KEY?.trim();
+	if (geminiKey) {
+		let unavailable: AiGenerationError | null = null;
+		for (const model of GEMINI_MODELS) {
+			try {
+				return await generateWithGemini(prompt, geminiKey, model);
+			} catch (cause) {
+				if (cause instanceof AiGenerationError && cause.code === 'UNAVAILABLE') {
+					unavailable = cause;
+					continue;
+				}
+				throw cause;
+			}
+		}
+		const gatewayToken =
+			process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim() || oidcToken;
+		if (gatewayToken) return generateWithGateway(prompt, gatewayToken);
+		throw (
+			unavailable ??
+			new AiGenerationError('UNAVAILABLE', 'Nenhum modelo Gemini respondeu; tente novamente.')
+		);
+	}
+
+	const token =
+		process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim() || oidcToken;
+	if (!token)
+		throw new AiGenerationError(
+			'NOT_CONFIGURED',
+			'Nenhuma integração oficial de IA foi configurada.',
+		);
+	return generateWithGateway(prompt, token);
 }

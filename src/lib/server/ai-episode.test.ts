@@ -111,6 +111,25 @@ describe('pacote de IA do DIF Studio', () => {
 		expect(calls[1]).toContain('/models/gemini-3.5-flash:generateContent');
 	});
 
+	it('faz fallback para o AI Gateway quando todos os modelos Gemini falham', async () => {
+		vi.stubEnv('GEMINI_API_KEY', 'test-only-key');
+		vi.stubEnv('VERCEL_OIDC_TOKEN', 'test-only-oidc');
+		const mockFetch = vi
+			.fn()
+			.mockResolvedValueOnce(new Response('', { status: 503 }))
+			.mockResolvedValueOnce(new Response('', { status: 404 }))
+			.mockResolvedValueOnce(new Response('', { status: 404 }))
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ choices: [{ message: { content: '{"ok":true}' } }] }), {
+					status: 200,
+				}),
+			);
+		vi.stubGlobal('fetch', mockFetch);
+		await expect(generateEpisodeJson('test')).resolves.toEqual({ ok: true });
+		const urls = mockFetch.mock.calls.map((call) => call[0] as string);
+		expect(urls.at(-1)).toContain('https://ai-gateway.vercel.sh/');
+	});
+
 	it('valida 15 cenas e duas consequências para 120 segundos', () => {
 		const result = validateGeneratedEpisode({ narrative, scenes }, 120000, 8000, false);
 		expect(result.scenes).toHaveLength(15);
