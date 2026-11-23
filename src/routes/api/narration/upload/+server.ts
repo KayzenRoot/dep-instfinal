@@ -35,6 +35,7 @@ export const POST: RequestHandler = async (event) => {
 			bytes: Buffer.from(await file.arrayBuffer()),
 			fileName: file.name,
 			source: 'UPLOAD',
+			deferValidation: config.videoProbeDriver === 'none',
 		});
 		return json({ take }, { status: 201 });
 	} catch (cause) {

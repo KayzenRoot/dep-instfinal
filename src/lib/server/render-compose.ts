@@ -77,6 +77,7 @@ interface ProbeOutput {
 export interface AudioProbe {
 	durationMs: number;
 	codec: string;
+	format: string;
 	sampleRate: number;
 	channels: number;
 }
@@ -130,6 +131,7 @@ export async function probeMedia(
 				? {
 						durationMs: Math.round(audioDuration * 1000),
 						codec: audio.codec_name,
+						format: parsed.format?.format_name ?? '',
 						sampleRate: Number(audio.sample_rate ?? 0),
 						channels: audio.channels ?? 0,
 					}
@@ -156,6 +158,7 @@ export async function probeAudioMedia(path: string, ffprobePath = 'ffprobe'): Pr
 	return {
 		durationMs: Math.round(durationSeconds * 1000),
 		codec: audio.codec_name,
+		format: parsed.format?.format_name ?? '',
 		sampleRate: Number(audio.sample_rate ?? 0),
 		channels: audio.channels ?? 0,
 	};

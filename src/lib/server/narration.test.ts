@@ -99,6 +99,28 @@ describe.skipIf(!enabled)('narration take upload validation', () => {
 		expect(storage.getObjectForTest(objectKey)?.length).toBe(bytes.length);
 	});
 
+	it('defers probing to the media worker without ffmpeg', async () => {
+		const storage = new InMemoryVideoStorage();
+		const take = await storeNarrationTake({
+			...input,
+			planVersion: 0,
+			adminDb: fakeAdmin(input.owner.id, input.episodeId),
+			storage,
+			bytes: Buffer.from('not-a-real-audio-file'),
+			fileName: 'pending.mp3',
+			deferValidation: true,
+		});
+		expect(take.status).toBe('PENDING');
+		expect(take.plan_version).toBe(1);
+		expect(take.duration_ms).toBe(1_000);
+		expect(take.format).toBe('mp3');
+		expect(take.validated_at).toBeNull();
+		const objectKey = [...storage.objects.keys()][0]!;
+		expect(objectKey).toMatch(
+			new RegExp(`^narration/${input.owner.id}/${input.episodeId}/[0-9a-f-]+\\.mp3$`),
+		);
+	});
+
 	it('rejects damaged bytes, silent audio and clipping', async () => {
 		const storage = new InMemoryVideoStorage();
 		const adminDb = fakeAdmin(input.owner.id, input.episodeId);

@@ -320,12 +320,21 @@
 								type="radio"
 								name="take"
 								checked={take.id === takeId}
-								onchange={() => selectTake(take.id)}
+								disabled={take.status !== 'READY'}
+								onchange={() => take.status === 'READY' && selectTake(take.id)}
 							/>
-							{take.source} · {take.format} · {take.duration_ms} ms · pico {take.peak_db ?? '—'} dB ·
-							true peak {take.true_peak_db ?? '—'} dBFS · {take.lufs ?? '—'} LUFS
+							{#if take.status === 'READY'}
+								{take.source} · {take.format} · {take.duration_ms} ms · pico {take.peak_db ?? '—'} dB
+								· true peak {take.true_peak_db ?? '—'} dBFS · {take.lufs ?? '—'} LUFS
+							{:else}
+								{take.source} · {take.status === 'PENDING'
+									? 'aguardando validação do worker'
+									: 'em validação'}
+							{/if}
 						</label>
-						<audio controls preload="none" src={`/api/narration/takes/${take.id}`}></audio>
+						{#if take.status === 'READY'}
+							<audio controls preload="none" src={`/api/narration/takes/${take.id}`}></audio>
+						{/if}
 					</li>
 				{/each}
 			</ul>

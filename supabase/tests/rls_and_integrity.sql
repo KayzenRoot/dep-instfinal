@@ -1380,18 +1380,48 @@ select lives_ok(
     );$$,
   'service role can store a take for another episode'
 );
+select lives_ok(
+  $$insert into public.narration_takes (
+      id, owner_id, episode_id, plan_version, source, status, bucket, object_key, sha256,
+      byte_size, duration_ms, format, sample_rate, channels
+    ) values (
+      'b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8',
+      '11111111-1111-4111-8111-111111111111',
+      'e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6', 1, 'UPLOAD', 'PENDING',
+      'dif-studio-video-private',
+      'narration/11111111-1111-4111-8111-111111111111/e6e6e6e6-e6e6-46e6-86e6-e6e6e6e6e6e6/pending.wav',
+      repeat('b', 64), 1024, 1000, 'wav', 8000, 1
+    );$$,
+  'service role can store a pending narration take'
+);
+select lives_ok(
+  $$update public.narration_takes
+    set status = 'READY', duration_ms = 3000, format = 'wav', sample_rate = 22050,
+        channels = 1, peak_db = -1.5, rms_db = -17.0, validated_at = now(), updated_at = now()
+    where id = 'b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8'
+      and status = 'PENDING';$$,
+  'media validator can promote a pending narration take'
+);
 select throws_ok(
   $$update public.narration_takes
     set duration_ms = 9000
     where id = 'a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7';$$,
-  '42501',
-  'permission denied for table narration_takes',
-  'narration take rows are not writable by the service role'
+  '55000',
+  'narration_takes_are_immutable',
+  'ready narration takes stay immutable'
+);
+select throws_ok(
+  $$update public.narration_takes
+    set duration_ms = 9000
+    where id = 'b8b8b8b8-b8b8-48b8-88b8-b8b8b8b8b8b8';$$,
+  '55000',
+  'narration_takes_are_immutable',
+  'published narration takes stay immutable'
 );
 select ok(
-  not has_table_privilege('service_role', 'public.narration_takes', 'UPDATE')
+  has_table_privilege('service_role', 'public.narration_takes', 'UPDATE')
     and not has_table_privilege('service_role', 'public.narration_takes', 'DELETE'),
-  'service role has no update/delete grant on narration takes'
+  'service role can update validation fields but cannot delete narration takes'
 );
 select throws_ok(
   $$update public.voice_direction_plans
