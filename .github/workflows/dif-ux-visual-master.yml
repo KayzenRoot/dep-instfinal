@@ -19,5 +19,7 @@ jobs:
           node-version: '24'
       - name: Test fail-closed image verifier
         run: node --test docs/design/neon-glass-v1/verify-images.test.mjs
+      - name: Python optimized-mode importer regression
+        run: python3 -O -m unittest discover -s docs/design/neon-glass-v1 -p 'test_import_master.py' -v
       - name: Verify every master PNG against committed manifest
         run: node docs/design/neon-glass-v1/verify-images.mjs
