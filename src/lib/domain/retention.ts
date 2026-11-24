@@ -301,42 +301,62 @@ export function compareVariantObservations(
 	};
 }
 
+interface CsvScannerState {
+	rows: string[][];
+	row: string[];
+	cell: string;
+	quoted: boolean;
+}
+
+function consumeQuotedCsvCharacter(input: string, index: number, state: CsvScannerState): number {
+	const character = input[index]!;
+	if (character === '"') {
+		if (input[index + 1] === '"') {
+			state.cell += '"';
+			return index + 1;
+		}
+		state.quoted = false;
+	} else {
+		state.cell += character;
+	}
+	return index;
+}
+
+function consumeUnquotedCsvCharacter(character: string, state: CsvScannerState): void {
+	switch (character) {
+		case '"':
+			state.quoted = true;
+			break;
+		case ',':
+			state.row.push(state.cell);
+			state.cell = '';
+			break;
+		case '\n':
+			state.row.push(state.cell.replace(/\r$/, ''));
+			state.rows.push(state.row);
+			state.row = [];
+			state.cell = '';
+			break;
+		default:
+			state.cell += character;
+	}
+}
+
 export function parseCsvRows(input: string): string[][] {
 	if (input.length > 5_000_000)
 		throw new RetentionError('RETENTION_CSV_TOO_LARGE', 'CSV excede 5 MB.');
-	const rows: string[][] = [];
-	let row: string[] = [];
-	let cell = '';
-	let quoted = false;
+	const state: CsvScannerState = { rows: [], row: [], cell: '', quoted: false };
 	for (let index = 0; index < input.length; index += 1) {
-		const character = input[index];
-		if (quoted) {
-			if (character === '"') {
-				if (input[index + 1] === '"') {
-					cell += '"';
-					index += 1;
-				} else quoted = false;
-			} else cell += character;
-			continue;
-		}
-		if (character === '"') quoted = true;
-		else if (character === ',') {
-			row.push(cell);
-			cell = '';
-		} else if (character === '\n') {
-			row.push(cell.replace(/\r$/, ''));
-			rows.push(row);
-			row = [];
-			cell = '';
-		} else cell += character;
+		if (state.quoted) index = consumeQuotedCsvCharacter(input, index, state);
+		else consumeUnquotedCsvCharacter(input[index]!, state);
 	}
-	if (cell.length || row.length) {
-		row.push(cell.replace(/\r$/, ''));
-		rows.push(row);
+	if (state.cell.length || state.row.length) {
+		state.row.push(state.cell.replace(/\r$/, ''));
+		state.rows.push(state.row);
 	}
-	if (rows.length > 5_001)
+	if (state.rows.length > 5_001)
 		throw new RetentionError('RETENTION_CSV_TOO_MANY_ROWS', 'CSV excede 5000 linhas.');
-	return rows.filter((entry) => entry.some((value) => value.trim().length > 0));
+	return state.rows.filter((entry) => entry.some((value) => value.trim().length > 0));
 }
 
 function nullableInteger(value: string | undefined): number | null {
