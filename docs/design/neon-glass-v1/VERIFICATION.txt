@@ -1,0 +1,9 @@
+DIF-UX-WO-001 / VERIFICADOR DE REFERENCIAS VISUAIS
+Base do verificador: main 66a997ee; executa somente Node.js built-in, sem API, custo ou segredos.
+Comando de testes: node --test docs/design/neon-glass-v1/verify-images.test.mjs
+Validação estrutural atual: node docs/design/neon-glass-v1/verify-images.mjs --manifest-only
+Validação das nove imagens originais antes do upload: node docs/design/neon-glass-v1/verify-images.mjs --source-dir CAMINHO/PARA/scREENS
+Validação do repositório após upload: node docs/design/neon-glass-v1/verify-images.mjs
+Não declarar WO APPROVED enquanto o último comando falhar ou existirem imagens com exists_in_repo=false.
+Atualizar manifest.json de false para true SOMENTE depois do envio e read-back com hashes idênticos.
+O teste automatizado com fixtures não prova a presença de PNGs no GitHub; exige read-back separado.
