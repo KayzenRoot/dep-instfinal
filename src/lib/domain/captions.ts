@@ -1,3 +1,4 @@
+import { trimEdgeCharacters } from './trim-edge.js';
 import { createHash } from 'node:crypto';
 import { formatSrtTime } from './timeline.js';
 import type { CaptionCue, CaptionStyle, CaptionTrack, CaptionWord } from '#lib/schemas/captions.js';
@@ -52,12 +53,12 @@ interface Token {
 const MAX_CUE_MS = 7_000;
 
 export function normalizeCaptionToken(value: string): string {
-	return value
+	const normalized = value
 		.normalize('NFD')
 		.replace(/[\u0300-\u036f]/g, '')
 		.toLowerCase()
-		.replace(/[^\p{L}\p{N}'-]/gu, '')
-		.replace(/^[-']+|[-']+$/g, '');
+		.replace(/[^\p{L}\p{N}'-]/gu, '');
+	return trimEdgeCharacters(normalized, "-'");
 }
 
 function tokenize(segment: ScriptSegment): Token[] {

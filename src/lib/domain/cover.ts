@@ -1,3 +1,4 @@
+import { trimEdgeCharacters } from './trim-edge.js';
 import {
 	COVER_FORMATS,
 	type CoverConfig,
@@ -287,12 +288,11 @@ ${watermark}
 }
 
 export function coverFileBase(config: CoverConfig): string {
-	const slug = config.title
+	const normalized = config.title
 		.normalize('NFD')
 		.replace(/[\u0300-\u036f]/g, '')
 		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '')
-		.slice(0, 48);
+		.replace(/[^a-z0-9]+/g, '-');
+	const slug = trimEdgeCharacters(normalized, '-').slice(0, 48);
 	return `cover-${slug || 'episodio'}-${config.templateId}-${config.format.replace(':', 'x')}`;
 }

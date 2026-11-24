@@ -1,3 +1,4 @@
+import { trimEdgeCharacters } from './trim-edge.js';
 import { createHash } from 'node:crypto';
 import { canonicalJson } from './canonical-json.js';
 import type {
@@ -69,9 +70,7 @@ export function normalizeIdentityText(value: string): string {
 }
 
 export function slugifyIdentityLook(label: string, index: number): string {
-	const slug = normalizeIdentityText(label)
-		.replace(/\s+/g, '-')
-		.replace(/^-+|-+$/g, '');
+	const slug = trimEdgeCharacters(normalizeIdentityText(label).replace(/\s+/g, '-'), '-');
 	return `${slug.slice(0, 34) || 'look'}-${index + 1}`;
 }
 
