@@ -1,0 +1,74 @@
+DIF-UX-WO-002 — AUDITORIA TÉCNICA (pt-BR)
+Data: 2026-11-24
+Issue: #78 · EPIC #76
+PR: #95 (Draft)
+Head auditado: e0f6eadbf50647a95f61e4e3ab7e22905125d9ff
+Base: main 449642d687f2aee4ce8c823e1b427681fdcad71c
+Veredito: APPROVED WITH RESIDUALS (Draft; sem merge)
+
+====================================================================
+1. ESCOPO E CONFORMIDADE
+====================================================================
+- Tokens Neon Glass implementados em `src/app.css`; paleta e estados de foco
+  seguem a direção do ADR-001 PROPOSED.
+- Glass panels com `backdrop-filter` condicional e fallback opaco em
+  `@supports not`; radii e motion dentro da faixa 120–220ms.
+- AppShell responsivo: skip link, sidebar/topbar, drawer mobile com scroll,
+  dock rápido e foco no conteúdo.
+- WorkspaceNav organizada em 6 grupos; as 22 rotas de nível superior estão
+  acessíveis, incluindo `/app/identity`, que faltava na navegação anterior.
+- `aria-current="page"`, rótulos de grupo, hover lift/glow apenas em
+  `pointer:fine`, `prefers-reduced-motion` desativa transições/glow.
+- Nenhuma rota removida; nenhuma feature simulada; nenhuma alteração de
+  Auth/Supabase/RLS/Cloudinary/R2/APIs/schema/migrations.
+
+====================================================================
+2. EVIDÊNCIA DE TESTES
+====================================================================
+- `npm run check`: 0 erros / 0 warnings.
+- `npm run lint`: PASS (max-warnings=0).
+- `npm test`: 58 arquivos PASS / 3 skipped; 370 testes PASS / 3 skipped.
+- `npm run build`: PASS.
+- `e2e/shell-navigation.spec.ts`: 5 jornadas; CI E2E **24/24 PASS** em 5,7m.
+- `quality` run `45474380832`: PASS em 10m27s (check:baseline, PgTAP, E2E, build,
+  policy, audit).
+- `SonarCloud Code Analysis`: PASS — Security A, Reliability A, manutenibilidade
+  A, duplicação 0,0%, hotspots 100%, zero issues.
+- `Socket Security: Project Report` e `Pull Request Alerts`: PASS.
+- `Vercel`: deployment READY; preview `/health` fail-closed
+  (`supabase:false`, `owner:false`).
+
+====================================================================
+3. SEGURANÇA E PRIVACIDADE
+====================================================================
+- Nenhum segredo novo, nenhuma leitura/registro de segredo.
+- Preview sem backend de produção (guard da PR #93 preservado).
+- E2E usa usuários sintéticos do Supabase local; nenhum dado de produção.
+- Sem alteração de permissões, RLS, owner-only ou contratos de mídia.
+- PR #75 permanece Draft em 9f18254, intocada.
+
+====================================================================
+4. RISCOS RESIDUAIS / LIMITES
+====================================================================
+- ADR-001 permanece PROPOSED; a WO-002 não o promove.
+- Páginas internas ainda têm estilos locais (ex.: botão primário verde no
+  Painel); a unificação visual pertence às WOs 003–013.
+- A sidebar com 22 rotas exige scroll em alturas ~900px; todas as rotas
+  continuam acessíveis por teclado/touch.
+- Baseline visual cobre o shell em 390/768/1440/1920; não há regressão visual
+  das nove telas completas nesta WO.
+- Sem teste cross-browser; CI usa Chromium.
+- PR Draft; merge somente após aprovação do owner e gates, sem force-push.
+
+====================================================================
+5. ARQUIVOS DE EVIDÊNCIA
+====================================================================
+- docs/evidence/ux-002/source-check-2026-11-24.txt
+- docs/evidence/ux-002/implementation-2026-11-24.txt
+- docs/evidence/ux-002/audit-2026-11-24.txt
+- Artifact CI `dif-studio-browser-evidence` (run 45474380832): shell-390/768/
+  1440/1920.png e shell-mobile-menu-390.png.
+- PR: https://github.com/KayzenRoot/dep-instfinal/pull/95
+
+Conclusão: incremento atende ao DoD da WO-002 para design system, AppShell e
+navegação, com resíduos documentados e sem merge automático.
