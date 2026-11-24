@@ -45,6 +45,22 @@ function trackInput() {
 }
 
 describe('caption normalization and alignment', () => {
+
+	it('keeps deterministic matches with repeated transcribed words', () => {
+		const input = {
+			segments: [{ index: 0, text: 'sinal sinal' }],
+			asrWords: [
+				{ word: 'sinal', startMs: 100, endMs: 300, confidence: 0.9 },
+				{ word: 'sinal', startMs: 380, endMs: 590, confidence: 0.8 },
+			],
+			durationMs: 1_200,
+		};
+		const first = alignScriptToAsr(input);
+		expect(first.alignmentScore).toBeGreaterThan(0.5);
+		expect(first.cues.length).toBeGreaterThan(0);
+		expect(alignScriptToAsr(input)).toEqual(first);
+	});
+
 	it('normalizes accents and punctuation without changing the source tokens', () => {
 		expect(normalizeCaptionToken('Às')).toBe('as');
 		expect(normalizeCaptionToken('coração,')).toBe('coracao');
