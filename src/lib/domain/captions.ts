@@ -84,8 +84,7 @@ interface Match {
 	score: number;
 }
 
-/** Build the original dynamic-programming score matrix and traceback directions. */
-function buildAlignmentDirections(tokens: Token[], asr: CaptionWord[]): Uint8Array[] {
+function alignTokens(tokens: Token[], asr: CaptionWord[]): Match[] {
 	const n = tokens.length;
 	const m = asr.length;
 	const scores = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
@@ -119,17 +118,6 @@ function buildAlignmentDirections(tokens: Token[], asr: CaptionWord[]): Uint8Arr
 			}
 		}
 	}
-	return directions;
-}
-
-/** Reconstruct matches using the same tie-breaking rules as the original aligner. */
-function tracebackAlignment(
-	tokens: Token[],
-	asr: CaptionWord[],
-	directions: Uint8Array[],
-): Match[] {
-	const n = tokens.length;
-	const m = asr.length;
 	const matches: Match[] = [];
 	let i = n;
 	let j = m;
@@ -154,10 +142,6 @@ function tracebackAlignment(
 		}
 	}
 	return matches.reverse();
-}
-
-function alignTokens(tokens: Token[], asr: CaptionWord[]): Match[] {
-	return tracebackAlignment(tokens, asr, buildAlignmentDirections(tokens, asr));
 }
 
 function interpolatedWords(
