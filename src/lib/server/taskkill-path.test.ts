@@ -1,12 +1,12 @@
-import { isAbsolute, join } from 'node:path';
+import { win32 } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { resolveTaskkillPath } from '../../../scripts/taskkill-path.mjs';
 
 describe('resolveTaskkillPath', () => {
 	it('uses the fixed System32 directory under SystemRoot', () => {
 		const result = resolveTaskkillPath({ SystemRoot: 'C:\\Windows' });
-		expect(result).toBe(join('C:\\Windows', 'System32', 'taskkill.exe'));
-		expect(isAbsolute(result)).toBe(true);
+		expect(result).toBe(win32.join('C:\\Windows', 'System32', 'taskkill.exe'));
+		expect(win32.isAbsolute(result)).toBe(true);
 	});
 
 	it('does not search PATH or accept a relative override', () => {
@@ -17,6 +17,6 @@ describe('resolveTaskkillPath', () => {
 	});
 
 	it('falls back to the standard Windows directory', () => {
-		expect(resolveTaskkillPath({})).toBe(join('C:\\Windows', 'System32', 'taskkill.exe'));
+		expect(resolveTaskkillPath({})).toBe(win32.join('C:\\Windows', 'System32', 'taskkill.exe'));
 	});
 });
