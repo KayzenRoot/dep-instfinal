@@ -13,8 +13,11 @@ test.describe('Neon Glass shell and navigation', () => {
 	test('mobile drawer keeps every application route reachable', async ({ page }) => {
 		await page.setViewportSize({ width: 390, height: 844 });
 		await page.goto('/app');
+		await page.waitForLoadState('networkidle');
 
-		await page.getByRole('button', { name: 'Abrir navegação' }).click();
+		const toggle = page.getByRole('button', { name: 'Abrir navegação' });
+		await toggle.click();
+		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 		const drawer = page.locator('#mobile-menu');
 		await expect(drawer).toBeVisible();
 		await expect(drawer.getByRole('link')).toHaveCount(22);
@@ -55,7 +58,9 @@ test.describe('Neon Glass shell and navigation', () => {
 		await page.setViewportSize({ width: 1440, height: 900 });
 		await page.goto('/app/style');
 
-		const nav = page.getByTestId('desktop-nav');
+		const nav = page
+			.getByTestId('desktop-nav')
+			.getByRole('navigation', { name: 'Navegação principal' });
 		await expect(nav).toBeVisible();
 		await expect(nav.getByRole('link')).toHaveCount(22);
 		await expect(nav.getByText('Cânone e análise', { exact: true })).toBeVisible();
@@ -98,8 +103,11 @@ test.describe('Neon Glass shell and navigation', () => {
 	}) => {
 		await page.setViewportSize({ width: 390, height: 844 });
 		await page.goto('/app');
+		await page.waitForLoadState('networkidle');
 
-		await page.getByRole('button', { name: 'Abrir navegação' }).click();
+		const toggle = page.getByRole('button', { name: 'Abrir navegação' });
+		await toggle.click();
+		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 		const drawer = page.locator('#mobile-menu');
 		await expect(drawer).toBeVisible();
 		await page.keyboard.press('Escape');
