@@ -1,3 +1,4 @@
+.sonarcloud.properties
 .svelte-kit
 build
 coverage
