@@ -16,6 +16,7 @@ import {
 import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { resolveTaskkillPath } from './taskkill-path.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const logDir = 'C:/Users/csn19/.zcode/dif-secrets/worker-logs';
@@ -67,7 +68,7 @@ let stopping = false;
 function killTree(child) {
 	if (!child?.pid) return;
 	if (process.platform === 'win32') {
-		spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+		spawnSync(resolveTaskkillPath(), ['/PID', String(child.pid), '/T', '/F'], {
 			stdio: 'ignore',
 			windowsHide: true,
 		});
