@@ -42,9 +42,9 @@
 		justify-content: center;
 		gap: 0.55rem;
 		padding: 0.58rem 0.9rem;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--glass-border);
 		border-radius: var(--radius-sm);
-		background: linear-gradient(180deg, rgb(255 255 255 / 4%), rgb(255 255 255 / 1%));
+		background: linear-gradient(180deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 1%));
 		color: var(--ink);
 		font-size: 0.78rem;
 		font-weight: 600;
@@ -52,26 +52,28 @@
 		text-decoration: none;
 		cursor: pointer;
 		transition:
-			background 140ms ease,
-			border-color 140ms ease,
-			transform 140ms ease;
+			background 160ms ease,
+			border-color 160ms ease,
+			box-shadow 160ms ease,
+			transform 160ms ease;
 	}
 
 	.action-button:hover:not(:disabled) {
-		border-color: rgb(240 236 229 / 34%);
-		background: rgb(255 255 255 / 7%);
+		border-color: rgb(0 216 245 / 42%);
+		background: rgb(0 216 245 / 8%);
+		box-shadow: var(--glow-cyan);
 		transform: translateY(-1px);
 	}
 
 	.action-button.primary {
-		border-color: rgb(169 197 108 / 45%);
-		background: linear-gradient(145deg, #a9c56c, #7f9c4a);
-		color: #10130b;
+		border-color: rgb(0 216 245 / 55%);
+		background: linear-gradient(145deg, var(--cyan), var(--emerald));
+		color: #041018;
 	}
 
 	.action-button.primary:hover:not(:disabled) {
-		border-color: #c4dc8f;
-		background: linear-gradient(145deg, #c0d987, #8ba957);
+		border-color: #7ff2ff;
+		background: linear-gradient(145deg, #62e9ff, #5be9c2);
 	}
 
 	.action-button.quiet {
@@ -81,9 +83,9 @@
 	}
 
 	.action-button.danger {
-		border-color: rgb(183 63 85 / 46%);
-		background: rgb(183 63 85 / 10%);
-		color: #ed9aaa;
+		border-color: rgb(248 113 113 / 46%);
+		background: rgb(248 113 113 / 10%);
+		color: #fca5a5;
 	}
 
 	.action-button:disabled {

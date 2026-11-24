@@ -28,14 +28,17 @@
 		position: relative;
 		min-width: 0;
 		overflow: hidden;
-		border: 1px solid var(--line);
+		border: 1px solid var(--glass-border);
 		border-radius: var(--radius-md);
-		background: linear-gradient(145deg, rgb(255 255 255 / 2.4%), transparent 42%), var(--panel);
-		box-shadow: 0 18px 48px rgb(0 0 0 / 14%);
+		background: linear-gradient(145deg, var(--glass-highlight), transparent 42%), var(--glass-bg);
+		box-shadow:
+			0 18px 48px rgb(0 0 0 / 28%),
+			inset 0 1px 0 rgb(255 255 255 / 6%);
+		backdrop-filter: blur(14px) saturate(1.08);
 	}
 
 	.panel-quiet {
-		background: rgb(18 21 26 / 66%);
+		background: var(--glass-bg-strong);
 		box-shadow: none;
 	}
 
@@ -43,8 +46,17 @@
 		position: absolute;
 		inset: 0 auto 0 0;
 		width: 3px;
-		background: var(--danger);
+		background: linear-gradient(180deg, var(--cyan), var(--violet));
 		content: '';
+	}
+
+	@supports not (backdrop-filter: blur(1px)) {
+		.panel {
+			background: var(--panel);
+		}
+		.panel-quiet {
+			background: #0d1526;
+		}
 	}
 
 	.panel-header {
