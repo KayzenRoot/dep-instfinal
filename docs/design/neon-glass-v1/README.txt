@@ -1,7 +1,7 @@
 DIF STUDIO / NEON GLASS - VISUAL MASTER CANDIDATE v1
 Status: SELECTED as design direction by assistant at owner's request, 2026-11-24.
 The nine original PNGs are imported unmodified and read-back verified (commit 9573e4d).
-This is a proposed visual source document, NOT a promoted ADR, not a working UI, not a PR merged.
+Integrated into main dfcb1fc (PR #91) with checkpoint promoted; ADR remains PROPOSED and no UI is implemented yet.
 EPIC #76; WO-001 #77; baseline main 66a997ee5d159a152b3ecb6ffd35bbf3acba855c. PR #75 is unrelated and remains Draft / merge blocked.
 
 REFERENCE POLICY
