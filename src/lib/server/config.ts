@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isolatePreviewBackends } from './preview-isolation.js';
 import {
 	APP_ORIGIN,
 	CLOUDINARY_API_KEY,
@@ -103,7 +104,7 @@ export function getAppConfig(): AppConfig {
 		? Math.max(5, Math.min(configuredPartSize, 64))
 		: 8;
 
-	return {
+	return isolatePreviewBackends({
 		supabaseUrl: validSupabaseUrl,
 		supabasePublishableKey: publishableKey,
 		supabaseServiceRoleKey: serviceRoleKey,
@@ -129,5 +130,5 @@ export function getAppConfig(): AppConfig {
 		videoProbeDriver,
 		maxVideoBytes: maxVideoMb * 1024 * 1024,
 		videoPartBytes: partSizeMb * 1024 * 1024,
-	};
+	}, process.env.VERCEL_ENV);
 }
