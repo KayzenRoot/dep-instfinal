@@ -45,7 +45,6 @@ function trackInput() {
 }
 
 describe('caption normalization and alignment', () => {
-
 	it('keeps deterministic matches with repeated transcribed words', () => {
 		const input = {
 			segments: [{ index: 0, text: 'sinal sinal' }],
