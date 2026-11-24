@@ -346,9 +346,14 @@ export function parseCsvRows(input: string): string[][] {
 	if (input.length > 5_000_000)
 		throw new RetentionError('RETENTION_CSV_TOO_LARGE', 'CSV excede 5 MB.');
 	const state: CsvScannerState = { rows: [], row: [], cell: '', quoted: false };
-	for (let index = 0; index < input.length; index += 1) {
-		if (state.quoted) index = consumeQuotedCsvCharacter(input, index, state);
-		else consumeUnquotedCsvCharacter(input[index]!, state);
+	let index = 0;
+	while (index < input.length) {
+		if (state.quoted) {
+			index = consumeQuotedCsvCharacter(input, index, state) + 1;
+		} else {
+			consumeUnquotedCsvCharacter(input[index]!, state);
+			index += 1;
+		}
 	}
 	if (state.cell.length || state.row.length) {
 		state.row.push(state.cell.replace(/\r$/, ''));
