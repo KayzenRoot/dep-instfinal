@@ -5,22 +5,28 @@
 
 	export let currentPath = '/app';
 	export let mobile = false;
+	export let navId = 'primary';
 	export let onNavigate: (() => void) | undefined = undefined;
+
+	function groupLabelId(groupId: string): string {
+		return `${navId}-group-${groupId}`;
+	}
 </script>
 
 <nav
 	aria-label={mobile ? 'Navegação rápida' : 'Navegação principal'}
 	class:mobile-nav={mobile}
 	data-testid={mobile ? 'quick-nav' : 'workspace-nav'}
+	data-nav-instance={navId}
 >
 	{#each NAV_GROUPS as group (group.id)}
 		{@const visibleItems = mobile ? group.items.filter((item) => item.quick) : group.items}
 		{#if visibleItems.length > 0}
 			<div class="nav-group">
 				{#if !mobile}
-					<p class="nav-group-label" id={`nav-group-${group.id}`}>{group.label}</p>
+					<p class="nav-group-label" id={groupLabelId(group.id)}>{group.label}</p>
 				{/if}
-				<ul aria-labelledby={mobile ? undefined : `nav-group-${group.id}`}>
+				<ul aria-labelledby={mobile ? undefined : groupLabelId(group.id)}>
 					{#each visibleItems as item (item.path)}
 						{@const active = isActivePath(currentPath, item.path)}
 						<li>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { resolve } from '$app/paths';
 	import NavGlyph from './NavGlyph.svelte';
 	import StatusPill from './StatusPill.svelte';
@@ -8,17 +9,31 @@
 	export let currentPath = '/app';
 	export let ownerLabel = 'Proprietária';
 	let mobileMenuOpen = false;
+	let menuToggle: HTMLButtonElement | undefined;
+	let workspaceMain: HTMLElement | undefined;
 
 	$: sectionLabel = groupLabelForPath(currentPath);
 
-	function closeOnEscape(event: KeyboardEvent): void {
-		if (event.key === 'Escape') mobileMenuOpen = false;
+	async function closeOnEscape(event: KeyboardEvent): Promise<void> {
+		if (event.key !== 'Escape' || !mobileMenuOpen) return;
+		const drawer = document.getElementById('mobile-menu');
+		const restoreFocus = drawer?.contains(document.activeElement) ?? false;
+		mobileMenuOpen = false;
+		if (restoreFocus) {
+			await tick();
+			menuToggle?.focus();
+		}
+	}
+
+	function skipToWorkspace(event: MouseEvent): void {
+		event.preventDefault();
+		workspaceMain?.focus();
 	}
 </script>
 
 <svelte:window onkeydown={closeOnEscape} />
 
-<a class="skip-link" href="#workspace-main">Pular para o conteúdo</a>
+<a class="skip-link" href="#workspace-main" onclick={skipToWorkspace}>Pular para o conteúdo</a>
 
 <div class="studio-frame">
 	<aside class="desktop-sidebar" aria-label="DIF Studio" data-testid="desktop-nav">
@@ -31,7 +46,7 @@
 			<span class="case-led" aria-hidden="true"></span><span>ESTÚDIO PRIVADO</span>
 		</div>
 		<p class="nav-heading">ESPAÇO DE TRABALHO</p>
-		<WorkspaceNav {currentPath} />
+		<WorkspaceNav {currentPath} navId="sidebar" />
 
 		<div class="sidebar-bottom">
 			<div class="reel-track" aria-hidden="true">
@@ -53,6 +68,7 @@
 				<button
 					class="menu-toggle"
 					type="button"
+					bind:this={menuToggle}
 					aria-label={mobileMenuOpen ? 'Fechar navegação' : 'Abrir navegação'}
 					aria-expanded={mobileMenuOpen}
 					aria-controls="mobile-menu"
@@ -72,16 +88,18 @@
 		</header>
 
 		<div id="mobile-menu" class="mobile-menu" hidden={!mobileMenuOpen}>
-			<WorkspaceNav {currentPath} onNavigate={() => (mobileMenuOpen = false)} />
+			<WorkspaceNav {currentPath} navId="drawer" onNavigate={() => (mobileMenuOpen = false)} />
 		</div>
 
-		<main id="workspace-main" class="workspace-content" tabindex="-1"><slot /></main>
+		<main id="workspace-main" bind:this={workspaceMain} class="workspace-content" tabindex="-1">
+			<slot />
+		</main>
 		<footer class="workspace-footer">
 			<span>ESTÚDIO DIF</span><span>RASCUNHOS E CANÔNE PERMANECEM SOB CONTROLE DA AUTORA</span>
 		</footer>
 	</div>
 
-	<nav class="mobile-dock" aria-label="Navegação rápida"><WorkspaceNav {currentPath} mobile /></nav>
+	<div class="mobile-dock"><WorkspaceNav {currentPath} mobile navId="dock" /></div>
 </div>
 
 <style>
@@ -312,7 +330,18 @@
 		gap: 0.7rem;
 	}
 
+	.topbar-start {
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+
+	.topbar-state {
+		flex: 0 0 auto;
+	}
+
 	.console-label {
+		min-width: 0;
+		overflow: hidden;
 		color: var(--dim);
 		font-family: var(--mono);
 		font-size: 0.62rem;
@@ -320,8 +349,12 @@
 	}
 
 	.console-label strong {
+		min-width: 0;
+		overflow: hidden;
 		color: var(--paper);
 		font-weight: 500;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.build-mark {
@@ -346,6 +379,11 @@
 
 	.workspace-content:focus {
 		outline: none;
+	}
+
+	.workspace-content:focus-visible {
+		outline: 2px solid var(--cyan);
+		outline-offset: 6px;
 	}
 
 	.workspace-footer {
@@ -446,6 +484,23 @@
 		}
 		.workspace-content {
 			padding-inline: 1rem;
+		}
+	}
+
+	@media (max-width: 380px) {
+		.topbar {
+			gap: 0.5rem;
+			padding-inline: 0.75rem;
+		}
+		.topbar-start {
+			gap: 0.5rem;
+		}
+		.topbar-state {
+			gap: 0.35rem;
+		}
+		.topbar-state :global(.status-pill) {
+			padding: 0.3rem 0.38rem;
+			font-size: 0.56rem;
 		}
 	}
 

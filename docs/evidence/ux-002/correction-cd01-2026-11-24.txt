@@ -1,0 +1,114 @@
+DIF-UX-WO-002/CD-01 — CORRECTION EVIDENCE (pt-BR)
+Data: 2026-11-24
+Issue: #78 · EPIC #76 · PR: #95 (Draft)
+Auditoria de origem: https://github.com/KayzenRoot/dep-instfinal/pull/95#issuecomment-7143348968
+Veredito da auditoria: CORRECTION REQUIRED
+Veredito desta correção: aguardando CI/auditoria independente; sem merge
+
+====================================================================
+1. SOURCE CHECK FRESCO
+====================================================================
+- main: 449642d687f2aee4ce8c823e1b427681fdcad71c
+- PR #95 head de origem: 2f04dc97bd9c2e289d90f546746d001cfa678601
+- PR #75: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8 — Draft/OPEN,
+  intocada.
+- Master visual: 9/9 imagens verificadas (`verify-images.mjs`).
+- Ruleset main 28005320 ativo, sem bypass; Preview fail-closed preservado.
+- Hashes antes da correção:
+  - app.css 6d7b7f546fc04d56b9fd83c71205f4c43d112b549955e7d64485d754abd723df
+  - AppShell 48ceb8f13378ebc6bb5f1153abe8e522f6170a77bf6246a083fc3987c9863bc0
+  - WorkspaceNav c4ad5919723c2b8f322baf8d98d5285db86b8ac451293ddc39ef0790a8bf44b2
+  - nav-items.ts 25a2aa7b1c10ee8bf8898eb8f642a882b51893a106ee563059f4a91d68361f7d
+  - shell-navigation.spec.ts fe83cf841cc24d6d3dfa8c58611b8d26a5f25a30e0e9fc0292ae1d6126f15f03
+
+====================================================================
+2. F01 — IDs ARIA ÚNICOS / NAV ANINHADO
+====================================================================
+- `WorkspaceNav.svelte` recebeu `navId` explícito (`sidebar`, `drawer`, `dock`)
+  e gera `id="${navId}-group-${group.id}"`; cada `ul[aria-labelledby]` aponta
+  para o rótulo da própria instância, inclusive com sidebar e drawer montados
+  simultaneamente no DOM.
+- `AppShell.svelte` deixou de envolver o dock em `<nav>`; o wrapper agora é
+  `<div class="mobile-dock">` e o único landmark é o `<nav>` interno do
+  WorkspaceNav (mobile).
+- Testes E2E auditam: unicidade de todos os IDs do documento, existência de
+  todos os alvos `aria-labelledby`, pertencimento do alvo ao mesmo `<nav>` e
+  ausência de `nav nav` em 390/320/1440.
+
+====================================================================
+3. F02 — FOCO NO ESCAPE E SKIP LINK
+====================================================================
+- `AppShell.svelte` guarda `menuToggle` e `workspaceMain`; ao pressionar Escape
+  com foco dentro do drawer, fecha e devolve o foco ao toggle após `tick()`.
+  Navegação efetiva não devolve foco ao toggle.
+- Skip link agora usa handler que previne o hash e chama `workspaceMain.focus()`;
+  `main:focus-visible` exibe outline cyan, mantendo foco visível.
+- Testes E2E com teclado real: Tab → skip link; Tab → toggle; Enter → abre;
+  Tab → primeiro link do drawer; Escape → fecha e toggle recebe foco;
+  Shift+Tab → skip link; Enter → `#workspace-main` recebe foco. Também verifica
+  `box-shadow` de foco do toggle e que clicar num link não rouba foco para o
+  toggle.
+
+====================================================================
+4. F03 — 320PX, REDUCED MOTION, CONTRASTE E FOCO
+====================================================================
+- Viewport mínimo de 320px incluído na suíte de overflow e nos screenshots;
+  topbar tem `min-width: 0`, label truncável e ajuste em `max-width: 380px`.
+- Drawer e dock verificados em 320px: 22 links no drawer, 5 no dock,
+  "Cânone e análise" visível, sem overflow horizontal.
+- `ActionButton` em `prefers-reduced-motion`: hover lift desativado
+  (`transform: none`) além da transição global curta.
+- E2E com `emulateMedia({ reducedMotion: 'reduce' })`: hover no link não aplica
+  transform e transições ficam ≤ 0,02s.
+- Contraste calculado (WCAG):
+  - #F4F7FF / #11192B = 16.36:1 (AAA)
+  - #A5B3D1 / #11192B = 8.32:1 (AAA)
+  - #A5B3D1 / #080C18 = 9.26:1 (AAA)
+  - #00D8F5 / #11192B = 10.14:1 (AAA)
+  - #22D3A6 / #11192B = 9.13:1 (AAA)
+  - #F87171 / #11192B = 6.34:1 (AA)
+  - #7E8CAB / #11192B = 5.20:1 (AA)
+- Screenshots previstos: shell-320/390/768/1440/1920.png,
+  shell-mobile-menu-320/390.png e shell-focus-toggle-390.png.
+
+====================================================================
+5. F04 — REPRESENTAÇÃO DECLARATIVA SEM MANIPULAR MÉTRICAS
+====================================================================
+- Dados de navegação movidos para `src/lib/components/nav-items.json`,
+  formatado normalmente, sem `prettier-ignore`, sem exclusões CPD novas e sem
+  alteração de thresholds.
+- `nav-items.ts` apenas valida o glifo contra `GLYPH_NAMES`, converte os dados e
+  expõe as funções puras; a tabela de 6 grupos/22 rotas segue legível.
+- Testes de modelo cobrem cobertura das rotas reais, ordem exata dos grupos e
+  destinos, conjunto de glifos conhecidos, unicidade, dock e path ativo.
+- Se o SonarCloud ainda apontar CPD/falso positivo em JSON, a correção será
+  registrada como falso positivo com justificativa — sem nova exclusão.
+
+====================================================================
+6. PRESERVAÇÃO
+====================================================================
+- 22 rotas de nível superior mantidas, incluindo `/app/identity`.
+- Master 9/9; ADR-001 PROPOSED; PR #75 Draft intocada.
+- Nenhuma alteração de Auth/Supabase/RLS/Cloudinary/R2/APIs/schema/migrations.
+- Preview fail-closed; produção não é tocada por esta correção.
+- Nenhum merge, deploy de produção, promoção de checkpoint ou início de #79.
+
+====================================================================
+7. TESTES / CI (A PREENCHER APÓS O HEAD FINAL)
+====================================================================
+- `npm run check`: PASS (0 erros/0 warnings).
+- `npm run lint`: PASS.
+- `nav-items.test.ts`: 7/7 PASS.
+- `npm test`: PASS — 58 arquivos, 372 testes PASS / 3 skipped (61 arquivos).
+- `npm run build`: PASS (adapter-node).
+- CI/Sonar/Socket/Playwright: pendente no novo HEAD.
+- Checkpoint Delta PROPOSED: docs/evidence/ux-002/checkpoint-delta-proposed-cd01.txt.
+
+====================================================================
+8. RISCO RESIDUAL / SEGREDOS
+====================================================================
+- Credenciais antigas de Preview/Cloudinary não foram rotacionadas nesta
+  correção; nenhum valor foi lido ou exibido. Se houve exposição fora do
+  controle, a rotação exige autorização específica.
+- A cobertura do SonarCloud é de código novo; não deve ser confundida com
+  cobertura de testes funcional.

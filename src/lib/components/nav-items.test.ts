@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { GLYPH_NAMES } from './glyph';
 import { NAV_GROUPS, NAV_ITEMS, groupLabelForPath, isActivePath } from './nav-items';
 
 function topLevelAppRoutes(): string[] {
@@ -28,6 +29,40 @@ describe('Neon Glass navigation model', () => {
 				expect(item.path.startsWith('/app')).toBe(true);
 				expect(item.label.trim()).not.toBe('');
 			}
+		}
+	});
+
+	it('locks the groups, order and route destinations', () => {
+		expect(NAV_GROUPS.map((group) => group.label)).toEqual([
+			'Visão geral',
+			'Produção',
+			'Visual',
+			'Áudio e texto',
+			'Cânone e análise',
+			'Sistema',
+		]);
+		expect(NAV_GROUPS.map((group) => group.items.map((item) => item.path))).toEqual([
+			['/app'],
+			[
+				'/app/series',
+				'/app/episodes',
+				'/app/editor',
+				'/app/storyboard',
+				'/app/timeline',
+				'/app/director',
+				'/app/hooks',
+			],
+			['/app/covers', '/app/style', '/app/library', '/app/color', '/app/video'],
+			['/app/narration', '/app/audio', '/app/captions'],
+			['/app/identity', '/app/continuity', '/app/finale', '/app/retention'],
+			['/app/export', '/app/settings'],
+		]);
+	});
+
+	it('uses only glyph names known to NavGlyph', () => {
+		const known = new Set<string>(GLYPH_NAMES);
+		for (const item of NAV_ITEMS) {
+			expect(known.has(item.glyph)).toBe(true);
 		}
 	});
 

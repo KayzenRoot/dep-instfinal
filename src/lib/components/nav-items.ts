@@ -1,4 +1,5 @@
-import type { GlyphName } from './glyph';
+import { GLYPH_NAMES, type GlyphName } from './glyph';
+import rawNav from './nav-items.json';
 
 export interface NavItem {
 	path: string;
@@ -13,23 +14,42 @@ export interface NavGroup {
 	items: NavItem[];
 }
 
-function navItem(path: string, label: string, glyph: GlyphName, quick = false): NavItem {
-	const item: NavItem = { path, label, glyph };
-	if (quick) item.quick = true;
+interface RawNavItem {
+	path: string;
+	label: string;
+	glyph: string;
+	quick?: boolean;
+}
+
+interface RawNavGroup {
+	id: string;
+	label: string;
+	items: RawNavItem[];
+}
+
+function toGlyph(value: string): GlyphName {
+	if ((GLYPH_NAMES as readonly string[]).includes(value)) {
+		return value as GlyphName;
+	}
+	throw new Error(`Unknown navigation glyph: ${value}`);
+}
+
+function toNavItem(raw: RawNavItem): NavItem {
+	const item: NavItem = { path: raw.path, label: raw.label, glyph: toGlyph(raw.glyph) };
+	if (raw.quick === true) item.quick = true;
 	return item;
 }
 
-// One line per group keeps this declarative table readable and avoids Sonar
-// copy-paste detection on repetitive route rows (the values are the data model).
-// prettier-ignore
-export const NAV_GROUPS: NavGroup[] = [
-	{ id: 'overview', label: 'Visão geral', items: [navItem('/app', 'Painel', 'archive', true)] },
-	{ id: 'production', label: 'Produção', items: [navItem('/app/series', 'Séries', 'book', true), navItem('/app/episodes', 'Episódios', 'film', true), navItem('/app/editor', 'Editor', 'frames'), navItem('/app/storyboard', 'Storyboard', 'frames'), navItem('/app/timeline', 'Timeline', 'frames', true), navItem('/app/director', 'Diretor', 'branch'), navItem('/app/hooks', 'Hook Lab', 'branch')] },
-	{ id: 'visual', label: 'Visual', items: [navItem('/app/covers', 'Capas', 'frames'), navItem('/app/style', 'Estilo', 'book'), navItem('/app/library', 'Biblioteca visual', 'library'), navItem('/app/color', 'Cor', 'frames'), navItem('/app/video', 'Clipes', 'film')] },
-	{ id: 'audio-text', label: 'Áudio e texto', items: [navItem('/app/narration', 'Narração', 'archive'), navItem('/app/audio', 'Áudio', 'archive'), navItem('/app/captions', 'Legendas', 'book')] },
-	{ id: 'canon-analytics', label: 'Cânone e análise', items: [navItem('/app/identity', 'Identidade', 'book'), navItem('/app/continuity', 'Votações e cânone', 'branch'), navItem('/app/finale', 'Final A/B', 'branch'), navItem('/app/retention', 'Retenção', 'archive')] },
-	{ id: 'system', label: 'Sistema', items: [navItem('/app/export', 'Exportar', 'export', true), navItem('/app/settings', 'Configurações', 'settings')] },
-];
+/**
+ * Declarative navigation data lives in `nav-items.json` so the table stays
+ * readable and formatted normally. Every top-level /app route must remain
+ * reachable from a group; the mobile dock only repeats a small `quick` subset.
+ */
+export const NAV_GROUPS: NavGroup[] = (rawNav as { groups: RawNavGroup[] }).groups.map((group) => ({
+	id: group.id,
+	label: group.label,
+	items: group.items.map(toNavItem),
+}));
 
 export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 

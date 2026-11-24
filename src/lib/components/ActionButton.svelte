@@ -118,6 +118,9 @@
 		.action-button {
 			transition: none;
 		}
+		.action-button:hover:not(:disabled) {
+			transform: none;
+		}
 		.spinner {
 			animation-duration: 1.6s;
 		}
