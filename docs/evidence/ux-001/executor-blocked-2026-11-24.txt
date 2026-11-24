@@ -1,0 +1,51 @@
+DIF-UX-WO-001 — executor evidence (2026-11-24)
+STATUS: BLOCKED — original ZIP not reachable from the executor environment.
+
+CONTEXT LOCK
+- Epic: #76.
+- Work Order: #77.
+- PR: #91 (Draft, branch docs/dif-ux-wo-001-neon-glass-master-v1).
+- Base main: 66a997ee5d159a152b3ecb6ffd35bbf3acba855c.
+- Branch head at execution: 005e2cb75aae01dd65871b77aa37f4328b895030.
+- PR #75 was not read or modified.
+
+SOURCE CHECK
+- docs/SOURCE_PACK.md, CONTEXT_LOCK.md, CHECKPOINT_DELTA.md and ADR_V2_PROPOSED.md contain no newer DIF-UX decision that changes this WO.
+- The WO-001 branch adds only the visual-master contract, verifier, importer and workflow; no screens/ PNGs are present.
+- GitHub PR #91 and issue #77 comments explicitly state the nine originals exist only in the owner's ChatGPT conversation, not in GitHub.
+
+ZIP SEARCH (read-only)
+- Checked C:\Users\csn19\Downloads, Desktop, Documents, OneDrive, .zcode and AppData/Temp; no file named
+  DIF_Studio_Neon_Glass_Visual_Master_v1.zip and no extracted 01-login/02-dashboard/05-editor/09-settings PNGs.
+- Checked C:\Users\csn19\.zcode\dif-secrets (project private assets); only unrelated acceptance/export ZIPs.
+- The in-app browser had no ChatGPT session (chatgpt.com showed "Log in"); the IAB cannot read the external Chrome conversation.
+- No different images were downloaded, generated or substituted.
+
+LOCAL COMMANDS
+- node --test docs/design/neon-glass-v1/verify-images.test.mjs -> 5/5 PASS.
+- node docs/design/neon-glass-v1/verify-images.mjs --manifest-only -> "0/9 imagens verificadas (manifest-only)" PASS.
+- node docs/design/neon-glass-v1/verify-images.mjs -> FAIL ENOENT screens/01-login.png (expected; binaries absent).
+- npm run check:baseline -> local format:check fails on 336 pre-existing files due to Windows CRLF/Prettier drift; this is not introduced by WO-001. The GitHub quality workflow at head 005e2cb passed.
+
+GITHUB RESULTS (head 005e2cb)
+- DIF Studio CI / quality: PASS (run 45417897965).
+- DIF UX visual master integrity: FAIL (run 45417897471) because the nine PNGs are absent; the workflow is fail-closed by design.
+- SonarCloud: PASS. Socket Security: PASS. Vercel preview: PASS.
+
+REQUIRED OWNER ACTION
+Place the original ZIP at:
+  C:\Users\csn19\Downloads\DIF_Studio_Neon_Glass_Visual_Master_v1.zip
+(or log into ChatGPT in the in-app browser so the executor can download the original attachment).
+
+NEXT EXECUTOR STEPS (after the ZIP is available)
+1. python3 docs/design/neon-glass-v1/import-master.py "C:\Users\csn19\Downloads\DIF_Studio_Neon_Glass_Visual_Master_v1.zip"
+2. node docs/design/neon-glass-v1/verify-images.mjs (must print "9/9 imagens verificadas").
+3. Commit docs/design/neon-glass-v1/screens/*.png and the updated manifest without recompression.
+4. Push to PR #91, wait for the visual-master workflow and quality, then read back all nine SHA-256 values from GitHub.
+5. Update the Evidence Bundle with expected/calculated hashes, dimensions, commit SHA and PASS/FAIL per image.
+6. Only then produce the final APPROVED/CORRECTION REQUIRED audit; no merge.
+
+DO NOT
+- Do not fabricate hashes or flip exists_in_repo without binaries.
+- Do not replace, resize, recolor or recompress the images.
+- Do not merge PR #91, touch PR #75 or alter production.

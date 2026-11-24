@@ -1,0 +1,24 @@
+DIF STUDIO UI/UX IMPLEMENTATION MATRIX - PLANNED
+Parent #76, Source Check main 66a997ee5d159a152b3ecb6ffd35bbf3acba855c. Changes isolated from PR #75.
+Reference files and nine original PNGs committed in PR #91 (SHA-256 read-back verified). Integration into main and checkpoint promotion pending.
+
+#77 DIF-UX-WO-001: master images/manifest/ADR/source addendum, no UI (technical audit APPROVED; integration pending)
+#78 DIF-UX-WO-002: CSS tokens, AppShell, WorkspaceNav, maintain all routes
+#79 DIF-UX-WO-003: InfoTooltip, glossary, guided onboarding
+#80 DIF-UX-WO-004: Login only actual Supabase auth
+#81 DIF-UX-WO-005: dashboard actual series/media/render metrics
+#82 DIF-UX-WO-006: series overview/cards/filters
+#83 DIF-UX-WO-007: episodes list/drawer/status
+#84 DIF-UX-WO-008: editor + timeline professional UI, preserve edit-plan contracts
+#85 DIF-UX-WO-009: style presets inheritance and preview
+#86 DIF-UX-WO-010: media (Cloudinary/R2) private
+#87 DIF-UX-WO-011: retention analytics only versioned/manual imports
+#88 DIF-UX-WO-012: settings based on actually configured integrations
+#89 DIF-UX-WO-013: keyboard/touch/mobile/a11y/perf/visual regression all nine
+#90 DIF-UX-WO-014: approved audit, checkpoint delta, release validation
+
+DEPENDENCIES:
+77 then 78; 79 after 78. Screens 80-88 after 78/79.
+89 only after screen WOs approved; 90 only after 77-89 approved and release gates.
+Stop with defect HIGH/CRITICAL or any current WO needing correction.
+Screenshots and sample numbers are illustrative and not implemented product claims.

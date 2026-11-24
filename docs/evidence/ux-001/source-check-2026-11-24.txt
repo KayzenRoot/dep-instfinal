@@ -1,0 +1,8 @@
+DIF-UX-WO-001 / SOURCE CHECK / 2026-11-24
+Base main 66a997ee5d159a152b3ecb6ffd35bbf3acba855c; Git branch docs/dif-ux-wo-001-neon-glass-master-v1; PR #75 Draft head 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8.
+Existing assets/implementation read: src/app.css, AppShell.svelte, WorkspaceNav.svelte, /app/+page, /app/editor, /app/style, /app/settings, /app/retention, docs/SOURCE_PACK.md, docs/CHECKPOINT_DELTA.md, docs/ADR_V2_PROPOSED.md.
+NO UI FILES CHANGED; docs-only source addendum, no source-pack rewrite, no checkpoint promotion.
+Image originals: all nine 1672x941 PNGs in owner conversation ZIP, SHA256 recorded in manifest; BINARY ASSETS NOT YET PRESENT IN GITHUB (required to finish WO-001).
+Preflight risk: separate PR #75 blocked due main Sonar/ruleset and preview old credentials. No merge/deploy.
+Acceptance pending: 9 binaries versioned, hash read-back, independent review + CI.
+STATUS: PROPOSED, NOT COMPLETE, CODE UNMODIFIED.

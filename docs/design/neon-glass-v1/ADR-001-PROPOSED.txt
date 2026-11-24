@@ -1,0 +1,37 @@
+DIF-UX-ADR-001 - NEON GLASS (PROPOSED / NOT PROMOTED)
+Date 2026-11-24. Source Check 66a997ee5d159a152b3ecb6ffd35bbf3acba855c. EPIC #76 / WO-001 #77.
+
+DECISION CANDIDATE:
+Use a cinematic neon glass UI theme for the existing private DIF Studio:
+dark graphite, cyan-violet-magenta-emerald accents, professional timeline/editor,
+glass UI with controlled blur, cards with hover microinteractions, and accessible
+contextual tooltips explaining every real feature.
+
+RATIONALE:
+Editor image 05-editor.png gives a dense but structured production workspace.
+Dashboard image 02-dashboard.png sets the reusable layout and information hierarchy.
+Other seven images complete the route-specific visual targets consistently.
+Instead of 9 unrelated themes, select this single design language.
+
+ALTERNATIVES / TRADEOFFS:
+Current ink/phosphor horror archival style: less modern and less explanatory.
+Pure minimal flat dark style: fast but lacks the requested visual identity.
+Unlimited neon and blur: visually striking but harmful for readability, performance and accessibility.
+Decision: balanced Neon Glass with opaque fallback and reduced-motion support.
+
+BOUNDARIES:
+Screenshots are conceptual. No real product capabilities are authorized by a mockup;
+do not introduce OAuth, analytics data, paid services, teams, persistence, auth changes,
+new permission flows, storage quota reports, automatic posting, or phantom video editor
+features without separate scoped proof.
+Existing Auth/Supabase owner-only/RLS, Cloudinary image privacy, R2 video privacy,
+FFmpeg worker isolation, edition/versioning, manual canon remain approved and unchanged.
+All existing app routes must remain accessible via organized menus/submenus.
+
+IMPLEMENTATION GATES:
+Do not implement until nine original PNGs are checked in and hashed (WO-001).
+Do not merge this docs-only PR while PR #75 or its production gates are blocking
+unsafe GitHub/Vercel changes. Source lock and audit per increment. Each feature WO
+separately reviewed; accessibility, performance, E2E, no false metrics.
+The assistant's design selection is delegated by the owner, but ADR is PROPOSED
+until evidence/acceptance read-back; checkpoint stays untouched.

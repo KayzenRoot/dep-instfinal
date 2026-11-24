@@ -1,0 +1,25 @@
+name: DIF UX visual master integrity
+on:
+  pull_request:
+    paths:
+      - 'docs/design/neon-glass-v1/**'
+      - '.github/workflows/dif-ux-visual-master.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  dif-ux-master:
+    name: Neon Glass assets SHA256 9 of 9
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Test fail-closed image verifier
+        run: node --test docs/design/neon-glass-v1/verify-images.test.mjs
+      - name: Python optimized-mode importer regression
+        run: python3 -O -m unittest discover -s docs/design/neon-glass-v1 -p 'test_import_master.py' -v
+      - name: Verify every master PNG against committed manifest
+        run: node docs/design/neon-glass-v1/verify-images.mjs

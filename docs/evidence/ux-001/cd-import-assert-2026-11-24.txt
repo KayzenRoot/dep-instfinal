@@ -1,0 +1,12 @@
+DIF-UX-WO-001 — CD-IMPORT-ASSERT-001, 2026-11-24
+Base HEAD a0e6a26a3d4c257453d7168e920a351cf7e61e74.
+Objective: remove the low-risk optimized-Python assertion bypass recorded by independent audit.
+Change: use explicit ValueError fail-closed checks in import-master.py, and validate the
+manifest state before writing any image files. The nine already committed PNG blobs and
+their manifest SHA256 values are unchanged. Python unittest exercises good inputs,
+corrupted SHA, invalid image order and invalid manifest state; CI runs tests under
+python3 -O to prove that no test-gate depends on Python assert statements.
+No new services, network access, production deployment, interface or checkpoint.
+ACCEPTANCE: Python 4/4 PASS in optimized mode, Node 5/5 PASS, 9/9 original images
+PASS, full CI PASS, SonarCloud/Socket PASS on exact HEAD.
+STOP: do not merge #91 until release governance and main Sonar gates are resolved.
