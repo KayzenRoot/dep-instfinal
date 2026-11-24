@@ -37,9 +37,8 @@ export const GET: RequestHandler = async (event) => {
 		version: detail.version,
 		profile: detail.profile,
 	};
-	const slug =
-		trimEdgeCharacters(detail.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), '-') ||
-		'character';
+	const rawSlug = detail.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+	const slug = trimEdgeCharacters(rawSlug, '-') || 'character';
 	const base = `identity-${slug}-v${detail.version}`;
 	if (format === 'md') {
 		const body = buildIdentityChecklistMarkdown(detail.seriesTitle, [record], episodeNumber);
