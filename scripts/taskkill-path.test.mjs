@@ -10,7 +10,10 @@ test('resolves a protected system executable without relying on PATH', () => {
 });
 
 test('supports an alternate local Windows drive', () => {
-	assert.equal(resolveTaskkillPath({ SystemRoot: 'D:\\Windows' }), 'D:\\Windows\\System32\\taskkill.exe');
+	assert.equal(
+		resolveTaskkillPath({ SystemRoot: 'D:\\Windows' }),
+		'D:\\Windows\\System32\\taskkill.exe',
+	);
 });
 
 test('rejects relative, UNC and user-writable directories', () => {
