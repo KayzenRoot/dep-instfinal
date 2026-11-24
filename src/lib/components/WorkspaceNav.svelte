@@ -6,6 +6,7 @@
 	export let currentPath = '/app';
 	export let mobile = false;
 	export let navId = 'primary';
+	export let wrapLabels = false;
 	export let onNavigate: (() => void) | undefined = undefined;
 
 	function groupLabelId(groupId: string): string {
@@ -16,6 +17,7 @@
 <nav
 	aria-label={mobile ? 'Navegação rápida' : 'Navegação principal'}
 	class:mobile-nav={mobile}
+	class:wrap-labels={wrapLabels}
 	data-testid={mobile ? 'quick-nav' : 'workspace-nav'}
 	data-nav-instance={navId}
 >
@@ -112,6 +114,17 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.wrap-labels .nav-link {
+		min-height: 2.7rem;
+		padding-block: 0.5rem;
+	}
+
+	.wrap-labels .nav-label {
+		overflow: visible;
+		line-height: 1.28;
+		white-space: normal;
 	}
 
 	.nav-link:hover {

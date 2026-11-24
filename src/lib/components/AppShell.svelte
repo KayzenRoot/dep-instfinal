@@ -88,7 +88,12 @@
 		</header>
 
 		<div id="mobile-menu" class="mobile-menu" hidden={!mobileMenuOpen}>
-			<WorkspaceNav {currentPath} navId="drawer" onNavigate={() => (mobileMenuOpen = false)} />
+			<WorkspaceNav
+				{currentPath}
+				navId="drawer"
+				wrapLabels
+				onNavigate={() => (mobileMenuOpen = false)}
+			/>
 		</div>
 
 		<main id="workspace-main" bind:this={workspaceMain} class="workspace-content" tabindex="-1">
@@ -501,6 +506,9 @@
 		.topbar-state :global(.status-pill) {
 			padding: 0.3rem 0.38rem;
 			font-size: 0.56rem;
+		}
+		.console-label > span {
+			display: none;
 		}
 	}
 

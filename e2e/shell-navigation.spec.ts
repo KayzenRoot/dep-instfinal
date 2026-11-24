@@ -86,6 +86,12 @@ test.describe('Neon Glass shell and navigation', () => {
 
 		await expect(page.locator('button[aria-controls="mobile-menu"]')).toBeVisible();
 		await expect(page.getByText('Sessão privada', { exact: true })).toBeVisible();
+		const sectionLabel = page.locator('.console-label strong');
+		await expect(sectionLabel).toHaveText('Visão geral');
+		expect(
+			await sectionLabel.evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
+			'section label must remain fully readable at 320px',
+		).toBe(true);
 
 		const dock = page.getByTestId('quick-nav');
 		await expect(dock).toBeVisible();
@@ -100,6 +106,13 @@ test.describe('Neon Glass shell and navigation', () => {
 		await expect(drawer).toBeVisible();
 		await expect(drawer.getByRole('link')).toHaveCount(22);
 		await expect(drawer.getByText('Cânone e análise', { exact: true })).toBeVisible();
+		for (const label of ['Biblioteca visual', 'Configurações']) {
+			const text = drawer.getByRole('link', { name: label, exact: true }).locator('.nav-label');
+			expect(
+				await text.evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
+				`${label} must wrap instead of clipping at 320px`,
+			).toBe(true);
+		}
 		await auditNavigationAria(page);
 
 		const measure = await page.evaluate(() => ({
