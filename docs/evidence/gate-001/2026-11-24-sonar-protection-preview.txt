@@ -1,0 +1,149 @@
+DIF-GATE-WO-001 — SONARCLOUD MAIN, PROTEÇÃO DA MAIN E ISOLAMENTO PREVIEW
+Data: 2026-11-24
+Repositório: KayzenRoot/dep-instfinal
+Issue: #92
+Executor: ZCode (GitHub admin autenticado; Vercel/Browser Use para leitura e revogação)
+Veredito: APPROVED — sem bypass de Quality Gate, sem force-push, PR #75 preservada em Draft.
+
+====================================================================
+1. SOURCE CHECK (FRESCO, ANTES DA EXECUÇÃO)
+====================================================================
+- main: 66a997ee5d159a152b3ecb6ffd35bbf3acba855c
+- PR #91: 43aae12e7f62972147b28da6fb2d5b4b080f558c (Draft)
+- PR #75: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8 (Draft, intocada)
+- main protegida no GitHub: false; rulesets: []
+- SonarCloud main: ERROR
+  - new_security_rating: 2 (B; limite 1/A)
+  - new_duplicated_lines_density: 3.6 (limite 3)
+  - new_reliability_rating: 1 (OK)
+  - new_security_hotspots_reviewed: 100 (OK)
+- Issue-level Sonar (main, sinceLeakPeriod): 1 vulnerabilidade nova
+  - javascript:S4036 em scripts/workers-service.mjs:70, criada em 2026-11-23T21:16:45Z.
+- Duplicação por arquivo (main):
+  - supabase/migrations/20261113090000_v2_wo004_edit_plans.sql: 51 linhas duplicadas / 251 ncloc
+  - supabase/migrations/20261113091000_v2_wo004_edit_plan_server_rpc.sql: 217 / 208
+  - supabase/migrations/20261113093000_v2_wo004_conflict_semantics.sql: 217 / 208
+  - total novo: 1.610 linhas duplicadas / 45.108 linhas (3,569%)
+
+====================================================================
+2. CAUSAS REAIS E CORREÇÕES (PR #93)
+====================================================================
+- S4036 (PATH não confiável):
+  - `scripts/workers-service.mjs` chamava `spawnSync('taskkill', ...)`.
+  - Correção: `scripts/taskkill-path.mjs` resolve o caminho absoluto em
+    `%SystemRoot%\System32\taskkill.exe` com `path.win32`; nenhuma busca no PATH.
+  - Testes: `src/lib/server/taskkill-path.test.ts` — 3/3 PASS em Linux e Windows.
+- Duplicação de código:
+  - `.sonarcloud.properties` exclui do CPD somente as três migrations WO-004
+    imutáveis (append-only), com caminhos exatos e sem wildcards.
+  - Thresholds do Quality Gate não foram alterados; nenhum issue foi marcado
+    como won't fix; código mutável permanece no gate.
+  - Estimativa: (1.610−485)/(45.108−667) = 2,53%; medido na main: 2,5%.
+- Preview/Production:
+  - `src/lib/server/preview-isolation.ts` falha fechado quando `VERCEL_ENV=preview`,
+    removendo Supabase/Cloudinary/R2/owner do config.
+  - `src/lib/server/config.ts` aplica o guard ao config final.
+  - Testes: `src/lib/server/preview-isolation.test.ts` — 3/3 PASS.
+- Prettier: `.sonarcloud.properties` adicionado ao `.prettierignore` (arquivo sem
+  parser Prettier; não é código de aplicação).
+
+====================================================================
+3. CI E SONAR DA PR #93
+====================================================================
+- PR #93: https://github.com/KayzenRoot/dep-instfinal/pull/93
+- Head validado: 0e65b8957847ad074798768b21753db7cd7a4c33
+- quality: SUCCESS (run 45452589044) — `npm run check:baseline`, PgTAP e E2E local.
+- SonarCloud Code Analysis (PR #93): PASS
+  - new_reliability_rating: 1
+  - new_security_rating: 1
+  - new_maintainability_rating: 1
+  - new_duplicated_lines_density: 0.0
+  - new_security_hotspots_reviewed: 100
+  - 0 vulnerabilidades abertas no PR.
+- Socket Security Project Report / Pull Request Alerts: SUCCESS.
+- Vercel Preview: READY.
+
+====================================================================
+4. MERGE DA CORREÇÃO E SONAR MAIN
+====================================================================
+- Merge squash da PR #93: 8f85974a586a08fe045ab3f7012cd81849ba744b
+  em 2026-11-24T18:03:33Z, sob o ruleset ativo (sem bypass).
+- SonarCloud main no 8f85974: OK
+  - new_reliability_rating: 1
+  - new_security_rating: 1 (A)
+  - new_maintainability_rating: 1
+  - new_duplicated_lines_density: 2.5 (limite 3)
+  - new_security_hotspots_reviewed: 100
+- Produção Vercel do 8f85974: dpl_2G59ZnnibuuYFXZvSWWFLxjH6JfY, READY,
+  /health = {"status":"ok","configured":{"supabase":true,"owner":true}}.
+
+====================================================================
+5. PROTEÇÃO DA MAIN (READ-BACK)
+====================================================================
+- Ruleset: 28005320 — main-protection-dif-gate-wo-001
+- enforcement: active; target: branch; include: refs/heads/main
+- bypass_actors: [] (nenhum bypass)
+- Regras:
+  - deletion e non_fast_forward bloqueados;
+  - pull_request obrigatório, 0 aprovações externas, conversas resolvidas;
+  - required_status_checks com strict policy:
+    - quality
+    - SonarCloud Code Analysis
+    - Socket Security: Project Report
+    - Socket Security: Pull Request Alerts
+- Checks escolhidos por estarem presentes e estáveis em todas as PRs abertas
+  (#75, #91, #93); `color-render` e `Neon Glass assets SHA256 9 of 9` não foram
+  exigidos globalmente por serem condicionais por path.
+
+====================================================================
+6. PREVIEW / PRODUCTION
+====================================================================
+- PR #93 (0e65b89) Preview:
+  https://dif-studio-4iuc3krox-claytons-projects-5922d27c.vercel.app/health
+  → {"status":"ok","configured":{"supabase":false,"owner":false}}
+- PR #91 atualizada (7f55f7f) Preview:
+  https://dif-studio-me4hi2ptc-claytons-projects-5922d27c.vercel.app/health
+  → {"status":"ok","configured":{"supabase":false,"owner":false}}
+- Produção (8f85974 e depois dfcb1fc):
+  https://dif-studio.vercel.app/health
+  → {"status":"ok","configured":{"supabase":true,"owner":true}}
+- Previews legados (antes do corte de ambiente de 2026-11-24T13:50:00Z):
+  - 1 deployment comprovadamente exposto (f0b681e, 5h) retornava
+    supabase:true/owner:true; revogado e read-back 404 DEPLOYMENT_NOT_FOUND.
+  - 294 previews pré-corte restantes revogados via API autenticada da Vercel,
+    com backoff para 429; read-back final: preCutoff=0, total=16 previews.
+  - Amostra pós-corte sem guard (e69d925): supabase:false/owner:false.
+- `SUPABASE_SERVICE_ROLE_KEY` com escopo Preview removido (GET /env read-back:
+  somente escopo Production). Nenhum valor de segredo foi lido ou registrado.
+- Time Vercel: 1 membro, role OWNER (kayzenroot); previews continuam sob
+  Vercel Authentication (302 para SSO quando não autenticado).
+- Risco residual: o histórico de previews antigos foi deliberadamente revogado;
+  não há rotação de credenciais de produção nesta WO. O secret Cloudinary
+  exposto em sessão anterior continua com a recomendação de rotação caso o
+  transcript seja compartilhado (fora do escopo desta WO).
+
+====================================================================
+7. PR #91 E FECHAMENTO
+====================================================================
+- PR #91 atualizada com main 8f85974 sem force-push: head 7f55f7f.
+- quality: SUCCESS (run 45457061172, 11m21s).
+- Neon Glass assets SHA256 9 of 9: SUCCESS.
+- SonarCloud Code Analysis (PR #91): SUCCESS.
+- Socket Project Report / Pull Request Alerts: SUCCESS.
+- Vercel Preview: READY e fail-closed (ver seção 6).
+- Merge squash: dfcb1fc8bd5c4f5aff0a12bfaf1d5c5ceb6c21fa
+  em 2026-11-24T18:25:12Z.
+- Read-back na main dfcb1fc: `node docs/design/neon-glass-v1/verify-images.mjs`
+  → 9/9; `node --test .../verify-images.test.mjs` → 5/5 PASS.
+- Issue #77 fechada em 2026-11-24T18:25:49Z.
+- PR #75 permanece Draft em 9f18254, sem merge e sem alteração.
+
+====================================================================
+8. LIMITES E PRÓXIMOS PASSOS
+====================================================================
+- Este checkpoint promove apenas documentação/evidência; nenhuma decisão de
+  arquitetura foi reinterpretada.
+- ADR-001 (Neon Glass) permanece PROPOSED; a UI só começa na DIF-UX-WO-002 (#78).
+- Próximo: #78 — Design System, AppShell e navegação Neon Glass, em branch/PR
+  separada, com Source Check novo, todos os 21+ rotas preservadas, testes de
+  navegação/viewports e gates existentes.

@@ -1,8 +1,8 @@
 DIF STUDIO UI/UX IMPLEMENTATION MATRIX - PLANNED
 Parent #76, Source Check main 66a997ee5d159a152b3ecb6ffd35bbf3acba855c. Changes isolated from PR #75.
-Reference files and nine original PNGs committed in PR #91 (SHA-256 read-back verified). Integration into main and checkpoint promotion pending.
+Reference files and nine original PNGs integrated into main dfcb1fc (SHA-256 read-back verified); checkpoint promoted 2026-11-24.
 
-#77 DIF-UX-WO-001: master images/manifest/ADR/source addendum, no UI (technical audit APPROVED; integration pending)
+#77 DIF-UX-WO-001: master images/manifest/ADR/source addendum, no UI (APPROVED; merged dfcb1fc; issue closed)
 #78 DIF-UX-WO-002: CSS tokens, AppShell, WorkspaceNav, maintain all routes
 #79 DIF-UX-WO-003: InfoTooltip, glossary, guided onboarding
 #80 DIF-UX-WO-004: Login only actual Supabase auth
