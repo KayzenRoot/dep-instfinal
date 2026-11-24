@@ -13,6 +13,12 @@ export interface NavGroup {
 	items: NavItem[];
 }
 
+function navItem(path: string, label: string, glyph: GlyphName, quick = false): NavItem {
+	const item: NavItem = { path, label, glyph };
+	if (quick) item.quick = true;
+	return item;
+}
+
 /**
  * Ordered navigation model. Every top-level /app route must remain reachable
  * from a group; the mobile dock only repeats a small `quick` subset while the
@@ -22,57 +28,57 @@ export const NAV_GROUPS: NavGroup[] = [
 	{
 		id: 'overview',
 		label: 'Visão geral',
-		items: [{ path: '/app', label: 'Painel', glyph: 'archive', quick: true }],
+		items: [navItem('/app', 'Painel', 'archive', true)],
 	},
 	{
 		id: 'production',
 		label: 'Produção',
 		items: [
-			{ path: '/app/series', label: 'Séries', glyph: 'book', quick: true },
-			{ path: '/app/episodes', label: 'Episódios', glyph: 'film', quick: true },
-			{ path: '/app/editor', label: 'Editor', glyph: 'frames' },
-			{ path: '/app/storyboard', label: 'Storyboard', glyph: 'frames' },
-			{ path: '/app/timeline', label: 'Timeline', glyph: 'frames', quick: true },
-			{ path: '/app/director', label: 'Diretor', glyph: 'branch' },
-			{ path: '/app/hooks', label: 'Hook Lab', glyph: 'branch' },
+			navItem('/app/series', 'Séries', 'book', true),
+			navItem('/app/episodes', 'Episódios', 'film', true),
+			navItem('/app/editor', 'Editor', 'frames'),
+			navItem('/app/storyboard', 'Storyboard', 'frames'),
+			navItem('/app/timeline', 'Timeline', 'frames', true),
+			navItem('/app/director', 'Diretor', 'branch'),
+			navItem('/app/hooks', 'Hook Lab', 'branch'),
 		],
 	},
 	{
 		id: 'visual',
 		label: 'Visual',
 		items: [
-			{ path: '/app/covers', label: 'Capas', glyph: 'frames' },
-			{ path: '/app/style', label: 'Estilo', glyph: 'book' },
-			{ path: '/app/library', label: 'Biblioteca visual', glyph: 'library' },
-			{ path: '/app/color', label: 'Cor', glyph: 'frames' },
-			{ path: '/app/video', label: 'Clipes', glyph: 'film' },
+			navItem('/app/covers', 'Capas', 'frames'),
+			navItem('/app/style', 'Estilo', 'book'),
+			navItem('/app/library', 'Biblioteca visual', 'library'),
+			navItem('/app/color', 'Cor', 'frames'),
+			navItem('/app/video', 'Clipes', 'film'),
 		],
 	},
 	{
 		id: 'audio-text',
 		label: 'Áudio e texto',
 		items: [
-			{ path: '/app/narration', label: 'Narração', glyph: 'archive' },
-			{ path: '/app/audio', label: 'Áudio', glyph: 'archive' },
-			{ path: '/app/captions', label: 'Legendas', glyph: 'book' },
+			navItem('/app/narration', 'Narração', 'archive'),
+			navItem('/app/audio', 'Áudio', 'archive'),
+			navItem('/app/captions', 'Legendas', 'book'),
 		],
 	},
 	{
 		id: 'canon-analytics',
 		label: 'Cânone e análise',
 		items: [
-			{ path: '/app/identity', label: 'Identidade', glyph: 'book' },
-			{ path: '/app/continuity', label: 'Votações e cânone', glyph: 'branch' },
-			{ path: '/app/finale', label: 'Final A/B', glyph: 'branch' },
-			{ path: '/app/retention', label: 'Retenção', glyph: 'archive' },
+			navItem('/app/identity', 'Identidade', 'book'),
+			navItem('/app/continuity', 'Votações e cânone', 'branch'),
+			navItem('/app/finale', 'Final A/B', 'branch'),
+			navItem('/app/retention', 'Retenção', 'archive'),
 		],
 	},
 	{
 		id: 'system',
 		label: 'Sistema',
 		items: [
-			{ path: '/app/export', label: 'Exportar', glyph: 'export', quick: true },
-			{ path: '/app/settings', label: 'Configurações', glyph: 'settings' },
+			navItem('/app/export', 'Exportar', 'export', true),
+			navItem('/app/settings', 'Configurações', 'settings'),
 		],
 	},
 ];
@@ -80,7 +86,10 @@ export const NAV_GROUPS: NavGroup[] = [
 export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 
 export function normalizePath(path: string): string {
-	const normalized = path.replace(/\/+$/, '');
+	let normalized = path;
+	while (normalized.length > 1 && normalized.endsWith('/')) {
+		normalized = normalized.slice(0, -1);
+	}
 	return normalized || '/';
 }
 
