@@ -123,6 +123,7 @@
 
 	.wrap-labels .nav-label {
 		overflow: visible;
+		overflow-wrap: anywhere;
 		line-height: 1.28;
 		white-space: normal;
 	}
