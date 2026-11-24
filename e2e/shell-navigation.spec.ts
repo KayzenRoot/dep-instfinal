@@ -15,7 +15,7 @@ test.describe('Neon Glass shell and navigation', () => {
 		await page.goto('/app');
 		await page.waitForLoadState('networkidle');
 
-		const toggle = page.getByRole('button', { name: 'Abrir navegação' });
+		const toggle = page.locator('button[aria-controls="mobile-menu"]');
 		await toggle.click();
 		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 		const drawer = page.locator('#mobile-menu');
@@ -105,7 +105,7 @@ test.describe('Neon Glass shell and navigation', () => {
 		await page.goto('/app');
 		await page.waitForLoadState('networkidle');
 
-		const toggle = page.getByRole('button', { name: 'Abrir navegação' });
+		const toggle = page.locator('button[aria-controls="mobile-menu"]');
 		await toggle.click();
 		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 		const drawer = page.locator('#mobile-menu');
