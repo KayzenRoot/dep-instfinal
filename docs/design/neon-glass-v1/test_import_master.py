@@ -12,7 +12,8 @@ import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location('dif_master_importer', ROOT / 'import-master.py')
-assert SPEC and SPEC.loader
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError('Não foi possível carregar o importador para os testes.')
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
