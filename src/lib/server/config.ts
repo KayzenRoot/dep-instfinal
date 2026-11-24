@@ -104,31 +104,34 @@ export function getAppConfig(): AppConfig {
 		? Math.max(5, Math.min(configuredPartSize, 64))
 		: 8;
 
-	return isolatePreviewBackends({
-		supabaseUrl: validSupabaseUrl,
-		supabasePublishableKey: publishableKey,
-		supabaseServiceRoleKey: serviceRoleKey,
-		ownerUserId: validOwnerUserId,
-		appOrigin: validAppOrigin ? new URL(validAppOrigin).origin : undefined,
-		cloudinaryCloudName: cloudName,
-		cloudinaryApiKey,
-		cloudinaryApiSecret,
-		maxUploadBytes: maxUploadMb * 1024 * 1024,
-		supabaseConfigured: Boolean(validSupabaseUrl && publishableKey),
-		supabaseAdminConfigured: Boolean(validSupabaseUrl && serviceRoleKey),
-		ownerConfigured: Boolean(validOwnerUserId),
-		cloudinaryConfigured: Boolean(cloudName && cloudinaryApiKey && cloudinaryApiSecret),
-		r2AccountId,
-		r2AccessKeyId,
-		r2SecretAccessKey,
-		r2Bucket,
-		r2Endpoint,
-		r2Configured: Boolean(
-			r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2Bucket && r2Endpoint,
-		),
-		videoStorageDriver: storageDriver,
-		videoProbeDriver,
-		maxVideoBytes: maxVideoMb * 1024 * 1024,
-		videoPartBytes: partSizeMb * 1024 * 1024,
-	}, process.env.VERCEL_ENV);
+	return isolatePreviewBackends(
+		{
+			supabaseUrl: validSupabaseUrl,
+			supabasePublishableKey: publishableKey,
+			supabaseServiceRoleKey: serviceRoleKey,
+			ownerUserId: validOwnerUserId,
+			appOrigin: validAppOrigin ? new URL(validAppOrigin).origin : undefined,
+			cloudinaryCloudName: cloudName,
+			cloudinaryApiKey,
+			cloudinaryApiSecret,
+			maxUploadBytes: maxUploadMb * 1024 * 1024,
+			supabaseConfigured: Boolean(validSupabaseUrl && publishableKey),
+			supabaseAdminConfigured: Boolean(validSupabaseUrl && serviceRoleKey),
+			ownerConfigured: Boolean(validOwnerUserId),
+			cloudinaryConfigured: Boolean(cloudName && cloudinaryApiKey && cloudinaryApiSecret),
+			r2AccountId,
+			r2AccessKeyId,
+			r2SecretAccessKey,
+			r2Bucket,
+			r2Endpoint,
+			r2Configured: Boolean(
+				r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2Bucket && r2Endpoint,
+			),
+			videoStorageDriver: storageDriver,
+			videoProbeDriver,
+			maxVideoBytes: maxVideoMb * 1024 * 1024,
+			videoPartBytes: partSizeMb * 1024 * 1024,
+		},
+		process.env.VERCEL_ENV,
+	);
 }
