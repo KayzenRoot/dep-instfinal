@@ -5,8 +5,10 @@ Status: PROPOSED — NÃO PROMOVIDO
 - **Work Order:** DIF-UX-WO-002 / CD-01 · issue #78 · PR #95 (Draft)
 - **Base:** main 449642d687f2aee4ce8c823e1b427681fdcad71c
 - **Head de origem da auditoria:** 2f04dc97bd9c2e289d90f546746d001cfa678601
-- **Head desta correção:** preencher após commit/push final.
+- **Head desta correção:** d687be6a129ab38a847d39465b0673d30961b7a1
 - **Auditoria de origem:** CORRECTION REQUIRED; F01–F04 corrigidos nesta PR.
+- **CI:** run 45487743954 PASS (Vitest 372/3 skip, PgTAP, E2E 25/25, build);
+  Sonar A/0,0%; Socket PASS; Preview fail-closed.
 - **Entregue:** IDs ARIA por instância, dock sem landmark aninhado, retorno de
   foco no Escape, skip link focando main, 320px coberto, reduced-motion real,
   ActionButton sem lift, dados de navegação em JSON legível e testes de ordem.

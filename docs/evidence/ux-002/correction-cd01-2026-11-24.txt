@@ -3,7 +3,8 @@ Data: 2026-11-24
 Issue: #78 · EPIC #76 · PR: #95 (Draft)
 Auditoria de origem: https://github.com/KayzenRoot/dep-instfinal/pull/95#issuecomment-7143348968
 Veredito da auditoria: CORRECTION REQUIRED
-Veredito desta correção: aguardando CI/auditoria independente; sem merge
+Head desta correção: d687be6a129ab38a847d39465b0673d30961b7a1
+Veredito desta correção: correções aplicadas e gates verdes; aguardando auditoria independente; sem merge
 
 ====================================================================
 1. SOURCE CHECK FRESCO
@@ -53,9 +54,14 @@ Veredito desta correção: aguardando CI/auditoria independente; sem merge
 4. F03 — 320PX, REDUCED MOTION, CONTRASTE E FOCO
 ====================================================================
 - Viewport mínimo de 320px incluído na suíte de overflow e nos screenshots;
-  topbar tem `min-width: 0`, label truncável e ajuste em `max-width: 380px`.
+  topbar tem `min-width: 0`, label truncável e ajuste em `max-width: 380px`
+  (o prefixo decorativo "CONSOLE /" é omitido e o nome da seção permanece
+  inteiro).
 - Drawer e dock verificados em 320px: 22 links no drawer, 5 no dock,
-  "Cânone e análise" visível, sem overflow horizontal.
+  "Cânone e análise" visível, sem overflow horizontal. No drawer, rótulos
+  longos quebram em duas linhas (`wrapLabels`) em vez de serem cortados;
+  o E2E mede `scrollWidth <= clientWidth` para "Biblioteca visual" e
+  "Configurações" e para o rótulo da seção no topbar.
 - `ActionButton` em `prefers-reduced-motion`: hover lift desativado
   (`transform: none`) além da transição global curta.
 - E2E com `emulateMedia({ reducedMotion: 'reduce' })`: hover no link não aplica
@@ -94,14 +100,23 @@ Veredito desta correção: aguardando CI/auditoria independente; sem merge
 - Nenhum merge, deploy de produção, promoção de checkpoint ou início de #79.
 
 ====================================================================
-7. TESTES / CI (A PREENCHER APÓS O HEAD FINAL)
+7. TESTES / CI / READ-BACK
 ====================================================================
 - `npm run check`: PASS (0 erros/0 warnings).
 - `npm run lint`: PASS.
 - `nav-items.test.ts`: 7/7 PASS.
 - `npm test`: PASS — 58 arquivos, 372 testes PASS / 3 skipped (61 arquivos).
 - `npm run build`: PASS (adapter-node).
-- CI/Sonar/Socket/Playwright: pendente no novo HEAD.
+- CI `45487743954` no head `d687be6`: quality PASS (10m31s), Vitest 372/3 skip,
+  PgTAP, E2E **25/25 PASS**, build, policy e audit.
+- SonarCloud PR #95: PASS — Security A, Reliability A, duplicação 0,0%,
+  hotspots 100%, zero issues; sem exclusões novas.
+- Socket Security Project Report/PR Alerts: PASS.
+- Vercel Preview: READY e fail-closed (`supabase:false`, `owner:false`).
+- Screenshots artifact `dif-studio-browser-evidence` (run 45487743954):
+  shell-320/390/768/1440/1920.png, shell-mobile-menu-320/390.png,
+  shell-focus-toggle-390.png. Imagens revisadas: topbar e rótulos completos em
+  320px, drawer com 22 links, foco visível no toggle.
 - Checkpoint Delta PROPOSED: docs/evidence/ux-002/checkpoint-delta-proposed-cd01.txt.
 
 ====================================================================
