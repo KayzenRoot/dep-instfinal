@@ -484,9 +484,9 @@ export function assTime(milliseconds: number): string {
 function escapeAssLine(line: string): string {
 	return line
 		.replace(/\p{Cc}/gu, '')
-		.replace(/\\/gu, '\uFF3C')
-		.replace(/\{/gu, '\uFF5B')
-		.replace(/\}/gu, '\uFF5D');
+		.replaceAll('\\', '\uFF3C')
+		.replaceAll('{', '\uFF5B')
+		.replaceAll('}', '\uFF5D');
 }
 
 function assStyle(
