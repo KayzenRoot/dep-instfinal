@@ -1,11 +1,5 @@
 name: DIF UX visual master integrity
 on:
-  push:
-    branches:
-      - docs/dif-ux-wo-001-neon-glass-master-v1
-    paths:
-      - 'docs/design/neon-glass-v1/**'
-      - '.github/workflows/dif-ux-visual-master.yml'
   pull_request:
     paths:
       - 'docs/design/neon-glass-v1/**'
