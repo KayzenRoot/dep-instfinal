@@ -25,7 +25,7 @@
 		"lint": "eslint . --max-warnings=0",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"test": "vitest run",
+		"test": "vitest run && node --test scripts/worker-log-dir.test.mjs",
 		"test:unit": "vitest run",
 		"test:db": "supabase test db",
 		"test:e2e": "playwright test",

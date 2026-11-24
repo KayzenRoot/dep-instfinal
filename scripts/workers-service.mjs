@@ -15,10 +15,11 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import process from 'node:process';
+import { resolveWorkerLogDir } from './worker-log-dir.mjs';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const logDir = 'C:/Users/csn19/.zcode/dif-secrets/worker-logs';
+const logDir = resolveWorkerLogDir();
 mkdirSync(logDir, { recursive: true });
 const lockPath = join(logDir, 'workers-service.lock');
 
