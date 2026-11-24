@@ -2,7 +2,7 @@
 	"name": "DIF Studio Neon Glass",
 	"revision": "CANDIDATE-1",
 	"selected_by": "assistant_by_owner_delegation_2026-11-24",
-	"status": "PROPOSED__PNG_ASSETS_NOT_YET_COMMITTED__NOT_IMPLEMENTED",
+	"status": "PROPOSED__PNG_ASSETS_COMMITTED_AND_VERIFIED__NOT_IMPLEMENTED",
 	"source": {
 		"repo": "KayzenRoot/dep-instfinal",
 		"main_sha": "66a997ee5d159a152b3ecb6ffd35bbf3acba855c",
@@ -16,7 +16,7 @@
 	},
 	"editor_reference": "screens/05-editor.png",
 	"shell_reference": "screens/02-dashboard.png",
-	"repo_asset_upload": "VERIFIED_LOCAL_FILES",
+	"repo_asset_upload": "VERIFIED_GITHUB_READBACK",
 	"images": [
 		{
 			"name": "01-login",

@@ -1,0 +1,70 @@
+DIF-UX-WO-001 — Evidence Bundle de importação e read-back
+Date: 2026-11-24
+Epic: #76 · WO: #77 · PR: #91 (Draft, sem merge)
+
+CONTEXT LOCK
+- Base main: 66a997ee5d159a152b3ecb6ffd35bbf3acba855c
+- Branch head before import: 005e2cb75aae01dd65871b77aa37f4328b895030
+- Binary commit: 9573e4d0af96b22b3530c3f61c6054000e670963
+- Final evidence commit: the head of PR #91 after this file is pushed.
+- PR #75 was not read or modified.
+
+SOURCE
+- Original ZIP: C:\Users\csn19\Downloads\DIF_Studio_Neon_Glass_Visual_Master_v1.zip
+- ZIP SHA-256: 144d07ef752f14815f7f140413b87e9bebc9d1017f183c40ae23081c4c1ca6de
+- ZIP members: 9 PNGs under dif-neon-glass-master-v1/screens/.
+- Import command: python docs/design/neon-glass-v1/import-master.py "C:/Users/csn19/Downloads/DIF_Studio_Neon_Glass_Visual_Master_v1.zip"
+- Import result: "9/9 PNGs importados e hashes SHA-256 verificados."
+- No recompression, resize, recolor or replacement.
+
+GITHUB READ-BACK (raw.githubusercontent.com at 9573e4d)
+name          | expected SHA-256                                                  | calculated SHA-256                                                | dimensions | bytes    | result
+01-login      | cbb3204c778a23a233bfd30b5e85e0701e7ee3b322174ad00bb1b5f5cc00aa63 | cbb3204c778a23a233bfd30b5e85e0701e7ee3b322174ad00bb1b5f5cc00aa63 | 1672x941   | 1829926  | PASS
+02-dashboard  | a76788309e36722500ebde206110d52244a7c671a6e084a3adc0d6ae7a08b429 | a76788309e36722500ebde206110d52244a7c671a6e084a3adc0d6ae7a08b429 | 1672x941   | 1924578  | PASS
+03-series     | 2fe39536f4cf7f224deb55a3d442341a385a7357ea3ca7242cc7f69cccf488db | 2fe39536f4cf7f224deb55a3d442341a385a7357ea3ca7242cc7f69cccf488db | 1672x941   | 2016884  | PASS
+04-episodes   | 1a6b327d1ab6e69e45414834bab2418fc92dacf5476ec135ad11f9ed9dd9e2aa | 1a6b327d1ab6e69e45414834bab2418fc92dacf5476ec135ad11f9ed9dd9e2aa | 1672x941   | 1985978  | PASS
+05-editor     | 546e8a0d1ac48c22a3e16775cad0633d412e9c56adfaa3110ae2a5d8a78824a6 | 546e8a0d1ac48c22a3e16775cad0633d412e9c56adfaa3110ae2a5d8a78824a6 | 1672x941   | 2071000  | PASS
+06-style      | 663a7b0abf9305f439192dc8acfe86924a79c1421802648458f80acc663b9862 | 663a7b0abf9305f439192dc8acfe86924a79c1421802648458f80acc663b9862 | 1672x941   | 2290874  | PASS
+07-media      | 9f194a49390fb45c7349a13d88904242e1d905f620a685b53b23efe491043355 | 9f194a49390fb45c7349a13d88904242e1d905f620a685b53b23efe491043355 | 1672x941   | 1979236  | PASS
+08-analytics  | abf0d48510b8994a30733446c2affa0ba1ca2ba482659cafae0e8ebb4b71c35d | abf0d48510b8994a30733446c2affa0ba1ca2ba482659cafae0e8ebb4b71c35d | 1672x941   | 2046992  | PASS
+09-settings   | 33b333af6f26554c83c24809c62f7fbb4bc6283add3bb0809b845183adde0e1a | 33b333af6f26554c83c24809c62f7fbb4bc6283add3bb0809b845183adde0e1a | 1672x941   | 2108423  | PASS
+
+LOCAL VALIDATION
+- node --test docs/design/neon-glass-v1/verify-images.test.mjs -> 5/5 PASS.
+- node docs/design/neon-glass-v1/verify-images.mjs -> "9/9 imagens verificadas (repository)."
+- Manifest: 9/9 exists_in_repo=true; repo_asset_upload=VERIFIED_GITHUB_READBACK.
+- Local npm run check:baseline remains affected only by pre-existing Windows CRLF/Prettier drift on 336 files; not introduced by WO-001. GitHub CI is the authoritative gate and passed.
+
+GITHUB CI (head 9573e4d)
+- DIF UX visual master integrity: PASS (run 45436247734).
+- DIF Studio CI / quality: PASS (run 45436247552).
+- SonarCloud: PASS.
+- Socket Security: PASS.
+- Vercel Preview: PASS.
+
+FILES
+- Added: docs/design/neon-glass-v1/screens/01-login.png ... 09-settings.png (9 binaries, ~17 MB total).
+- Changed: docs/design/neon-glass-v1/manifest.json (exists_in_repo true, status and upload flags).
+- Added: this Evidence Bundle.
+- Canonical docs updated: README.txt and VERIFICATION.txt to reflect committed/read-back assets.
+
+ACCEPTANCE CRITERIA -> EVIDENCE
+- 9 PNGs 1672x941 present in GitHub -> read-back table, HTTP 200 each.
+- 9 SHA-256 exact -> expected/calculated equality above.
+- Relative links resolved -> manifest + README screen-to-route mapping; verifier passes.
+- Contract uses same manifest -> manifest is the single source; README references it.
+- No divergence from approved ADRs -> ADR-001 remains PROPOSED; no production/auth/backend changes.
+- Mockup data marked as illustrative -> README reference policy and ADR boundaries.
+- CI/tests -> local 5/5 + 9/9, GitHub visual and quality PASS, Sonar/Socket PASS.
+- No merge/production -> PR #91 remains Draft/OPEN; no merge performed.
+
+RISKS / RESIDUALS
+- Nine binaries (~17 MB) live in Git without LFS; accepted because the package is immutable and below platform limits.
+- The design remains PROPOSED; no UI implementation was authorized or performed.
+- Sample names/numbers in the PNGs are fictional and must not become fixtures.
+- The prior BLOCKED evidence remains in history; this file supersedes it.
+
+CHECKPOINT DELTA PROPOSED (NOT PROMOTED)
+- DIF-UX-WO-001 binary assets and manifest are present, hashed and read-back verified.
+- ADR-001 remains PROPOSED; no decision is promoted by this executor.
+- Next eligible WO after owner review/approval: DIF-UX-WO-002 (#78).

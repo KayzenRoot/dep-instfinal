@@ -1,5 +1,6 @@
 DIF STUDIO / NEON GLASS - VISUAL MASTER CANDIDATE v1
 Status: SELECTED as design direction by assistant at owner's request, 2026-11-24.
+The nine original PNGs are imported unmodified and read-back verified (commit 9573e4d).
 This is a proposed visual source document, NOT a promoted ADR, not a working UI, not a PR merged.
 EPIC #76; WO-001 #77; baseline main 66a997ee5d159a152b3ecb6ffd35bbf3acba855c. PR #75 is unrelated and remains Draft / merge blocked.
 
@@ -7,11 +8,11 @@ REFERENCE POLICY
 - The nine independently generated PNGs are immutable concept targets, 1672x941, exact SHA256 in manifest.json.
 - Primary flagship: 05-editor.png; shared shell and data-card baseline: 02-dashboard.png.
 - Each remaining image is the ONLY image reference for its corresponding route.
-- IMPORTANT: the image binaries are NOT present in this Git branch yet. The original bundle was produced
-  in the owner's ChatGPT conversation as DIF_Studio_Neon_Glass_Visual_Master_v1.zip. Import all 9 PNGs
-  into docs/design/neon-glass-v1/screens/ without resampling or rewriting, then verify SHA256.
-- Until all 9 PNGs are committed and read-back verified, WO-001 is BLOCKED for APPROVED and this document
-  does not claim the GitHub repository stores complete visual masters.
+- IMPORTANT: the nine original PNGs are committed in docs/design/neon-glass-v1/screens/ at commit
+  9573e4d and were read back from GitHub with SHA256 and 1672x941 matching this manifest. Do not
+  replace, resample, recolor or recompress them.
+- WO-001 is no longer blocked on image binaries. It remains PROPOSED until the final CI/audit and
+  checkpoint decision; this document does not promote the ADR.
 - Do not replace screenshots with a collage. The final artifact requires one PNG per screen.
 
 SCREEN-TO-ROUTE MAPPING (CURRENT APPLICATION)
