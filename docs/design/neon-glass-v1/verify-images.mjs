@@ -46,9 +46,7 @@ export function verifyImages({ manifestPath, sourceDir, manifestOnly = false }) 
 	if (manifestOnly) return { verified: 0, total: 9, mode: 'manifest-only' };
 	const root = sourceDir ? resolve(sourceDir) : dirname(resolve(manifestPath));
 	for (const image of manifest.images) {
-		const path = sourceDir
-			? join(root, image.name + '.png')
-			: join(root, image.file);
+		const path = sourceDir ? join(root, image.name + '.png') : join(root, image.file);
 		const bytes = readFileSync(path);
 		requireCondition(
 			bytes.length >= 24 && bytes.subarray(0, 8).equals(signature),

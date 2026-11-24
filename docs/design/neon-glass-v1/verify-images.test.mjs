@@ -41,7 +41,11 @@ function fixture() {
 			exists_in_repo: true,
 		};
 	});
-	const manifest = { name: 'DIF Studio Neon Glass', image_size: { width: 1672, height: 941 }, images };
+	const manifest = {
+		name: 'DIF Studio Neon Glass',
+		image_size: { width: 1672, height: 941 },
+		images,
+	};
 	const path = join(base, 'manifest.json');
 	const save = () => writeFileSync(path, JSON.stringify(manifest));
 	save();
