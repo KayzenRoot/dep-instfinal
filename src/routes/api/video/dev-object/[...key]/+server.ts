@@ -4,7 +4,7 @@ import { ownerDatabase } from '#lib/server/authorized.js';
 import { getAppConfig } from '#lib/server/config.js';
 import { InMemoryVideoStorage, getVideoStorage } from '#lib/server/video-storage.js';
 
-export const GET: RequestHandler = async (event) => {
+export const GET: RequestHandler = (event) => {
 	const { owner } = ownerDatabase(event);
 	const config = getAppConfig();
 	if (!import.meta.env.DEV || config.videoStorageDriver !== 'memory')

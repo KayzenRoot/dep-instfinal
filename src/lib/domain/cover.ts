@@ -216,12 +216,14 @@ export interface CoverSvgOptions {
 	background: boolean;
 }
 
+const DEFAULT_COVER_SVG_OPTIONS: CoverSvgOptions = Object.freeze({ background: false });
+
 /** Deterministic overlay for a cover. User strings are XML-escaped. */
 export function buildCoverSvg(
 	config: CoverConfig,
 	template: CoverTemplate,
 	layout: CoverLayout,
-	options: CoverSvgOptions = { background: false },
+	options: CoverSvgOptions = DEFAULT_COVER_SVG_OPTIONS,
 ): string {
 	const fontSize = round(layout.width * 0.078);
 	const lineHeight = round(fontSize * 1.08);
