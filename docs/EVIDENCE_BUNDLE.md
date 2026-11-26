@@ -1,5 +1,22 @@
 # DIF Studio — Evidence Bundle
 
+## DIF-UX-WO-002 — Design System, AppShell e navegação Neon Glass (2026-11-26) — PROMOTED
+
+- **Work Order:** `DIF-UX-WO-002` · issue #78 · epic #76
+- **Base:** `main` `449642d`; branch `feat/dif-ux-wo-002-neon-glass-shell`; head `a419848`; merge `54ff92c` (PR #95)
+- **Status:** **PROMOTED**; auditoria independente **APPROVED**; CI `45877986581` PASS; Sonar PR A/0,0%; Sonar main A/2,4%; Vercel produção READY.
+
+| Check        | Result | Evidence                                                                                |
+| ------------ | ------ | --------------------------------------------------------------------------------------- |
+| Shell/Nav    | PASS   | 22 rotas em 6 grupos; skip link, drawer/dock, foco visível, Escape devolve foco         |
+| 320–1920     | PASS   | E2E sem overflow; drawer quebra rótulos longos; topbar mantém seção                     |
+| Reduced      | PASS   | nav e ActionButton com `transform:none` e transições ≤0,02s em `prefers-reduced-motion` |
+| Testes       | PASS   | Vitest 372/3 skip; PgTAP 250; E2E 25/25; svelte-check 0; build; policy; audit 0         |
+| Sonar/Socket | PASS   | 0 issues; Security A; duplicação 0,0%; Socket Project success/PR Alerts Skipped         |
+| Segurança    | PASS   | Sem Auth/Supabase/RLS/Cloudinary/R2/APIs/schema/migrations; PR #75 intocada             |
+| Produção     | PASS   | `/health` 200 `supabase:true/owner:true`; `/login` 200; `/app` anônimo 303 para login   |
+| Limites      | —      | ADR PROPOSED; estilos locais em páginas; sidebar com scroll; baseline shell/Chromium    |
+
 ## DIF-UX-WO-001 — Neon Glass visual master & design contract (2026-11-24) — PROMOTED
 
 - **Work Order:** `DIF-UX-WO-001` · issue #77 · epic #76

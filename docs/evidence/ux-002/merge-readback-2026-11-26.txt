@@ -1,0 +1,30 @@
+DIF-UX-WO-002 — MERGE E READ-BACK (pt-BR)
+Data: 2026-11-26
+Issue: #78 · EPIC #76
+PR: #95 · Operação: DIF-CLOSEOUT-MASTER-001 / FASE 00
+
+- **Base main antes do merge:** 449642d687f2aee4ce8c823e1b427681fdcad71c
+- **HEAD da PR:** a4198487213f5bc766d0e64452d11b4fe02f7b49
+  (código cf715c1; CD-03 docs-only)
+- **Merge squash:** 54ff92c1ddb8ed9d38fe8cbd795438d67eb0064f
+  em 2026-11-26T19:00:36Z, sob ruleset 28005320.
+- **Auditoria independente:** APPROVED (7/7 achados anteriores corrigidos,
+  LOW-1/LOW-2/LOW-3 fechados, nenhum HIGH/CRITICAL).
+- **CI:** quality 45877986581 PASS (10m43s; Vitest 372/3 skip, PgTAP 250,
+  E2E 25/25, build, policy, audit 0 vulnerabilities).
+- **SonarCloud PR #95:** PASS (0 issues, Security A, duplicação 0,0%).
+- **SonarCloud main 54ff92c:** PASS — Security A, Reliability A,
+  duplicação 2,4%, hotspots 100%.
+- **Vercel produção:** deployment 8sHV16XEMnvGZjoT9AHxqMGN9SHf READY/success
+  no SHA 54ff92c.
+- **Smoke produção:**
+  - GET /health → 200 {"status":"ok","configured":{"supabase":true,"owner":true}}
+  - GET /login → 200
+  - GET /app anônimo → 303 para https://dif-studio.vercel.app/login
+- **Master Visual:** 9/9; ADR-001 PROPOSED; nenhuma alteração de
+  Auth/Supabase/RLS/Cloudinary/R2/APIs/schema/migrations.
+- **PR #75:** Draft 9f18254 intocada.
+- **Residual:** credenciais antigas de Preview/Cloudinary não rotacionadas;
+  sem valores expostos; rotação exige autorização específica.
+- **Checkpoint:** promovido nesta PR docs.
+- **Próxima fase:** FASE 01 / DIF-UX-WO-003 (#79), após merge deste checkpoint.
