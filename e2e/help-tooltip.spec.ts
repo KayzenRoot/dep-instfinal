@@ -5,6 +5,28 @@ import { loginAsOwner } from './fixtures';
 
 const screenshotDirectory = path.join(process.cwd(), 'test-results', 'screenshots');
 
+async function auditHelpA11y(page: import('@playwright/test').Page): Promise<void> {
+	const audit = await page.evaluate(() => {
+		const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-help-key]'));
+		const controls = buttons.map((button) => button.getAttribute('aria-controls') ?? '');
+		const duplicateControls = controls.filter((id, index) => controls.indexOf(id) !== index);
+		return {
+			unnamed: buttons.filter((button) => !(button.getAttribute('aria-label') ?? '').trim()).length,
+			emptyControls: controls.filter((id) => !id).length,
+			missingOpenControls: buttons.filter(
+				(button) =>
+					button.getAttribute('aria-expanded') === 'true' &&
+					!document.getElementById(button.getAttribute('aria-controls') ?? ''),
+			).length,
+			duplicateControls: Array.from(new Set(duplicateControls)),
+		};
+	});
+	expect(audit.unnamed).toBe(0);
+	expect(audit.emptyControls).toBe(0);
+	expect(audit.missingOpenControls).toBe(0);
+	expect(audit.duplicateControls).toEqual([]);
+}
+
 test.describe('contextual help tooltips', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginAsOwner(page);
@@ -20,6 +42,7 @@ test.describe('contextual help tooltips', () => {
 		const tooltip = page.getByRole('tooltip');
 		await expect(tooltip).toBeVisible();
 		await expect(tooltip).toContainText('Conta as séries visíveis');
+		await auditHelpA11y(page);
 		await expect(tooltip).toContainText('Não representa publicações');
 		await expect(trigger).toHaveAttribute('aria-expanded', 'true');
 		await expect(trigger).toHaveAttribute('aria-describedby', 'help-dashboard-series-tooltip');
@@ -55,7 +78,47 @@ test.describe('contextual help tooltips', () => {
 		await expect(trigger).toHaveAttribute('aria-expanded', 'false');
 	});
 
-	test('click/touch pins the tooltip and outside click dismisses it', async ({ page }) => {
+	test('hover + Escape does not steal focus from a form field', async ({ page }) => {
+		await page.goto('/app');
+		await page.waitForLoadState('networkidle');
+
+		const input = page.getByLabel('Título', { exact: true });
+		await input.focus();
+		const trigger = page.getByRole('button', { name: 'Ajuda sobre Premissa', exact: true });
+		await trigger.hover();
+		await expect(page.getByRole('tooltip')).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(page.getByRole('tooltip')).toBeHidden();
+		await expect(input).toBeFocused();
+		await expect(trigger).not.toBeFocused();
+	});
+
+	test('touch tap opens, covered control receives tap, outside tap closes', async ({ browser }) => {
+		const context = await browser.newContext({
+			viewport: { width: 320, height: 800 },
+			hasTouch: true,
+			isMobile: true,
+		});
+		const page = await context.newPage();
+		await loginAsOwner(page);
+		await page.goto('/app');
+		await page.waitForLoadState('networkidle');
+
+		const trigger = page.getByRole('button', { name: 'Ajuda sobre Premissa', exact: true });
+		await trigger.scrollIntoViewIfNeeded();
+		await trigger.tap();
+		const tooltip = page.getByRole('tooltip');
+		await expect(tooltip).toBeVisible();
+		await expect(tooltip).toContainText('mistério central');
+
+		const covered = page.getByLabel('Tom', { exact: true });
+		await covered.tap();
+		await expect(covered).toBeFocused();
+		await expect(tooltip).toBeHidden();
+		await context.close();
+	});
+
+	test('click pins the tooltip and outside click dismisses it', async ({ page }) => {
 		await page.setViewportSize({ width: 390, height: 844 });
 		await page.goto('/app');
 		await page.waitForLoadState('networkidle');
@@ -79,6 +142,7 @@ test.describe('contextual help tooltips', () => {
 		const tooltip = page.getByRole('tooltip');
 		await expect(tooltip).toBeVisible();
 		await expect(tooltip).toContainText('mistério central');
+		await auditHelpA11y(page);
 
 		const box = await tooltip.boundingBox();
 		expect(box).not.toBeNull();

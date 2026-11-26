@@ -53,4 +53,18 @@ describe('help catalog', () => {
 		);
 		expect(getHelpEntry('seriesPremise').constraint).toContain('decisão explícita');
 	});
+
+	it('describes the media metric as images only, not videos', () => {
+		const entry = getHelpEntry('mediaAssets');
+		expect(entry.description).toContain('imagens');
+		expect(entry.description).not.toContain('vídeos');
+		expect(entry.constraint).toContain('não entram nesta contagem');
+	});
+
+	it('states that publishing is manual, not automatic', () => {
+		expect(getHelpEntry('privateStudio').constraint).toContain(
+			'não são publicados automaticamente',
+		);
+		expect(getHelpEntry('privateStudio').constraint).toContain('manuais');
+	});
 });

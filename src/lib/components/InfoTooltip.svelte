@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { getHelpEntry, type HelpKey } from '#lib/domain/help-catalog.js';
+	import { computeTooltipPosition, tooltipWidth } from './tooltip-position.js';
 
 	export let helpKey: HelpKey;
 	export let id: string;
@@ -27,19 +28,19 @@
 		const margin = 8;
 		const viewportWidth = document.documentElement.clientWidth;
 		const viewportHeight = document.documentElement.clientHeight;
-		const panelWidth = Math.min(320, viewportWidth - margin * 2);
+		const panelWidth = tooltipWidth(viewportWidth, margin);
 		panel.style.width = `${panelWidth}px`;
 		panel.style.maxWidth = `${panelWidth}px`;
-		const rect = trigger.getBoundingClientRect();
-		const panelRect = panel.getBoundingClientRect();
-		let left = Math.round(rect.left + rect.width / 2 - panelRect.width / 2);
-		left = Math.max(margin, Math.min(left, viewportWidth - panelRect.width - margin));
-		let top = Math.round(rect.bottom + 8);
-		if (top + panelRect.height > viewportHeight - margin) {
-			top = rect.top - panelRect.height - 8;
-		}
-		top = Math.max(margin, Math.min(top, viewportHeight - panelRect.height - margin));
-		panelStyle = `left:${left}px;top:${top}px`;
+		const triggerRect = trigger.getBoundingClientRect();
+		const panelHeight = panel.getBoundingClientRect().height;
+		const position = computeTooltipPosition(
+			triggerRect,
+			panelHeight,
+			viewportWidth,
+			viewportHeight,
+			margin,
+		);
+		panelStyle = `left:${position.left}px;top:${position.top}px`;
 	}
 
 	function close(): void {
@@ -65,8 +66,10 @@
 	function onKeydown(event: KeyboardEvent): void {
 		if (event.key !== 'Escape' || !open) return;
 		event.stopPropagation();
+		const active = document.activeElement;
+		const restoreFocus = active === trigger || panel?.contains(active) === true;
 		close();
-		trigger?.focus();
+		if (restoreFocus) trigger?.focus();
 	}
 
 	function onPointerDown(event: PointerEvent): void {
@@ -89,13 +92,17 @@
 
 	onMount(() => {
 		document.addEventListener('pointerdown', onPointerDown);
-		return () => document.removeEventListener('pointerdown', onPointerDown);
+		document.addEventListener('scroll', onViewportChange, true);
+		return () => {
+			document.removeEventListener('pointerdown', onPointerDown);
+			document.removeEventListener('scroll', onViewportChange, true);
+		};
 	});
 
 	onDestroy(() => close());
 </script>
 
-<svelte:window onkeydown={onKeydown} onresize={onViewportChange} onscroll={onViewportChange} />
+<svelte:window onkeydown={onKeydown} onresize={onViewportChange} />
 
 <span class="help-tooltip" class:open bind:this={wrapper} data-testid={`help-${id}`}>
 	<button
@@ -156,8 +163,8 @@
 
 	.help-trigger {
 		display: grid;
-		width: 1.35rem;
-		height: 1.35rem;
+		width: 1.6rem;
+		height: 1.6rem;
 		flex: 0 0 auto;
 		place-items: center;
 		padding: 0;
@@ -166,7 +173,7 @@
 		background: rgb(0 216 245 / 7%);
 		color: var(--cyan);
 		font-family: var(--mono);
-		font-size: 0.68rem;
+		font-size: 0.72rem;
 		font-weight: 700;
 		line-height: 1;
 		cursor: help;
@@ -198,6 +205,7 @@
 			0 18px 40px rgb(0 0 0 / 38%),
 			inset 0 1px 0 rgb(255 255 255 / 7%);
 		backdrop-filter: blur(18px) saturate(1.1);
+		pointer-events: none;
 	}
 
 	.help-kicker,

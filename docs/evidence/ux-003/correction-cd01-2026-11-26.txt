@@ -1,0 +1,58 @@
+DIF-UX-WO-003/CD-01 — CORRECTION EVIDENCE (pt-BR)
+Data: 2026-11-26
+Issue: #79 · EPIC #76 · PR #97 (Draft)
+Auditoria de origem: CORRECTION REQUIRED (relatório independente read-only)
+Base main: b38542b106a25fdffaf35b86a8c69f2e7c2e4db2
+Head de origem: 6a86a45265751aeab7ab52950a57fd5cb5ef2936
+Head desta correção: a preencher após commit.
+
+====================================================================
+1. ACHADOS E CORREÇÕES
+====================================================================
+1. **Catálogo enganoso sobre Quadros/mídias:** a métrica conta apenas imagens
+   READY (`media_assets`), não vídeos. Texto corrigido para "quadros e imagens
+   privadas (frames, capas e referências)" e constraint explicita que vídeos
+   ficam no R2 e não entram na contagem. Teste de catálogo cobre.
+2. **Prova axe-equivalente ausente:** adicionada auditoria manual auditável em
+   `docs/evidence/ux-003/a11y-audit-2026-11-26.txt` (semântica, ARIA, teclado,
+   foco, touch, contraste, reduced-motion, 320px), mais asserções E2E de ARIA
+   (`auditHelpA11y`) e testes de posicionamento. Sem dependência nova.
+3. **Touch não exercitado:** novo E2E cria contexto `hasTouch`/`isMobile` em
+   320px, usa `tap()` no gatilho, `tap()` em controle coberto e verifica foco/
+   fechamento. `click()` desktop permanece separado.
+4. **Roubo de foco no Escape:** foco só retorna ao gatilho quando ele ou o painel
+   estava focado; hover+Escape mantém o foco no campo. E2E cobre.
+5. **Scroll interno não reposicionava:** listener de `scroll` em fase de captura
+   no documento, alcançando a sidebar com overflow próprio; painel é
+   reposicionado.
+6. **Overlay interceptava toques:** `.help-panel` recebeu `pointer-events:none`
+   (conteúdo somente leitura); toque em controle coberto chega ao controle e
+   fecha o tooltip, comprovado no E2E touch.
+7. **Redação absoluta sobre publicação:** corrigida para "não são publicados
+   automaticamente; publicação e exportação são manuais".
+8. **Evidência/checkpoint desatualizados:** este arquivo, o checkpoint proposto
+   e o corpo da PR serão atualizados para o HEAD final e CI final.
+9. **Bundle sem tree/fingerprints:** serão registrados tree, SHA-256 dos
+   arquivos canônicos, screenshots e link do artifact no read-back final.
+10. **Teste de componente ausente:** lógica de posicionamento extraída para
+    `tooltip-position.ts` com 4 testes Vitest (320, borda direita, flip acima,
+    desktop), além dos 6 testes de catálogo; comportamento do componente é
+    coberto por Playwright.
+
+====================================================================
+2. AJUSTES DE ACESSIBILIDADE
+====================================================================
+- Gatilho ampliado de 1.35rem para 1.6rem (25.6px, acima de 24px da WCAG 2.2
+  SC 2.5.8).
+- Painel portalado ao `body` (já no CD anterior) e somente leitura; sem bloquear
+  controles.
+- Escape com restauração condicional de foco; hover não sequestra foco.
+- Área de toque real testada em 320px.
+
+====================================================================
+3. TESTES
+====================================================================
+- svelte-check/ESLint/build: PASS.
+- Vitest direcionado: catálogo 6 testes + posicionamento 4 testes PASS.
+- Vitest completo local: 60 arquivos, 382 testes PASS / 3 skipped.
+- CI final: a preencher no HEAD desta correção.

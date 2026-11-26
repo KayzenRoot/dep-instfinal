@@ -11,7 +11,7 @@ export const HELP_CATALOG = {
 		description:
 			'O DIF Studio é um arquivo privado de séries, episódios e decisões de continuidade.',
 		constraint:
-			'O acesso é exclusivo do proprietário autenticado; dados e mídias não são publicados.',
+			'O acesso é exclusivo do proprietário autenticado; dados e mídias não são publicados automaticamente. Publicação e exportação são manuais.',
 	},
 	dashboardSeries: {
 		title: 'Séries',
@@ -36,8 +36,9 @@ export const HELP_CATALOG = {
 	mediaAssets: {
 		title: 'Quadros e mídias',
 		description:
-			'Conta os quadros e mídias privadas já vinculados ao arquivo, como imagens e vídeos de cenas.',
-		constraint: 'Imagens ficam no Cloudinary privado e vídeos no R2 privado.',
+			'Conta os quadros e imagens privadas já vinculados ao arquivo (frames, capas e referências).',
+		constraint:
+			'Imagens ficam no Cloudinary privado; vídeos ficam no R2 privado e não entram nesta contagem.',
 	},
 	seriesTitle: {
 		title: 'Título da série',
