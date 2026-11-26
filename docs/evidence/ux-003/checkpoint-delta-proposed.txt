@@ -4,8 +4,8 @@ Status: PROPOSED — NÃO PROMOVIDO
 
 - **Work Order:** DIF-UX-WO-003 · issue #79 · PR #97 (Draft)
 - **Base:** main b38542b106a25fdffaf35b86a8c69f2e7c2e4db2 (checkpoint WO-002)
-- **Head:** 1ad64014782bb72a74f1867f83e53c597e0ba1f2 (CD-01 docs-only sobre 15f4149)
-- **CI:** 45900548870 PASS (382 Vitest/3 skip, PgTAP, E2E 32/32, build)
+- **Head de código/teste:** b4bb3a46c5bc1d7a61e9e3303e776dbd42a5dc91 (CD-02)
+- **CI:** 45902530605 PASS (382 Vitest/3 skip, PgTAP, E2E 32/32, build); HEAD documental contém este arquivo e commit docs-only posterior.
 - **Entregue:** InfoTooltip acessível, catálogo pt-BR, ajuda no shell, métricas e
   formulário do Painel; portal do painel para evitar clipping; 320px e
   reduced-motion cobertos.

@@ -1,0 +1,40 @@
+DIF-UX-WO-003/CD-02 — CORRECTION EVIDENCE (pt-BR)
+Data: 2026-11-26
+Issue: #79 · PR #97 (Draft)
+Auditoria de origem: CORRECTION REQUIRED na reauditoria do CD-01
+Base main: b38542b106a25fdffaf35b86a8c69f2e7c2e4db2
+Head de código/teste: b4bb3a46c5bc1d7a61e9e3303e776dbd42a5dc91
+Tree: abbd30d695aad271821ec2ffacc20cf831dba647
+
+====================================================================
+1. ACHADOS REMANESCENTES E CORREÇÕES
+====================================================================
+- **Controle coberto não provado:** o teste touch agora mede a interseção
+  geométrica entre o painel e o input "Subgênero", verifica
+  `document.elementFromPoint` no centro do input (`series-subgenre`, graças a
+  `pointer-events:none`) e só então executa `tap()` no controle, exigindo foco
+  e fechamento do tooltip.
+- **Evidência final:** checkpoint e implementation passam a registrar o head
+  `b4bb3a4` e o CI `45902530605` (382 Vitest/3 skip, PgTAP, E2E 32/32);
+  o corpo da PR foi atualizado com os números finais e sem "a preencher".
+- **Artifact final:** `dif-studio-browser-evidence` do run `45902530605`; os
+  screenshots `help-desktop-1440.png` e `help-mobile-320.png` permanecem com os
+  hashes do CD-01 (comportamento visual inalterado; apenas teste/evidência).
+- **Fingerprint do teste:** e2e/help-tooltip.spec.ts
+  `49f17bf967f73140f5dc5aa5200077e34b5131ad12bcfdb9aad39fda4a088d3b`.
+
+====================================================================
+2. TESTES
+====================================================================
+- CI `45902530605` no head `b4bb3a4`: quality PASS (10m56s); Vitest 382/3 skip;
+  PgTAP; E2E **32/32 PASS**; build/policy/audit.
+- SonarCloud PR #97: PASS (0 issues, A, duplicação 0,0%).
+- Socket Project/PR Alerts: PASS.
+- Sem alteração de código de produto neste CD; somente teste e evidência.
+
+====================================================================
+3. PRESERVAÇÃO
+====================================================================
+- 22 rotas; Master 9/9; ADR-001 PROPOSED; PR #75 Draft; ruleset ativo.
+- Sem Auth/Supabase/RLS/Cloudinary/R2/APIs/schema/migrations.
+- Checkpoint permanece PROPOSED; sem merge/deploy.
