@@ -108,7 +108,9 @@ test('owner completes series, episode, voting, canon, continuation, and export j
 	await page.getByRole('button', { name: 'Entrar no arquivo' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 	await page.getByLabel('Título', { exact: true }).fill(seriesTitle);
-	await page.getByLabel('Premissa').fill('Registro de aceitação com Supabase local.');
+	await page
+		.getByLabel('Premissa', { exact: true })
+		.fill('Registro de aceitação com Supabase local.');
 	await page.getByRole('button', { name: /Abrir novo arquivo/ }).click();
 	await expect(page).toHaveURL(/\/app\/series\/[0-9a-f-]+$/);
 	await expect(page.getByRole('heading', { name: seriesTitle })).toBeVisible();

@@ -24,21 +24,20 @@
 
 	async function positionPanel(): Promise<void> {
 		if (!trigger || !panel) return;
+		const margin = 8;
+		const viewportWidth = document.documentElement.clientWidth;
+		const viewportHeight = document.documentElement.clientHeight;
+		panel.style.maxWidth = `${viewportWidth - margin * 2}px`;
 		const rect = trigger.getBoundingClientRect();
 		const panelRect = panel.getBoundingClientRect();
-		const margin = 8;
-		const left = Math.max(
-			margin,
-			Math.min(
-				rect.left + rect.width / 2 - panelRect.width / 2,
-				window.innerWidth - panelRect.width - margin,
-			),
-		);
-		let top = rect.bottom + 8;
-		if (top + panelRect.height > window.innerHeight - margin) {
+		let left = Math.round(rect.left + rect.width / 2 - panelRect.width / 2);
+		left = Math.max(margin, Math.min(left, viewportWidth - panelRect.width - margin));
+		let top = Math.round(rect.bottom + 8);
+		if (top + panelRect.height > viewportHeight - margin) {
 			top = rect.top - panelRect.height - 8;
 		}
-		panelStyle = `left:${left}px;top:${Math.max(margin, top)}px`;
+		top = Math.max(margin, Math.min(top, viewportHeight - panelRect.height - margin));
+		panelStyle = `left:${left}px;top:${top}px`;
 	}
 
 	function close(): void {
