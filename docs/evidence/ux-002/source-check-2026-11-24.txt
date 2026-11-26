@@ -58,6 +58,10 @@ a3942dc1ac2c6649e924103eead3930faa96ed8a275769a5d84278c057c2e086  src/lib/compon
 5c21db22fa677971fea22e23e11e19a3f147ca3408ed9318bdc483d70c92bc84  src/lib/components/Panel.svelte
 c977c9e62ae45c12cd6ca75a2bddda4ac6708e5b16de41eeba93dc8cc0cc66a1  src/lib/components/ActionButton.svelte
 
+NOTA DE NORMALIZAÇÃO: estes hashes foram calculados no checkout Windows com
+`core.autocrlf=true` (conteúdo CRLF). Para fingerprints de blobs Git (LF), usar
+`git cat-file blob <sha>:<path> | sha256sum`; ver correction-cd02.
+
 ====================================================================
 4. CONTRATOS PRESERVADOS
 ====================================================================

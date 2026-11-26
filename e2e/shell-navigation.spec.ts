@@ -198,17 +198,35 @@ test.describe('Neon Glass shell and navigation', () => {
 		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 		await expect(drawer).toBeVisible();
 		await page.keyboard.press('Tab');
-		await expect(drawer.getByRole('link', { name: 'Painel', exact: true })).toBeFocused();
+		const activeLink = drawer.getByRole('link', { name: 'Painel', exact: true });
+		await expect(activeLink).toBeFocused();
+		const activeFocus = await activeLink.evaluate((element) => {
+			const computed = getComputedStyle(element);
+			return {
+				outlineStyle: computed.outlineStyle,
+				outlineWidth: Number.parseFloat(computed.outlineWidth),
+				boxShadow: computed.boxShadow,
+			};
+		});
+		expect(activeFocus.outlineStyle, 'active link must keep a visible outline').toBe('solid');
+		expect(activeFocus.outlineWidth).toBeGreaterThanOrEqual(2);
+		expect(activeFocus.boxShadow, 'active link must combine focus ring and glow').toMatch(
+			/rgba?\(0, 216, 245/,
+		);
 
 		await mkdir(screenshotDirectory, { recursive: true });
 		await page.screenshot({
-			path: path.join(screenshotDirectory, 'shell-focus-toggle-390.png'),
+			path: path.join(screenshotDirectory, 'shell-focus-drawer-390.png'),
 			fullPage: false,
 		});
 
 		await page.keyboard.press('Escape');
 		await expect(drawer).toBeHidden();
 		await expect(toggle).toBeFocused();
+		await page.screenshot({
+			path: path.join(screenshotDirectory, 'shell-focus-toggle-390.png'),
+			fullPage: false,
+		});
 
 		await page.keyboard.press('Shift+Tab');
 		await expect(skipLink).toBeFocused();
@@ -216,7 +234,7 @@ test.describe('Neon Glass shell and navigation', () => {
 		await expect(page.locator('#workspace-main')).toBeFocused();
 	});
 
-	test('reduced motion disables navigation lift and long transitions', async ({ page }) => {
+	test('reduced motion disables navigation and action button lift', async ({ page }) => {
 		await page.emulateMedia({ reducedMotion: 'reduce' });
 		await page.setViewportSize({ width: 1440, height: 900 });
 		await page.goto('/app');
@@ -226,7 +244,7 @@ test.describe('Neon Glass shell and navigation', () => {
 			.getByTestId('desktop-nav')
 			.getByRole('link', { name: 'Séries', exact: true });
 		await series.hover();
-		const styles = await series.evaluate((element) => {
+		const navStyles = await series.evaluate((element) => {
 			const computed = getComputedStyle(element);
 			return {
 				transform: computed.transform,
@@ -234,9 +252,25 @@ test.describe('Neon Glass shell and navigation', () => {
 				reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
 			};
 		});
-		expect(styles.reduced).toBe(true);
-		expect(styles.transform).toBe('none');
-		const durations = styles.transitionDuration.split(',').map((value) => parseFloat(value));
-		expect(Math.max(...durations)).toBeLessThanOrEqual(0.02);
+		expect(navStyles.reduced).toBe(true);
+		expect(navStyles.transform).toBe('none');
+		const navDurations = navStyles.transitionDuration.split(',').map((value) => parseFloat(value));
+		expect(Math.max(...navDurations)).toBeLessThanOrEqual(0.02);
+
+		const action = page.getByRole('button', { name: 'Abrir novo arquivo' });
+		await expect(action).toBeVisible();
+		await action.hover();
+		const actionStyles = await action.evaluate((element) => {
+			const computed = getComputedStyle(element);
+			return {
+				transform: computed.transform,
+				transitionDuration: computed.transitionDuration,
+			};
+		});
+		expect(actionStyles.transform).toBe('none');
+		const actionDurations = actionStyles.transitionDuration
+			.split(',')
+			.map((value) => parseFloat(value));
+		expect(Math.max(...actionDurations)).toBeLessThanOrEqual(0.02);
 	});
 });

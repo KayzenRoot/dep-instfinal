@@ -22,6 +22,10 @@ Veredito desta correção: correções aplicadas e gates verdes; aguardando audi
   - nav-items.ts 25a2aa7b1c10ee8bf8898eb8f642a882b51893a106ee563059f4a91d68361f7d
   - shell-navigation.spec.ts fe83cf841cc24d6d3dfa8c58611b8d26a5f25a30e0e9fc0292ae1d6126f15f03
 
+NOTA: os fingerprints acima são blobs Git normalizados em LF. O source-check
+anterior usou checkout Windows (CRLF); ver correction-cd02 para a convenção
+explícita e os hashes LF do head corrigido.
+
 ====================================================================
 2. F01 — IDs ARIA ÚNICOS / NAV ANINHADO
 ====================================================================

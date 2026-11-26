@@ -1,0 +1,79 @@
+DIF-UX-WO-002/CD-02 — CORRECTION EVIDENCE (pt-BR)
+Data: 2026-11-26
+Issue: #78 · EPIC #76 · PR: #95 (Draft)
+Auditoria independente de origem: veredito CORRECTION REQUIRED
+(https://github.com/KayzenRoot/dep-instfinal/pull/95#issuecomment-7143348968)
+e reauditoria read-only do plano DIF-CLOSEOUT-MASTER-001/FASE 00.
+Base main: 449642d687f2aee4ce8c823e1b427681fdcad71c
+Head de origem da auditoria: dea50e41963dc220b2d32ef5b2dab033b14ea9c1
+(código d687be6a129ab38a847d39465b0673d30961b7a1)
+Head desta correção: a preencher após commit/push.
+
+====================================================================
+1. ACHADOS DA AUDITORIA E CORREÇÕES
+====================================================================
+- **F03.1 — foco visível suprimido no link ativo (MEDIUM):** `.nav-link.active`
+  declarava `box-shadow` próprio e vencia o `a:focus-visible` global, deixando
+  `outline:none`. Corrigido com regras explícitas:
+  - `.nav-link:focus-visible`: outline 2px cyan, offset 2px e focus ring;
+  - `.nav-link.active:focus-visible`: focus ring + glow combinados.
+  E2E passa a medir `outlineStyle`, `outlineWidth` e `boxShadow` do link ativo
+  focado, não apenas `toBeFocused`.
+- **F03.2 — reduced-motion do ActionButton sem teste real (MEDIUM):** o
+  componente não era usado em nenhuma rota. Ele foi adotado no botão
+  "Abrir novo arquivo" do Painel (`src/routes/app/+page.svelte`), preservando
+  `type=submit` e o nome acessível usados pelos E2E existentes. O E2E de
+  reduced-motion agora faz hover real no ActionButton e verifica
+  `transform:none` e duração ≤0,02s, além do link de navegação.
+- **F03.3 — screenshot de foco enganoso (LOW):** a captura antiga ocorria com
+  o link do drawer focado, mas era nomeada como toggle. Agora há
+  `shell-focus-drawer-390.png` (link ativo focado, com outline) e
+  `shell-focus-toggle-390.png` capturada **depois** do Escape, com o toggle
+  realmente focado.
+- **F04/Evidência 4 — contradição no Checkpoint Delta (LOW):** removida a
+  linha "Pendente: CI/Sonar/Socket"; registrados os runs 45487743954 e
+  45490061330 e o CD-02 como pendência real.
+- **Evidência 5 — históricos não marcados (LOW):** `audit-2026-11-24.txt` e
+  `implementation-2026-11-24.txt` agora têm cabeçalho
+  HISTÓRICO/SUPERSEDED, apontando a auditoria independente CORRECTION REQUIRED
+  e o CD-02; não são mais apresentados como aprovação.
+- **Evidência 6 — hashes com normalizações diferentes (LOW):** documentada a
+  convenção. Hashes de source-check antigo eram do checkout Windows (CRLF);
+  hashes de CD-01 eram blobs Git (LF). Abaixo, fingerprints LF dos blobs no
+  head de código d687be6 para read-back reproduzível:
+  - src/app.css 6d7b7f546fc04d56b9fd83c71205f4c43d112b549955e7d64485d754abd723df
+  - AppShell.svelte ab508a143da0dc70c5e6350106f8d573be4e29a32d51cb528d013e8c287d2519
+  - WorkspaceNav.svelte 6bf471595958a669c7a65666c4cacf069dad05b9587ef6554705525bfdea7bdf
+  - nav-items.ts 79c69fb032406aa9409dfdd73438f1b0a3243906ae8933fec2bed6ab0e8327ba
+  - nav-items.json fcf5117741e8480e6615474faf887ba96eaf64ad932552270ec2b7dec98251c6
+  - ActionButton.svelte 8523d3e80d948272603608f4f7089b4639fa0621703d93c38646a2c899df4c8c
+  - e2e/shell-navigation.spec.ts fa5375f689d73e14018637c91c53d7b5d354fb6a74418af7275670aeff3af0ca
+  Os hashes do novo head serão registrados após o commit final.
+- **Evidência 7 — preview final sem prova reproduzível (LOW):** o preview Vercel
+  está atrás de Vercel Authentication (HTTP 302 para sso-api) e não pode ser
+  lido por curl/CI anônima. O bundle declara explicitamente essa limitação e
+  não trata a URL como prova pública. A proteção fail-closed é coberta pelos
+  testes unitários do guard (`preview-isolation.test.ts`) e pela observação
+  autenticada anterior; produção permanece `supabase:true/owner:true`. O run
+  final 45490061330 passa a constar no bundle.
+
+====================================================================
+2. ESCOPO E PRESERVAÇÃO
+====================================================================
+- 22 rotas de nível superior preservadas, incluindo /app/identity.
+- Master Visual 9/9 e ADR-001 PROPOSED preservados.
+- Nenhuma alteração de Auth/Supabase/RLS/Cloudinary/R2/APIs/schema/migrations.
+- PR #75 Draft 9f18254 intocada.
+- Ruleset main 28005320 ativo, sem bypass.
+- Sem merge, deploy de produção, promoção de checkpoint ou início da #79.
+
+====================================================================
+3. TESTES
+====================================================================
+- svelte-check: PASS (0 erros/0 warnings).
+- ESLint: PASS.
+- Vitest: 58 arquivos, 372 testes PASS / 3 skipped.
+- Build: PASS (adapter-node).
+- E2E/CI final: a preencher após push.
+- Novos E2E: foco visível no link ativo, screenshot correto do toggle,
+  reduced-motion real do ActionButton no Painel.

@@ -150,6 +150,19 @@
 		filter: drop-shadow(0 0 6px rgb(0 216 245 / 45%));
 	}
 
+	.nav-link:focus-visible {
+		outline: 2px solid var(--cyan);
+		outline-offset: 2px;
+		box-shadow: var(--focus-ring);
+	}
+
+	.nav-link.active:focus-visible {
+		box-shadow:
+			var(--focus-ring),
+			inset 0 1px 0 rgb(255 255 255 / 8%),
+			0 0 20px rgb(0 216 245 / 12%);
+	}
+
 	.active-marker {
 		position: absolute;
 		top: 0.5rem;

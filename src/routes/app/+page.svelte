@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import type { PageProps } from './$types';
+	import ActionButton from '#lib/components/ActionButton.svelte';
 	import PageHeading from '#lib/components/PageHeading.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import MetricCard from '#lib/components/MetricCard.svelte';
@@ -101,8 +102,8 @@
 					placeholder="Quem deve acompanhar a série?"
 				/></label
 			>
-			<button class="primary-button" type="submit"
-				>Abrir novo arquivo <span aria-hidden="true">↗</span></button
+			<ActionButton type="submit" variant="primary" label="Abrir novo arquivo"
+				>Abrir novo arquivo <span aria-hidden="true">↗</span></ActionButton
 			>
 		</form>
 	</Panel>
@@ -188,28 +189,16 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 0.7rem;
 	}
-	.primary-button,
-	.text-button {
-		min-height: 2.7rem;
-		border: 1px solid rgb(169 197 108 / 48%);
-		border-radius: var(--radius-sm);
-		background: linear-gradient(145deg, #a9c56c, #7f9c4a);
-		color: #10130b;
-		font-weight: 650;
-		cursor: pointer;
-	}
-	.primary-button {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.6rem 0.85rem;
-	}
 	.text-button {
 		min-height: auto;
 		padding: 0.5rem 0.7rem;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-sm);
 		background: transparent;
 		color: var(--muted);
 		font-size: 0.72rem;
+		font-weight: 600;
+		cursor: pointer;
 	}
 	.form-error {
 		padding: 0.7rem;

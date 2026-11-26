@@ -1,10 +1,13 @@
 DIF-UX-WO-002 — AUDITORIA TÉCNICA (pt-BR)
 Data: 2026-11-24
+HISTÓRICO / SUPERSEDED: relatório do executor no head e0f6ead; NÃO é aprovação
+independente. A auditoria independente posterior (comentário 7143348968 na PR
+#95) emitiu CORRECTION REQUIRED. Ver correction-cd01 e correction-cd02.
 Issue: #78 · EPIC #76
 PR: #95 (Draft)
 Head auditado: e0f6eadbf50647a95f61e4e3ab7e22905125d9ff
 Base: main 449642d687f2aee4ce8c823e1b427681fdcad71c
-Veredito: APPROVED WITH RESIDUALS (Draft; sem merge)
+Veredito: APPROVED WITH RESIDUALS (histórico; sem merge)
 
 ====================================================================
 1. ESCOPO E CONFORMIDADE

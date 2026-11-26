@@ -1,5 +1,7 @@
 DIF-UX-WO-002 — IMPLEMENTATION EVIDENCE (WORK IN PROGRESS)
 Data: 2026-11-24
+HISTÓRICO / SUPERSEDED: instantâneo do head e0f6ead (5 jornadas shell, 24 E2E,
+370 Vitest). O head atual tem 6 jornadas shell e 25 E2E; ver correction-cd01/cd02.
 Issue: #78 · EPIC #76
 Branch: feat/dif-ux-wo-002-neon-glass-shell
 Base main: 449642d687f2aee4ce8c823e1b427681fdcad71c

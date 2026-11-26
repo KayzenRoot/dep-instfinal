@@ -7,15 +7,15 @@ Status: PROPOSED — NÃO PROMOVIDO
 - **Head de origem da auditoria:** 2f04dc97bd9c2e289d90f546746d001cfa678601
 - **Head desta correção:** d687be6a129ab38a847d39465b0673d30961b7a1
 - **Auditoria de origem:** CORRECTION REQUIRED; F01–F04 corrigidos nesta PR.
-- **CI:** run 45487743954 PASS (Vitest 372/3 skip, PgTAP, E2E 25/25, build);
-  Sonar A/0,0%; Socket PASS; Preview fail-closed.
+- **CI:** runs 45487743954 (código) e 45490061330 (docs/final) PASS; Vitest 372/3 skip, PgTAP, E2E 25/25, build; Sonar A/0,0%; Socket PASS; Preview fail-closed.
 - **Entregue:** IDs ARIA por instância, dock sem landmark aninhado, retorno de
   foco no Escape, skip link focando main, 320px coberto, reduced-motion real,
   ActionButton sem lift, dados de navegação em JSON legível e testes de ordem.
 - **Preservado:** 22 rotas, Master 9/9, PR #75 Draft, ruleset da main, preview
   fail-closed, sem alteração de backend/auth/RLS.
-- **Pendente:** CI/Sonar/Socket e screenshots no novo HEAD; auditoria
-  independente APPROVED antes de qualquer merge ou promoção.
+- **Pendente:** CD-02 (foco visível no link ativo, teste real do ActionButton,
+  correções de evidência); auditoria independente APPROVED antes de qualquer
+  merge ou promoção.
 - **Residual:** credenciais antigas de Preview/Cloudinary não rotacionadas;
   sem exibição de valores; rotação exige autorização específica.
 
