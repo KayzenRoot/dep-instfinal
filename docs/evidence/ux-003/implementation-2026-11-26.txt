@@ -2,7 +2,7 @@ DIF-UX-WO-003 — IMPLEMENTATION EVIDENCE (pt-BR)
 Data: 2026-11-26
 Issue: #79 · EPIC #76 · PR: a criar
 Base main: b38542b106a25fdffaf35b86a8c69f2e7c2e4db2
-Head: a preencher após commit.
+Head: fd3f932dad6e2e645b706e5e55099baa4da9b07c
 
 ====================================================================
 1. ENTREGA
@@ -25,13 +25,24 @@ Head: a preencher após commit.
   proibições e decisão manual de cânone.
 
 ====================================================================
-2. TESTES LOCAIS
+2. TESTES / CI
 ====================================================================
 - svelte-check: 0 erros/0 warnings.
 - ESLint: PASS.
 - Vitest: 59 arquivos, 376 testes PASS / 3 skipped (4 novos do catálogo).
 - Build: PASS (adapter-node).
-- E2E/CI final: a preencher.
+- CI `45894157377` no head `fd3f932`: quality PASS (9m43s), Vitest 376/3 skip,
+  PgTAP, E2E **30/30 PASS**, build, policy e audit.
+- SonarCloud PR #97: PASS — Security A, Reliability A, duplicação 0,0%,
+  hotspots 100%, zero issues.
+- Socket Project Report/PR Alerts: PASS.
+- Preview Vercel: READY e fail-closed (proteção SSO).
+- Screenshots revisados: `help-desktop-1440.png` (tooltip ancorado no card
+  Séries) e `help-mobile-320.png` (tooltip dentro dos 320px, sem overflow).
+- Correções durante a implementação: painel do tooltip passou a ser portal
+  para `document.body`, pois o `backdrop-filter` do Panel criava containing
+  block para `position:fixed`; largura fixada antes do clamp; `getByLabel`
+  de Premissa tornou-se exato para não colidir com o botão de ajuda.
 
 ====================================================================
 3. SEGURANÇA / PRESERVAÇÃO

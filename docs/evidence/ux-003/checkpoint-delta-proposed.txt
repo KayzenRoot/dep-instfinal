@@ -1,0 +1,17 @@
+DIF-UX-WO-003 — CHECKPOINT DELTA PROPOSED (pt-BR)
+Data: 2026-11-26
+Status: PROPOSED — NÃO PROMOVIDO
+
+- **Work Order:** DIF-UX-WO-003 · issue #79 · PR #97 (Draft)
+- **Base:** main b38542b106a25fdffaf35b86a8c69f2e7c2e4db2 (checkpoint WO-002)
+- **Head:** fd3f932dad6e2e645b706e5e55099baa4da9b07c
+- **Entregue:** InfoTooltip acessível, catálogo pt-BR, ajuda no shell, métricas e
+  formulário do Painel; portal do painel para evitar clipping; 320px e
+  reduced-motion cobertos.
+- **Testes:** Vitest 376/3 skip; E2E 30/30; Sonar PR A/0,0%; Socket PASS.
+- **Preservado:** 22 rotas, Master 9/9, ADR-001 PROPOSED, PR #75 Draft,
+  ruleset main, sem Auth/Supabase/RLS/APIs/schema/migrations.
+- **Pendente:** auditoria independente APPROVED e autorização de produção/merge.
+- **Residual:** onboarding desta WO é ajuda contextual no Painel/shell; tour
+  persistente e demais áreas ficam para WOs posteriores. Credenciais antigas
+  de Preview/Cloudinary não rotacionadas (sem valores expostos).
