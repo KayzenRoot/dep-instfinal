@@ -1,5 +1,9 @@
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { loginAsOwner } from './fixtures';
+
+const screenshotDirectory = path.join(process.cwd(), 'test-results', 'screenshots');
 
 test.describe('contextual help tooltips', () => {
 	test.beforeEach(async ({ page }) => {
@@ -26,6 +30,12 @@ test.describe('contextual help tooltips', () => {
 		expect(box!.y).toBeGreaterThanOrEqual(0);
 		expect(box!.x + box!.width).toBeLessThanOrEqual(1440);
 		expect(box!.y + box!.height).toBeLessThanOrEqual(900);
+
+		await mkdir(screenshotDirectory, { recursive: true });
+		await page.screenshot({
+			path: path.join(screenshotDirectory, 'help-desktop-1440.png'),
+			fullPage: false,
+		});
 	});
 
 	test('keyboard opens, Escape closes and focus returns to the trigger', async ({ page }) => {
@@ -93,6 +103,11 @@ test.describe('contextual help tooltips', () => {
 			innerWidth: window.innerWidth,
 		}));
 		expect(measure.fits).toBe(true);
+		await mkdir(screenshotDirectory, { recursive: true });
+		await page.screenshot({
+			path: path.join(screenshotDirectory, 'help-mobile-320.png'),
+			fullPage: false,
+		});
 	});
 
 	test('reduced motion removes tooltip transitions', async ({ page }) => {
