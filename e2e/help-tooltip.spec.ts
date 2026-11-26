@@ -73,7 +73,20 @@ test.describe('contextual help tooltips', () => {
 		const box = await tooltip.boundingBox();
 		expect(box).not.toBeNull();
 		expect(box!.x).toBeGreaterThanOrEqual(0);
-		expect(box!.x + box!.width).toBeLessThanOrEqual(320);
+		const debug = await tooltip.evaluate((element) => {
+			const computed = getComputedStyle(element);
+			const rect = element.getBoundingClientRect();
+			return {
+				rect: { x: rect.x, width: rect.width, right: rect.right },
+				style: element.getAttribute('style'),
+				width: computed.width,
+				maxWidth: computed.maxWidth,
+				boxSizing: computed.boxSizing,
+				clientWidth: document.documentElement.clientWidth,
+				innerWidth: window.innerWidth,
+			};
+		});
+		expect(box!.x + box!.width, JSON.stringify(debug)).toBeLessThanOrEqual(320);
 		const measure = await page.evaluate(() => ({
 			fits: document.documentElement.scrollWidth <= window.innerWidth,
 			scrollWidth: document.documentElement.scrollWidth,
