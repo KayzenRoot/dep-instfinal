@@ -70,7 +70,17 @@
 	}
 
 	function onPointerDown(event: PointerEvent): void {
-		if (open && !wrapper?.contains(event.target as Node)) close();
+		const target = event.target as Node;
+		if (open && !wrapper?.contains(target) && !panel?.contains(target)) close();
+	}
+
+	function portal(node: HTMLElement): { destroy(): void } {
+		document.body.appendChild(node);
+		return {
+			destroy() {
+				node.remove();
+			},
+		};
 	}
 
 	function onViewportChange(): void {
@@ -111,7 +121,14 @@
 	</button>
 
 	{#if open}
-		<div class="help-panel" role="tooltip" id={panelId} bind:this={panel} style={panelStyle}>
+		<div
+			class="help-panel"
+			role="tooltip"
+			id={panelId}
+			bind:this={panel}
+			style={panelStyle}
+			use:portal
+		>
 			<p class="help-kicker">AJUDA CONTEXTUAL</p>
 			<p class="help-title">{entry.title}</p>
 			<p class="help-copy">{entry.description}</p>
