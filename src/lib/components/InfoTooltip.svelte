@@ -27,7 +27,9 @@
 		const margin = 8;
 		const viewportWidth = document.documentElement.clientWidth;
 		const viewportHeight = document.documentElement.clientHeight;
-		panel.style.maxWidth = `${viewportWidth - margin * 2}px`;
+		const panelWidth = Math.min(320, viewportWidth - margin * 2);
+		panel.style.width = `${panelWidth}px`;
+		panel.style.maxWidth = `${panelWidth}px`;
 		const rect = trigger.getBoundingClientRect();
 		const panelRect = panel.getBoundingClientRect();
 		let left = Math.round(rect.left + rect.width / 2 - panelRect.width / 2);
