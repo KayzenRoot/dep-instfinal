@@ -8,25 +8,36 @@
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 
-	--ink: #f0ece5;
-	--muted: #a6aaa9;
-	--dim: #888f91;
-	--bg: #08090b;
-	--panel: #12151a;
-	--raised: #1c2027;
-	--line: rgb(240 236 229 / 11%);
-	--line-strong: rgb(240 236 229 / 20%);
-	--danger: #b73f55;
-	--phosphor: #a9c56c;
-	--paper: #d9d0bb;
+	/* Neon Glass palette — see docs/design/neon-glass-v1/ADR-001-PROPOSED.txt */
+	--ink: #f4f7ff;
+	--muted: #a5b3d1;
+	--dim: #7e8cab;
+	--bg: #080c18;
+	--panel: #11192b;
+	--raised: #1c2943;
+	--line: rgb(164 190 255 / 14%);
+	--line-strong: rgb(164 190 255 / 26%);
+	--glass-bg: rgb(17 25 43 / 72%);
+	--glass-bg-strong: rgb(11 18 33 / 88%);
+	--glass-border: rgb(120 220 255 / 18%);
+	--glass-highlight: rgb(255 255 255 / 6%);
+	--cyan: #00d8f5;
+	--violet: #8b5cf6;
+	--magenta: #c53cff;
+	--emerald: #22d3a6;
+	--danger: #f87171;
+	--phosphor: var(--emerald);
+	--paper: #dbe7ff;
+	--glow-cyan: 0 0 22px rgb(0 216 245 / 20%);
+	--glow-violet: 0 0 26px rgb(139 92 246 / 22%);
 	--display: 'Cormorant Garamond', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
 	--body: 'DM Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
 	--mono: 'IBM Plex Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
-	--radius-sm: 0.35rem;
-	--radius-md: 0.7rem;
-	--radius-lg: 1rem;
-	--sidebar-width: 15.5rem;
-	--focus-ring: 0 0 0 3px rgb(169 197 108 / 38%);
+	--radius-sm: 0.55rem;
+	--radius-md: 0.9rem;
+	--radius-lg: 1.15rem;
+	--sidebar-width: 16.5rem;
+	--focus-ring: 0 0 0 3px rgb(0 216 245 / 42%);
 }
 
 *,
@@ -47,8 +58,10 @@ body {
 	min-height: 100vh;
 	margin: 0;
 	background:
-		radial-gradient(ellipse at 75% -20%, rgb(183 63 85 / 9%), transparent 42rem),
-		linear-gradient(180deg, #0b0d10 0%, var(--bg) 38rem);
+		radial-gradient(ellipse at 12% -12%, rgb(0 216 245 / 10%), transparent 38rem),
+		radial-gradient(ellipse at 88% -4%, rgb(139 92 246 / 10%), transparent 34rem),
+		radial-gradient(ellipse at 50% 110%, rgb(197 60 255 / 6%), transparent 42rem),
+		linear-gradient(180deg, #0b1222 0%, var(--bg) 38rem);
 	color: var(--ink);
 	font-family: var(--body);
 	font-size: 0.9375rem;
@@ -59,14 +72,12 @@ body::before {
 	position: fixed;
 	inset: 0;
 	z-index: -1;
-	background-image: repeating-linear-gradient(
-		to bottom,
-		transparent 0,
-		transparent 3px,
-		rgb(255 255 255 / 1.2%) 4px,
-		transparent 5px
-	);
+	background-image:
+		linear-gradient(rgb(120 220 255 / 2.2%) 1px, transparent 1px),
+		linear-gradient(90deg, rgb(120 220 255 / 2.2%) 1px, transparent 1px);
+	background-size: 3rem 3rem;
 	content: '';
+	mask-image: linear-gradient(180deg, rgb(0 0 0 / 55%), transparent 70%);
 	pointer-events: none;
 }
 
@@ -101,7 +112,7 @@ select,
 
 a {
 	color: inherit;
-	text-decoration-color: rgb(169 197 108 / 55%);
+	text-decoration-color: rgb(0 216 245 / 55%);
 	text-underline-offset: 0.2em;
 }
 
@@ -120,7 +131,7 @@ select:focus-visible,
 }
 
 ::selection {
-	background: rgb(169 197 108 / 25%);
+	background: rgb(0 216 245 / 28%);
 	color: var(--ink);
 }
 

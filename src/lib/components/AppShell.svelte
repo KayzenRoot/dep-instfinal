@@ -1,22 +1,42 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { resolve } from '$app/paths';
 	import NavGlyph from './NavGlyph.svelte';
 	import StatusPill from './StatusPill.svelte';
 	import WorkspaceNav from './WorkspaceNav.svelte';
+	import { groupLabelForPath } from './nav-items';
 
 	export let currentPath = '/app';
 	export let ownerLabel = 'Proprietária';
 	let mobileMenuOpen = false;
+	let menuToggle: HTMLButtonElement | undefined;
+	let workspaceMain: HTMLElement | undefined;
 
-	function closeOnEscape(event: KeyboardEvent): void {
-		if (event.key === 'Escape') mobileMenuOpen = false;
+	$: sectionLabel = groupLabelForPath(currentPath);
+
+	async function closeOnEscape(event: KeyboardEvent): Promise<void> {
+		if (event.key !== 'Escape' || !mobileMenuOpen) return;
+		const drawer = document.getElementById('mobile-menu');
+		const restoreFocus = drawer?.contains(document.activeElement) ?? false;
+		mobileMenuOpen = false;
+		if (restoreFocus) {
+			await tick();
+			menuToggle?.focus();
+		}
+	}
+
+	function skipToWorkspace(event: MouseEvent): void {
+		event.preventDefault();
+		workspaceMain?.focus();
 	}
 </script>
 
 <svelte:window onkeydown={closeOnEscape} />
 
+<a class="skip-link" href="#workspace-main" onclick={skipToWorkspace}>Pular para o conteúdo</a>
+
 <div class="studio-frame">
-	<aside class="desktop-sidebar" aria-label="DIF Studio">
+	<aside class="desktop-sidebar" aria-label="DIF Studio" data-testid="desktop-nav">
 		<a class="brand" href={resolve('/app')} aria-label="DIF Studio — Painel">
 			<span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
 			<span class="brand-copy"><strong>DIF</strong><small>ARQUIVO VIVO</small></span>
@@ -26,7 +46,7 @@
 			<span class="case-led" aria-hidden="true"></span><span>ESTÚDIO PRIVADO</span>
 		</div>
 		<p class="nav-heading">ESPAÇO DE TRABALHO</p>
-		<WorkspaceNav {currentPath} />
+		<WorkspaceNav {currentPath} navId="sidebar" />
 
 		<div class="sidebar-bottom">
 			<div class="reel-track" aria-hidden="true">
@@ -48,6 +68,7 @@
 				<button
 					class="menu-toggle"
 					type="button"
+					bind:this={menuToggle}
 					aria-label={mobileMenuOpen ? 'Fechar navegação' : 'Abrir navegação'}
 					aria-expanded={mobileMenuOpen}
 					aria-controls="mobile-menu"
@@ -56,30 +77,57 @@
 					<NavGlyph name={mobileMenuOpen ? 'close' : 'menu'} />
 				</button>
 				<div class="console-label">
-					<span>CONSOLE</span><span aria-hidden="true">/</span><strong>ARQUIVO 17</strong>
+					<span>CONSOLE</span><span aria-hidden="true">/</span><strong>{sectionLabel}</strong>
 				</div>
 			</div>
 			<div class="topbar-state">
 				<StatusPill label="Sessão privada" tone="phosphor" /><span class="build-mark"
-					>DIF / 001</span
+					>DIF / 002</span
 				>
 			</div>
 		</header>
 
 		<div id="mobile-menu" class="mobile-menu" hidden={!mobileMenuOpen}>
-			<WorkspaceNav {currentPath} onNavigate={() => (mobileMenuOpen = false)} />
+			<WorkspaceNav
+				{currentPath}
+				navId="drawer"
+				wrapLabels
+				onNavigate={() => (mobileMenuOpen = false)}
+			/>
 		</div>
 
-		<main class="workspace-content"><slot /></main>
+		<main id="workspace-main" bind:this={workspaceMain} class="workspace-content" tabindex="-1">
+			<slot />
+		</main>
 		<footer class="workspace-footer">
 			<span>ESTÚDIO DIF</span><span>RASCUNHOS E CANÔNE PERMANECEM SOB CONTROLE DA AUTORA</span>
 		</footer>
 	</div>
 
-	<nav class="mobile-dock" aria-label="Navegação rápida"><WorkspaceNav {currentPath} mobile /></nav>
+	<div class="mobile-dock"><WorkspaceNav {currentPath} mobile navId="dock" /></div>
 </div>
 
 <style>
+	.skip-link {
+		position: fixed;
+		top: 0.65rem;
+		left: 0.65rem;
+		z-index: 100;
+		padding: 0.6rem 0.85rem;
+		border: 1px solid var(--cyan);
+		border-radius: var(--radius-sm);
+		background: var(--glass-bg-strong);
+		color: var(--ink);
+		font-size: 0.8rem;
+		text-decoration: none;
+		transform: translateY(-200%);
+		transition: transform 140ms ease;
+	}
+
+	.skip-link:focus-visible {
+		transform: translateY(0);
+	}
+
 	.studio-frame {
 		min-height: 100vh;
 	}
@@ -92,8 +140,11 @@
 		width: var(--sidebar-width);
 		flex-direction: column;
 		padding: 1.2rem 1rem 1rem;
-		border-right: 1px solid var(--line);
-		background: linear-gradient(180deg, rgb(255 255 255 / 1.2%), transparent 18rem), #0d0f12;
+		overflow-y: auto;
+		border-right: 1px solid var(--glass-border);
+		background:
+			linear-gradient(180deg, rgb(0 216 245 / 5%), transparent 16rem), var(--glass-bg-strong);
+		backdrop-filter: blur(18px) saturate(1.12);
 	}
 
 	.brand {
@@ -112,14 +163,15 @@
 		align-items: center;
 		justify-content: center;
 		gap: 0.18rem;
-		border: 1px solid rgb(183 63 85 / 60%);
-		border-radius: 0.3rem;
-		background: linear-gradient(140deg, rgb(183 63 85 / 18%), transparent);
+		border: 1px solid rgb(0 216 245 / 55%);
+		border-radius: 0.45rem;
+		background: linear-gradient(140deg, rgb(0 216 245 / 18%), rgb(197 60 255 / 12%));
+		box-shadow: var(--glow-cyan);
 	}
 
 	.brand-mark span {
 		width: 2px;
-		background: var(--danger);
+		background: linear-gradient(180deg, var(--cyan), var(--magenta));
 	}
 
 	.brand-mark span:nth-child(1) {
@@ -171,12 +223,12 @@
 		width: 0.42rem;
 		height: 0.42rem;
 		border-radius: 50%;
-		background: var(--phosphor);
-		box-shadow: 0 0 0.8rem rgb(169 197 108 / 35%);
+		background: var(--emerald);
+		box-shadow: 0 0 0.8rem rgb(34 211 166 / 45%);
 	}
 
 	.nav-heading {
-		margin: 1.45rem 0 0.6rem 0.75rem;
+		margin: 1.35rem 0 0.55rem 0.75rem;
 		color: var(--dim);
 		font-family: var(--mono);
 		font-size: 0.62rem;
@@ -198,14 +250,14 @@
 
 	.reel-track span {
 		height: 0.28rem;
-		border: 1px solid rgb(240 236 229 / 16%);
+		border: 1px solid rgb(164 190 255 / 18%);
 		background: rgb(255 255 255 / 2%);
 	}
 
 	.reel-track span:nth-child(2),
 	.reel-track span:nth-child(3) {
-		border-color: rgb(183 63 85 / 45%);
-		background: rgb(183 63 85 / 15%);
+		border-color: rgb(0 216 245 / 45%);
+		background: rgb(0 216 245 / 15%);
 	}
 
 	.sidebar-bottom > p {
@@ -231,7 +283,7 @@
 		width: 1.8rem;
 		height: 1.8rem;
 		place-items: center;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--glass-border);
 		border-radius: 50%;
 		color: var(--paper);
 		font-family: var(--display);
@@ -270,9 +322,9 @@
 		justify-content: space-between;
 		gap: 1rem;
 		padding: 0.65rem clamp(1rem, 3vw, 2.5rem);
-		border-bottom: 1px solid var(--line);
-		background: rgb(8 9 11 / 86%);
-		backdrop-filter: blur(14px);
+		border-bottom: 1px solid var(--glass-border);
+		background: var(--glass-bg-strong);
+		backdrop-filter: blur(18px) saturate(1.1);
 	}
 
 	.topbar-start,
@@ -283,7 +335,18 @@
 		gap: 0.7rem;
 	}
 
+	.topbar-start {
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+
+	.topbar-state {
+		flex: 0 0 auto;
+	}
+
 	.console-label {
+		min-width: 0;
+		overflow: hidden;
 		color: var(--dim);
 		font-family: var(--mono);
 		font-size: 0.62rem;
@@ -291,8 +354,12 @@
 	}
 
 	.console-label strong {
+		min-width: 0;
+		overflow: hidden;
 		color: var(--paper);
 		font-weight: 500;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.build-mark {
@@ -315,6 +382,15 @@
 		padding: clamp(1.25rem, 4vw, 3.5rem);
 	}
 
+	.workspace-content:focus {
+		outline: none;
+	}
+
+	.workspace-content:focus-visible {
+		outline: 2px solid var(--cyan);
+		outline-offset: 6px;
+	}
+
 	.workspace-footer {
 		display: flex;
 		justify-content: space-between;
@@ -324,6 +400,15 @@
 		font-family: var(--mono);
 		font-size: 0.6rem;
 		letter-spacing: 0.09em;
+	}
+
+	@supports not (backdrop-filter: blur(1px)) {
+		.desktop-sidebar,
+		.topbar,
+		.mobile-menu,
+		.mobile-dock {
+			background: #0d1526;
+		}
 	}
 
 	@media (max-width: 850px) {
@@ -341,9 +426,9 @@
 			width: 2.3rem;
 			height: 2.3rem;
 			place-items: center;
-			border: 1px solid var(--line-strong);
+			border: 1px solid var(--glass-border);
 			border-radius: var(--radius-sm);
-			background: var(--panel);
+			background: var(--glass-bg);
 			cursor: pointer;
 		}
 		.menu-toggle :global(svg) {
@@ -355,16 +440,20 @@
 			inset: 3.8rem 0 auto 0;
 			z-index: 20;
 			display: block;
-			padding: 0.75rem 1rem 1rem;
-			border-bottom: 1px solid var(--line-strong);
-			background: #0d0f12;
-			box-shadow: 0 1rem 2rem rgb(0 0 0 / 38%);
+			max-height: calc(100dvh - 3.8rem);
+			padding: 0.9rem 1rem 5.5rem;
+			overflow-y: auto;
+			border-bottom: 1px solid var(--glass-border);
+			background: var(--glass-bg-strong);
+			box-shadow: 0 1rem 2rem rgb(0 0 0 / 45%);
+			backdrop-filter: blur(18px) saturate(1.1);
 		}
 		.mobile-menu[hidden] {
 			display: none;
 		}
 		.mobile-menu :global(nav) {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
+			align-items: start;
 		}
 		.mobile-dock {
 			position: fixed;
@@ -374,9 +463,9 @@
 			z-index: 9;
 			display: block;
 			padding: 0.35rem 0.55rem calc(0.35rem + env(safe-area-inset-bottom));
-			border-top: 1px solid var(--line-strong);
-			background: rgb(10 11 13 / 94%);
-			backdrop-filter: blur(14px);
+			border-top: 1px solid var(--glass-border);
+			background: var(--glass-bg-strong);
+			backdrop-filter: blur(18px) saturate(1.1);
 		}
 		.workspace-content {
 			min-height: calc(100vh - 9rem);
@@ -400,6 +489,32 @@
 		}
 		.workspace-content {
 			padding-inline: 1rem;
+		}
+	}
+
+	@media (max-width: 380px) {
+		.topbar {
+			gap: 0.5rem;
+			padding-inline: 0.75rem;
+		}
+		.topbar-start {
+			gap: 0.5rem;
+		}
+		.topbar-state {
+			gap: 0.35rem;
+		}
+		.topbar-state :global(.status-pill) {
+			padding: 0.3rem 0.38rem;
+			font-size: 0.56rem;
+		}
+		.console-label > span {
+			display: none;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.skip-link {
+			transition: none;
 		}
 	}
 </style>

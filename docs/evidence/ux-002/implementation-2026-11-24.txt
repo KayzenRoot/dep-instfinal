@@ -1,0 +1,86 @@
+DIF-UX-WO-002 — IMPLEMENTATION EVIDENCE (WORK IN PROGRESS)
+Data: 2026-11-24
+HISTÓRICO / SUPERSEDED: instantâneo do head e0f6ead (5 jornadas shell, 24 E2E,
+370 Vitest). O head atual tem 6 jornadas shell e 25 E2E; ver correction-cd01/cd02.
+Issue: #78 · EPIC #76
+Branch: feat/dif-ux-wo-002-neon-glass-shell
+Base main: 449642d687f2aee4ce8c823e1b427681fdcad71c
+PR: #95 (Draft)
+
+====================================================================
+1. ENTREGA
+====================================================================
+- `src/app.css`: paleta Neon Glass (`#080C18`, `#11192B`, `#1C2943`, `#F4F7FF`,
+  `#A5B3D1`, cyan `#00D8F5`, violet `#8B5CF6`, magenta `#C53CFF`, emerald
+  `#22D3A6`), bordas translúcidas, radii 12–20px, focus ring cyan, grid de fundo
+  leve e seleção cyan.
+- `src/lib/components/nav-items.ts`: modelo de navegação em 6 grupos com 22
+  rotas de nível superior; `quick` limita o dock a 5 destinos; funções puras de
+  path ativo e rótulo de seção.
+- `src/lib/components/WorkspaceNav.svelte`: grupos visíveis, submenus, link ativo
+  com `aria-current`, marcador cyan→violet, hover lift/glow apenas em
+  `pointer:fine`; dock mobile em 5 colunas.
+- `src/lib/components/AppShell.svelte`: skip link, sidebar/topbar glass, backdrop
+  blur com fallback opaco, drawer mobile scrollável, foco no conteúdo e rótulo
+  de seção no topbar.
+- `Panel.svelte`, `ActionButton.svelte`, `StatusPill.svelte`: superfícies de vidro,
+  primário cyan→emerald e tons de status na nova paleta.
+- `e2e/shell-navigation.spec.ts`: 5 jornadas (drawer com 22 rotas, dock, desktop
+  agrupado/aria-current, overflow em 390/768/1440/1920, Escape + skip link).
+- `src/lib/components/nav-items.test.ts`: 5 testes de cobertura das rotas reais,
+  unicidade, quick dock, path ativo e rótulo de seção.
+
+Rotas preservadas (22 no nível superior): /app, /app/audio, /app/captions,
+/app/color, /app/continuity, /app/covers, /app/director, /app/editor,
+/app/episodes, /app/export, /app/finale, /app/hooks, /app/identity, /app/library,
+/app/narration, /app/retention, /app/series, /app/settings, /app/storyboard,
+/app/style, /app/timeline, /app/video. `/app/identity` foi adicionada à navegação
+(estava ausente); nenhuma rota foi removida.
+
+====================================================================
+2. TESTES LOCAIS
+====================================================================
+- `npm run check` (svelte-check): 0 erros / 0 warnings.
+- `npm run lint` (ESLint --max-warnings=0): PASS.
+- `npm test` (Vitest): 58 arquivos PASS | 3 skipped; 370 testes PASS | 3 skipped.
+  Inclui os 5 testes novos de `nav-items.test.ts`.
+- `npm run build`: PASS (adapter-node).
+- Prettier: arquivos alterados PASS (o `.txt` de evidência não tem parser).
+- E2E local não executado nesta máquina: o stack Supabase/Podman local não está
+  disponível; a suíte roda no CI com Supabase efêmero. Nenhuma credencial de
+  produção foi usada.
+
+====================================================================
+3. CI / PREVIEW
+====================================================================
+- Run inicial d2d43e1: quality FAIL apenas no novo E2E; 22 testes E2E antigos
+  passaram. Correções: contagem do aside (marca) e locator do toggle.
+- Run c32fa65: 22 PASS; 2 falhas do novo spec por nome acessível do toggle
+  mudar de "Abrir" para "Fechar" após o clique.
+- Correção final e923d91: locator estável `button[aria-controls="mobile-menu"]`.
+- Run final e0f6ead: quality PASS (10m27s), E2E **24/24 PASS** (19 existentes + 5
+  novos), Vitest 370 PASS / 3 SKIP, PgTAP e build PASS; Sonar, Socket e Vercel PASS.
+- SonarCloud PR #95 (e0f6ead): PASS — Security A, Reliability A, manutenibilidade A,
+  duplicação 0,0%, hotspots 100%, zero issues. O primeiro scan apontou S8786 no
+  regex de normalização e 11,7% de CPD no modelo; o regex foi trocado por loop e
+  a tabela de navegação foi compactada sem excluir código do Quality Gate.
+- Preview do head inicial d2d43e1:
+  https://dif-studio-79pvi3e95-claytons-projects-5922d27c.vercel.app/health
+  → {"status":"ok","configured":{"supabase":false,"owner":false}} (fail-closed).
+- Preview do head e923d91:
+  https://dif-studio-qs2yzu5h5-claytons-projects-5922d27c.vercel.app/health
+  → {"status":"ok","configured":{"supabase":false,"owner":false}} (fail-closed).
+- Screenshots do run d2d43e1: shell-390/768/1440/1920 e shell-mobile-menu-390
+  (artifact `dif-studio-browser-evidence`), visualmente consistentes e sem
+  overflow; o botão primário verde da página Painel pertence ao estilo local da
+  página e fica para a WO-005.
+
+====================================================================
+4. LIMITES
+====================================================================
+- ADR-001 permanece PROPOSED; este incremento não promove o ADR.
+- Nenhuma feature nova, backend, Auth/RLS, schema, API ou migration.
+- Nenhum dado fictício vira fixture; mockups seguem ilustrativos.
+- Páginas internas mantêm estilos locais; a consistência de todas as telas é
+  escopo das WOs 003–013.
+- PR #75 intocada; merge apenas após APPROVED e gates, sem force-push.

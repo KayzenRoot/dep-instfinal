@@ -24,9 +24,9 @@
 		gap: 0.45rem;
 		width: fit-content;
 		padding: 0.35rem 0.58rem;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--glass-border);
 		border-radius: 999px;
-		background: rgb(255 255 255 / 2%);
+		background: rgb(255 255 255 / 3%);
 		color: var(--muted);
 		font-family: var(--mono);
 		font-size: 0.64rem;
@@ -44,23 +44,23 @@
 	}
 
 	.tone-good {
-		border-color: rgb(169 197 108 / 32%);
-		color: var(--phosphor);
+		border-color: rgb(34 211 166 / 35%);
+		color: var(--emerald);
 	}
 
 	.tone-warning {
-		border-color: rgb(217 160 90 / 35%);
-		color: #d9a05a;
+		border-color: rgb(251 191 36 / 35%);
+		color: #fbbf24;
 	}
 
 	.tone-danger {
-		border-color: rgb(183 63 85 / 40%);
-		color: #dd7889;
+		border-color: rgb(248 113 113 / 40%);
+		color: #fca5a5;
 	}
 
 	.tone-phosphor {
-		border-color: rgb(169 197 108 / 32%);
-		background: rgb(169 197 108 / 8%);
-		color: var(--phosphor);
+		border-color: rgb(0 216 245 / 32%);
+		background: rgb(0 216 245 / 8%);
+		color: var(--cyan);
 	}
 </style>

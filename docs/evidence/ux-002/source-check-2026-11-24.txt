@@ -1,0 +1,86 @@
+DIF-UX-WO-002 — SOURCE CHECK / CONTEXT LOCK
+Data: 2026-11-24
+Repositório: KayzenRoot/dep-instfinal
+Issue: #78 · EPIC #76 · Dependência: #77 (fechada)
+Executor: ZCode
+
+====================================================================
+1. REFERÊNCIAS
+====================================================================
+- main: 449642d687f2aee4ce8c823e1b427681fdcad71c (checkpoint DIF-GATE-WO-001 promovido).
+- PR #75: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8 — Draft, OPEN, intocada.
+- PR #91: integrada em dfcb1fc; issue #77 fechada.
+- SonarCloud main: PASS (Security A, duplicação 2,5%).
+- Neon Glass 9/9: `node docs/design/neon-glass-v1/verify-images.mjs` → 9/9.
+- ADR-001: PROPOSED / não promovido. Este incremento não promove o ADR.
+- Matriz: `docs/design/neon-glass-v1/IMPLEMENTATION_MATRIX.txt` — #78 é tokens, AppShell e WorkspaceNav.
+
+====================================================================
+2. ROTAS DE APLICAÇÃO (22 no nível superior + nested)
+====================================================================
+/app
+/app/audio
+/app/captions
+/app/color
+/app/continuity
+/app/continuity/visual (nested)
+/app/covers
+/app/director
+/app/editor
+/app/episodes
+/app/episodes/[episodeId] (nested)
+/app/export
+/app/export/[episodeId] (nested)
+/app/finale
+/app/hooks
+/app/identity
+/app/library
+/app/narration
+/app/retention
+/app/series
+/app/series/[seriesId] (nested)
+/app/settings
+/app/storyboard
+/app/style
+/app/timeline
+/app/video
+
+A navegação anterior tinha 21 itens e omitia `/app/identity`. A WO-002 inclui
+`Identidade` e mantém todas as 22 rotas de nível superior acessíveis.
+
+====================================================================
+3. HASHES DOS ARQUIVOS DE SHELL (SHA-256, antes da mudança)
+====================================================================
+eb9eef42c0f247c0b0ad4b8e28cfae4f960c4482a5db3ce544bd856a4fc5d644  src/app.css
+a3942dc1ac2c6649e924103eead3930faa96ed8a275769a5d84278c057c2e086  src/lib/components/AppShell.svelte
+09d33967bb0db615dd8533de3faba214691be0b1982f976f7b66e89e87a51b4f  src/lib/components/WorkspaceNav.svelte
+7cb13798bfbe5cebbe0396a7a625bdb930434d268928a3fa1e20dde3f463495a  src/lib/components/NavGlyph.svelte
+5c21db22fa677971fea22e23e11e19a3f147ca3408ed9318bdc483d70c92bc84  src/lib/components/Panel.svelte
+c977c9e62ae45c12cd6ca75a2bddda4ac6708e5b16de41eeba93dc8cc0cc66a1  src/lib/components/ActionButton.svelte
+
+NOTA DE NORMALIZAÇÃO: estes hashes foram calculados no checkout Windows com
+`core.autocrlf=true` (conteúdo CRLF). Para fingerprints de blobs Git (LF), usar
+`git cat-file blob <sha>:<path> | sha256sum`; ver correction-cd02.
+
+====================================================================
+4. CONTRATOS PRESERVADOS
+====================================================================
+- SvelteKit SSR/Svelte 5/TypeScript.
+- Supabase Auth owner-only + RLS; Cloudinary privado; R2 privado; FFmpeg workers.
+- Nenhuma alteração de schema/RLS/API/auth/permissões.
+- Nenhum dado fictício vira fixture; mockups seguem ilustrativos.
+- Nenhuma rota removida; nenhuma feature só porque aparece no mockup.
+- PR #75 não será alterada.
+
+====================================================================
+5. ESCOPO DESTE INCREMENTO
+====================================================================
+- Tokens neon glass em `src/app.css` (paleta #080C18/#11192B/#1C2943,
+  cyan #00D8F5, violet #8B5CF6, magenta #C53CFF, emerald #22D3A6).
+- Glass panels com fallback opaco sem backdrop-filter; radii 12–20px;
+  motion 120–220ms e reduced-motion.
+- AppShell responsivo, sidebar/topbar, skip link, drawer mobile com todas as
+  rotas e dock rápido.
+- WorkspaceNav agrupada com submenus visíveis e estado ativo com hover lift/glow.
+- Testes Vitest de modelo de navegação (cobertura das rotas) e Playwright em
+  390/768/1440/1920, teclado/Escape, aria-current e ausência de overflow.
