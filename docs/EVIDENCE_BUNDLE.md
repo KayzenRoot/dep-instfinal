@@ -1,5 +1,22 @@
 # DIF Studio — Evidence Bundle
 
+## DIF-UX-WO-003 — Ajuda contextual e onboarding acessível (2026-11-26) — PROMOTED
+
+- **Work Order:** `DIF-UX-WO-003` · issue #79 · epic #76
+- **Base:** `main` `b38542b`; branch `feat/dif-ux-wo-003-help`; head `8715136`; merge `b8691a3` (PR #97)
+- **Status:** **PROMOTED**; auditoria independente **APPROVED**; CI `45902530605`/`45903870115` PASS; Sonar PR A/0,0%; produção READY.
+
+| Check        | Result | Evidence                                                                                |
+| ------------ | ------ | --------------------------------------------------------------------------------------- |
+| Tooltip      | PASS   | ARIA, portal, hover/foco/clique/touch, Escape com foco condicional, clamp 320px         |
+| Catálogo     | PASS   | 10 conceitos reais; mídias=imagens; vídeos R2 fora; publicação manual                   |
+| Touch        | PASS   | `hasTouch/isMobile`, tap no gatilho e em controle coberto, `elementFromPoint`           |
+| A11y         | PASS   | auditoria manual auditável; foco visível, contraste, reduced-motion, alvo 25,6px        |
+| Testes       | PASS   | Vitest 382/3 skip; PgTAP 250; E2E 32/32; build; policy; audit 0                         |
+| Sonar/Socket | PASS   | 0 issues; A; duplicação 0,0%; Socket 2/2                                                |
+| Produção     | PASS   | `/health` 200 `supabase:true/owner:true`; `/login` 200; `/app` anônimo 303              |
+| Limites      | —      | painel pointer-events none sem rolagem; tour adiado; helpId fallback; residuais FASE 02 |
+
 ## DIF-UX-WO-002 — Design System, AppShell e navegação Neon Glass (2026-11-26) — PROMOTED
 
 - **Work Order:** `DIF-UX-WO-002` · issue #78 · epic #76

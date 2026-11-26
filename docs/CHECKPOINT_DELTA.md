@@ -1,5 +1,15 @@
 # Checkpoint Delta — CD06
 
+## DIF-UX-WO-003 — Ajuda contextual e onboarding acessível (2026-11-26) — PROMOTED
+
+- **Status:** **PROMOTED**; head `8715136`; código/teste `b4bb3a4`; squash-merge `b8691a3` (PR #97); auditoria independente **APPROVED**; CI `45902530605`/`45903870115` PASS (382 Vitest/3 skip, PgTAP 250, E2E 32/32); Sonar PR A/0,0%; produção READY com `/health` 200 e `/app` anônimo 303.
+- **Base:** `main` `b38542b` (checkpoint WO-002).
+- **Delivered:** `InfoTooltip` acessível (ARIA, hover/foco/clique/touch/Escape, portal, clamp 320px, pointer-events none), catálogo pt-BR com 10 conceitos reais, ajuda no shell, métricas e formulário do Painel; auditoria a11y manual, touch real `hasTouch`, posicionamento puro testado.
+- **Correções:** CD-01 (texto de mídias, foco condicional, scroll interno, overlay, alvo 25,6px, a11y/touch) e CD-02 (prova de controle coberto, evidências finais).
+- **Evidências:** `docs/evidence/ux-003/` (`source-check`, `implementation`, `correction-cd01/cd02`, `a11y-audit`, `merge-readback`); PR #97; issue #79.
+- **Limits:** `pointer-events:none` sem rolagem; tour persistente adiado; `helpId` fallback em MetricCard; credenciais antigas de Preview/Cloudinary e Sonar histórico pertencem à FASE 02.
+- **Next:** FASE 02 — reconciliação PR #75 + preflight de segurança.
+
 ## DIF-UX-WO-002 — Design System, AppShell e navegação Neon Glass (2026-11-26) — PROMOTED
 
 - **Status:** **PROMOTED**; head `a419848`; código `cf715c1`; squash-merge `54ff92c` (PR #95); auditoria independente **APPROVED**; CI `45877986581` PASS (372 Vitest/3 skip, PgTAP 250, E2E 25/25); Sonar main A/2,4%; produção READY no merge com `/health` 200 e `/app` anônimo 303 para login.
