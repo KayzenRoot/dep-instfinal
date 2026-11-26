@@ -4,6 +4,7 @@
 	import NavGlyph from './NavGlyph.svelte';
 	import StatusPill from './StatusPill.svelte';
 	import WorkspaceNav from './WorkspaceNav.svelte';
+	import InfoTooltip from './InfoTooltip.svelte';
 	import { groupLabelForPath } from './nav-items';
 
 	export let currentPath = '/app';
@@ -44,6 +45,7 @@
 
 		<div class="case-label">
 			<span class="case-led" aria-hidden="true"></span><span>ESTÚDIO PRIVADO</span>
+			<InfoTooltip helpKey="privateStudio" id="help-private-studio" />
 		</div>
 		<p class="nav-heading">ESPAÇO DE TRABALHO</p>
 		<WorkspaceNav {currentPath} navId="sidebar" />

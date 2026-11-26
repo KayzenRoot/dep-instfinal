@@ -1,0 +1,70 @@
+DIF-UX-WO-003 — AUDITORIA DE ACESSIBILIDADE (AXE-EQUIVALENTE, MANUAL)
+Data: 2026-11-26
+Escopo: InfoTooltip, catálogo e integração no Painel/shell
+Método: checklist WCAG 2.2 AA auditável + asserções Playwright; sem scanner
+axe-core adicionado (evita dependência nova). Limite declarado: não é
+certificação WCAG completa.
+
+====================================================================
+1. SEMÂNTICA / NOME / DESCRIÇÃO
+====================================================================
+- Gatilho é `<button type="button">` com nome acessível
+  "Ajuda sobre <conceito>". PASS.
+- `aria-expanded`, `aria-controls` e `aria-describedby` (quando aberto)
+  apontam para o painel `role="tooltip"` com id único. PASS.
+- Painel é somente leitura, sem controles interativos; não cria modal nem
+  sequestra foco. PASS.
+- Catálogo não promete provedores, OAuth/2FA, postagem automática ou métricas
+  fabricadas; "Quadros e mídias" descreve apenas imagens, com vídeos fora da
+  contagem. PASS.
+
+====================================================================
+2. TECLADO / FOCO
+====================================================================
+- Tab alcança o gatilho; Enter/Espaço abre; Escape fecha. PASS (E2E).
+- Escape devolve foco ao gatilho somente quando ele/ painel estava focado;
+  hover+Escape mantém o foco no campo de formulário. PASS (E2E).
+- Foco visível: anel global `--focus-ring` + borda/glow do gatilho. PASS.
+- Ordem de foco preservada; painel portalado não entra na ordem de tabulação.
+  PASS.
+- Skip link e foco do main preservados pela WO-002. PASS.
+
+====================================================================
+3. TOUCH / OVERLAY
+====================================================================
+- Alvo do gatilho: 1.6rem = 25.6px (>= 24px da WCAG 2.2 SC 2.5.8). PASS.
+- Toque real com contexto `hasTouch` abre o tooltip; toque em controle coberto
+  recebe o foco e fecha o tooltip; toque fora fecha. PASS (E2E).
+- `.help-panel` tem `pointer-events: none`; não engole cliques/toques de
+  controles cobertos. PASS.
+- Posição clampada ao viewport; 320px sem overflow horizontal. PASS (E2E).
+- Scroll de containers internos (sidebar) reposiciona o painel via listener
+  de scroll em fase de captura. PASS (implementação; coberto por inspeção).
+
+====================================================================
+4. CONTRASTE / MOTION
+====================================================================
+- Texto do painel: #F4F7FF/#11192B = 16.36:1; muted #A5B3D1/#11192B = 8.32:1.
+- Gatilho cyan #00D8F5 sobre painel = 10.14:1; foco cyan visível.
+- `prefers-reduced-motion`: transições do gatilho removidas; painel sem
+  animação. PASS (E2E).
+- Fallback sem backdrop-filter usa fundo opaco #0d1526. PASS.
+
+====================================================================
+5. VIEWPORTS / ESTADOS
+====================================================================
+- 1440 e 320 medidos; tooltip dentro do viewport, sem clipping.
+- Conteúdo estático não depende de empty/error/loading; não há promessa de
+  estado dinâmico no tooltip.
+- Screenshots: help-desktop-1440.png e help-mobile-320.png no artifact
+  `dif-studio-browser-evidence`.
+
+====================================================================
+6. LIMITES
+====================================================================
+- Sem axe-core automatizado nesta WO; checklist e asserções ARIA/foco/touch
+  são a evidência auditável.
+- Não foi executada varredura de todas as 22 rotas; a WO-013 (#89) fará QA
+  transversal completo.
+- Leitores de tela reais não foram testados; nomes/roles/ARIA foram validados
+  por DOM e Playwright.
