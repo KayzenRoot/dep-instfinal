@@ -2,7 +2,7 @@ DIF-UX-WO-003 — IMPLEMENTATION EVIDENCE (pt-BR)
 Data: 2026-11-26
 Issue: #79 · EPIC #76 · PR: a criar
 Base main: b38542b106a25fdffaf35b86a8c69f2e7c2e4db2
-Head: fd3f932dad6e2e645b706e5e55099baa4da9b07c
+Head: 15f4149e2348405ae0dc5ed7e8927e7227b6b2c7 (CD-01)
 
 ====================================================================
 1. ENTREGA
@@ -29,10 +29,10 @@ Head: fd3f932dad6e2e645b706e5e55099baa4da9b07c
 ====================================================================
 - svelte-check: 0 erros/0 warnings.
 - ESLint: PASS.
-- Vitest: 59 arquivos, 376 testes PASS / 3 skipped (4 novos do catálogo).
+- Vitest: 60 arquivos, 382 testes PASS / 3 skipped (6 catálogo + 4 posicionamento).
 - Build: PASS (adapter-node).
-- CI `45894157377` no head `fd3f932`: quality PASS (9m43s), Vitest 376/3 skip,
-  PgTAP, E2E **30/30 PASS**, build, policy e audit.
+- CI `45899223390` no head `15f4149`: quality PASS (10m22s), Vitest 382/3 skip,
+  PgTAP, E2E **32/32 PASS**, build, policy e audit.
 - SonarCloud PR #97: PASS — Security A, Reliability A, duplicação 0,0%,
   hotspots 100%, zero issues.
 - Socket Project Report/PR Alerts: PASS.

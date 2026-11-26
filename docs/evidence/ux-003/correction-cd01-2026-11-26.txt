@@ -4,7 +4,8 @@ Issue: #79 · EPIC #76 · PR #97 (Draft)
 Auditoria de origem: CORRECTION REQUIRED (relatório independente read-only)
 Base main: b38542b106a25fdffaf35b86a8c69f2e7c2e4db2
 Head de origem: 6a86a45265751aeab7ab52950a57fd5cb5ef2936
-Head desta correção: a preencher após commit.
+Head desta correção: 15f4149e2348405ae0dc5ed7e8927e7227b6b2c7
+Tree: 8fb8ed795c239422314fc723f31990bfb5f19774
 
 ====================================================================
 1. ACHADOS E CORREÇÕES
@@ -50,9 +51,29 @@ Head desta correção: a preencher após commit.
 - Área de toque real testada em 320px.
 
 ====================================================================
-3. TESTES
+3. TESTES / CI
 ====================================================================
 - svelte-check/ESLint/build: PASS.
 - Vitest direcionado: catálogo 6 testes + posicionamento 4 testes PASS.
 - Vitest completo local: 60 arquivos, 382 testes PASS / 3 skipped.
-- CI final: a preencher no HEAD desta correção.
+- CI `45899223390` no head `15f4149`: quality PASS (10m22s), Vitest 382/3 skip,
+  PgTAP, E2E **32/32 PASS**, build, policy e audit.
+- SonarCloud PR #97: PASS — Security A, Reliability A, duplicação 0,0%,
+  hotspots 100%, zero issues.
+- Socket Project Report/PR Alerts: PASS.
+
+====================================================================
+4. FINGERPRINTS E SCREENSHOTS (LF, blob Git)
+====================================================================
+- src/lib/components/InfoTooltip.svelte 4026cd71eb0d57ac0cfea9a292b0c4567bbda6f6288004b801821bc5a107c27b
+- src/lib/components/tooltip-position.ts 33e330c0eb67c6e375692d76a0bf6af972da740e4fe118ec46348a4b9f25c1e7
+- src/lib/domain/help-catalog.ts 78ea8bfd1c250db08964f9120e829b67a3c95bfef34a72f15705c27013c4a698
+- src/lib/components/MetricCard.svelte 154aa44a9efdb7e41c9293bb58eb088ce96fb670f71994bb91d0ee1fe8433914
+- src/lib/components/AppShell.svelte 0ce3f37cd0c99b0edcde8d57daa1463b95435c792d305494fd6b95b1c9536412
+- src/routes/app/+page.svelte a1799ab4c1ac40178c6a8fef4916597eb68d530eff753338754f1861595de8dc
+- e2e/help-tooltip.spec.ts 3c7fe3b6ae49b9c2985fc369570440a768b9a86ae98d4da5e4377c605b79147e
+- e2e/owner-boundary.spec.ts c0194d426f1b203da2444756eb856151311dd8d518160b4d67dd34109c18b126
+- Screenshots (artifact `dif-studio-browser-evidence`, run 45899223390):
+  - help-desktop-1440.png SHA-256 4026af8b3f38a5feeca8279a0b67b53dae8c1565c9c502657187b31b705542d4
+  - help-mobile-320.png SHA-256 fa1bb4d6d9b2ac6071be8b2d35dcd622da62cc6cb24f67ac65c9a64e145bb5e7
+  - https://github.com/KayzenRoot/dep-instfinal/actions/runs/45899223390
