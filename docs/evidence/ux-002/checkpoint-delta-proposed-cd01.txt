@@ -1,6 +1,8 @@
 DIF-UX-WO-002/CD-01 — CHECKPOINT DELTA PROPOSED
 Data: 2026-11-24
 Status: PROPOSED — NÃO PROMOVIDO
+HISTÓRICO/SUPERSEDED: ver checkpoint-delta-proposed-cd02.txt para o estado
+posterior à auditoria independente e ao CD-02.
 
 - **Work Order:** DIF-UX-WO-002 / CD-01 · issue #78 · PR #95 (Draft)
 - **Base:** main 449642d687f2aee4ce8c823e1b427681fdcad71c

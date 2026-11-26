@@ -7,7 +7,7 @@ e reauditoria read-only do plano DIF-CLOSEOUT-MASTER-001/FASE 00.
 Base main: 449642d687f2aee4ce8c823e1b427681fdcad71c
 Head de origem da auditoria: dea50e41963dc220b2d32ef5b2dab033b14ea9c1
 (código d687be6a129ab38a847d39465b0673d30961b7a1)
-Head desta correção: a preencher após commit/push.
+Head desta correção: cf715c1dc3292fd92f2422568770c519af9ad6b9
 
 ====================================================================
 1. ACHADOS DA AUDITORIA E CORREÇÕES
@@ -40,15 +40,16 @@ Head desta correção: a preencher após commit/push.
 - **Evidência 6 — hashes com normalizações diferentes (LOW):** documentada a
   convenção. Hashes de source-check antigo eram do checkout Windows (CRLF);
   hashes de CD-01 eram blobs Git (LF). Abaixo, fingerprints LF dos blobs no
-  head de código d687be6 para read-back reproduzível:
+  head de código cf715c1 para read-back reproduzível:
   - src/app.css 6d7b7f546fc04d56b9fd83c71205f4c43d112b549955e7d64485d754abd723df
   - AppShell.svelte ab508a143da0dc70c5e6350106f8d573be4e29a32d51cb528d013e8c287d2519
-  - WorkspaceNav.svelte 6bf471595958a669c7a65666c4cacf069dad05b9587ef6554705525bfdea7bdf
+  - WorkspaceNav.svelte 86ab0ae9410b45a08712fee06a317b11e38cca376f374a6d0307576033ac9fc9
   - nav-items.ts 79c69fb032406aa9409dfdd73438f1b0a3243906ae8933fec2bed6ab0e8327ba
   - nav-items.json fcf5117741e8480e6615474faf887ba96eaf64ad932552270ec2b7dec98251c6
   - ActionButton.svelte 8523d3e80d948272603608f4f7089b4639fa0621703d93c38646a2c899df4c8c
-  - e2e/shell-navigation.spec.ts fa5375f689d73e14018637c91c53d7b5d354fb6a74418af7275670aeff3af0ca
-  Os hashes do novo head serão registrados após o commit final.
+  - src/routes/app/+page.svelte 9620b2891fc3dd25ed0f2dfe3e6deb11585716ce25317f90d60a8f99d3d9ee59
+  - e2e/shell-navigation.spec.ts fe1d4e1c26596aa9cb64e0250d37d77a75a67cd9eb9e0f9c7f487ed14871b33c
+  Os hashes do novo head documental serão registrados no read-back final.
 - **Evidência 7 — preview final sem prova reproduzível (LOW):** o preview Vercel
   está atrás de Vercel Authentication (HTTP 302 para sso-api) e não pode ser
   lido por curl/CI anônima. O bundle declara explicitamente essa limitação e
@@ -68,12 +69,24 @@ Head desta correção: a preencher após commit/push.
 - Sem merge, deploy de produção, promoção de checkpoint ou início da #79.
 
 ====================================================================
-3. TESTES
+3. TESTES / CI / READ-BACK
 ====================================================================
 - svelte-check: PASS (0 erros/0 warnings).
 - ESLint: PASS.
 - Vitest: 58 arquivos, 372 testes PASS / 3 skipped.
 - Build: PASS (adapter-node).
-- E2E/CI final: a preencher após push.
+- CI `45873142990` no head `cf715c1`: quality PASS (10m45s), Vitest 372/3 skip,
+  PgTAP, E2E **25/25 PASS**, build, policy e audit.
+- SonarCloud PR #95: PASS — Security A, Reliability A, duplicação 0,0%,
+  hotspots 100%, zero issues; sem exclusões novas.
+- Socket Project Report/PR Alerts: PASS.
+- Preview final:
+  https://dif-studio-e2imd3i0o-claytons-projects-5922d27c.vercel.app/health
+  → {"status":"ok","configured":{"supabase":false,"owner":false}} via sessão
+  Vercel autenticada. Acesso anônimo/CI é 302 SSO; não é usado como prova pública.
+- Screenshots revisados do artifact `dif-studio-browser-evidence` (run 45873142990):
+  shell-focus-drawer-390.png (outline ciano de 2px no link ativo focado) e
+  shell-focus-toggle-390.png (toggle focado após Escape), além de
+  shell-320/390/768/1440/1920 e shell-mobile-menu-320/390.
 - Novos E2E: foco visível no link ativo, screenshot correto do toggle,
   reduced-motion real do ActionButton no Painel.
