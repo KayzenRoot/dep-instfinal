@@ -1,0 +1,27 @@
+DIF-UX-WO-003 — MERGE E READ-BACK (pt-BR)
+Data: 2026-11-26
+Issue: #79 · EPIC #76 · PR #97
+Operação: DIF-CLOSEOUT-MASTER-001 / FASE 01
+
+- **Base antes do merge:** b38542b106a25fdffaf35b86a8c69f2e7c2e4db2
+- **HEAD da PR:** 8715136b98baf8adc9cd0270690a50495db69700
+  (código/teste b4bb3a46c5bc1d7a61e9e3303e776dbd42a5dc91)
+- **Merge squash:** b8691a32bd92e734e1e1bc036883e95b5208bc0e
+  em 2026-11-26T22:45:38Z, sob ruleset 28005320.
+- **Auditoria independente:** **APPROVED** (tooltip a11y, touch real, 320px,
+  catálogo real, evidências; nenhum HIGH/CRITICAL).
+- **CI code/test 45902530605:** PASS (10m56s; 382 Vitest/3 skip, PgTAP,
+  E2E 32/32, build, policy/audit).
+- **CI docs 45903870115:** PASS (14m32s; 382/3, E2E 32/32).
+- **SonarCloud PR #97:** PASS (0 issues, Security A, duplicação 0,0%).
+- **Vercel produção:** deployment CA5DZbctoPYFxXUdSsbKUyyZydYh READY/success
+  no SHA b8691a3.
+- **Smoke:** `/health` 200 `supabase:true/owner:true`; `/login` 200;
+  `/app` anônimo 303 para login.
+- **Preservado:** 22 rotas, Master 9/9, ADR-001 PROPOSED, PR #75 Draft,
+  ruleset ativo, sem Auth/Supabase/RLS/Cloudinary/R2/APIs/schema/migrations.
+- **Residual:** painel pointer-events:none sem rolagem (conteúdo atual cabe em
+  320px); tour persistente adiado; helpId fallback em MetricCard; credenciais
+  antigas de Preview/Cloudinary e Sonar histórico pertencem à FASE 02.
+- **Checkpoint:** promovido nesta PR docs.
+- **Próxima fase:** FASE 02 — reconciliação PR #75 + preflight de segurança.
