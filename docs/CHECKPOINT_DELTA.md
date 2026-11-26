@@ -1,5 +1,15 @@
 # Checkpoint Delta — CD06
 
+## DIF-UX-WO-002 — Design System, AppShell e navegação Neon Glass (2026-11-26) — PROMOTED
+
+- **Status:** **PROMOTED**; head `a419848`; código `cf715c1`; squash-merge `54ff92c` (PR #95); auditoria independente **APPROVED**; CI `45877986581` PASS (372 Vitest/3 skip, PgTAP 250, E2E 25/25); Sonar main A/2,4%; produção READY no merge com `/health` 200 e `/app` anônimo 303 para login.
+- **Base:** `main` `449642d` (checkpoint gate); 22 rotas preservadas, incluindo `/app/identity`.
+- **Delivered:** tokens Neon Glass, AppShell com skip link/drawer/dock, navegação agrupada em 6 seções, `nav-items.json` declarativo, foco visível no link ativo, `ActionButton` adotado no Painel, reduced-motion real, 320/390/768/1440/1920, Sonar sem exclusões novas.
+- **Correções:** CD-01 (F01–F04) e CD-02/CD-03 (foco ativo, teste real do ActionButton, screenshots de foco, evidências/hashes LF, nits documentais).
+- **Evidências:** `docs/evidence/ux-002/` (`correction-cd01`, `correction-cd02`, `checkpoint-delta-proposed-cd02`, `merge-readback-2026-11-26`); PR #95; issue #78.
+- **Limits:** ADR-001 PROPOSED; páginas internas mantêm estilos locais; sidebar exige scroll em ~900px; baseline visual do shell/Chromium; credenciais antigas de Preview/Cloudinary não rotacionadas (sem valores expostos).
+- **Next:** FASE 01 / DIF-UX-WO-003 (#79).
+
 ## DIF-GATE-WO-001 — SonarCloud main, proteção da main e isolamento Preview (2026-11-24) — DONE
 
 - **Status:** **DONE**; base `66a997e`; gate fix head `0e65b89`; squash-merge `8f85974` (PR #93); SonarCloud main **PASS** no `8f85974` (Security **A**, duplicação **2,5%**, Reliability A, hotspots 100%); PR #91 integrada em `dfcb1fc`.
