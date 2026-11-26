@@ -10,7 +10,7 @@
 	let trigger: HTMLButtonElement | undefined;
 	let panel: HTMLDivElement | undefined;
 	let wrapper: HTMLSpanElement | undefined;
-	let panelStyle = '';
+	let panelStyle = 'left:8px;top:8px';
 
 	$: entry = getHelpEntry(helpKey);
 	$: panelId = `${id}-tooltip`;
