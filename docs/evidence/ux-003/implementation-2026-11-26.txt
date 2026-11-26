@@ -1,0 +1,41 @@
+DIF-UX-WO-003 — IMPLEMENTATION EVIDENCE (pt-BR)
+Data: 2026-11-26
+Issue: #79 · EPIC #76 · PR: a criar
+Base main: b38542b106a25fdffaf35b86a8c69f2e7c2e4db2
+Head: a preencher após commit.
+
+====================================================================
+1. ENTREGA
+====================================================================
+- `src/lib/domain/help-catalog.ts`: catálogo pt-BR com 10 conceitos reais do
+  estúdio/Painel; títulos, descrições, passos e limites; sem provedores,
+  postagem automática, viralização ou métricas fabricadas.
+- `src/lib/components/InfoTooltip.svelte`: botão de ajuda acessível com
+  `aria-expanded`, `aria-controls` e `aria-describedby`; painel `role=tooltip`;
+  hover, foco, clique/touch, Escape, clique fora; posicionamento fixo clampado
+  ao viewport; sem bloquear controles; foco devolvido ao gatilho no Escape.
+- `MetricCard.svelte`: suporte opcional a `helpKey`/`helpId`; rótulos do Painel
+  com ajuda contextual para Séries, Episódios, Votações abertas e Quadros.
+- `AppShell.svelte`: ajuda contextual em "Estúdio privado".
+- Painel: ajuda nos campos Título, Premissa, Subgênero, Tom e Público pretendido,
+  com labels associados por `for`/`id`.
+- `e2e/help-tooltip.spec.ts`: hover, teclado/Escape/foco, touch/clique fora,
+  320px sem overflow, reduced-motion.
+- `src/lib/domain/help-catalog.test.ts`: cobertura, unicidade, conteúdo real,
+  proibições e decisão manual de cânone.
+
+====================================================================
+2. TESTES LOCAIS
+====================================================================
+- svelte-check: 0 erros/0 warnings.
+- ESLint: PASS.
+- Vitest: 59 arquivos, 376 testes PASS / 3 skipped (4 novos do catálogo).
+- Build: PASS (adapter-node).
+- E2E/CI final: a preencher.
+
+====================================================================
+3. SEGURANÇA / PRESERVAÇÃO
+====================================================================
+- Sem alteração de Auth/Supabase/RLS/Cloudinary/R2/APIs/schema/migrations.
+- 22 rotas preservadas; Master 9/9; ADR-001 PROPOSED; PR #75 intocada.
+- Sem novos serviços, custos, dados fictícios ou publicação automática.

@@ -1,9 +1,14 @@
 <script lang="ts">
+	import type { HelpKey } from '#lib/domain/help-catalog.js';
+	import InfoTooltip from './InfoTooltip.svelte';
+
 	export let label: string;
 	export let value: string | number;
 	export let detail = '';
 	export let marker = '';
 	export let tone: 'neutral' | 'phosphor' | 'danger' = 'neutral';
+	export let helpKey: HelpKey | undefined = undefined;
+	export let helpId = '';
 </script>
 
 <article
@@ -12,7 +17,10 @@
 	class:metric-danger={tone === 'danger'}
 >
 	<div class="metric-topline">
-		<p class="metric-label">{label}</p>
+		<p class="metric-label">
+			{label}
+			{#if helpKey}<InfoTooltip {helpKey} id={helpId || `metric-${helpKey}`} />{/if}
+		</p>
 		{#if marker}<span class="metric-marker" aria-hidden="true">{marker}</span>{/if}
 	</div>
 	<p class="metric-value">{value}</p>
@@ -41,6 +49,12 @@
 		margin: 0;
 		color: var(--muted);
 		font-size: 0.8rem;
+	}
+
+	.metric-label {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
 	}
 
 	.metric-marker {
