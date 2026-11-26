@@ -111,7 +111,23 @@ test.describe('contextual help tooltips', () => {
 		await expect(tooltip).toBeVisible();
 		await expect(tooltip).toContainText('mistério central');
 
-		const covered = page.getByLabel('Tom', { exact: true });
+		const covered = page.getByLabel('Subgênero', { exact: true });
+		const panelBox = await tooltip.boundingBox();
+		const coveredBox = await covered.boundingBox();
+		expect(panelBox).not.toBeNull();
+		expect(coveredBox).not.toBeNull();
+		const overlaps = !(
+			panelBox!.x + panelBox!.width < coveredBox!.x ||
+			coveredBox!.x + coveredBox!.width < panelBox!.x ||
+			panelBox!.y + panelBox!.height < coveredBox!.y ||
+			coveredBox!.y + coveredBox!.height < panelBox!.y
+		);
+		expect(overlaps, 'the tooltip must overlap the covered control for this proof').toBe(true);
+		const hitId = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id ?? '', {
+			x: coveredBox!.x + coveredBox!.width / 2,
+			y: coveredBox!.y + coveredBox!.height / 2,
+		});
+		expect(hitId).toBe('series-subgenre');
 		await covered.tap();
 		await expect(covered).toBeFocused();
 		await expect(tooltip).toBeHidden();

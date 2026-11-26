@@ -32,9 +32,9 @@ Tree: 8fb8ed795c239422314fc723f31990bfb5f19774
 7. **Redação absoluta sobre publicação:** corrigida para "não são publicados
    automaticamente; publicação e exportação são manuais".
 8. **Evidência/checkpoint desatualizados:** este arquivo, o checkpoint proposto
-   e o corpo da PR serão atualizados para o HEAD final e CI final.
-9. **Bundle sem tree/fingerprints:** serão registrados tree, SHA-256 dos
-   arquivos canônicos, screenshots e link do artifact no read-back final.
+   e o corpo da PR foram atualizados para o HEAD final e CI final.
+9. **Bundle sem tree/fingerprints:** registrados tree, SHA-256 dos arquivos
+   canônicos, screenshots e link do artifact final `15155384194`.
 10. **Teste de componente ausente:** lógica de posicionamento extraída para
     `tooltip-position.ts` com 4 testes Vitest (320, borda direita, flip acima,
     desktop), além dos 6 testes de catálogo; comportamento do componente é

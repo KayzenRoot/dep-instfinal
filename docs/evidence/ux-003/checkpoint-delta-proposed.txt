@@ -4,12 +4,12 @@ Status: PROPOSED — NÃO PROMOVIDO
 
 - **Work Order:** DIF-UX-WO-003 · issue #79 · PR #97 (Draft)
 - **Base:** main b38542b106a25fdffaf35b86a8c69f2e7c2e4db2 (checkpoint WO-002)
-- **Head:** 15f4149e2348405ae0dc5ed7e8927e7227b6b2c7 (CD-01)
-- **CI:** 45899223390 PASS (382 Vitest/3 skip, PgTAP, E2E 32/32, build)
+- **Head:** 1ad64014782bb72a74f1867f83e53c597e0ba1f2 (CD-01 docs-only sobre 15f4149)
+- **CI:** 45900548870 PASS (382 Vitest/3 skip, PgTAP, E2E 32/32, build)
 - **Entregue:** InfoTooltip acessível, catálogo pt-BR, ajuda no shell, métricas e
   formulário do Painel; portal do painel para evitar clipping; 320px e
   reduced-motion cobertos.
-- **Testes:** Vitest 376/3 skip; E2E 30/30; Sonar PR A/0,0%; Socket PASS.
+- **Testes:** Vitest 382/3 skip; E2E 32/32; Sonar PR A/0,0%; Socket PASS.
 - **Preservado:** 22 rotas, Master 9/9, ADR-001 PROPOSED, PR #75 Draft,
   ruleset main, sem Auth/Supabase/RLS/APIs/schema/migrations.
 - **Pendente:** auditoria independente APPROVED e autorização de produção/merge.
