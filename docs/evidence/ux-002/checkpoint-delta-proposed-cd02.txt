@@ -5,7 +5,8 @@ Status: PROPOSED — NÃO PROMOVIDO
 - **Work Order:** DIF-UX-WO-002 / CD-02 · issue #78 · PR #95 (Draft)
 - **Base:** main 449642d687f2aee4ce8c823e1b427681fdcad71c
 - **Head de código:** cf715c1dc3292fd92f2422568770c519af9ad6b9
-- **Head documental final:** preencher após o commit de evidência.
+- **Head documental CD-02:** da160bcbf6cc856b238afc5b853790cb6e6936b9
+  (docs-only; o CD-03 corrige apenas nits documentais)
 - **Auditoria de origem:** CORRECTION REQUIRED (F01–F04); CD-02 corrige F03/foco,
   teste real do ActionButton, screenshots e inconsistências de evidência.
 - **CI:** run 45873142990 PASS — Vitest 372/3 skip, PgTAP, E2E 25/25, build;
