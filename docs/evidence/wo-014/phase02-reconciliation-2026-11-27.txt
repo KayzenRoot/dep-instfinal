@@ -3,14 +3,14 @@ Data: 2026-11-27
 Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
 Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
 PR #75 original: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8
-HEAD reconciliado: 3b6b5f2 (merge normal da main; sem force-push)
+HEAD reconciliado: 8b85ba5 (merge normal da main + correções; sem force-push)
 Status: CORRECTION REQUIRED / sem merge, sem deploy, sem fechar #31.
 
 ====================================================================
 1. MATRIZ DOS ARQUIVOS DA PR #75
 ====================================================================
 | Arquivo | Classe | Disposição |
-| .github/workflows/ci.yml | necessária | mantém `bash -n benchmark.sh`; 4 MAJOR Sonar de CI classificados, não alterados nesta fase |
+| .github/workflows/ci.yml | necessária | `bash -n`; actions pinadas por SHA, `SUPABASE_BIN` absoluto e Playwright sem npx; resta 1 MAJOR npm ci documentado |
 | docs/evidence/wo-014/* | histórica/obsoleta | preservada; esta evidência complementa sem reescrever |
 | package.json | necessária | `test` inclui Node tests de logs/taskkill/temp |
 | scripts/benchmark-color-render.ts | necessária | replaceAll, sem mudança de comportamento |
@@ -48,13 +48,13 @@ Total: 27 arquivos originais classificados; 3 docs históricos preservados;
 ====================================================================
 - S5443 CRITICAL (2) em `scripts/test-local-e2e.mjs`: corrigido com
   `preparePrivateTempDir()` (mkdtemp 0700, cleanup finally) e TEMP/TMP
-  apontando para o diretório privado; teste Node de modo/cleanup.
+  apontando para o diretório privado; teste Node de modo/cleanup; CI 32/32.
 - S4036 MINOR (2): `serve-tunnel.mjs` usa CLOUDFLARED_BIN/candidatos absolutos;
   `test-local-e2e.mjs` usa SUPABASE_BIN/candidatos absolutos no POSIX.
   Sem desabilitar regra nem usar PATH quando há executável absoluto.
-- 4 MAJOR de CI (S6505 npm ci, S7637 action por tag, S6505 npx, S8543 versão
-  flutuante): identificadores registrados; correção não aplicada nesta fase
-  para não alterar scripts de instalação sem ensaio dedicado.
+- 4 MAJOR de CI: S7637/S6505(npx)/S8543 corrigidos com actions pinadas por
+  SHA e Playwright via CLI local; S6505 do `npm ci` (lifecycle scripts)
+  permanece documentado, sem `--ignore-scripts` para não quebrar dependências.
 - 630 issues abertas na main: 621 Code Smell, 8 Vulnerability, 1 Bug;
   0 vulnerability em new code. Cobertura nova não retornada/0% — não é
   cobertura funcional; não há LCOV gerado/importado no projeto.
@@ -62,14 +62,18 @@ Total: 27 arquivos originais classificados; 3 docs históricos preservados;
   ou threshold alterado.
 
 ====================================================================
-3. TESTES EXECUTADOS (HEAD 3b6b5f2, antes do commit documental)
+3. TESTES EXECUTADOS (HEAD 8b85ba5)
 ====================================================================
 - `node --test scripts/worker-log-dir.test.mjs scripts/taskkill-path.test.mjs
   scripts/test-local-e2e-temp.test.mjs`: 10/10 PASS.
 - `bash -n scripts/v2-bench/benchmark.sh`: PASS (exit 0).
 - `svelte-check`: 0 erros/0 warnings; ESLint PASS; build PASS.
-- `npm test`/Vitest: executado localmente; resultado a registrar no CI final.
-- `npm ci`, PgTAP, Playwright e Sonar/Socket no HEAD: CI final a registrar.
+- CI `45991851767` no HEAD `8b85ba5`: quality PASS (10m11s); Vitest 389/3 skip;
+  PgTAP 250; E2E 32/32; build; policy; audit.
+- Color Render ARM64 `45991851686`: PASS (1m16s).
+- SonarCloud PR #75: PASS (0 issues, 0 vulnerabilidades, A/0,0%); Socket PASS.
+- `npm ci` com lifecycle scripts permanece como único MAJOR de CI documentado;
+  não foi alterado para evitar quebrar install de dependências.
 
 ====================================================================
 4. PREVIEW / PRODUÇÃO / CLOUDINARY
