@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
-import { linkSync, mkdtempSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+	linkSync,
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	statSync,
+	symlinkSync,
+	writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -107,6 +115,28 @@ test('rejects a symlinked log directory', () => {
 		symlinkSync(target, link, process.platform === 'win32' ? 'junction' : 'dir');
 		assert.throws(
 			() => prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: link } }),
+			/symbolic link/,
+		);
+	} finally {
+		rmSync(base, { recursive: true, force: true });
+	}
+});
+
+test('rejects a symlinked ancestor in the log path', () => {
+	const base = makeBase();
+	try {
+		const home = join(base, 'home');
+		const target = join(base, 'target');
+		const link = join(home, 'linked');
+		mkdirSync(home);
+		mkdirSync(target);
+		symlinkSync(target, link, process.platform === 'win32' ? 'junction' : 'dir');
+		assert.throws(
+			() =>
+				prepareWorkerLogDir({
+					env: { DIF_WORKER_LOG_DIR: join(link, 'logs') },
+					homeDir: home,
+				}),
 			/symbolic link/,
 		);
 	} finally {

@@ -66,6 +66,20 @@ function assertExistingFile(path, platform) {
 	}
 }
 
+function assertNoSymlinkTrail(dir, platform, base) {
+	if (!base) return;
+	const path = pathApi(platform);
+	const relativePath = path.relative(path.resolve(base), path.resolve(dir));
+	if (relativePath === '' || relativePath.startsWith('..') || path.isAbsolute(relativePath)) return;
+	let current = path.resolve(base);
+	for (const segment of relativePath.split(path.sep)) {
+		current = path.join(current, segment);
+		if (lstatSync(current).isSymbolicLink()) {
+			throw new Error('Worker log path must not traverse a symbolic link.');
+		}
+	}
+}
+
 function openPrivateFile(path, flags, platform) {
 	assertPrivateDirectory(dirname(path), platform);
 	assertExistingFile(path, platform);
@@ -111,8 +125,10 @@ export function resolveWorkerLogDir({
 
 export function prepareWorkerLogDir(options = {}) {
 	const platform = options.platform ?? process.platform;
-	const dir = resolveWorkerLogDir(options);
+	const homeDir = options.homeDir ?? homedir();
+	const dir = resolveWorkerLogDir({ ...options, homeDir });
 	mkdirSync(dir, { recursive: true, mode: 0o700 });
+	assertNoSymlinkTrail(dir, platform, homeDir);
 	assertPrivateDirectory(dir, platform);
 	if (platform === 'win32') hardenWindowsPrivatePath(dir, { directory: true, env: process.env });
 	return dir;
