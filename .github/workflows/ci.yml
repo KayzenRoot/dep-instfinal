@@ -24,7 +24,8 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      # esbuild/fsevents are the only install scripts; their binaries ship as optional packages.
+      - run: npm ci --ignore-scripts
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: npm run check:baseline
       - run: bash -n scripts/v2-bench/benchmark.sh

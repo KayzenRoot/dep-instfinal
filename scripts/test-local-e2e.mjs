@@ -1,10 +1,10 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { win32 } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveSupabaseCommand } from './supabase-command.mjs';
 import { cleanupPrivateTempDir, preparePrivateTempDir } from './test-local-e2e-temp.mjs';
+import { runWindowsBatchFile } from './windows-batch.mjs';
 
 function parseEnvironment(output) {
 	return Object.fromEntries(
@@ -19,14 +19,6 @@ function parseEnvironment(output) {
 	);
 }
 
-function resolveWindowsCommandShell() {
-	const systemRoot = process.env.SystemRoot;
-	if (!systemRoot || !/^[a-z]:\\windows\\?$/i.test(win32.normalize(systemRoot))) {
-		throw new Error('SystemRoot must point to the local Windows system directory.');
-	}
-	return win32.join(systemRoot, 'System32', 'cmd.exe');
-}
-
 function readSupabaseEnvironment() {
 	const options = {
 		cwd: process.cwd(),
@@ -36,14 +28,11 @@ function readSupabaseEnvironment() {
 
 	try {
 		const command = resolveSupabaseCommand();
+		const args = ['status', '--output', 'env'];
 		const output =
 			process.platform === 'win32' && /\.(cmd|bat)$/i.test(command)
-				? execFileSync(
-						resolveWindowsCommandShell(),
-						['/d', '/s', '/c', `"${command}" status --output env`],
-						{ ...options, windowsVerbatimArguments: true },
-					)
-				: execFileSync(command, ['status', '--output', 'env'], options);
+				? runWindowsBatchFile(command, args, options)
+				: execFileSync(command, args, options);
 		return parseEnvironment(output);
 	} catch (error) {
 		if (

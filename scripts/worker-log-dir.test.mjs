@@ -1,13 +1,19 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs';
+import { linkSync, mkdtempSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
 	prepareWorkerLogDir,
 	prepareWorkerLogFile,
+	readWorkerLock,
 	resolveWorkerLogDir,
+	writeWorkerLock,
 } from './worker-log-dir.mjs';
+
+function makeBase(prefix = 'dif-worker-log-') {
+	return mkdtempSync(join(tmpdir(), prefix));
+}
 
 test('uses a per-user log directory by default', () => {
 	assert.equal(
@@ -35,17 +41,102 @@ test('treats whitespace-only overrides as unset', () => {
 	);
 });
 
+test('restricts Windows overrides to the user profile', () => {
+	const homeDir = String.raw`C:\Users\dif`;
+	assert.equal(
+		resolveWorkerLogDir({
+			env: { DIF_WORKER_LOG_DIR: String.raw`C:\Users\dif\logs` },
+			homeDir,
+			platform: 'win32',
+		}),
+		String.raw`C:\Users\dif\logs`,
+	);
+	assert.throws(
+		() =>
+			resolveWorkerLogDir({
+				env: { DIF_WORKER_LOG_DIR: String.raw`C:\ProgramData\dif\logs` },
+				homeDir,
+				platform: 'win32',
+			}),
+		/user profile/,
+	);
+});
+
 test('creates the private directory and log file with restrictive permissions', () => {
-	const base = mkdtempSync(join(tmpdir(), 'dif-worker-log-'));
+	const base = makeBase();
 	try {
 		const dir = prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: join(base, 'private') } });
 		const file = prepareWorkerLogFile(join(dir, 'supervisor.log'));
-		assert.equal(existsSync(dir), true);
-		assert.equal(existsSync(file), true);
+		assert.equal(statSync(dir).isDirectory(), true);
+		assert.equal(statSync(file).isFile(), true);
 		if (process.platform !== 'win32') {
 			assert.equal(statSync(dir).mode & 0o777, 0o700);
 			assert.equal(statSync(file).mode & 0o777, 0o600);
 		}
+	} finally {
+		rmSync(base, { recursive: true, force: true });
+	}
+});
+
+test('tightens a preexisting log file and lock file', () => {
+	const base = makeBase();
+	try {
+		const dir = prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: join(base, 'private') } });
+		const file = join(dir, 'media.log.1');
+		const lock = join(dir, 'workers-service.lock');
+		writeFileSync(file, 'old log', { mode: 0o666 });
+		writeFileSync(lock, '123', { mode: 0o666 });
+		prepareWorkerLogFile(file);
+		writeWorkerLock(lock, 456);
+		assert.equal(readWorkerLock(lock), '456');
+		if (process.platform !== 'win32') {
+			assert.equal(statSync(file).mode & 0o777, 0o600);
+			assert.equal(statSync(lock).mode & 0o777, 0o600);
+		}
+	} finally {
+		rmSync(base, { recursive: true, force: true });
+	}
+});
+
+test('rejects a symlinked log directory', () => {
+	const base = makeBase();
+	try {
+		const target = join(base, 'target');
+		const link = join(base, 'link');
+		prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: target } });
+		symlinkSync(target, link, process.platform === 'win32' ? 'junction' : 'dir');
+		assert.throws(
+			() => prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: link } }),
+			/symbolic link/,
+		);
+	} finally {
+		rmSync(base, { recursive: true, force: true });
+	}
+});
+
+test('rejects a symlinked log file', () => {
+	const base = makeBase();
+	try {
+		const dir = prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: join(base, 'private') } });
+		const target = join(dir, 'target.log');
+		const link = join(dir, 'link.log');
+		prepareWorkerLogFile(target);
+		symlinkSync(target, link, 'file');
+		assert.throws(() => prepareWorkerLogFile(link), /symbolic link/);
+	} finally {
+		rmSync(base, { recursive: true, force: true });
+	}
+});
+
+test('rejects a hard-linked log file on POSIX', { skip: process.platform === 'win32' }, () => {
+	const base = makeBase();
+	try {
+		const dir = prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: join(base, 'private') } });
+		const file = join(dir, 'media.log');
+		const hardLink = join(dir, 'media-copy.log');
+		prepareWorkerLogFile(file);
+		linkSync(file, hardLink);
+		assert.throws(() => prepareWorkerLogFile(file), /hard link/);
 	} finally {
 		rmSync(base, { recursive: true, force: true });
 	}
