@@ -3,36 +3,33 @@ Data: 2026-11-27
 Status: PROPOSED — NÃO PROMOVIDO
 
 - **PR #75:** Draft; original 9f18254; HEAD de código/teste
-  2d6797cf33795b85b2c2f948f3577406300ea628 (CD-03; sucede
-  b554734/8336b41 e o CD-02 em 467134a); HEAD documental é o commit docs-only que contém
-  este checkpoint.
+  8a1fc2686b11d1b92cf8985b7021bf32836e9a46 (CD-04, sucede o CD-03 em
+  2d6797c/a51d968); HEAD documental é o commit docs-only que contém este
+  checkpoint.
 - **Base:** main 4ec6f91006ef86d32bd027779cc8ac730b3b394c (inalterada).
 - **Merge:** normal de main na branch da PR75, sem force-push; conflitos de
   taskkill/preview resolvidos (preview/config da main preservados).
-- **CD-03 (F01–F05):**
-  - F01: `windows-batch.mjs` executa `.cmd/.bat` com caminho absoluto,
-    validação de metacaracteres, rejeição de UNC normal/extendido, dupla
-    camada de aspas e `cmd.exe` de System32; fixture Windows com
-    espaços/`(x86)` e CLI Supabase real 2.113.0 executados, com exit code e
-    argumentos exatos.
-  - F02: logs/lock rejeitam symlink final e ancestral, não-arquivo e hardlink
-    POSIX; owner e modos 0700/0600 validados; rotação re-secured; override
-    restrito ao home/perfil; ACL Windows explícita (owner/SYSTEM/Administrators,
-    sem herança).
-  - F03: BUG `PageWithoutTitleCheck` corrigido; as 8 vulnerabilidades Sonar
-    classificadas; S6505 de `npm ci` corrigido com `--ignore-scripts`
-    (esbuild/fsevents têm binários opcionais; build/test revalidados);
-    S7637/S6505-npx/S8543 e S4036/S5443 corrigidos.
-  - F04: runbook Cloudinary completo, sem execução e sem leitura de valores.
-  - F05: descrição da PR, #31 e #76 atualizados; Master Visual 9/9 verificado
-    por hash/dimensão; 22 rotas preservadas.
-- **Testes:** worktree limpo em 84b03b6 — `npm ci --ignore-scripts`, lint,
-  typecheck, Vitest 389/3 skip, Node 28 (27 pass/1 skip), build, audit:policy
-  36/41 e audit:deps 0 vulnerabilidades; em 2d6797c — Node 27 pass/1 skip, lint,
-  typecheck e build PASS. Windows: 27 pass/1 skip, incluindo CLI real e ACL.
-- **CI 2d6797c:** quality 46025936769 SUCCESS (~10m59s; Vitest 389/3 skip,
-  Node 25 pass/0 fail/3 skip Linux, PgTAP 250, E2E 32/32); Color ARM64
-  46025936667 SUCCESS; Sonar gate OK/0 new issues; Socket PASS.
+- **CD-04 (F01–F05):**
+  - F01: Supabase `.cmd` não é executado por shell; `resolveSupabaseInvocation`
+    usa `process.execPath` + `dist/supabase.js`, `.exe` nativo direto e falha
+    fechada sem fallback PATH; PATH adversarial com `node.exe` falso testado.
+  - F02: ACL Windows allowlist exata (owner/SYSTEM/Administrators) via
+    Get-Acl/Set-Acl, removendo ACEs explícitas e herdadas; owner fail-closed;
+    hardlink NTFS rejeitado; log/lock/rotacionado preexistentes testados com
+    ACE explícita.
+  - F03: temp privado Windows com ACL allowlist e teste de SIDs; base TEMP
+    pública não recebe arquivos sensíveis; TEMP/TMP/TMPDIR apontam ao filho.
+  - F04: runbook Cloudinary preservado, sem execução/valores.
+  - F05: README/IMPLEMENTATION_MATRIX atualizados (WO-001/002/003 integradas,
+    WO-004+ planejadas, ADR-001 PROPOSED); PR/#31/#76 atualizados no HEAD
+    final; Master 9/9 por SHA-256/1672×941; 22 rotas.
+- **Testes:** worktree limpo em 8a1fc26 — lint, typecheck, Vitest 389/3 skip,
+  Node 32 pass/0 fail/0 skip, build, audit:policy 36/41, audit:deps 0
+  vulnerabilidades; Windows real 32/32 com PATH adversarial, CLI 2.113.0,
+  ACL explícita e temp privado.
+- **CI 8a1fc26:** quality 46036693338 SUCCESS (~14m42s; Vitest 389/3 skip,
+  Node 28 pass/0 fail/4 skip Linux, PgTAP 250, E2E 32/32); Color ARM64
+  46036693244 SUCCESS; Sonar gate OK/0 new issues; Socket PASS.
 - **Preservado:** preview fail-closed, produção não tocada, 22 rotas, Master
   9/9, ADR-001 PROPOSED, ruleset 28005320, PR #75 Draft, #31 aberta.
 - **Pendente:** auditoria independente APPROVED; autorização aplicável para
