@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { resolveWindowsSystem32 } from './windows-batch.mjs';
 
-const HARDEN_SCRIPT = String.raw`
+const HARDEN_SCRIPT = `
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $path = $env:DIF_ACL_PATH
@@ -44,7 +44,7 @@ foreach ($sid in $checkSids) { if ($allowed.Value -notcontains $sid) { throw "un
 $checkSids -join ','
 `;
 
-const INSPECT_SCRIPT = String.raw`
+const INSPECT_SCRIPT = `
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $acl = Get-Acl -LiteralPath $env:DIF_ACL_PATH
@@ -55,7 +55,7 @@ $sids -join ','
 function runPowerShell(script, env) {
 	const encoded = Buffer.from(script, 'utf16le').toString('base64');
 	return execFileSync(
-		resolveWindowsSystem32('WindowsPowerShell\\v1.0\\powershell.exe', env),
+		resolveWindowsSystem32(String.raw`WindowsPowerShell\v1.0\powershell.exe`, env),
 		['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
 		{ encoding: 'utf8', env, windowsHide: true },
 	).trim();
