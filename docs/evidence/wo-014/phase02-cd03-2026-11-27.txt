@@ -2,8 +2,8 @@ DIF-V2-WO-014 / FASE 02 / CD-03 — CORREÇÃO RESIDUAL (pt-BR)
 Data: 2026-11-27
 Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
 Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
-HEAD de código/teste: 8336b4146995410ee90be29cfd2af433954a64c0
-HEAD documental: commit docs-only que contém este arquivo (filho de 8336b41)
+HEAD de código/teste: 2d6797cf33795b85b2c2f948f3577406300ea628
+HEAD documental: commit docs-only que contém este arquivo (filho de 2d6797c)
 PR #75 original: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8
 Status: CD-03 concluído; aguarda CI no SHA exato e auditoria independente.
 Sem merge, deploy de produção, rotação de credenciais, VPS ou FASE 03.
@@ -13,7 +13,7 @@ Sem merge, deploy de produção, rotação de credenciais, VPS ou FASE 03.
 ====================================================================
 | Achado | Correção CD-03 | Prova |
 | F01 MEDIUM | `windows-batch.mjs` executa `.cmd/.bat` com caminho absoluto, validação de caracteres e dupla camada de aspas; `test-local-e2e.mjs` usa o helper para `.cmd` e binário direto para `.exe` | §2; transcript Windows com fixture em caminho com espaços e CLI Supabase real |
-| F02 MEDIUM | logs: dir/arquivo não podem ser symlink; hardlink rejeitado em POSIX; owner/modo 0700/0600; lock e rotacionado re-secured; janela Windows restrita ao perfil e ACL explícita owner/SYSTEM/Administrators | §3; transcript Windows com `icacls` sem ACEs herdadas |
+| F02 MEDIUM | logs: dir/arquivo não podem ser symlink final nem ancestral; override restrito ao home; hardlink rejeitado em POSIX; owner/modo 0700/0600; lock e rotacionado re-secured; janela Windows restrita ao perfil e ACL explícita owner/SYSTEM/Administrators | §3; transcript Windows com `icacls` sem ACEs herdadas |
 | F03 SECURITY GATE | BUG `PageWithoutTitleCheck` corrigido; 8 vulnerabilidades classificadas; S6505 de `npm ci` corrigido com `--ignore-scripts` e justificativa de scripts | §4 |
 | F04 BLOCKED | runbook de rotação Cloudinary sem execução, com autorização, smoke, rollback e revogação | §5 e `cloudinary-rotation-runbook-2026-11-27.txt` |
 | F05 LOW | descrição da PR, #31 e #76 atualizadas; Master 9/9 verificado por hash/dimensão | §6 |
@@ -21,8 +21,8 @@ Sem merge, deploy de produção, rotação de credenciais, VPS ou FASE 03.
 ====================================================================
 1. CONTEXTO E ARQUIVOS
 ====================================================================
-- Diff main..8336b41: 43 arquivos = 34 código/teste/config + 9 evidências
-  (inclui o commit documental d7ac77a e o commit docs-only final).
+- Diff main..2d6797c: 43 arquivos = 34 código/teste/config + 9 evidências
+  (inclui o commit documental b554734 e o commit docs-only final).
 - O CD-03 acrescenta 4 scripts e altera `src/app.html`, `ci.yml`, `package.json`,
   `test-local-e2e.mjs`, `worker-log-dir.mjs`, `worker-log-dir.test.mjs` e
   `workers-service.mjs`. As evidências finais acrescentam este arquivo, o
@@ -35,7 +35,8 @@ Sem merge, deploy de produção, rotação de credenciais, VPS ou FASE 03.
 2. F01 — SUPABASE CLI REAL NO WINDOWS
 ====================================================================
 - `scripts/windows-batch.mjs`:
-  - exige caminho absoluto local terminado em `.cmd`/`.bat`; rejeita UNC;
+  - exige caminho absoluto local terminado em `.cmd`/`.bat`; normaliza antes e
+    rejeita UNC `\\server`, `//server` e `//?/UNC/...`;
   - rejeita `"`, `%`, `!`, `^`, `&`, `|`, `<`, `>` e controles em caminho/args;
   - monta a linha com aspas duplas externas (`cmd /d /s /c ""path" args"`) e
     `windowsVerbatimArguments: true`;
@@ -52,10 +53,11 @@ Sem merge, deploy de produção, rotação de credenciais, VPS ou FASE 03.
 ====================================================================
 3. F02 — LOGS, LOCK E LINKS
 ====================================================================
-- `resolveWorkerLogDir`: override absoluto; no Windows exige caminho sob o
-  perfil do usuário.
-- `prepareWorkerLogDir`: cria com 0700, rejeita symlink/não-diretório, valida
-  owner e ausência de acesso de grupo/outros em POSIX.
+- `resolveWorkerLogDir`: override absoluto deve ficar sob o home do usuário em
+  POSIX e sob o perfil no Windows; nada fora dessas raízes é aceito.
+- `prepareWorkerLogDir`: verifica symlink ancestral antes e depois do mkdir,
+  rejeita symlink/não-diretório, cria com 0700, valida owner e ausência de
+  acesso de grupo/outros em POSIX.
 - `prepareWorkerLogFile`: rejeita symlink, não-arquivo e hardlink (POSIX);
   valida owner; abre com `O_NOFOLLOW` quando disponível; força 0600 e verifica.
 - `writeWorkerLock`/`readWorkerLock`: lock privado, sem symlink/hardlink,
@@ -68,7 +70,10 @@ Sem merge, deploy de produção, rotação de credenciais, VPS ou FASE 03.
   arquivo e lock. Testes não tocam logs reais.
 - Limitações: hardlink é verificado apenas em POSIX; ACL Windows exige NTFS e
   `whoami`/`icacls` disponíveis; modo numérico do Node no Windows não
-  representa ACL.
+  representa ACL. A ACL remove herança, mas ACEs explícitas preexistentes de
+  outros SIDs não são expurgadas. O shim npm `supabase.cmd` pode resolver o
+  `node` interno pelo PATH; o helper não usa PATH, mas o fim-a-fim do shim
+  depende do npm.
 
 ====================================================================
 4. F03 — SONAR: BUG E VULNERABILIDADES
@@ -113,7 +118,7 @@ Inventário na main (API pública, 27/11):
 ====================================================================
 6. F05 — METADADOS E PRESERVAÇÃO
 ====================================================================
-- Descrição da PR #75 substituída pelo status canônico CD-03 (HEAD 8336b41,
+- Descrição da PR #75 substituída pelo status canônico CD-03 (HEAD 2d6797c,
   base, escopo, CI, evidências, residual e Draft).
 - #31 recebe comentário canônico; o comentário preliminar de 26/11 permanece
   como histórico.
@@ -130,26 +135,26 @@ Inventário na main (API pública, 27/11):
 ====================================================================
 7.1 Windows real (transcript `phase02-windows-cd03-2026-11-27.txt`)
 - Plataforma win32 10.0.26200 x64; Node v26.4.0; SystemRoot C:\WINDOWS.
-- `node --test` dos 6 arquivos Node: 27 testes, 26 pass, 1 skip (hardlink
+- `node --test` dos 6 arquivos Node: 28 testes, 27 pass, 1 skip (hardlink
   POSIX-only), 0 fail.
 - Inclui execução real do Supabase CLI 2.113.0 por caminho com espaços e
   fixture com argumentos exatos/exit code 7.
 - ACL: `icacls` em dir/arquivo/lock temporários sem `(I)`, apenas SID atual,
   SYSTEM e Administrators com `(F)`.
 
-7.2 Worktree limpo no HEAD 8336b41
+7.2 Worktree limpo no HEAD 2d6797c
 - `npm ci --ignore-scripts` (314 pacotes), lint PASS, typecheck 0/0,
-  Vitest 389/3 skip, Node 27 (26 pass/1 skip), build PASS, audit:policy 36/41,
+  Vitest 389/3 skip, Node 28 (27 pass/1 skip), build PASS, audit:policy 36/41,
   audit:deps 0 vulnerabilidades, `bash -n` PASS.
 - `format:check` local Windows falha por CRLF de checkout; CI Linux é a
   prova canônica do índice LF.
 
 7.3 CI / Sonar / Socket no SHA exato
-- DIF Studio CI 46018468150 @8336b41: SUCCESS (14:43:27–14:54:34,
-  ~11m07s); Vitest 389/3 skip; Node 24 pass/0 fail/3 skip (testes
-  Windows-only pulados no Linux); PgTAP 250; E2E 32/32 (5.9m); build;
+- DIF Studio CI 46025936769 @2d6797c: SUCCESS (15:33:19–15:44:18,
+  ~10m59s); Vitest 389/3 skip; Node 25 pass/0 fail/3 skip (testes
+  Windows-only pulados no Linux); PgTAP 250; E2E 32/32 (5.8m); build;
   policy; audit.
-- Color Render ARM64 46018468144 @8336b41: SUCCESS.
+- Color Render ARM64 46025936667 @2d6797c: SUCCESS.
 - SonarCloud: gate OK, 0 new issues, 0 Security Hotspots, A/A/A, 0,0%
   duplicação, 0,0% cobertura nova.
 - Socket: Project Report SUCCESS; PR Alerts SUCCESS sem mudanças de
