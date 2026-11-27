@@ -13,7 +13,7 @@ export function assertSafeBatchPath(command) {
 	if (typeof command !== 'string' || !win32.isAbsolute(command)) {
 		throw new Error('The batch command must be an absolute Windows path.');
 	}
-	if (/^\\\\/.test(command)) {
+	if (command.startsWith(String.raw`\\`)) {
 		throw new Error('UNC batch paths are not allowed.');
 	}
 	if (!/\.(cmd|bat)$/i.test(command)) {
