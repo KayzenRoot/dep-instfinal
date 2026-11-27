@@ -1,0 +1,169 @@
+DIF-V2-WO-014 / FASE 02 / CD-03 — CORREÇÃO RESIDUAL (pt-BR)
+Data: 2026-11-27
+Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
+Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
+HEAD de código/teste: 9b5fe958ddbce120fec50f5eaaf2be7a7ef22756
+HEAD documental: commit docs-only que contém este arquivo (filho de 9b5fe95)
+PR #75 original: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8
+Status: CD-03 concluído; aguarda CI no SHA exato e auditoria independente.
+Sem merge, deploy de produção, rotação de credenciais, VPS ou FASE 03.
+
+====================================================================
+0. FECHAMENTO F01–F05
+====================================================================
+| Achado | Correção CD-03 | Prova |
+| F01 MEDIUM | `windows-batch.mjs` executa `.cmd/.bat` com caminho absoluto, validação de caracteres e dupla camada de aspas; `test-local-e2e.mjs` usa o helper para `.cmd` e binário direto para `.exe` | §2; transcript Windows com fixture em caminho com espaços e CLI Supabase real |
+| F02 MEDIUM | logs: dir/arquivo não podem ser symlink; hardlink rejeitado em POSIX; owner/modo 0700/0600; lock e rotacionado re-secured; janela Windows restrita ao perfil e ACL explícita owner/SYSTEM/Administrators | §3; transcript Windows com `icacls` sem ACEs herdadas |
+| F03 SECURITY GATE | BUG `PageWithoutTitleCheck` corrigido; 8 vulnerabilidades classificadas; S6505 de `npm ci` corrigido com `--ignore-scripts` e justificativa de scripts | §4 |
+| F04 BLOCKED | runbook de rotação Cloudinary sem execução, com autorização, smoke, rollback e revogação | §5 e `cloudinary-rotation-runbook-2026-11-27.txt` |
+| F05 LOW | descrição da PR, #31 e #76 atualizadas; Master 9/9 verificado por hash/dimensão | §6 |
+
+====================================================================
+1. CONTEXTO E ARQUIVOS
+====================================================================
+- Diff main..9b5fe95: 40 arquivos = 34 código/teste/config + 6 evidências.
+- O CD-03 acrescenta 4 scripts e altera `src/app.html`, `ci.yml`, `package.json`,
+  `test-local-e2e.mjs`, `worker-log-dir.mjs`, `worker-log-dir.test.mjs` e
+  `workers-service.mjs`. As evidências finais acrescentam este arquivo, o
+  transcript Windows e o runbook Cloudinary, e atualizam o checkpoint.
+- `config.ts`, `preview-isolation.ts` e `preview-isolation.test.ts` continuam
+  byte-idênticos à main e fora do diff; `docs/design/neon-glass-v1`,
+  `nav-items.json` e `e2e/shell-navigation.spec.ts` não foram alterados.
+
+====================================================================
+2. F01 — SUPABASE CLI REAL NO WINDOWS
+====================================================================
+- `scripts/windows-batch.mjs`:
+  - exige caminho absoluto local terminado em `.cmd`/`.bat`; rejeita UNC;
+  - rejeita `"`, `%`, `!`, `^`, `&`, `|`, `<`, `>` e controles em caminho/args;
+  - monta a linha com aspas duplas externas (`cmd /d /s /c ""path" args"`) e
+    `windowsVerbatimArguments: true`;
+  - resolve `cmd.exe` por `%SystemRoot%\System32`, com SystemRoot estrito.
+- `scripts/test-local-e2e.mjs` usa `runWindowsBatchFile()` para `.cmd/.bat` e
+  `execFileSync()` direto para `.exe`; não há PATH nem shell arbitrário.
+- Provas Windows (transcript `phase02-windows-cd03-2026-11-27.txt`):
+  - fixture `.cmd` em diretório com espaços e `(x86)`, argumentos exatos
+    `alpha` e `beta gamma`, exit code 7 capturado;
+  - CLI Supabase real (2.113.0) executado por junction com espaços no caminho,
+    com `--version` e saída válida;
+  - 5 testes de `windows-batch.test.mjs` PASS no Windows.
+
+====================================================================
+3. F02 — LOGS, LOCK E LINKS
+====================================================================
+- `resolveWorkerLogDir`: override absoluto; no Windows exige caminho sob o
+  perfil do usuário.
+- `prepareWorkerLogDir`: cria com 0700, rejeita symlink/não-diretório, valida
+  owner e ausência de acesso de grupo/outros em POSIX.
+- `prepareWorkerLogFile`: rejeita symlink, não-arquivo e hardlink (POSIX);
+  valida owner; abre com `O_NOFOLLOW` quando disponível; força 0600 e verifica.
+- `writeWorkerLock`/`readWorkerLock`: lock privado, sem symlink/hardlink,
+  0600, conteúdo de PID validado pelo supervisor.
+- `workers-service.mjs`: lock via helper; rotação `.log.1` reaplica 0600 e
+  rejeita diretório no caminho rotacionado.
+- Windows: `hardenWindowsPrivatePath()` resolve `whoami.exe`/`icacls.exe` em
+  System32 e aplica ACL explícita para o SID atual, SYSTEM e Administrators,
+  removendo herança. Evidência `icacls` mostra `(F)` sem `(I)` para dir,
+  arquivo e lock. Testes não tocam logs reais.
+- Limitações: hardlink é verificado apenas em POSIX; ACL Windows exige NTFS e
+  `whoami`/`icacls` disponíveis; modo numérico do Node no Windows não
+  representa ACL.
+
+====================================================================
+4. F03 — SONAR: BUG E VULNERABILIDADES
+====================================================================
+Inventário na main (API pública, 27/11):
+| Chave | Regra | Sev. | Arquivo:linha | Disposição |
+| AaHQJS70R3naw8Zep2ED | Web:PageWithoutTitleCheck | MAJOR | src/app.html:3 | BUG corrigido com `<title>DIF Studio</title>` após `%sveltekit.head%` |
+| AaHQJS8SR3naw8Zep2Ff | githubactions:S6505 | MAJOR | .github/workflows/ci.yml:27 | corrigido: `npm ci --ignore-scripts` |
+| AaHQJS8SR3naw8Zep2Fg | githubactions:S7637 | MAJOR | .github/workflows/ci.yml:30 | corrigido: actions por SHA completo |
+| AaHQJS8SR3naw8Zep2Fh | githubactions:S6505 | MAJOR | .github/workflows/ci.yml:35 | corrigido: Playwright via CLI local, sem npx |
+| AaHQJS8SR3naw8Zep2Fi | githubactions:S8543 | MAJOR | .github/workflows/ci.yml:35 | corrigido: versão do Playwright fixada no lock |
+| AaHQJS76R3naw8Zep2EJ | javascript:S4036 | MINOR | scripts/serve-tunnel.mjs:12 | corrigido: CLOUDFLARED_BIN/candidatos absolutos |
+| AaHQJS73R3naw8Zep2EF | javascript:S4036 | MINOR | scripts/test-local-e2e.mjs:34 | corrigido: SUPABASE_BIN e cmd.exe absolutos |
+| AaHQJS73R3naw8Zep2EG | javascript:S5443 | CRITICAL | scripts/test-local-e2e.mjs:182 | corrigido: mkdtemp 0700/TEMP/TMPDIR/finally |
+| AaHQJS73R3naw8Zep2EH | javascript:S5443 | CRITICAL | scripts/test-local-e2e.mjs:183 | corrigido: idem |
+
+- Essas 9 issues continuam abertas na main até o merge; o PR tem 0 new issues,
+  o que NÃO é usado para afirmar fechamento na main.
+- S6505 `npm ci`: `package-lock.json` só tem lifecycle script em `esbuild` e
+  `fsevents`; ambos publicam binários em pacotes opcionais. `npm ci
+  --ignore-scripts` foi instalado e validado com build/Vitest/Node no worktree
+  limpo. Controles mantidos: lockfile, `npm audit`, Socket e actions pinadas.
+- 621 code smells na main permanecem como dívida de manutenção; principais
+  regras: plsql:S1192 279, typescript:S3358 66, typescript:S3776 45,
+  typescript:S9382 37, typescript:S7780 27. Nenhum é categoria de segurança;
+  não houve refactor amplo nem alteração de thresholds/exclusões.
+- Cobertura: LCOV não é gerado/importado; 0,0% new coverage é lacuna real e
+  permanece registrada.
+
+====================================================================
+5. F04 — CLOUDINARY
+====================================================================
+- Nenhuma rotação executada, nenhum valor lido/exibido.
+- Procedimento seguro completo em
+  `cloudinary-rotation-runbook-2026-11-27.txt`: autorização do owner,
+  inventário sem segredos, criação de nova chave, atualização Vercel/ambiente
+  local, smoke de upload/signed URL, revogação da chave antiga, rollback,
+  auditoria e evidência sem valores.
+- O merge para main pode disparar Vercel Production; a decisão de rotação
+  deve preceder a autorização de merge.
+
+====================================================================
+6. F05 — METADADOS E PRESERVAÇÃO
+====================================================================
+- Descrição da PR #75 substituída pelo status canônico CD-03 (HEAD 9b5fe95,
+  base, escopo, CI, evidências, residual e Draft).
+- #31 recebe comentário canônico; o comentário preliminar de 26/11 permanece
+  como histórico.
+- #76 recebe correção: FASE 03 = #39–#45 (WO-022–WO-028), não #80–#88.
+- Master Visual verificado no HEAD: `manifest.json` com 9 imagens, hashes
+  SHA-256 e dimensões 1672×941 conferem 9/9; `screens/` tem 9 PNGs; nada em
+  `docs/design` foi alterado no diff.
+- 22 rotas: `e2e/shell-navigation.spec.ts` mantém 3 asserções
+  `toHaveCount(22)`; `nav-items.json` não foi alterado.
+- ADR-001 PROPOSED, ruleset 28005320 ativo/sem bypass, preview fail-closed.
+
+====================================================================
+7. TESTES
+====================================================================
+7.1 Windows real (transcript `phase02-windows-cd03-2026-11-27.txt`)
+- Plataforma win32 10.0.26200 x64; Node v26.4.0; SystemRoot C:\WINDOWS.
+- `node --test` dos 6 arquivos Node: 26 testes, 25 pass, 1 skip (hardlink
+  POSIX-only), 0 fail.
+- Inclui execução real do Supabase CLI 2.113.0 por caminho com espaços e
+  fixture com argumentos exatos/exit code 7.
+- ACL: `icacls` em dir/arquivo/lock temporários sem `(I)`, apenas SID atual,
+  SYSTEM e Administrators com `(F)`.
+
+7.2 Worktree limpo no HEAD 9b5fe95
+- `npm ci --ignore-scripts` (314 pacotes), lint PASS, typecheck 0/0,
+  Vitest 389/3 skip, Node 26 (25 pass/1 skip), build PASS, audit:policy 36/41,
+  audit:deps 0 vulnerabilidades, `bash -n` PASS.
+- `format:check` local Windows falha por CRLF de checkout; CI Linux é a
+  prova canônica do índice LF.
+
+7.3 CI / Sonar / Socket no SHA exato
+- DIF Studio CI 46016095263 @9b5fe95: SUCCESS (14:27:26–14:38:42,
+  ~11m16s); Vitest 389/3 skip; Node 23 pass/0 fail/3 skip (testes Windows-only
+  pulados no Linux); PgTAP 250; E2E 32/32 (5.8m); build; policy; audit.
+- Color Render ARM64 46016095076 @9b5fe95: SUCCESS.
+- SonarCloud: gate OK, 0 new issues, 0 Security Hotspots, A/A/A, 0,0%
+  duplicação, 0,0% cobertura nova.
+- Socket: Project Report SUCCESS; PR Alerts SUCCESS sem mudanças de
+  dependências.
+- Vercel Preview: SUCCESS; produção não foi tocada.
+
+====================================================================
+8. RESIDUAIS
+====================================================================
+- S6505 e as demais 8 issues da main só fecham após o merge; não declarar
+  fechamento antes.
+- Hardlink test é POSIX-only; ACL Windows exige NTFS.
+- `npm ci --ignore-scripts` assume binários opcionais do esbuild/fsevents;
+  build/test foram revalidados, mas um novo pacote com lifecycle script exige
+  revisão explícita.
+- LCOV/cobertura não configurados; 0,0% new coverage permanece.
+- Rotação Cloudinary pendente de autorização e execução; merge pode acionar
+  produção.
+- Checkpoint permanece PROPOSED; sem merge, deploy, rotação, VPS ou FASE 03.

@@ -3,30 +3,38 @@ Data: 2026-11-27
 Status: PROPOSED — NÃO PROMOVIDO
 
 - **PR #75:** Draft; original 9f18254; HEAD de código/teste
-  467134a2a48f195db41a811ca6700ee8f1a2ab11 (CD-02 sobre
-  ba1da9dc2107b3fbbf09ae2920c358758fc9868b); HEAD documental é o commit
-  docs-only que contém este checkpoint.
-- **Base:** main 4ec6f91006ef86d32bd027779cc8ac730b3b394c.
+  9b5fe958ddbce120fec50f5eaaf2be7a7ef22756 (CD-03 sobre 84b03b6, que
+  sucede o CD-02 em 467134a); HEAD documental é o commit docs-only que contém
+  este checkpoint.
+- **Base:** main 4ec6f91006ef86d32bd027779cc8ac730b3b394c (inalterada).
 - **Merge:** normal de main na branch da PR75, sem force-push; conflitos de
   taskkill/preview resolvidos (preview/config da main preservados).
-- **CD-02 (auditoria):** S7780 removido; S4036 endurecido também no Windows
-  com resolvedor absoluto e `cmd.exe` de System32; TEMP/TMP/TMPDIR privados;
-  cleanup no `finally`; SystemRoot estrito no serve-tunnel; matriz refeita
-  com 27 arquivos reconciliados + 2 arquivos CD-02 e commit por arquivo;
-  3 testes live skipped qualificados; prova Windows anexada; S6505 de
-  `npm ci` mantido como residual histórico documentado.
-- **Entregue:** taskkill estrito, logs portáveis, S5443 corrigido, S4036
-  corrigido em POSIX/Windows, actions de CI pinadas por SHA, Playwright sem
-  npx, `SUPABASE_BIN` absoluto, evidências da FASE 02 e prova Windows.
-- **Testes:** worktree limpo em ba1da9d — `npm ci`, lint, typecheck,
-  Vitest 389/3 skip, Node 15/15, build, audit:policy 36/41 e audit:deps 0
-  vulnerabilidades; em 467134a — Node 15/15, lint, typecheck e build PASS.
-- **CI 467134a:** quality 46001359428 SUCCESS (~10m47s; Vitest 389/3 skip,
-  Node 15/15, PgTAP 250, E2E 32/32); Color ARM64 46001359484 SUCCESS;
-  Sonar quality gate OK com 0 new issues; Socket PASS.
+- **CD-03 (F01–F05):**
+  - F01: `windows-batch.mjs` executa `.cmd/.bat` com caminho absoluto,
+    validação de metacaracteres, dupla camada de aspas e `cmd.exe` de
+    System32; fixture Windows com espaços/`(x86)` e CLI Supabase real 2.113.0
+    executados, com exit code e argumentos exatos.
+  - F02: logs/lock rejeitam symlink, não-arquivo e hardlink POSIX; owner e
+    modos 0700/0600 validados; rotação re-secured; override Windows restrito
+    ao perfil; ACL Windows explícita (owner/SYSTEM/Administrators, sem herança).
+  - F03: BUG `PageWithoutTitleCheck` corrigido; as 8 vulnerabilidades Sonar
+    classificadas; S6505 de `npm ci` corrigido com `--ignore-scripts`
+    (esbuild/fsevents têm binários opcionais; build/test revalidados);
+    S7637/S6505-npx/S8543 e S4036/S5443 corrigidos.
+  - F04: runbook Cloudinary completo, sem execução e sem leitura de valores.
+  - F05: descrição da PR, #31 e #76 atualizados; Master Visual 9/9 verificado
+    por hash/dimensão; 22 rotas preservadas.
+- **Testes:** worktree limpo em 84b03b6 — `npm ci --ignore-scripts`, lint,
+  typecheck, Vitest 389/3 skip, Node 26 (25 pass/1 skip), build, audit:policy
+  36/41 e audit:deps 0 vulnerabilidades; em 9b5fe95 — Node 25/1 skip, lint,
+  typecheck e build PASS. Windows: 25 pass/1 skip, incluindo CLI real e ACL.
+- **CI 9b5fe95:** quality 46016095263 SUCCESS (~11m16s; Vitest 389/3 skip,
+  Node 23 pass/0 fail/3 skip Linux, PgTAP 250, E2E 32/32); Color ARM64
+  46016095076 SUCCESS; Sonar gate OK/0 new issues; Socket PASS.
 - **Preservado:** preview fail-closed, produção não tocada, 22 rotas, Master
   9/9, ADR-001 PROPOSED, ruleset 28005320, PR #75 Draft, #31 aberta.
-- **Pendente:** reauditoria independente APPROVED; autorização aplicável para
-  eventual merge; decisão sobre rotação Cloudinary/Production; S6505 de npm
-  ci; LCOV/cobertura não configurados.
-- **Próxima fase:** FASE 03 somente após aprovação e integração da FASE 02.
+- **Pendente:** auditoria independente APPROVED; autorização aplicável para
+  eventual merge; decisão sobre rotação Cloudinary/Production; 9 issues da
+  main só fecham após merge; LCOV/cobertura não configurados.
+- **Próxima fase:** FASE 03 (#39–#45) somente após aprovação e integração da
+  FASE 02.
