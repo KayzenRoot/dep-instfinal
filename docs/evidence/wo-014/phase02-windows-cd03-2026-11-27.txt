@@ -5,61 +5,62 @@ Node: v26.4.0
 SystemRoot: C:\WINDOWS
 
 == Node tests (Windows batch, ACL, Supabase CLI, logs, taskkill, temp) ==
-✔ uses an absolute SUPABASE_BIN override on POSIX (5.9916ms)
-✔ rejects a relative SUPABASE_BIN override (5.1472ms)
-✔ finds the Windows npm shim without resolving it through PATH (2.0007ms)
-✔ accepts an absolute Windows SUPABASE_BIN override (3.8099ms)
-✔ fails closed when no absolute CLI candidate exists (2.2374ms)
-✔ resolves a protected system executable without relying on PATH (16.3155ms)
-✔ supports an alternate local Windows drive (1.4301ms)
-✔ rejects relative, UNC and user-writable directories (6.844ms)
-✔ does not fall back to an untrusted PATH (1.412ms)
-✔ creates a private per-run temporary directory (30.0951ms)
-✔ removes inherited ACLs from a temporary directory and file (1000.5721ms)
-✔ accepts only absolute local .cmd or .bat paths (8.5735ms)
-✔ rejects cmd.exe metacharacters in paths and arguments (2.4627ms)
-✔ builds a double-quoted cmd.exe command line for paths with spaces (1.4934ms)
-✔ executes a real batch fixture from a path with spaces and returns its exit code (176.1037ms)
-✔ executes the real Supabase CLI from a path with spaces (4059.9923ms)
-✔ uses a per-user log directory by default (7.9071ms)
-✔ allows a custom absolute log directory (1.057ms)
-✔ rejects a relative override to avoid logs in the repository (2.1039ms)
-✔ treats whitespace-only overrides as unset (1.335ms)
-✔ restricts Windows overrides to the user profile (1.9882ms)
-✔ creates the private directory and log file with restrictive permissions (810.0557ms)
-✔ tightens a preexisting log file and lock file (1198.9204ms)
-✔ rejects a symlinked log directory (437.23ms)
-✔ rejects a symlinked log file (577.5692ms)
-﹣ rejects a hard-linked log file on POSIX (1.2148ms) # SKIP
-ℹ tests 26
+✔ uses an absolute SUPABASE_BIN override on POSIX (5.9214ms)
+✔ rejects a relative SUPABASE_BIN override (4.2057ms)
+✔ finds the Windows npm shim without resolving it through PATH (1.3988ms)
+✔ accepts an absolute Windows SUPABASE_BIN override (0.8058ms)
+✔ fails closed when no absolute CLI candidate exists (0.8539ms)
+✔ resolves a protected system executable without relying on PATH (4.2009ms)
+✔ supports an alternate local Windows drive (2.6318ms)
+✔ rejects relative, UNC and user-writable directories (9.1625ms)
+✔ does not fall back to an untrusted PATH (1.3241ms)
+✔ creates a private per-run temporary directory (14.1632ms)
+✔ removes inherited ACLs from a temporary directory and file (564.5411ms)
+✔ accepts only absolute local .cmd or .bat paths (7.3089ms)
+✔ rejects cmd.exe metacharacters in paths and arguments (1.7063ms)
+✔ builds a double-quoted cmd.exe command line for paths with spaces (1.019ms)
+✔ executes a real batch fixture from a path with spaces and returns its exit code (126.9604ms)
+✔ executes the real Supabase CLI from a path with spaces (2836.4562ms)
+✔ uses a per-user log directory by default (12.0709ms)
+✔ allows a custom absolute log directory (1.4427ms)
+✔ rejects a relative override to avoid logs in the repository (2.5664ms)
+✔ treats whitespace-only overrides as unset (5.6048ms)
+✔ restricts Windows overrides to the user profile (1.0545ms)
+✔ creates the private directory and log file with restrictive permissions (421.7668ms)
+✔ tightens a preexisting log file and lock file (581.8328ms)
+✔ rejects a symlinked log directory (176.4486ms)
+✔ rejects a symlinked ancestor in the log path (19.0665ms)
+✔ rejects a symlinked log file (462.2872ms)
+﹣ rejects a hard-linked log file on POSIX (1.5542ms) # SKIP
+ℹ tests 27
 ℹ suites 0
-ℹ pass 25
+ℹ pass 26
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 1
 ℹ todo 0
-ℹ duration_ms 4998.2826
+ℹ duration_ms 3470.4812
 
 == ACL e permissoes em diretorio temporario (sem tocar logs reais) ==
-dir=C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-3IJrgz\worker logs (private)
+dir=C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-D5RjGa\worker logs (private)
 dir_mode=666
 file_mode=666
 lock_mode=666
 lock_read=4242
-icacls=C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-3IJrgz\worker logs (private)
-C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-3IJrgz\worker logs (private) BUILTIN\Administradores:(OI)(CI)(F)
+icacls=C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-D5RjGa\worker logs (private)
+C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-D5RjGa\worker logs (private) BUILTIN\Administradores:(OI)(CI)(F)
                                                                             AUTORIDADE NT\SISTEMA:(OI)(CI)(F)
                                                                             GOODZ\csn19:(OI)(CI)(F)
 
 Processados com sucesso 1 arquivos; falha no processamento de 0 arquivos
-icacls=C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-3IJrgz\worker logs (private)\supervisor.log
-C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-3IJrgz\worker logs (private)\supervisor.log BUILTIN\Administradores:(F)
+icacls=C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-D5RjGa\worker logs (private)\supervisor.log
+C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-D5RjGa\worker logs (private)\supervisor.log BUILTIN\Administradores:(F)
                                                                                            AUTORIDADE NT\SISTEMA:(F)
                                                                                            GOODZ\csn19:(F)
 
 Processados com sucesso 1 arquivos; falha no processamento de 0 arquivos
-icacls=C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-3IJrgz\worker logs (private)\workers-service.lock
-C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-3IJrgz\worker logs (private)\workers-service.lock BUILTIN\Administradores:(F)
+icacls=C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-D5RjGa\worker logs (private)\workers-service.lock
+C:\Users\csn19\AppData\Local\Temp\dif-cd03-acl-D5RjGa\worker logs (private)\workers-service.lock BUILTIN\Administradores:(F)
                                                                                                  AUTORIDADE NT\SISTEMA:(F)
                                                                                                  GOODZ\csn19:(F)
 

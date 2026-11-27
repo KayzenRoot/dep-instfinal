@@ -3,8 +3,8 @@ Data: 2026-11-27
 Status: PROPOSED — NÃO PROMOVIDO
 
 - **PR #75:** Draft; original 9f18254; HEAD de código/teste
-  9b5fe958ddbce120fec50f5eaaf2be7a7ef22756 (CD-03 sobre 84b03b6, que
-  sucede o CD-02 em 467134a); HEAD documental é o commit docs-only que contém
+  8336b4146995410ee90be29cfd2af433954a64c0 (CD-03; sucede
+  9b5fe95/d7ac77a e o CD-02 em 467134a); HEAD documental é o commit docs-only que contém
   este checkpoint.
 - **Base:** main 4ec6f91006ef86d32bd027779cc8ac730b3b394c (inalterada).
 - **Merge:** normal de main na branch da PR75, sem force-push; conflitos de
@@ -25,12 +25,12 @@ Status: PROPOSED — NÃO PROMOVIDO
   - F05: descrição da PR, #31 e #76 atualizados; Master Visual 9/9 verificado
     por hash/dimensão; 22 rotas preservadas.
 - **Testes:** worktree limpo em 84b03b6 — `npm ci --ignore-scripts`, lint,
-  typecheck, Vitest 389/3 skip, Node 26 (25 pass/1 skip), build, audit:policy
-  36/41 e audit:deps 0 vulnerabilidades; em 9b5fe95 — Node 25/1 skip, lint,
-  typecheck e build PASS. Windows: 25 pass/1 skip, incluindo CLI real e ACL.
-- **CI 9b5fe95:** quality 46016095263 SUCCESS (~11m16s; Vitest 389/3 skip,
-  Node 23 pass/0 fail/3 skip Linux, PgTAP 250, E2E 32/32); Color ARM64
-  46016095076 SUCCESS; Sonar gate OK/0 new issues; Socket PASS.
+  typecheck, Vitest 389/3 skip, Node 27 (26 pass/1 skip), build, audit:policy
+  36/41 e audit:deps 0 vulnerabilidades; em 8336b41 — Node 26 pass/1 skip, lint,
+  typecheck e build PASS. Windows: 26 pass/1 skip, incluindo CLI real e ACL.
+- **CI 8336b41:** quality 46018468150 SUCCESS (~11m07s; Vitest 389/3 skip,
+  Node 24 pass/0 fail/3 skip Linux, PgTAP 250, E2E 32/32); Color ARM64
+  46018468144 SUCCESS; Sonar gate OK/0 new issues; Socket PASS.
 - **Preservado:** preview fail-closed, produção não tocada, 22 rotas, Master
   9/9, ADR-001 PROPOSED, ruleset 28005320, PR #75 Draft, #31 aberta.
 - **Pendente:** auditoria independente APPROVED; autorização aplicável para

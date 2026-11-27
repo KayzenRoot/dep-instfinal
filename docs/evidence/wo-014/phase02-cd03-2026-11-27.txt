@@ -2,8 +2,8 @@ DIF-V2-WO-014 / FASE 02 / CD-03 — CORREÇÃO RESIDUAL (pt-BR)
 Data: 2026-11-27
 Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
 Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
-HEAD de código/teste: 9b5fe958ddbce120fec50f5eaaf2be7a7ef22756
-HEAD documental: commit docs-only que contém este arquivo (filho de 9b5fe95)
+HEAD de código/teste: 8336b4146995410ee90be29cfd2af433954a64c0
+HEAD documental: commit docs-only que contém este arquivo (filho de 8336b41)
 PR #75 original: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8
 Status: CD-03 concluído; aguarda CI no SHA exato e auditoria independente.
 Sem merge, deploy de produção, rotação de credenciais, VPS ou FASE 03.
@@ -21,7 +21,8 @@ Sem merge, deploy de produção, rotação de credenciais, VPS ou FASE 03.
 ====================================================================
 1. CONTEXTO E ARQUIVOS
 ====================================================================
-- Diff main..9b5fe95: 40 arquivos = 34 código/teste/config + 6 evidências.
+- Diff main..8336b41: 43 arquivos = 34 código/teste/config + 9 evidências
+  (inclui o commit documental d7ac77a e o commit docs-only final).
 - O CD-03 acrescenta 4 scripts e altera `src/app.html`, `ci.yml`, `package.json`,
   `test-local-e2e.mjs`, `worker-log-dir.mjs`, `worker-log-dir.test.mjs` e
   `workers-service.mjs`. As evidências finais acrescentam este arquivo, o
@@ -112,7 +113,7 @@ Inventário na main (API pública, 27/11):
 ====================================================================
 6. F05 — METADADOS E PRESERVAÇÃO
 ====================================================================
-- Descrição da PR #75 substituída pelo status canônico CD-03 (HEAD 9b5fe95,
+- Descrição da PR #75 substituída pelo status canônico CD-03 (HEAD 8336b41,
   base, escopo, CI, evidências, residual e Draft).
 - #31 recebe comentário canônico; o comentário preliminar de 26/11 permanece
   como histórico.
@@ -129,25 +130,26 @@ Inventário na main (API pública, 27/11):
 ====================================================================
 7.1 Windows real (transcript `phase02-windows-cd03-2026-11-27.txt`)
 - Plataforma win32 10.0.26200 x64; Node v26.4.0; SystemRoot C:\WINDOWS.
-- `node --test` dos 6 arquivos Node: 26 testes, 25 pass, 1 skip (hardlink
+- `node --test` dos 6 arquivos Node: 27 testes, 26 pass, 1 skip (hardlink
   POSIX-only), 0 fail.
 - Inclui execução real do Supabase CLI 2.113.0 por caminho com espaços e
   fixture com argumentos exatos/exit code 7.
 - ACL: `icacls` em dir/arquivo/lock temporários sem `(I)`, apenas SID atual,
   SYSTEM e Administrators com `(F)`.
 
-7.2 Worktree limpo no HEAD 9b5fe95
+7.2 Worktree limpo no HEAD 8336b41
 - `npm ci --ignore-scripts` (314 pacotes), lint PASS, typecheck 0/0,
-  Vitest 389/3 skip, Node 26 (25 pass/1 skip), build PASS, audit:policy 36/41,
+  Vitest 389/3 skip, Node 27 (26 pass/1 skip), build PASS, audit:policy 36/41,
   audit:deps 0 vulnerabilidades, `bash -n` PASS.
 - `format:check` local Windows falha por CRLF de checkout; CI Linux é a
   prova canônica do índice LF.
 
 7.3 CI / Sonar / Socket no SHA exato
-- DIF Studio CI 46016095263 @9b5fe95: SUCCESS (14:27:26–14:38:42,
-  ~11m16s); Vitest 389/3 skip; Node 23 pass/0 fail/3 skip (testes Windows-only
-  pulados no Linux); PgTAP 250; E2E 32/32 (5.8m); build; policy; audit.
-- Color Render ARM64 46016095076 @9b5fe95: SUCCESS.
+- DIF Studio CI 46018468150 @8336b41: SUCCESS (14:43:27–14:54:34,
+  ~11m07s); Vitest 389/3 skip; Node 24 pass/0 fail/3 skip (testes
+  Windows-only pulados no Linux); PgTAP 250; E2E 32/32 (5.9m); build;
+  policy; audit.
+- Color Render ARM64 46018468144 @8336b41: SUCCESS.
 - SonarCloud: gate OK, 0 new issues, 0 Security Hotspots, A/A/A, 0,0%
   duplicação, 0,0% cobertura nova.
 - Socket: Project Report SUCCESS; PR Alerts SUCCESS sem mudanças de
