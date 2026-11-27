@@ -19,6 +19,8 @@ test('accepts only absolute local .cmd or .bat paths', () => {
 	);
 	assert.throws(() => assertSafeBatchPath('supabase.cmd'), /absolute/);
 	assert.throws(() => assertSafeBatchPath(String.raw`\\server\share\supabase.cmd`), /UNC/);
+	assert.throws(() => assertSafeBatchPath('//server/share/supabase.cmd'), /UNC/);
+	assert.throws(() => assertSafeBatchPath('//?/UNC/server/share/supabase.cmd'), /UNC/);
 	assert.throws(() => assertSafeBatchPath(String.raw`C:\Tools\supabase.exe`), /\.cmd or \.bat/);
 });
 

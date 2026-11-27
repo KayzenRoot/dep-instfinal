@@ -74,7 +74,14 @@ function assertNoSymlinkTrail(dir, platform, base) {
 	let current = path.resolve(base);
 	for (const segment of relativePath.split(path.sep)) {
 		current = path.join(current, segment);
-		if (lstatSync(current).isSymbolicLink()) {
+		let stat;
+		try {
+			stat = lstatSync(current);
+		} catch (error) {
+			if (error.code === 'ENOENT') return;
+			throw error;
+		}
+		if (stat.isSymbolicLink()) {
 			throw new Error('Worker log path must not traverse a symbolic link.');
 		}
 	}
@@ -115,8 +122,12 @@ export function resolveWorkerLogDir({
 	if (configured) {
 		if (!path.isAbsolute(configured))
 			throw new Error('DIF_WORKER_LOG_DIR must be an absolute path.');
-		if (platform === 'win32' && !isWithin(homeDir, configured, platform)) {
-			throw new Error('DIF_WORKER_LOG_DIR on Windows must be under the user profile.');
+		if (!isWithin(homeDir, configured, platform)) {
+			throw new Error(
+				platform === 'win32'
+					? 'DIF_WORKER_LOG_DIR on Windows must be under the user profile.'
+					: 'DIF_WORKER_LOG_DIR must be under the user home directory.',
+			);
 		}
 		return path.normalize(configured);
 	}
@@ -127,6 +138,7 @@ export function prepareWorkerLogDir(options = {}) {
 	const platform = options.platform ?? process.platform;
 	const homeDir = options.homeDir ?? homedir();
 	const dir = resolveWorkerLogDir({ ...options, homeDir });
+	assertNoSymlinkTrail(dir, platform, homeDir);
 	mkdirSync(dir, { recursive: true, mode: 0o700 });
 	assertNoSymlinkTrail(dir, platform, homeDir);
 	assertPrivateDirectory(dir, platform);

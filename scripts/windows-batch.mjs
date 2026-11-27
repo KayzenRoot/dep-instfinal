@@ -13,14 +13,15 @@ export function assertSafeBatchPath(command) {
 	if (typeof command !== 'string' || !win32.isAbsolute(command)) {
 		throw new Error('The batch command must be an absolute Windows path.');
 	}
-	if (command.startsWith(String.raw`\\`)) {
+	const normalized = win32.normalize(command);
+	if (normalized.startsWith(String.raw`\\`)) {
 		throw new Error('UNC batch paths are not allowed.');
 	}
-	if (!/\.(cmd|bat)$/i.test(command)) {
+	if (!/\.(cmd|bat)$/i.test(normalized)) {
 		throw new Error('The batch command must end in .cmd or .bat.');
 	}
-	assertSafeText(command, 'The batch command path');
-	return win32.normalize(command);
+	assertSafeText(normalized, 'The batch command path');
+	return normalized;
 }
 
 export function quoteBatchArgument(argument) {

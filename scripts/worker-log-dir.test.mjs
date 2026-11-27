@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+	existsSync,
 	linkSync,
 	mkdirSync,
 	mkdtempSync,
@@ -32,7 +33,22 @@ test('uses a per-user log directory by default', () => {
 
 test('allows a custom absolute log directory', () => {
 	const path = join(tmpdir(), 'dif-custom-worker-logs');
-	assert.equal(resolveWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: ` ${path} ` } }), path);
+	assert.equal(
+		resolveWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: ` ${path} ` }, homeDir: tmpdir() }),
+		path,
+	);
+});
+
+test('rejects a custom directory outside the user home', () => {
+	const homeDir = join(tmpdir(), 'dif-owner-home');
+	assert.throws(
+		() =>
+			resolveWorkerLogDir({
+				env: { DIF_WORKER_LOG_DIR: join(tmpdir(), 'dif-outside-home') },
+				homeDir,
+			}),
+		/under the user/,
+	);
 });
 
 test('rejects a relative override to avoid logs in the repository', () => {
@@ -73,7 +89,10 @@ test('restricts Windows overrides to the user profile', () => {
 test('creates the private directory and log file with restrictive permissions', () => {
 	const base = makeBase();
 	try {
-		const dir = prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: join(base, 'private') } });
+		const dir = prepareWorkerLogDir({
+			env: { DIF_WORKER_LOG_DIR: join(base, 'private') },
+			homeDir: base,
+		});
 		const file = prepareWorkerLogFile(join(dir, 'supervisor.log'));
 		assert.equal(statSync(dir).isDirectory(), true);
 		assert.equal(statSync(file).isFile(), true);
@@ -89,7 +108,10 @@ test('creates the private directory and log file with restrictive permissions', 
 test('tightens a preexisting log file and lock file', () => {
 	const base = makeBase();
 	try {
-		const dir = prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: join(base, 'private') } });
+		const dir = prepareWorkerLogDir({
+			env: { DIF_WORKER_LOG_DIR: join(base, 'private') },
+			homeDir: base,
+		});
 		const file = join(dir, 'media.log.1');
 		const lock = join(dir, 'workers-service.lock');
 		writeFileSync(file, 'old log', { mode: 0o666 });
@@ -111,10 +133,10 @@ test('rejects a symlinked log directory', () => {
 	try {
 		const target = join(base, 'target');
 		const link = join(base, 'link');
-		prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: target } });
+		prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: target }, homeDir: base });
 		symlinkSync(target, link, process.platform === 'win32' ? 'junction' : 'dir');
 		assert.throws(
-			() => prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: link } }),
+			() => prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: link }, homeDir: base }),
 			/symbolic link/,
 		);
 	} finally {
@@ -139,6 +161,7 @@ test('rejects a symlinked ancestor in the log path', () => {
 				}),
 			/symbolic link/,
 		);
+		assert.equal(existsSync(join(target, 'logs')), false);
 	} finally {
 		rmSync(base, { recursive: true, force: true });
 	}
@@ -147,7 +170,10 @@ test('rejects a symlinked ancestor in the log path', () => {
 test('rejects a symlinked log file', () => {
 	const base = makeBase();
 	try {
-		const dir = prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: join(base, 'private') } });
+		const dir = prepareWorkerLogDir({
+			env: { DIF_WORKER_LOG_DIR: join(base, 'private') },
+			homeDir: base,
+		});
 		const target = join(dir, 'target.log');
 		const link = join(dir, 'link.log');
 		prepareWorkerLogFile(target);
@@ -161,7 +187,10 @@ test('rejects a symlinked log file', () => {
 test('rejects a hard-linked log file on POSIX', { skip: process.platform === 'win32' }, () => {
 	const base = makeBase();
 	try {
-		const dir = prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: join(base, 'private') } });
+		const dir = prepareWorkerLogDir({
+			env: { DIF_WORKER_LOG_DIR: join(base, 'private') },
+			homeDir: base,
+		});
 		const file = join(dir, 'media.log');
 		const hardLink = join(dir, 'media-copy.log');
 		prepareWorkerLogFile(file);
