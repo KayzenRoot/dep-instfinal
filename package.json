@@ -25,7 +25,7 @@
 		"lint": "eslint . --max-warnings=0",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"test": "vitest run && node --test scripts/worker-log-dir.test.mjs scripts/taskkill-path.test.mjs scripts/test-local-e2e-temp.test.mjs",
+		"test": "vitest run && node --test scripts/worker-log-dir.test.mjs scripts/taskkill-path.test.mjs scripts/test-local-e2e-temp.test.mjs scripts/supabase-command.test.mjs",
 		"test:unit": "vitest run",
 		"test:db": "supabase test db",
 		"test:e2e": "playwright test",
