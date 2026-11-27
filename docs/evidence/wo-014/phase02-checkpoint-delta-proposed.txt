@@ -2,20 +2,31 @@ DIF-V2-WO-014 / FASE 02 — CHECKPOINT DELTA PROPOSED (pt-BR)
 Data: 2026-11-27
 Status: PROPOSED — NÃO PROMOVIDO
 
-- **PR #75:** Draft; original 9f18254; HEAD reconciliado 8b85ba5.
+- **PR #75:** Draft; original 9f18254; HEAD de código/teste
+  467134a2a48f195db41a811ca6700ee8f1a2ab11 (CD-02 sobre
+  ba1da9dc2107b3fbbf09ae2920c358758fc9868b); HEAD documental é o commit
+  docs-only que contém este checkpoint.
 - **Base:** main 4ec6f91006ef86d32bd027779cc8ac730b3b394c.
 - **Merge:** normal de main na branch da PR75, sem force-push; conflitos de
   taskkill/preview resolvidos (preview/config da main preservados).
-- **Entregue:** matriz dos 27 arquivos, taskkill estrito, logs portáveis 0700
-  e arquivos 0600, S5443 corrigido com temp privado/cleanup, S4036 com
-  executáveis absolutos configuráveis, actions de CI pinadas por SHA,
-  Playwright sem npx, `SUPABASE_BIN` absoluto, evidências da FASE 02.
-- **Testes:** CI 45991851767 PASS (Vitest 389/3 skip, PgTAP 250, E2E 32/32);
-  Color Render ARM64 45991851686 PASS; Sonar PR75 A/0,0%, 0 vulnerabilidades;
-  Socket PASS; Node 10/10; bash -n PASS; build/check/lint PASS.
+- **CD-02 (auditoria):** S7780 removido; S4036 endurecido também no Windows
+  com resolvedor absoluto e `cmd.exe` de System32; TEMP/TMP/TMPDIR privados;
+  cleanup no `finally`; SystemRoot estrito no serve-tunnel; matriz refeita
+  com 27 arquivos reconciliados + 2 arquivos CD-02 e commit por arquivo;
+  3 testes live skipped qualificados; prova Windows anexada; S6505 de
+  `npm ci` mantido como residual histórico documentado.
+- **Entregue:** taskkill estrito, logs portáveis, S5443 corrigido, S4036
+  corrigido em POSIX/Windows, actions de CI pinadas por SHA, Playwright sem
+  npx, `SUPABASE_BIN` absoluto, evidências da FASE 02 e prova Windows.
+- **Testes:** worktree limpo em ba1da9d — `npm ci`, lint, typecheck,
+  Vitest 389/3 skip, Node 15/15, build, audit:policy 36/41 e audit:deps 0
+  vulnerabilidades; em 467134a — Node 15/15, lint, typecheck e build PASS.
+- **CI 467134a:** quality 46001359428 SUCCESS (~10m47s; Vitest 389/3 skip,
+  Node 15/15, PgTAP 250, E2E 32/32); Color ARM64 46001359484 SUCCESS;
+  Sonar quality gate OK com 0 new issues; Socket PASS.
 - **Preservado:** preview fail-closed, produção não tocada, 22 rotas, Master
   9/9, ADR-001 PROPOSED, ruleset 28005320, PR #75 Draft, #31 aberta.
-- **Pendente:** auditoria independente APPROVED; autorização aplicável para
-  eventual merge; S6505 de npm ci documentado; LCOV/cobertura não configurados.
-- **Residual Cloudinary:** plano de rotação documentado, não executado.
-- **Próxima fase:** FASE 03 somente após aprovação/integração da FASE 02.
+- **Pendente:** reauditoria independente APPROVED; autorização aplicável para
+  eventual merge; decisão sobre rotação Cloudinary/Production; S6505 de npm
+  ci; LCOV/cobertura não configurados.
+- **Próxima fase:** FASE 03 somente após aprovação e integração da FASE 02.

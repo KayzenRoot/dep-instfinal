@@ -1,0 +1,32 @@
+DIF-V2-WO-014 / FASE 02 / CD-02 — PROVA LOCAL WINDOWS
+Data: 2026-11-27
+Plataforma: win32 10.0.26200 x64
+Node: v26.4.0
+SystemRoot: C:\WINDOWS
+Comando: node --test scripts/worker-log-dir.test.mjs scripts/taskkill-path.test.mjs scripts/supabase-command.test.mjs scripts/test-local-e2e-temp.test.mjs
+
+✔ uses an absolute SUPABASE_BIN override on POSIX (2.9231ms)
+✔ rejects a relative SUPABASE_BIN override (2.1362ms)
+✔ finds the Windows npm shim without resolving it through PATH (0.5657ms)
+✔ accepts an absolute Windows SUPABASE_BIN override (0.3553ms)
+✔ fails closed when no absolute CLI candidate exists (0.3942ms)
+✔ resolves a protected system executable without relying on PATH (1.7266ms)
+✔ supports an alternate local Windows drive (0.4898ms)
+✔ rejects relative, UNC and user-writable directories (2.3385ms)
+✔ does not fall back to an untrusted PATH (0.3133ms)
+✔ creates a private per-run temporary directory (4.7988ms)
+✔ uses a per-user log directory by default (3.3244ms)
+✔ allows a custom absolute log directory (0.4225ms)
+✔ rejects a relative override to avoid logs in the repository (0.7822ms)
+✔ treats whitespace-only overrides as unset (0.2858ms)
+✔ creates the private directory and log file with restrictive permissions (6.4438ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 218.4461
+
+Exit code: 0

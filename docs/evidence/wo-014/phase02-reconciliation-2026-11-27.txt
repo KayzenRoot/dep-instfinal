@@ -1,79 +1,141 @@
-DIF-V2-WO-014 / FASE 02 / CD-01 — RECONCILIAÇÃO E PREFLIGHT (pt-BR)
+DIF-V2-WO-014 / FASE 02 / CD-02 — RECONCILIAÇÃO E PREFLIGHT (pt-BR)
 Data: 2026-11-27
 Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
 Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
 PR #75 original: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8
-HEAD reconciliado: 8b85ba5 (merge normal da main + correções; sem force-push)
-Status: CORRECTION REQUIRED / sem merge, sem deploy, sem fechar #31.
+HEAD de código/teste do CD-02: 467134a2a48f195db41a811ca6700ee8f1a2ab11
+(CD-02 sobre ba1da9dc2107b3fbbf09ae2920c358758fc9868b)
+Snapshot auditado anterior: 06436efd1a42bb6b83d96e5f38bbc28fd1054861 (docs-only)
+HEAD documental: commit que contém este arquivo (filho docs-only de 467134a)
+Status: CORRECTION REQUIRED atendido; aguarda reauditoria independente; sem merge,
+sem deploy, sem rotação e sem iniciar a FASE 03.
 
 ====================================================================
 1. MATRIZ DOS ARQUIVOS DA PR #75
 ====================================================================
-| Arquivo | Classe | Disposição |
-| .github/workflows/ci.yml | necessária | `bash -n`; actions pinadas por SHA, `SUPABASE_BIN` absoluto e Playwright sem npx; resta 1 MAJOR npm ci documentado |
-| docs/evidence/wo-014/* | histórica/obsoleta | preservada; esta evidência complementa sem reescrever |
-| package.json | necessária | `test` inclui Node tests de logs/taskkill/temp |
-| scripts/benchmark-color-render.ts | necessária | replaceAll, sem mudança de comportamento |
-| scripts/narration-tts.ts | necessária | replaceAll literal |
-| scripts/render-worker.mjs | necessária | split `\n` explícito |
-| scripts/taskkill-path.mjs | conflito resolvido | adotada versão estrita do PR #75; teste main atualizado |
-| scripts/taskkill-path.test.mjs | necessária | 4 casos Node |
-| scripts/v2-bench/benchmark.sh | necessária | `[[ ]]`; `bash -n` PASS |
-| scripts/worker-log-dir.mjs | necessária | resolução portátil + diretório 0700 |
-| scripts/worker-log-dir.test.mjs | necessária | 5 casos, inclui permissões |
-| scripts/workers-service.mjs | integrado/conflito | taskkill main + logDir portátil; import duplicado removido; log/lock 0600 |
-| src/lib/domain/captions.ts | necessária | trim-edge e replaceAll |
-| src/lib/domain/character-identity.ts | necessária | trim-edge |
-| src/lib/domain/choice-end-card.ts | necessária | replaceAll |
-| src/lib/domain/cover.ts | necessária | default congelado + trim-edge |
-| src/lib/domain/retention.test.ts | necessária | regressões CSV |
-| src/lib/domain/retention.ts | necessária | scanner linear sem regex/backtracking |
-| src/lib/domain/trim-edge.ts | necessária | helper linear |
-| src/lib/domain/trim-edge.test.ts | necessária | 3 casos |
-| src/lib/server/config.ts | já integrado | hash idêntico à main; não duplicado |
-| src/lib/server/director-ai.ts | necessária | fence JSON sem regex final |
-| src/lib/server/preview-isolation.test.ts | já integrado | versão main preservada |
-| src/lib/server/preview-isolation.ts | já integrado | versão main preservada |
-| src/routes/api/identity/[characterId]/export/+server.ts | necessária | slug com trim-edge |
-| src/routes/api/video/dev-object/[...key]/+server.ts | necessária | handler não-async |
-| scripts/test-local-e2e-temp.mjs + test | nova (S5443) | temp privado 0700 + cleanup |
-| scripts/test-local-e2e.mjs | nova correção | TEMP/TMP privados; SUPABASE_BIN absoluto |
-| scripts/serve-tunnel.mjs | nova correção | CLOUDFLARED_BIN/candidatos absolutos |
+Universos:
+- PR original 9f18254 sobre 66a997ee: 28 arquivos (25 código/teste + 3 docs).
+- Diff reconciliado em 06436ef sobre main 4ec6f91: 27 código/teste/config + 5 docs.
+- Este CD-02 acrescenta 2 arquivos de código/teste (resolvedor absoluto do Supabase
+  e seu teste), totalizando 29 código/teste/config. Em docs, os 5 arquivos já
+  versionados são preservados e o transcript Windows é acrescentado (6 docs).
+- `src/lib/server/config.ts`, `preview-isolation.ts` e `preview-isolation.test.ts`
+  já estão na main e são byte-idênticos a ela (blobs 8bbd2f29, f1d48c2f e
+  45b8ee8d); NÃO estão no diff e não foram duplicados.
 
-Total: 27 arquivos originais classificados; 3 docs históricos preservados;
-2 arquivos novos de correção S5443 e 1 módulo de temp/teste.
+| Arquivo | Classe | Commit(s) no branch | Justificativa |
+| .github/workflows/ci.yml | necessária | 8b85ba5, 6257b32 | `bash -n`; actions pinadas por SHA; `SUPABASE_BIN` absoluto; Playwright sem npx; resta S6505 de `npm ci` documentado |
+| package.json | necessária | ba1da9d, 3b6b5f2, b30836a, 3d7e3bb | `test` agrega os 15 testes Node de logs/taskkill/temp/Supabase |
+| scripts/benchmark-color-render.ts | necessária | d851015 | `replaceAll` sem mudança de comportamento |
+| scripts/narration-tts.ts | necessária | d851015 | `replaceAll` literal |
+| scripts/render-worker.mjs | necessária | d851015 | split com `\n` explícito |
+| scripts/serve-tunnel.mjs | necessária | ba1da9d, 3b6b5f2 | CLOUDFLARED_BIN/candidatos absolutos; SystemRoot estrito; S7780 removido; mensagem sem PATH |
+| scripts/supabase-command.mjs | nova CD-02 | 467134a, ba1da9d | resolvedor absoluto do Supabase; sem PATH; push consolidado (S7778) |
+| scripts/supabase-command.test.mjs | nova CD-02 | ba1da9d | 5 casos, incluindo shim Windows e falha fechada |
+| scripts/taskkill-path.mjs | conflito resolvido | b30836a | versão estrita do PR #75; SystemRoot validado, sem PATH |
+| scripts/taskkill-path.test.mjs | necessária | 4e4adaa, b30836a | 4 casos Node |
+| scripts/test-local-e2e-temp.mjs | necessária (S5443) | 3b6b5f2 | `mkdtemp` 0700 + cleanup |
+| scripts/test-local-e2e-temp.test.mjs | necessária (S5443) | 3b6b5f2 | modo privado e cleanup |
+| scripts/test-local-e2e.mjs | necessária | ba1da9d, 3b6b5f2 | S5443; SUPABASE_BIN absoluto no Windows e POSIX; TEMP/TMP/TMPDIR privados; cleanup no `finally` |
+| scripts/v2-bench/benchmark.sh | necessária | 6257b32 | comparações com `[[ ]]`; `bash -n` PASS |
+| scripts/worker-log-dir.mjs | necessária | 3b6b5f2, 7438791, 3d7e3bb | diretório portátil, 0700 e override absoluto |
+| scripts/worker-log-dir.test.mjs | necessária | 3b6b5f2, 3d7e3bb | 5 casos, inclui modo/cleanup POSIX |
+| scripts/workers-service.mjs | integrado/conflito | 3b6b5f2, b30836a, 3d7e3bb | taskkill absoluto; logDir portátil; log/lock 0600; import duplicado removido |
+| src/lib/domain/captions.ts | necessária | f0b681e, 7a31417, d851015, 9a43019 | trim-edge e replaceAll |
+| src/lib/domain/character-identity.ts | necessária | 9a43019 | trim-edge |
+| src/lib/domain/choice-end-card.ts | necessária | d851015 | replaceAll |
+| src/lib/domain/cover.ts | necessária | 5da9940, 9a43019 | default congelado + trim-edge |
+| src/lib/domain/retention.test.ts | necessária | c04efc0, 188b064 | regressões CSV |
+| src/lib/domain/retention.ts | necessária | c04efc0, 188b064 | scanner linear sem regex/backtracking |
+| src/lib/domain/trim-edge.test.ts | necessária | 9a43019 | 3 casos |
+| src/lib/domain/trim-edge.ts | necessária | 9a43019 | helper linear |
+| src/lib/server/director-ai.ts | necessária | 9a43019 | fence JSON sem regex final |
+| src/lib/server/taskkill-path.test.ts | necessária | f2b7d8f, 3b6b5f2 | 4 casos Vitest do taskkill estrito (incluído após achado da auditoria) |
+| src/routes/api/identity/[characterId]/export/+server.ts | necessária | 16cf348, 4e4adaa, 9a43019 | slug com trim-edge |
+| src/routes/api/video/dev-object/[...key]/+server.ts | necessária | 5da9940 | handler não-async |
+
+Docs preservados sem reescrita: merge-preflight-2026-11-24.txt,
+review-2026-11-24.txt, sonar-correction-2026-11-24.txt,
+phase02-reconciliation-2026-11-27.txt e phase02-checkpoint-delta-proposed.txt.
+O presente arquivo substitui a versão anterior da reconciliação.
 
 ====================================================================
 2. SEGURANÇA / SONAR
 ====================================================================
-- S5443 CRITICAL (2) em `scripts/test-local-e2e.mjs`: corrigido com
-  `preparePrivateTempDir()` (mkdtemp 0700, cleanup finally) e TEMP/TMP
-  apontando para o diretório privado; teste Node de modo/cleanup; CI 32/32.
-- S4036 MINOR (2): `serve-tunnel.mjs` usa CLOUDFLARED_BIN/candidatos absolutos;
-  `test-local-e2e.mjs` usa SUPABASE_BIN/candidatos absolutos no POSIX.
-  Sem desabilitar regra nem usar PATH quando há executável absoluto.
-- 4 MAJOR de CI: S7637/S6505(npx)/S8543 corrigidos com actions pinadas por
-  SHA e Playwright via CLI local; S6505 do `npm ci` (lifecycle scripts)
-  permanece documentado, sem `--ignore-scripts` para não quebrar dependências.
-- 630 issues abertas na main: 621 Code Smell, 8 Vulnerability, 1 Bug;
-  0 vulnerability em new code. Cobertura nova não retornada/0% — não é
-  cobertura funcional; não há LCOV gerado/importado no projeto.
-- Hotspots/vulnerabilidades históricas não foram mascarados; nenhuma exclusão
-  ou threshold alterado.
+- S7780 MINOR (1, new code) identificado pela auditoria no HEAD 06436ef em
+  `scripts/serve-tunnel.mjs`: removido no CD-02 ao eliminar o literal com
+  escapes e validar `SystemRoot` antes de montar o caminho absoluto.
+- S4036 MINOR (2): `serve-tunnel.mjs` resolve cloudflared por CLOUDFLARED_BIN
+  absoluto ou candidatos absolutos; `test-local-e2e.mjs` resolve o Supabase
+  CLI por SUPABASE_BIN absoluto ou candidatos absolutos em Windows e POSIX.
+  No Windows, shim `.cmd` é executado pelo `cmd.exe` absoluto de
+  `%SystemRoot%\System32`, nunca por PATH. 5 testes Node cobrem o resolvedor.
+- S5443 CRITICAL (2): corrigido com `preparePrivateTempDir()` (mkdtemp 0700),
+  TEMP/TMP/TMPDIR apontando ao diretório privado e cleanup em `finally`; teste
+  Node de modo/cleanup; E2E CI 32/32.
+- taskkill: `resolveTaskkillPath()` exige SystemRoot local válido e monta
+  `System32\taskkill.exe`; não há fallback para PATH. 4 testes Node + 4 Vitest.
+- worker logs: diretório 0700 e arquivos/lock 0600 via chmod POSIX. No Windows
+  o chmod é ignorado e valem as ACLs herdadas do perfil; essa limitação está
+  registrada e não é contada como prova de 0700/0600.
+- 4 MAJOR de CI: S7637 (actions pinadas), S6505-npx (Playwright via CLI local)
+  e S8543 corrigidos. S6505 de `npm ci` permanece como dívida histórica
+  documentada; NÃO é contado como corrigido. Outros workflows da main
+  (color/audio/visual) seguem sem pin e são dívida histórica fora do escopo.
+- 630 issues abertas na main: 621 Code Smell, 8 Vulnerability, 1 Bug. As 8
+  vulnerabilidades são 2×S5443 CRITICAL, 2×S4036 MINOR e os 4 MAJOR de CI:
+  7 são sanadas pela PR; resta S6505 de `npm ci`.
+- Cobertura: não há LCOV gerado/importado nem provider de coverage. Os 0,0% de
+  new coverage exibidos pelo Sonar não são cobertura funcional e não foram
+  maquiados; nenhuma exclusão ou threshold foi alterado.
 
 ====================================================================
-3. TESTES EXECUTADOS (HEAD 8b85ba5)
+3. TESTES E EVIDÊNCIAS
 ====================================================================
-- `node --test scripts/worker-log-dir.test.mjs scripts/taskkill-path.test.mjs
-  scripts/test-local-e2e-temp.test.mjs`: 10/10 PASS.
-- `bash -n scripts/v2-bench/benchmark.sh`: PASS (exit 0).
-- `svelte-check`: 0 erros/0 warnings; ESLint PASS; build PASS.
-- CI `45991851767` no HEAD `8b85ba5`: quality PASS (10m11s); Vitest 389/3 skip;
-  PgTAP 250; E2E 32/32; build; policy; audit.
-- Color Render ARM64 `45991851686`: PASS (1m16s).
-- SonarCloud PR #75: PASS (0 issues, 0 vulnerabilidades, A/0,0%); Socket PASS.
-- `npm ci` com lifecycle scripts permanece como único MAJOR de CI documentado;
-  não foi alterado para evitar quebrar install de dependências.
+3.1 Prova local Windows (transcript completo em
+`phase02-windows-node-tests-2026-11-27.txt`)
+- Plataforma: win32 10.0.26200 x64; Node v26.4.0; SystemRoot C:\WINDOWS.
+- Comando: `node --test scripts/worker-log-dir.test.mjs
+  scripts/taskkill-path.test.mjs scripts/supabase-command.test.mjs
+  scripts/test-local-e2e-temp.test.mjs`.
+- Resultado: 15 testes, 15 pass, 0 fail, exit 0.
+- Ressalva: as asserções de modo 0700/0600 são POSIX; no Windows o teste
+  verifica criação/cleanup e as ACLs herdadas não são afirmadas como 0700.
+
+3.2 Worktree limpo (HEAD de código `ba1da9d`; `467134a` altera apenas a
+consolidação S7778 no resolvedor do Supabase, revalidado no HEAD final)
+- `npm ci` concluído (314 pacotes).
+- `npm run lint`: PASS (0 warnings) — também no HEAD `467134a`.
+- `npm run typecheck`: 0 erros/0 warnings — também no HEAD `467134a`.
+- `npm test` no `ba1da9d`: Vitest 389 passed / 3 skipped; Node 15 passed /
+  0 failed. No `467134a`: Node 15/15; lint/typecheck/build PASS.
+- `npm run build`: PASS (@sveltejs/adapter-node) — também no `467134a`.
+- `npm run audit:policy`: 36 invariantes em 41 tabelas, PASS.
+- `npm run audit:deps`: 0 vulnerabilidades.
+- `bash -n scripts/v2-bench/benchmark.sh`: PASS.
+- `format:check` no worktree Windows falha por CRLF de checkout (374
+  arquivos); o índice Git está em LF e a CI Linux é a prova canônica.
+
+3.3 CI / Sonar / Socket no HEAD `467134a`
+- DIF Studio CI run 46001359428: SUCCESS (12:45:45–12:56:32; ~10m47s);
+  Vitest 389/3 skipped; Node 15/15; PgTAP 250; E2E 32/32 (5.8m); build;
+  policy; audit de dependências.
+- Color Render ARM64 run 46001359484: SUCCESS.
+- SonarCloud PR #75: quality gate OK; 0 new issues; 0 aceitos; 0 Security
+  Hotspots; ratings novos A/A/A; 0,0% de duplicação; 0,0% de cobertura nova
+  (não configurada; não é cobertura funcional).
+- Socket: PASS (Project Report Success; PR Alerts skipped por não haver
+  mudanças líquidas de dependências).
+
+3.4 Testes live skipped — qualificação (não são PASS)
+- `src/lib/server/ai-episode.live.test.ts`: skipIf `RUN_LIVE_AI_TEST !== '1'`;
+  exige autorização do owner e GEMINI_API_KEY; não roda em CI/local.
+- `src/lib/server/narration-tts.integration.test.ts`: skipIf sem
+  PIPER_BIN/PIPER_PYTHON e PIPER_MODEL; exige Piper local e voz instalada.
+- `src/lib/server/caption-asr.integration.test.ts`: skipIf sem VOSK_MODEL,
+  VOSK_PYTHON, PIPER_MODEL e PIPER_BIN/PIPER_PYTHON; exige Vosk + Piper.
+- São 3 testes de integração opt-in, não executados; não são contados como
+  cobertura nem como aprovação funcional.
 
 ====================================================================
 4. PREVIEW / PRODUÇÃO / CLOUDINARY
@@ -85,11 +147,31 @@ Total: 27 arquivos originais classificados; 3 docs históricos preservados;
   em sessão anterior; plano é rotacionar no Cloudinary e atualizar
   `CLOUDINARY_API_KEY/SECRET` na Vercel Production com autorização específica,
   seguido de smoke e read-back. Nenhuma rotação executada.
+- Risco de merge: o merge para main pode disparar Vercel Production; exige
+  autorização do owner e decisão sobre rotação antes de qualquer promoção.
 
 ====================================================================
-5. ISSUES / PR
+5. ISSUES / PR / RESIDUAIS
 ====================================================================
 - PR #75 permanece **Draft**; sem merge/deploy/rotação; #31 aberta.
-- #76/#79: metadados reconciliados por comentário/estado (WO-001/002/003
-  integradas; 11 UX restantes), sem reescrever escopo aprovado.
+- #79 CLOSED/COMPLETED; #76 reconciliada por comentário, sem reescrever o
+  escopo aprovado. O comentário de #76 é atualizado para o HEAD `467134a`.
 - Checkpoint Delta: PROPOSED (não promovido).
+- Residuais: S6505 de `npm ci`; workflows históricos sem pin; Windows usa ACLs
+  em vez de 0700/0600; LCOV/cobertura não configurados; rotação Cloudinary
+  pendente de autorização; merge e FASE 03 não autorizados.
+
+====================================================================
+6. FECHAMENTO DOS ACHADOS DA AUDITORIA (HEAD 06436ef)
+====================================================================
+| # | Achado | Correção CD-02 | Prova |
+| 1 | "Sonar 0 issues" era falso; S7780 MINOR aberto | S7780 removido; novo HEAD reanalisado | §3.3: 0 new issues, gate OK |
+| 2 | Matriz não fechava 27 arquivos e não tinha SHA por arquivo | Matriz 27 reconciliados + 2 CD-02, commit por arquivo; taskkill test incluído; config/preview marcados fora do diff | §1 (29 linhas) |
+| 3 | 3 testes live skipped sem qualificação | Limitações de Gemini/Piper/Vosk documentadas | §3.4 |
+| 4 | Prova Windows ausente e permissões tratadas como 0700 | Transcript win32 15/15 anexado; ressalva de ACL registrada | §3.1 e arquivo de transcript |
+| 5 | S4036 só no POSIX; Windows usava PATH | Resolvedor absoluto do Supabase + `.cmd` via System32; 5 testes | §2 e §3.1 |
+| 6 | TEMP/TMP não cobriam Linux; janela de cleanup | TMPDIR adicionado e cleanup dentro do `try/finally` | §2; scripts/test-local-e2e.mjs |
+| 7 | Mensagem de PATH obsoleta e SystemRoot sem validação | Mensagem corrigida; SystemRoot estrito | §2; scripts/serve-tunnel.mjs |
+| 8 | S6505 de npm ci não é "resolvido" | Mantido como residual histórico, sem contar como correção | §2 e §5 |
+| 9 | HEAD citado desatualizado | HEAD exato no cabeçalho; #76 atualizada para 467134a | Cabeçalho e #76 |
+
