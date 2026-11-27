@@ -14,12 +14,16 @@ function windowsCandidates(env) {
 	const userProfile = env.USERPROFILE?.trim();
 	const programFiles = (env.ProgramFiles ?? env.PROGRAMFILES)?.trim();
 	if (appData) {
-		candidates.push(win32.join(appData, 'npm', 'supabase.exe'));
-		candidates.push(win32.join(appData, 'npm', 'supabase.cmd'));
+		candidates.push(
+			win32.join(appData, 'npm', 'supabase.exe'),
+			win32.join(appData, 'npm', 'supabase.cmd'),
+		);
 	}
 	if (localAppData) {
-		candidates.push(win32.join(localAppData, 'Programs', 'supabase', 'supabase.exe'));
-		candidates.push(win32.join(localAppData, 'Microsoft', 'WinGet', 'Links', 'supabase.exe'));
+		candidates.push(
+			win32.join(localAppData, 'Programs', 'supabase', 'supabase.exe'),
+			win32.join(localAppData, 'Microsoft', 'WinGet', 'Links', 'supabase.exe'),
+		);
 	}
 	if (userProfile) candidates.push(win32.join(userProfile, 'scoop', 'shims', 'supabase.exe'));
 	if (programFiles) candidates.push(win32.join(programFiles, 'Supabase', 'supabase.exe'));
