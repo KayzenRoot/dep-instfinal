@@ -1,5 +1,23 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { isAbsolute, join } from 'node:path';
+
+function resolveCloudflaredCommand() {
+	const configured = process.env.CLOUDFLARED_BIN?.trim();
+	if (configured) {
+		if (!isAbsolute(configured)) throw new Error('CLOUDFLARED_BIN must be an absolute path.');
+		return configured;
+	}
+	const candidates = [
+		'/usr/local/bin/cloudflared',
+		'/usr/bin/cloudflared',
+		'/opt/homebrew/bin/cloudflared',
+		join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'cloudflared.exe'),
+	];
+	const found = candidates.find((candidate) => existsSync(candidate));
+	if (!found) throw new Error('CLOUDFLARED_BIN must point to the absolute cloudflared path.');
+	return found;
+}
 
 const port = process.env.PORT ?? '3000';
 const localUrl = `http://127.0.0.1:${port}`;
@@ -9,9 +27,13 @@ if (!existsSync('build')) {
 	process.exit(1);
 }
 
-const tunnel = spawn('cloudflared', ['tunnel', '--url', localUrl, '--no-autoupdate'], {
-	stdio: ['ignore', 'pipe', 'pipe'],
-});
+const tunnel = spawn(
+	resolveCloudflaredCommand(),
+	['tunnel', '--url', localUrl, '--no-autoupdate'],
+	{
+		stdio: ['ignore', 'pipe', 'pipe'],
+	},
+);
 
 let server;
 let publicUrl;

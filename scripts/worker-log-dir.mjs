@@ -1,3 +1,4 @@
+import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 
@@ -8,4 +9,17 @@ export function resolveWorkerLogDir({ env = process.env, homeDir = homedir() } =
 		return configured;
 	}
 	return join(homeDir, '.zcode', 'dif-secrets', 'worker-logs');
+}
+
+export function prepareWorkerLogDir(options = {}) {
+	const dir = resolveWorkerLogDir(options);
+	mkdirSync(dir, { recursive: true, mode: 0o700 });
+	if (process.platform !== 'win32') chmodSync(dir, 0o700);
+	return dir;
+}
+
+export function prepareWorkerLogFile(path) {
+	writeFileSync(path, '', { flag: 'a', mode: 0o600 });
+	if (process.platform !== 'win32') chmodSync(path, 0o600);
+	return path;
 }

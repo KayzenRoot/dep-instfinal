@@ -1,5 +1,74 @@
 # DIF Studio — Evidence Bundle
 
+## DIF-UX-WO-003 — Ajuda contextual e onboarding acessível (2026-11-26) — PROMOTED
+
+- **Work Order:** `DIF-UX-WO-003` · issue #79 · epic #76
+- **Base:** `main` `b38542b`; branch `feat/dif-ux-wo-003-help`; head `8715136`; merge `b8691a3` (PR #97)
+- **Status:** **PROMOTED**; auditoria independente **APPROVED**; CI `45902530605`/`45903870115` PASS; Sonar PR A/0,0%; produção READY.
+
+| Check        | Result | Evidence                                                                                |
+| ------------ | ------ | --------------------------------------------------------------------------------------- |
+| Tooltip      | PASS   | ARIA, portal, hover/foco/clique/touch, Escape com foco condicional, clamp 320px         |
+| Catálogo     | PASS   | 10 conceitos reais; mídias=imagens; vídeos R2 fora; publicação manual                   |
+| Touch        | PASS   | `hasTouch/isMobile`, tap no gatilho e em controle coberto, `elementFromPoint`           |
+| A11y         | PASS   | auditoria manual auditável; foco visível, contraste, reduced-motion, alvo 25,6px        |
+| Testes       | PASS   | Vitest 382/3 skip; PgTAP 250; E2E 32/32; build; policy; audit 0                         |
+| Sonar/Socket | PASS   | 0 issues; A; duplicação 0,0%; Socket 2/2                                                |
+| Produção     | PASS   | `/health` 200 `supabase:true/owner:true`; `/login` 200; `/app` anônimo 303              |
+| Limites      | —      | painel pointer-events none sem rolagem; tour adiado; helpId fallback; residuais FASE 02 |
+
+## DIF-UX-WO-002 — Design System, AppShell e navegação Neon Glass (2026-11-26) — PROMOTED
+
+- **Work Order:** `DIF-UX-WO-002` · issue #78 · epic #76
+- **Base:** `main` `449642d`; branch `feat/dif-ux-wo-002-neon-glass-shell`; head `a419848`; merge `54ff92c` (PR #95)
+- **Status:** **PROMOTED**; auditoria independente **APPROVED**; CI `45877986581` PASS; Sonar PR A/0,0%; Sonar main A/2,4%; Vercel produção READY.
+
+| Check        | Result | Evidence                                                                                |
+| ------------ | ------ | --------------------------------------------------------------------------------------- |
+| Shell/Nav    | PASS   | 22 rotas em 6 grupos; skip link, drawer/dock, foco visível, Escape devolve foco         |
+| 320–1920     | PASS   | E2E sem overflow; drawer quebra rótulos longos; topbar mantém seção                     |
+| Reduced      | PASS   | nav e ActionButton com `transform:none` e transições ≤0,02s em `prefers-reduced-motion` |
+| Testes       | PASS   | Vitest 372/3 skip; PgTAP 250; E2E 25/25; svelte-check 0; build; policy; audit 0         |
+| Sonar/Socket | PASS   | 0 issues; Security A; duplicação 0,0%; Socket Project success/PR Alerts Skipped         |
+| Segurança    | PASS   | Sem Auth/Supabase/RLS/Cloudinary/R2/APIs/schema/migrations; PR #75 intocada             |
+| Produção     | PASS   | `/health` 200 `supabase:true/owner:true`; `/login` 200; `/app` anônimo 303 para login   |
+| Limites      | —      | ADR PROPOSED; estilos locais em páginas; sidebar com scroll; baseline shell/Chromium    |
+
+## DIF-UX-WO-001 — Neon Glass visual master & design contract (2026-11-24) — PROMOTED
+
+- **Work Order:** `DIF-UX-WO-001` · issue #77 · epic #76
+- **Base:** `main` `8f85974`; branch `docs/dif-ux-wo-001-neon-glass-master-v1`; head `7f55f7f`; merge `dfcb1fc` (PR #91)
+- **Status:** **PROMOTED**; CI `45457061172` PASS; Sonar PR, Socket, Neon Glass 9/9 e Vercel PASS; auditoria técnica APPROVED; issue #77 fechada.
+
+| Check    | Result     | Evidence                                                                                         |
+| -------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| Assets   | PASS 9/9   | PNGs 1672×941 importados sem recompressão; SHA-256 idênticos no read-back GitHub                 |
+| Manifest | PASS       | `manifest.json` 9/9 `exists_in_repo:true`, `repo_asset_upload: VERIFIED_GITHUB_READBACK`         |
+| Verifier | PASS local | `verify-images.mjs` 9/9 e `verify-images.test.mjs` 5/5; Python `-O` 4/4                          |
+| CI       | PASS       | `45457061172` (quality 11m21s, PgTAP, E2E local, build); integrity `45457061145`                 |
+| Security | PASS       | SonarCloud PR PASS; Socket Project Report/PR Alerts PASS; Preview fail-closed                    |
+| Main     | PASS       | merge `dfcb1fc`; read-back local 9/9 e 5/5; PR #75 Draft intocada                                |
+| Limites  | —          | ADR-001 PROPOSED; nenhuma UI; mockups fictícios; checkpoint promovido sem reinterpretar decisões |
+
+## DIF-GATE-WO-001 — SonarCloud main, proteção e isolamento Preview (2026-11-24) — DONE
+
+- **Work Order:** `DIF-GATE-WO-001` · issue #92 · dependência de #77/#78
+- **Base:** `main` `66a997e`; gate fix head `0e65b89`; merge `8f85974` (PR #93); PR #91 merge `dfcb1fc`
+- **Status:** **DONE**; SonarCloud main PASS no `8f85974` (Security A, duplicação 2,5%); ruleset ativo; Preview/Production segregados; sem bypass.
+
+| Check           | Result     | Evidence                                                                                           |
+| --------------- | ---------- | -------------------------------------------------------------------------------------------------- |
+| Source Check    | PASS       | main `66a997e`; PRs #91/#75 Draft; Sonar main ERROR (B, 3,6%); rulesets `[]`                       |
+| Root cause      | PASS       | S4036 `workers-service.mjs:70`; duplicação WO-004 51+217+217; preview sem guard                    |
+| Fix             | PASS local | taskkill absoluto `path.win32` 3/3; CPD só migrations imutáveis; preview fail-closed 3/3           |
+| CI #93          | PASS       | `45452589044`; Sonar PR A/0,0%; Socket/Vercel PASS; merge `8f85974`                                |
+| Sonar main      | PASS       | `8f85974`: Security A, duplicação 2,5%, Reliability A, hotspots 100%                               |
+| Main protection | PASS       | ruleset `28005320` active, `bypass_actors: []`; quality+Sonar+Socket Project/PR Alerts, strict     |
+| Preview/Prod    | PASS       | previews #93/#91 `supabase:false`; produção `supabase:true`; 295 legados revogados; 16 restantes   |
+| Segredos        | PASS       | `SUPABASE_SERVICE_ROLE_KEY` Preview removido; nenhum valor lido/registrado; time Vercel owner-only |
+| PR #91          | PASS       | head `7f55f7f`; CI `45457061172`; merge `dfcb1fc`; 9/9 assets; #77 fechada                         |
+| Limites         | —          | sem rotação de credenciais de produção; histórico antigo de previews revogado; secret Cloudinary   |
+
 ## V2 OPS 015–021 — extensões operacionais (2026-11-20) — PROMOTED
 
 - **Work Order:** `DIF-V2-OPS-015-021` · refs #30 · epic #17

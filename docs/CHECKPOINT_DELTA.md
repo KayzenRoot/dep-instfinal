@@ -1,5 +1,44 @@
 # Checkpoint Delta — CD06
 
+## DIF-UX-WO-003 — Ajuda contextual e onboarding acessível (2026-11-26) — PROMOTED
+
+- **Status:** **PROMOTED**; head `8715136`; código/teste `b4bb3a4`; squash-merge `b8691a3` (PR #97); auditoria independente **APPROVED**; CI `45902530605`/`45903870115` PASS (382 Vitest/3 skip, PgTAP 250, E2E 32/32); Sonar PR A/0,0%; produção READY com `/health` 200 e `/app` anônimo 303.
+- **Base:** `main` `b38542b` (checkpoint WO-002).
+- **Delivered:** `InfoTooltip` acessível (ARIA, hover/foco/clique/touch/Escape, portal, clamp 320px, pointer-events none), catálogo pt-BR com 10 conceitos reais, ajuda no shell, métricas e formulário do Painel; auditoria a11y manual, touch real `hasTouch`, posicionamento puro testado.
+- **Correções:** CD-01 (texto de mídias, foco condicional, scroll interno, overlay, alvo 25,6px, a11y/touch) e CD-02 (prova de controle coberto, evidências finais).
+- **Evidências:** `docs/evidence/ux-003/` (`source-check`, `implementation`, `correction-cd01/cd02`, `a11y-audit`, `merge-readback`); PR #97; issue #79.
+- **Limits:** `pointer-events:none` sem rolagem; tour persistente adiado; `helpId` fallback em MetricCard; credenciais antigas de Preview/Cloudinary e Sonar histórico pertencem à FASE 02.
+- **Next:** FASE 02 — reconciliação PR #75 + preflight de segurança.
+
+## DIF-UX-WO-002 — Design System, AppShell e navegação Neon Glass (2026-11-26) — PROMOTED
+
+- **Status:** **PROMOTED**; head `a419848`; código `cf715c1`; squash-merge `54ff92c` (PR #95); auditoria independente **APPROVED**; CI `45877986581` PASS (372 Vitest/3 skip, PgTAP 250, E2E 25/25); Sonar main A/2,4%; produção READY no merge com `/health` 200 e `/app` anônimo 303 para login.
+- **Base:** `main` `449642d` (checkpoint gate); 22 rotas preservadas, incluindo `/app/identity`.
+- **Delivered:** tokens Neon Glass, AppShell com skip link/drawer/dock, navegação agrupada em 6 seções, `nav-items.json` declarativo, foco visível no link ativo, `ActionButton` adotado no Painel, reduced-motion real, 320/390/768/1440/1920, Sonar sem exclusões novas.
+- **Correções:** CD-01 (F01–F04) e CD-02/CD-03 (foco ativo, teste real do ActionButton, screenshots de foco, evidências/hashes LF, nits documentais).
+- **Evidências:** `docs/evidence/ux-002/` (`correction-cd01`, `correction-cd02`, `checkpoint-delta-proposed-cd02`, `merge-readback-2026-11-26`); PR #95; issue #78.
+- **Limits:** ADR-001 PROPOSED; páginas internas mantêm estilos locais; sidebar exige scroll em ~900px; baseline visual do shell/Chromium; credenciais antigas de Preview/Cloudinary não rotacionadas (sem valores expostos).
+- **Next:** FASE 01 / DIF-UX-WO-003 (#79).
+
+## DIF-GATE-WO-001 — SonarCloud main, proteção da main e isolamento Preview (2026-11-24) — DONE
+
+- **Status:** **DONE**; base `66a997e`; gate fix head `0e65b89`; squash-merge `8f85974` (PR #93); SonarCloud main **PASS** no `8f85974` (Security **A**, duplicação **2,5%**, Reliability A, hotspots 100%); PR #91 integrada em `dfcb1fc`.
+- **Causas reais corrigidas:** S4036 em `scripts/workers-service.mjs:70` resolvido com caminho absoluto `%SystemRoot%\System32\taskkill.exe` e `path.win32` + 3 testes; duplicação das três migrations WO-004 imutáveis excluída apenas do CPD por caminho exato (485 linhas; thresholds inalterados); Preview falha fechado via `preview-isolation.ts` + 3 testes.
+- **Proteção da main:** ruleset `28005320` ativo, `bypass_actors: []`, PR obrigatório com conversas resolvidas, deletion/non-fast-forward bloqueados e required checks `quality`, `SonarCloud Code Analysis`, `Socket Security: Project Report` e `Socket Security: Pull Request Alerts`, com strict policy.
+- **Preview/Production:** previews de #93/#91 retornam `supabase:false/owner:false`; produção retorna `supabase:true/owner:true`; 295 previews legados revogados (294 em lote + 1 comprovadamente exposto), restando 16 previews pós-corte; `SUPABASE_SERVICE_ROLE_KEY` removido do escopo Preview. Time Vercel owner-only e previews sob SSO.
+- **Evidência:** `docs/evidence/gate-001/2026-11-24-sonar-protection-preview.txt`; CI #93 `45452589044`; CI #91 `45457061172`; merges `8f85974` e `dfcb1fc`.
+- **Limits:** sem rotação de credenciais de produção; histórico antigo de previews revogado; secret Cloudinary de sessão anterior segue com recomendação de rotação se o transcript for compartilhado.
+- **Next:** DIF-UX-WO-002 (#78), após este checkpoint.
+
+## DIF-UX-WO-001 — Neon Glass visual master & design contract (2026-11-24) — PROMOTED
+
+- **Status:** **PROMOTED**; head `7f55f7f`; CI `45457061172` PASS (quality 11m21s); Neon Glass integrity, Sonar PR, Socket e Vercel PASS; squash-merged em `dfcb1fc` (PR #91); issue #77 fechada.
+- **Base:** `main` `8f85974` (gate fix) após merge de `main` na branch, sem force-push.
+- **Delivered:** 9 PNGs originais 1672×941 sem recompressão; `manifest.json` 9/9 `VERIFIED_GITHUB_READBACK`; importador/verificador fail-closed; workflow de integridade; README, ADR-001 PROPOSED e matriz de implementação; Evidence Bundle `docs/evidence/ux-001/import-2026-11-24.txt`.
+- **Verificação:** read-back GitHub 9/9 HTTP 200 com SHA-256 e dimensões exatas; Node 5/5; Python `-O` 4/4; read-back local na main `dfcb1fc` 9/9 e 5/5.
+- **Limits:** ADR-001 permanece PROPOSED; nenhuma UI implementada; dados dos mockups são fictícios e não são fixtures; Preview da PR fail-closed.
+- **Next:** DIF-UX-WO-002 (#78) — design system, AppShell e navegação.
+
 ## DIF-V2-OPS-015-021 — extensões operacionais (2026-11-20) — PROMOTED
 
 - **Status:** **PROMOTED**; code/test head `77d5626`; CI `44787029917` PASS (351+3 unit, PgTAP 247/247, E2E 19/19, policy 36/41, Sonar PASS); auditoria independente **APPROVED WITH RESIDUALS**; squash-merged em `c7490e8` (PR #69).

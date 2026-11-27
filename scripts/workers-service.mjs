@@ -4,9 +4,9 @@
 //   node --env-file=<repo>/.env --env-file=<private>/r2.env scripts/workers-service.mjs
 import { spawn, spawnSync } from 'node:child_process';
 import {
+	chmodSync,
 	createWriteStream,
 	existsSync,
-	mkdirSync,
 	readFileSync,
 	renameSync,
 	statSync,
@@ -15,13 +15,12 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import process from 'node:process';
-import { resolveWorkerLogDir } from './worker-log-dir.mjs';
+import { prepareWorkerLogDir, prepareWorkerLogFile } from './worker-log-dir.mjs';
 import { resolveTaskkillPath } from './taskkill-path.mjs';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const logDir = resolveWorkerLogDir();
-mkdirSync(logDir, { recursive: true });
+const logDir = prepareWorkerLogDir();
 const lockPath = join(logDir, 'workers-service.lock');
 
 function isAlive(pid) {
@@ -41,6 +40,7 @@ if (existsSync(lockPath)) {
 	}
 }
 writeFileSync(lockPath, String(process.pid), { mode: 0o600 });
+if (process.platform !== 'win32') chmodSync(lockPath, 0o600);
 
 function openLog(name) {
 	const path = join(logDir, `${name}.log`);
@@ -53,6 +53,7 @@ function openLog(name) {
 	} catch {
 		// first run
 	}
+	prepareWorkerLogFile(path);
 	return createWriteStream(path, { flags: 'a' });
 }
 

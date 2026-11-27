@@ -1,0 +1,21 @@
+DIF-UX-WO-003 — SOURCE CHECK / CONTEXT LOCK
+Data: 2026-11-26
+Issue: #79 · EPIC #76
+Dependência: DIF-UX-WO-002 PROMOTED (#78 fechada)
+
+- main: b38542b106a25fdffaf35b86a8c69f2e7c2e4db2
+- PR #75: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8 — Draft/OPEN, intocada.
+- Master Visual: 9/9 verificado (`verify-images.mjs`).
+- ADR-001: PROPOSED; sem promoção.
+- 22 rotas de nível superior preservadas; shell/neon Glass aprovado em 54ff92c.
+- Ruleset main 28005320 ativo, sem bypass.
+- Nenhuma alteração de Auth/Supabase/RLS/Cloudinary/R2/APIs/schema/migrations nesta WO.
+
+ESCOPO DESTA WO:
+- `InfoTooltip.svelte` reutilizável (hover/focus/touch/Escape, posicionamento
+  clampado em 320px+, sem bloquear controles, foco recuperável).
+- `help-catalog.ts` pt-BR com conceitos reais do Painel e do estúdio.
+- Integração progressiva no shell (Estúdio privado), métricas e formulário de
+  criação de série do Painel.
+- Testes Vitest do catálogo e Playwright de hover/foco/touch/Escape/320px/
+  reduced-motion.

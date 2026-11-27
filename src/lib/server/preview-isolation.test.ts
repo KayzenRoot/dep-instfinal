@@ -2,71 +2,58 @@ import { describe, expect, it } from 'vitest';
 import type { AppConfig } from './config.js';
 import { isolatePreviewBackends } from './preview-isolation.js';
 
-const baseConfig: AppConfig = {
-	supabaseUrl: 'https://production.example',
-	supabasePublishableKey: 'public-test-key',
-	supabaseServiceRoleKey: 'admin-test-key',
-	ownerUserId: '00000000-0000-4000-8000-000000000001',
-	appOrigin: 'https://preview.example',
-	cloudinaryCloudName: 'test-cloud',
-	cloudinaryApiKey: 'test-public',
-	cloudinaryApiSecret: 'test-secret',
+const configured = {
+	supabaseUrl: 'https://example.supabase.co',
+	supabasePublishableKey: 'publishable',
+	supabaseServiceRoleKey: 'service-role',
+	ownerUserId: '11111111-1111-4111-8111-111111111111',
+	appOrigin: 'https://dif-studio.example',
+	cloudinaryCloudName: 'cloud',
+	cloudinaryApiKey: 'key',
+	cloudinaryApiSecret: 'secret',
 	maxUploadBytes: 10_485_760,
 	supabaseConfigured: true,
 	supabaseAdminConfigured: true,
 	ownerConfigured: true,
 	cloudinaryConfigured: true,
-	r2AccountId: 'test-account',
-	r2AccessKeyId: 'test-access',
-	r2SecretAccessKey: 'test-r2-secret',
-	r2Bucket: 'test-bucket',
-	r2Endpoint: 'https://storage.example',
+	r2AccountId: 'account',
+	r2AccessKeyId: 'access',
+	r2SecretAccessKey: 'secret',
+	r2Bucket: 'bucket',
+	r2Endpoint: 'https://r2.example',
 	r2Configured: true,
 	videoStorageDriver: 'r2',
-	videoProbeDriver: 'none',
-	maxVideoBytes: 209_715_200,
-	videoPartBytes: 8_388_608,
-};
+	videoProbeDriver: 'ffprobe',
+	maxVideoBytes: 200 * 1024 * 1024,
+	videoPartBytes: 8 * 1024 * 1024,
+} satisfies AppConfig;
 
-describe('Vercel Preview isolation', () => {
-	it('fails closed for every external data and privileged integration', () => {
-		const isolated = isolatePreviewBackends(baseConfig, 'preview');
-		expect(isolated).toMatchObject({
-			supabaseConfigured: false,
-			supabaseAdminConfigured: false,
-			ownerConfigured: false,
-			cloudinaryConfigured: false,
-			r2Configured: false,
-		});
-		for (const key of [
-			'supabaseUrl',
-			'supabasePublishableKey',
-			'supabaseServiceRoleKey',
-			'ownerUserId',
-			'cloudinaryCloudName',
-			'cloudinaryApiKey',
-			'cloudinaryApiSecret',
-			'r2AccountId',
-			'r2AccessKeyId',
-			'r2SecretAccessKey',
-			'r2Bucket',
-			'r2Endpoint',
-		] as const) {
-			expect(isolated[key]).toBeUndefined();
-		}
+describe('isolatePreviewBackends', () => {
+	it('keeps production and local configuration unchanged', () => {
+		expect(isolatePreviewBackends(configured, 'production')).toBe(configured);
+		expect(isolatePreviewBackends(configured, undefined)).toBe(configured);
 	});
 
-	it('preserves non-secret origin, quotas and display/runtime settings in Preview', () => {
-		const isolated = isolatePreviewBackends(baseConfig, 'preview');
-		expect(isolated.appOrigin).toBe(baseConfig.appOrigin);
-		expect(isolated.maxVideoBytes).toBe(baseConfig.maxVideoBytes);
-		expect(isolated.videoStorageDriver).toBe(baseConfig.videoStorageDriver);
-		expect(isolated).not.toBe(baseConfig);
+	it('fails closed on Vercel Preview even when production env vars are present', () => {
+		const preview = isolatePreviewBackends(configured, 'preview');
+		expect(preview.supabaseUrl).toBeUndefined();
+		expect(preview.supabasePublishableKey).toBeUndefined();
+		expect(preview.supabaseServiceRoleKey).toBeUndefined();
+		expect(preview.ownerUserId).toBeUndefined();
+		expect(preview.supabaseConfigured).toBe(false);
+		expect(preview.supabaseAdminConfigured).toBe(false);
+		expect(preview.ownerConfigured).toBe(false);
+		expect(preview.cloudinaryConfigured).toBe(false);
+		expect(preview.r2Configured).toBe(false);
+		expect(preview.cloudinaryApiSecret).toBeUndefined();
+		expect(preview.r2SecretAccessKey).toBeUndefined();
 	});
 
-	it('does not change Production or local development', () => {
-		expect(isolatePreviewBackends(baseConfig, 'production')).toBe(baseConfig);
-		expect(isolatePreviewBackends(baseConfig, 'development')).toBe(baseConfig);
-		expect(isolatePreviewBackends(baseConfig, undefined)).toBe(baseConfig);
+	it('preserves non-secret limits for preview UI rendering', () => {
+		const preview = isolatePreviewBackends(configured, 'preview');
+		expect(preview.appOrigin).toBe(configured.appOrigin);
+		expect(preview.maxUploadBytes).toBe(configured.maxUploadBytes);
+		expect(preview.maxVideoBytes).toBe(configured.maxVideoBytes);
+		expect(preview.videoPartBytes).toBe(configured.videoPartBytes);
 	});
 });

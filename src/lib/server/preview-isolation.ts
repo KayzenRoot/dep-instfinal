@@ -1,15 +1,15 @@
 import type { AppConfig } from './config.js';
 
 /**
- * Production-connected credentials must never be used by Vercel Preview.
- * Previews remain fail-closed until a separate, approved test backend is provisioned.
+ * Production-connected credentials must never be used by a Vercel Preview.
+ * Preview deployments stay fail-closed until an approved, separate test backend
+ * is provisioned. This guard is defense in depth even if an env var is shared.
  */
 export function isolatePreviewBackends(
 	config: AppConfig,
 	vercelEnvironment: string | undefined,
 ): AppConfig {
 	if (vercelEnvironment !== 'preview') return config;
-
 	return {
 		...config,
 		supabaseUrl: undefined,

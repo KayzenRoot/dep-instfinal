@@ -1,7 +1,9 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cleanupPrivateTempDir, preparePrivateTempDir } from './test-local-e2e-temp.mjs';
 
 function parseEnvironment(output) {
 	return Object.fromEntries(
@@ -14,6 +16,22 @@ function parseEnvironment(output) {
 				return [name, value.startsWith('"') ? JSON.parse(value) : value.replace(/^'|'$/g, '')];
 			}),
 	);
+}
+
+function resolveSupabaseCommand() {
+	const configured = process.env.SUPABASE_BIN?.trim();
+	if (configured) {
+		if (!isAbsolute(configured)) throw new Error('SUPABASE_BIN must be an absolute path.');
+		return configured;
+	}
+	for (const candidate of [
+		'/usr/local/bin/supabase',
+		'/usr/bin/supabase',
+		'/opt/homebrew/bin/supabase',
+	]) {
+		if (existsSync(candidate)) return candidate;
+	}
+	throw new Error('SUPABASE_BIN must point to the absolute Supabase CLI path.');
 }
 
 function readSupabaseEnvironment() {
@@ -31,11 +49,13 @@ function readSupabaseEnvironment() {
 						['/d', '/s', '/c', 'supabase status --output env'],
 						options,
 					)
-				: execFileSync('supabase', ['status', '--output', 'env'], options);
+				: execFileSync(resolveSupabaseCommand(), ['status', '--output', 'env'], options);
 		return parseEnvironment(output);
 	} catch (error) {
 		if (error.code === 'ENOENT') {
-			console.error('Supabase CLI was not found on PATH. Install it and run `supabase start`.');
+			console.error(
+				'Supabase CLI was not found. Set SUPABASE_BIN to an absolute path and run `supabase start`.',
+			);
 			process.exit(1);
 		}
 		console.error(
@@ -172,6 +192,8 @@ if (dataApiOtherWrite.ok) {
 	throw new Error('The non-owner identity could write through the Supabase Data API.');
 }
 
+const privateTempDir = preparePrivateTempDir();
+
 const childEnvironment = {
 	PATH: process.env.PATH,
 	CI: process.env.CI ?? '',
@@ -179,8 +201,8 @@ const childEnvironment = {
 	HOME: process.env.HOME ?? '',
 	USERPROFILE: process.env.USERPROFILE ?? '',
 	LOCALAPPDATA: process.env.LOCALAPPDATA ?? '',
-	TEMP: process.env.TEMP ?? '',
-	TMP: process.env.TMP ?? '',
+	TEMP: privateTempDir,
+	TMP: privateTempDir,
 	SystemRoot: process.env.SystemRoot ?? '',
 	PUBLIC_SUPABASE_URL: apiUrl.origin,
 	PUBLIC_SUPABASE_ANON_KEY: localEnvironment.ANON_KEY,
@@ -209,10 +231,14 @@ const childEnvironment = {
 
 const runner = fileURLToPath(new URL('../node_modules/@playwright/test/cli.js', import.meta.url));
 const extraArgs = process.argv.slice(2);
-const result = spawnSync(process.execPath, [runner, 'test', ...extraArgs], {
-	cwd: process.cwd(),
-	env: childEnvironment,
-	stdio: 'inherit',
-});
-if (result.error) throw result.error;
-process.exitCode = result.status ?? 1;
+try {
+	const result = spawnSync(process.execPath, [runner, 'test', ...extraArgs], {
+		cwd: process.cwd(),
+		env: childEnvironment,
+		stdio: 'inherit',
+	});
+	if (result.error) throw result.error;
+	process.exitCode = result.status ?? 1;
+} finally {
+	cleanupPrivateTempDir(privateTempDir);
+}

@@ -1,0 +1,13 @@
+DIF-UX-WO-001 — IMPORTAÇÃO REPRODUZÍVEL DOS NOVE PNGs
+O pacote original foi fornecido no ChatGPT como DIF_Studio_Neon_Glass_Visual_Master_v1.zip.
+O script Python3 é local, offline e sem dependências externas.
+Uso no checkout da branch de PR #91:
+  python3 docs/design/neon-glass-v1/import-master.py /caminho/DIF_Studio_Neon_Glass_Visual_Master_v1.zip
+  node docs/design/neon-glass-v1/verify-images.mjs
+  git add docs/design/neon-glass-v1/manifest.json docs/design/neon-glass-v1/screens/
+  git commit -m "assets(dif-ux-wo-001): import nine verified visual masters"
+  git push
+O script valida SHA256 e dimensões antes de gravar qualquer imagem, não baixa URLs,
+não acessa segredos nem cria serviços. Após completar, a CI e os hashes DO GITHUB
+precisam de read-back. Não marque a WO como APPROVED só com sucesso local.
+Se o ZIP não estiver no ambiente do executor, mantenha BLOCKED.

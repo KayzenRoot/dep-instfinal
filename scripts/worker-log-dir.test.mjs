@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
+import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { resolveWorkerLogDir } from './worker-log-dir.mjs';
+import {
+	prepareWorkerLogDir,
+	prepareWorkerLogFile,
+	resolveWorkerLogDir,
+} from './worker-log-dir.mjs';
 
 test('uses a per-user log directory by default', () => {
 	assert.equal(
@@ -28,4 +33,20 @@ test('treats whitespace-only overrides as unset', () => {
 		resolveWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: '  ' }, homeDir: tmpdir() }),
 		join(tmpdir(), '.zcode', 'dif-secrets', 'worker-logs'),
 	);
+});
+
+test('creates the private directory and log file with restrictive permissions', () => {
+	const base = mkdtempSync(join(tmpdir(), 'dif-worker-log-'));
+	try {
+		const dir = prepareWorkerLogDir({ env: { DIF_WORKER_LOG_DIR: join(base, 'private') } });
+		const file = prepareWorkerLogFile(join(dir, 'supervisor.log'));
+		assert.equal(existsSync(dir), true);
+		assert.equal(existsSync(file), true);
+		if (process.platform !== 'win32') {
+			assert.equal(statSync(dir).mode & 0o777, 0o700);
+			assert.equal(statSync(file).mode & 0o777, 0o600);
+		}
+	} finally {
+		rmSync(base, { recursive: true, force: true });
+	}
 });

@@ -1,0 +1,94 @@
+{
+	"name": "DIF Studio Neon Glass",
+	"revision": "CANDIDATE-1",
+	"selected_by": "assistant_by_owner_delegation_2026-11-24",
+	"status": "PROPOSED__PNG_ASSETS_COMMITTED_AND_VERIFIED__NOT_IMPLEMENTED",
+	"source": {
+		"repo": "KayzenRoot/dep-instfinal",
+		"main_sha": "66a997ee5d159a152b3ecb6ffd35bbf3acba855c",
+		"pr75_sha": "9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8",
+		"epic": 76,
+		"wo": 77
+	},
+	"image_size": {
+		"width": 1672,
+		"height": 941
+	},
+	"editor_reference": "screens/05-editor.png",
+	"shell_reference": "screens/02-dashboard.png",
+	"repo_asset_upload": "VERIFIED_GITHUB_READBACK",
+	"images": [
+		{
+			"name": "01-login",
+			"file": "screens/01-login.png",
+			"sha256": "cbb3204c778a23a233bfd30b5e85e0701e7ee3b322174ad00bb1b5f5cc00aa63",
+			"route": "/login",
+			"label": "Login/Owner",
+			"exists_in_repo": true
+		},
+		{
+			"name": "02-dashboard",
+			"file": "screens/02-dashboard.png",
+			"sha256": "a76788309e36722500ebde206110d52244a7c671a6e084a3adc0d6ae7a08b429",
+			"route": "/app",
+			"label": "Dashboard",
+			"exists_in_repo": true
+		},
+		{
+			"name": "03-series",
+			"file": "screens/03-series.png",
+			"sha256": "2fe39536f4cf7f224deb55a3d442341a385a7357ea3ca7242cc7f69cccf488db",
+			"route": "/app/series",
+			"label": "Séries",
+			"exists_in_repo": true
+		},
+		{
+			"name": "04-episodes",
+			"file": "screens/04-episodes.png",
+			"sha256": "1a6b327d1ab6e69e45414834bab2418fc92dacf5476ec135ad11f9ed9dd9e2aa",
+			"route": "/app/episodes",
+			"label": "Episódios",
+			"exists_in_repo": true
+		},
+		{
+			"name": "05-editor",
+			"file": "screens/05-editor.png",
+			"sha256": "546e8a0d1ac48c22a3e16775cad0633d412e9c56adfaa3110ae2a5d8a78824a6",
+			"route": "/app/editor + /app/timeline",
+			"label": "Editor profissional",
+			"exists_in_repo": true
+		},
+		{
+			"name": "06-style",
+			"file": "screens/06-style.png",
+			"sha256": "663a7b0abf9305f439192dc8acfe86924a79c1421802648458f80acc663b9862",
+			"route": "/app/style",
+			"label": "Estilo",
+			"exists_in_repo": true
+		},
+		{
+			"name": "07-media",
+			"file": "screens/07-media.png",
+			"sha256": "9f194a49390fb45c7349a13d88904242e1d905f620a685b53b23efe491043355",
+			"route": "/app/library + /app/video + /app/audio + /app/narration",
+			"label": "Mídia",
+			"exists_in_repo": true
+		},
+		{
+			"name": "08-analytics",
+			"file": "screens/08-analytics.png",
+			"sha256": "abf0d48510b8994a30733446c2affa0ba1ca2ba482659cafae0e8ebb4b71c35d",
+			"route": "/app/retention",
+			"label": "Analytics observacional",
+			"exists_in_repo": true
+		},
+		{
+			"name": "09-settings",
+			"file": "screens/09-settings.png",
+			"sha256": "33b333af6f26554c83c24809c62f7fbb4bc6283add3bb0809b845183adde0e1a",
+			"route": "/app/settings",
+			"label": "Configurações",
+			"exists_in_repo": true
+		}
+	]
+}

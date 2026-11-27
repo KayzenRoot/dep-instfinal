@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import type { PageProps } from './$types';
+	import ActionButton from '#lib/components/ActionButton.svelte';
+	import InfoTooltip from '#lib/components/InfoTooltip.svelte';
 	import PageHeading from '#lib/components/PageHeading.svelte';
 	import Panel from '#lib/components/Panel.svelte';
 	import MetricCard from '#lib/components/MetricCard.svelte';
@@ -28,14 +30,34 @@
 </PageHeading>
 
 <section class="metrics" aria-label="Resumo do arquivo">
-	<MetricCard label="SÉRIES" value={data.series.length} detail="arquivos privados" />
-	<MetricCard label="EPISÓDIOS" value={data.metrics.episodes} detail="em todas as temporadas" />
+	<MetricCard
+		label="SÉRIES"
+		value={data.series.length}
+		detail="arquivos privados"
+		helpKey="dashboardSeries"
+		helpId="help-dashboard-series"
+	/>
+	<MetricCard
+		label="EPISÓDIOS"
+		value={data.metrics.episodes}
+		detail="em todas as temporadas"
+		helpKey="dashboardEpisodes"
+		helpId="help-dashboard-episodes"
+	/>
 	<MetricCard
 		label="VOTAÇÕES ABERTAS"
 		value={data.metrics.openPolls}
 		detail="resultado sempre manual"
+		helpKey="openPolls"
+		helpId="help-dashboard-polls"
 	/>
-	<MetricCard label="QUADROS" value={data.metrics.media} detail="arquivos privados" />
+	<MetricCard
+		label="QUADROS"
+		value={data.metrics.media}
+		detail="arquivos privados"
+		helpKey="mediaAssets"
+		helpId="help-dashboard-media"
+	/>
 </section>
 
 <div class="dashboard-grid">
@@ -79,30 +101,60 @@
 	>
 		{#if form?.message}<p class="form-error" role="alert">{form.message}</p>{/if}
 		<form class="form-stack" method="POST" action="?/createSeries">
-			<label>Título<input name="title" maxlength="120" required placeholder="O Arquivo 17" /></label
-			>
-			<label
-				>Premissa<textarea
+			<div class="field">
+				<div class="field-heading">
+					<label for="series-title">Título</label>
+					<InfoTooltip helpKey="seriesTitle" id="help-series-title" />
+				</div>
+				<input id="series-title" name="title" maxlength="120" required placeholder="O Arquivo 17" />
+			</div>
+			<div class="field">
+				<div class="field-heading">
+					<label for="series-premise">Premissa</label>
+					<InfoTooltip helpKey="seriesPremise" id="help-series-premise" />
+				</div>
+				<textarea
+					id="series-premise"
 					name="premise"
 					maxlength="8000"
 					rows="4"
-					placeholder="Uma frase para o mistério central."></textarea></label
-			>
-			<div class="form-row">
-				<label
-					>Subgênero<input name="subgenre" maxlength="120" placeholder="Horror analógico" /></label
-				>
-				<label>Tom<input name="tone" maxlength="120" placeholder="Investigativo, íntimo" /></label>
+					placeholder="Uma frase para o mistério central."></textarea>
 			</div>
-			<label
-				>Público pretendido<input
+			<div class="form-row">
+				<div class="field">
+					<div class="field-heading">
+						<label for="series-subgenre">Subgênero</label>
+						<InfoTooltip helpKey="seriesSubgenre" id="help-series-subgenre" />
+					</div>
+					<input
+						id="series-subgenre"
+						name="subgenre"
+						maxlength="120"
+						placeholder="Horror analógico"
+					/>
+				</div>
+				<div class="field">
+					<div class="field-heading">
+						<label for="series-tone">Tom</label>
+						<InfoTooltip helpKey="seriesTone" id="help-series-tone" />
+					</div>
+					<input id="series-tone" name="tone" maxlength="120" placeholder="Investigativo, íntimo" />
+				</div>
+			</div>
+			<div class="field">
+				<div class="field-heading">
+					<label for="series-audience">Público pretendido</label>
+					<InfoTooltip helpKey="seriesAudience" id="help-series-audience" />
+				</div>
+				<input
+					id="series-audience"
 					name="audience"
 					maxlength="500"
 					placeholder="Quem deve acompanhar a série?"
-				/></label
-			>
-			<button class="primary-button" type="submit"
-				>Abrir novo arquivo <span aria-hidden="true">↗</span></button
+				/>
+			</div>
+			<ActionButton type="submit" variant="primary" label="Abrir novo arquivo"
+				>Abrir novo arquivo <span aria-hidden="true">↗</span></ActionButton
 			>
 		</form>
 	</Panel>
@@ -165,6 +217,23 @@
 		display: grid;
 		gap: 0.8rem;
 	}
+	.field {
+		display: grid;
+		gap: 0.3rem;
+	}
+	.field-heading {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		color: var(--muted);
+		font-size: 0.76rem;
+	}
+	.field-heading label {
+		display: block;
+		margin: 0;
+		color: inherit;
+		font-size: inherit;
+	}
 	.form-stack label {
 		display: grid;
 		gap: 0.3rem;
@@ -188,28 +257,16 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 0.7rem;
 	}
-	.primary-button,
-	.text-button {
-		min-height: 2.7rem;
-		border: 1px solid rgb(169 197 108 / 48%);
-		border-radius: var(--radius-sm);
-		background: linear-gradient(145deg, #a9c56c, #7f9c4a);
-		color: #10130b;
-		font-weight: 650;
-		cursor: pointer;
-	}
-	.primary-button {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.6rem 0.85rem;
-	}
 	.text-button {
 		min-height: auto;
 		padding: 0.5rem 0.7rem;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-sm);
 		background: transparent;
 		color: var(--muted);
 		font-size: 0.72rem;
+		font-weight: 600;
+		cursor: pointer;
 	}
 	.form-error {
 		padding: 0.7rem;
