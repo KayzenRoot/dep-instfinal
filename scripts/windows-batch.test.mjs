@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import test from 'node:test';
-import { resolveSupabaseCommand } from './supabase-command.mjs';
+import { resolveSupabaseCommand, resolveSupabaseInvocation } from './supabase-command.mjs';
 import {
 	assertSafeBatchPath,
 	buildBatchCommandLine,
@@ -70,24 +70,32 @@ test(
 );
 
 test(
-	'executes the real Supabase CLI from a path with spaces',
+	'executes the real Supabase CLI with a hostile PATH',
 	{ skip: process.platform !== 'win32' },
 	(t) => {
 		let command;
-		try {
-			command = resolveSupabaseCommand();
-		} catch {
-			t.skip('Supabase CLI is not installed on this Windows host.');
-			return;
-		}
 		const workspace = mkdtempSync(join(tmpdir(), 'dif supabase (x86) '));
 		try {
+			const env = { ...process.env, APPDATA: process.env.APPDATA };
+			try {
+				command = resolveSupabaseCommand({ env });
+			} catch {
+				t.skip('Supabase CLI is not installed on this Windows host.');
+				return;
+			}
 			const junction = join(workspace, 'npm-link');
 			symlinkSync(dirname(command), junction, 'junction');
 			const viaJunction = join(junction, basename(command));
-			const output = /\.(cmd|bat)$/i.test(viaJunction)
-				? runWindowsBatchFile(viaJunction, ['--version'])
-				: execFileSync(viaJunction, ['--version'], { encoding: 'utf8' });
+			const invocation = resolveSupabaseInvocation({
+				env: { ...process.env, SUPABASE_BIN: viaJunction },
+			});
+			const hostile = join(workspace, 'hostile path');
+			mkdirSync(hostile);
+			writeFileSync(join(hostile, 'node.exe'), '', 'utf8');
+			const output = execFileSync(invocation.command, [...invocation.args, '--version'], {
+				encoding: 'utf8',
+				env: { ...process.env, PATH: hostile },
+			});
 			assert.match(output.trim(), /^\d+\.\d+\.\d+/);
 		} finally {
 			rmSync(workspace, { recursive: true, force: true });

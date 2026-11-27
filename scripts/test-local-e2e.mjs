@@ -2,9 +2,8 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { resolveSupabaseCommand } from './supabase-command.mjs';
+import { resolveSupabaseInvocation } from './supabase-command.mjs';
 import { cleanupPrivateTempDir, preparePrivateTempDir } from './test-local-e2e-temp.mjs';
-import { runWindowsBatchFile } from './windows-batch.mjs';
 
 function parseEnvironment(output) {
 	return Object.fromEntries(
@@ -27,12 +26,12 @@ function readSupabaseEnvironment() {
 	};
 
 	try {
-		const command = resolveSupabaseCommand();
-		const args = ['status', '--output', 'env'];
-		const output =
-			process.platform === 'win32' && /\.(cmd|bat)$/i.test(command)
-				? runWindowsBatchFile(command, args, options)
-				: execFileSync(command, args, options);
+		const invocation = resolveSupabaseInvocation();
+		const output = execFileSync(
+			invocation.command,
+			[...invocation.args, 'status', '--output', 'env'],
+			options,
+		);
 		return parseEnvironment(output);
 	} catch (error) {
 		if (

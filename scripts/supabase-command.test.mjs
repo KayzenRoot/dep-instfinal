@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolveSupabaseCommand } from './supabase-command.mjs';
+import { resolveSupabaseCommand, resolveSupabaseInvocation } from './supabase-command.mjs';
 
 test('uses an absolute SUPABASE_BIN override on POSIX', () => {
 	assert.equal(
@@ -59,5 +59,45 @@ test('fails closed when no absolute CLI candidate exists', () => {
 				exists: () => false,
 			}),
 		/absolute Supabase CLI path/,
+	);
+});
+
+test('runs an npm Windows shim through the current Node executable, not PATH', () => {
+	const shim = String.raw`C:\Users\dif\AppData\Roaming\npm\supabase.cmd`;
+	const entry = String.raw`C:\Users\dif\AppData\Roaming\npm\node_modules\supabase\dist\supabase.js`;
+	const nodeExecutable = String.raw`C:\Program Files\nodejs\node.exe`;
+	assert.deepEqual(
+		resolveSupabaseInvocation({
+			env: { SUPABASE_BIN: shim, PATH: String.raw`C:\hostile` },
+			platform: 'win32',
+			exists: (path) => path === shim || path === entry,
+			nodeExecutable,
+		}),
+		{ command: nodeExecutable, args: [entry], kind: 'node-script' },
+	);
+});
+
+test('fails closed when a .cmd shim has no local Supabase JS entry', () => {
+	const shim = String.raw`C:\Users\dif\AppData\Roaming\npm\supabase.cmd`;
+	assert.throws(
+		() =>
+			resolveSupabaseInvocation({
+				env: { SUPABASE_BIN: shim },
+				platform: 'win32',
+				exists: (path) => path === shim,
+			}),
+		/no local dist\/supabase\.js/,
+	);
+});
+
+test('runs a native Supabase executable directly', () => {
+	const command = String.raw`C:\Tools\supabase\supabase.exe`;
+	assert.deepEqual(
+		resolveSupabaseInvocation({
+			env: { SUPABASE_BIN: command },
+			platform: 'win32',
+			exists: () => false,
+		}),
+		{ command, args: [], kind: 'native' },
 	);
 });

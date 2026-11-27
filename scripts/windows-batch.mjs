@@ -37,7 +37,7 @@ export function buildBatchCommandLine(command, args) {
 }
 
 export function resolveWindowsSystem32(name, env = process.env) {
-	const systemRoot = env.SystemRoot;
+	const systemRoot = env.SystemRoot ?? env.SYSTEMROOT ?? env.WINDIR;
 	if (!systemRoot || !/^[a-z]:\\windows\\?$/i.test(win32.normalize(systemRoot))) {
 		throw new Error('SystemRoot must point to the local Windows system directory.');
 	}

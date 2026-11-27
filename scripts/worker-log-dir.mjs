@@ -61,7 +61,7 @@ function assertExistingFile(path, platform) {
 	if (stat.isSymbolicLink()) throw new Error('Worker log file must not be a symbolic link.');
 	if (!stat.isFile()) throw new Error('Worker log file must be a regular file.');
 	assertOwnedByCurrentUser(stat, platform, 'Worker log file');
-	if (platform !== 'win32' && stat.nlink > 1) {
+	if (stat.nlink > 1) {
 		throw new Error('Worker log file must not be a hard link.');
 	}
 }

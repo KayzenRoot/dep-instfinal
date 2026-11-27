@@ -46,3 +46,40 @@ export function resolveSupabaseCommand({
 	if (!found) throw new Error('SUPABASE_BIN must point to the absolute Supabase CLI path.');
 	return found;
 }
+
+function resolveNpmSupabaseEntry(command, exists) {
+	const entry = win32.join(
+		win32.dirname(command),
+		'node_modules',
+		'supabase',
+		'dist',
+		'supabase.js',
+	);
+	return exists(entry) ? entry : undefined;
+}
+
+export function resolveSupabaseInvocation({
+	env = process.env,
+	platform = process.platform,
+	exists = existsSync,
+	nodeExecutable = process.execPath,
+} = {}) {
+	const command = resolveSupabaseCommand({ env, platform, exists });
+	if (platform !== 'win32' || /\.exe$/i.test(command)) {
+		return { command, args: [], kind: 'native' };
+	}
+	if (!/\.(cmd|bat)$/i.test(command)) {
+		throw new Error('SUPABASE_BIN on Windows must be an .exe, .cmd or .bat path.');
+	}
+	const entry = resolveNpmSupabaseEntry(command, exists);
+	if (!entry) {
+		throw new Error(
+			'The Supabase .cmd shim has no local dist/supabase.js; set SUPABASE_BIN to a native .exe.',
+		);
+	}
+	return {
+		command: nodeExecutable,
+		args: [entry],
+		kind: 'node-script',
+	};
+}

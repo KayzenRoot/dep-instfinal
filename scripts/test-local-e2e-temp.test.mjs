@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { cleanupPrivateTempDir, preparePrivateTempDir } from './test-local-e2e-temp.mjs';
+import { getCurrentUserSid, getWindowsAclSids } from './windows-acl.mjs';
 
 test('creates a private per-run temporary directory', () => {
 	const base = mkdtempSync(join(tmpdir(), 'dif-e2e-base-'));
@@ -13,6 +14,11 @@ test('creates a private per-run temporary directory', () => {
 		assert.ok(dir.startsWith(base));
 		if (process.platform !== 'win32') {
 			assert.equal(statSync(dir).mode & 0o777, 0o700);
+		} else {
+			assert.deepEqual(
+				new Set(getWindowsAclSids(dir)),
+				new Set([getCurrentUserSid(), 'S-1-5-18', 'S-1-5-32-544']),
+			);
 		}
 		cleanupPrivateTempDir(dir);
 		assert.equal(existsSync(dir), false);

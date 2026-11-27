@@ -184,7 +184,7 @@ test('rejects a symlinked log file', () => {
 	}
 });
 
-test('rejects a hard-linked log file on POSIX', { skip: process.platform === 'win32' }, () => {
+test('rejects a hard-linked log file', () => {
 	const base = makeBase();
 	try {
 		const dir = prepareWorkerLogDir({
