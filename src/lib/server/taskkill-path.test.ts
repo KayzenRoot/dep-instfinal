@@ -9,10 +9,10 @@ describe('resolveTaskkillPath', () => {
 		expect(win32.isAbsolute(result)).toBe(true);
 	});
 
-	it('does not search PATH or accept a relative override', () => {
-		const result = resolveTaskkillPath({ SystemRoot: 'D:\\WinRoot', PATH: 'C:\\writable' });
+	it('uses an alternate Windows drive and ignores PATH', () => {
+		const result = resolveTaskkillPath({ SystemRoot: 'D:\\Windows', PATH: 'C:\\writable' });
 		expect(result).toContain('System32');
-		expect(result.startsWith('D:\\WinRoot')).toBe(true);
+		expect(result.startsWith('D:\\Windows')).toBe(true);
 		expect(result).not.toContain('writable');
 	});
 

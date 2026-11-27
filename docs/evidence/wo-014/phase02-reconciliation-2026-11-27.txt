@@ -1,0 +1,91 @@
+DIF-V2-WO-014 / FASE 02 / CD-01 — RECONCILIAÇÃO E PREFLIGHT (pt-BR)
+Data: 2026-11-27
+Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
+Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
+PR #75 original: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8
+HEAD reconciliado: 3b6b5f2 (merge normal da main; sem force-push)
+Status: CORRECTION REQUIRED / sem merge, sem deploy, sem fechar #31.
+
+====================================================================
+1. MATRIZ DOS ARQUIVOS DA PR #75
+====================================================================
+| Arquivo | Classe | Disposição |
+| .github/workflows/ci.yml | necessária | mantém `bash -n benchmark.sh`; 4 MAJOR Sonar de CI classificados, não alterados nesta fase |
+| docs/evidence/wo-014/* | histórica/obsoleta | preservada; esta evidência complementa sem reescrever |
+| package.json | necessária | `test` inclui Node tests de logs/taskkill/temp |
+| scripts/benchmark-color-render.ts | necessária | replaceAll, sem mudança de comportamento |
+| scripts/narration-tts.ts | necessária | replaceAll literal |
+| scripts/render-worker.mjs | necessária | split `\n` explícito |
+| scripts/taskkill-path.mjs | conflito resolvido | adotada versão estrita do PR #75; teste main atualizado |
+| scripts/taskkill-path.test.mjs | necessária | 4 casos Node |
+| scripts/v2-bench/benchmark.sh | necessária | `[[ ]]`; `bash -n` PASS |
+| scripts/worker-log-dir.mjs | necessária | resolução portátil + diretório 0700 |
+| scripts/worker-log-dir.test.mjs | necessária | 5 casos, inclui permissões |
+| scripts/workers-service.mjs | integrado/conflito | taskkill main + logDir portátil; import duplicado removido; log/lock 0600 |
+| src/lib/domain/captions.ts | necessária | trim-edge e replaceAll |
+| src/lib/domain/character-identity.ts | necessária | trim-edge |
+| src/lib/domain/choice-end-card.ts | necessária | replaceAll |
+| src/lib/domain/cover.ts | necessária | default congelado + trim-edge |
+| src/lib/domain/retention.test.ts | necessária | regressões CSV |
+| src/lib/domain/retention.ts | necessária | scanner linear sem regex/backtracking |
+| src/lib/domain/trim-edge.ts | necessária | helper linear |
+| src/lib/domain/trim-edge.test.ts | necessária | 3 casos |
+| src/lib/server/config.ts | já integrado | hash idêntico à main; não duplicado |
+| src/lib/server/director-ai.ts | necessária | fence JSON sem regex final |
+| src/lib/server/preview-isolation.test.ts | já integrado | versão main preservada |
+| src/lib/server/preview-isolation.ts | já integrado | versão main preservada |
+| src/routes/api/identity/[characterId]/export/+server.ts | necessária | slug com trim-edge |
+| src/routes/api/video/dev-object/[...key]/+server.ts | necessária | handler não-async |
+| scripts/test-local-e2e-temp.mjs + test | nova (S5443) | temp privado 0700 + cleanup |
+| scripts/test-local-e2e.mjs | nova correção | TEMP/TMP privados; SUPABASE_BIN absoluto |
+| scripts/serve-tunnel.mjs | nova correção | CLOUDFLARED_BIN/candidatos absolutos |
+
+Total: 27 arquivos originais classificados; 3 docs históricos preservados;
+2 arquivos novos de correção S5443 e 1 módulo de temp/teste.
+
+====================================================================
+2. SEGURANÇA / SONAR
+====================================================================
+- S5443 CRITICAL (2) em `scripts/test-local-e2e.mjs`: corrigido com
+  `preparePrivateTempDir()` (mkdtemp 0700, cleanup finally) e TEMP/TMP
+  apontando para o diretório privado; teste Node de modo/cleanup.
+- S4036 MINOR (2): `serve-tunnel.mjs` usa CLOUDFLARED_BIN/candidatos absolutos;
+  `test-local-e2e.mjs` usa SUPABASE_BIN/candidatos absolutos no POSIX.
+  Sem desabilitar regra nem usar PATH quando há executável absoluto.
+- 4 MAJOR de CI (S6505 npm ci, S7637 action por tag, S6505 npx, S8543 versão
+  flutuante): identificadores registrados; correção não aplicada nesta fase
+  para não alterar scripts de instalação sem ensaio dedicado.
+- 630 issues abertas na main: 621 Code Smell, 8 Vulnerability, 1 Bug;
+  0 vulnerability em new code. Cobertura nova não retornada/0% — não é
+  cobertura funcional; não há LCOV gerado/importado no projeto.
+- Hotspots/vulnerabilidades históricas não foram mascarados; nenhuma exclusão
+  ou threshold alterado.
+
+====================================================================
+3. TESTES EXECUTADOS (HEAD 3b6b5f2, antes do commit documental)
+====================================================================
+- `node --test scripts/worker-log-dir.test.mjs scripts/taskkill-path.test.mjs
+  scripts/test-local-e2e-temp.test.mjs`: 10/10 PASS.
+- `bash -n scripts/v2-bench/benchmark.sh`: PASS (exit 0).
+- `svelte-check`: 0 erros/0 warnings; ESLint PASS; build PASS.
+- `npm test`/Vitest: executado localmente; resultado a registrar no CI final.
+- `npm ci`, PgTAP, Playwright e Sonar/Socket no HEAD: CI final a registrar.
+
+====================================================================
+4. PREVIEW / PRODUÇÃO / CLOUDINARY
+====================================================================
+- `preview-isolation` e `config.ts` da main preservados; nenhum merge
+  duplicado dessas correções.
+- Preview segue fail-closed; produção não foi tocada nesta fase.
+- Risco residual Cloudinary: o secret novo apareceu uma vez em snapshot local
+  em sessão anterior; plano é rotacionar no Cloudinary e atualizar
+  `CLOUDINARY_API_KEY/SECRET` na Vercel Production com autorização específica,
+  seguido de smoke e read-back. Nenhuma rotação executada.
+
+====================================================================
+5. ISSUES / PR
+====================================================================
+- PR #75 permanece **Draft**; sem merge/deploy/rotação; #31 aberta.
+- #76/#79: metadados reconciliados por comentário/estado (WO-001/002/003
+  integradas; 11 UX restantes), sem reescrever escopo aprovado.
+- Checkpoint Delta: PROPOSED (não promovido).
