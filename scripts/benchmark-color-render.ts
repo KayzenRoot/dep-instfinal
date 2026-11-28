@@ -114,7 +114,7 @@ try {
 		] as const) {
 			const outputPath = join(
 				workspace,
-				`${profile.name}-${variant.name.replace(/[@]/g, '-')}.mp4`,
+				`${profile.name}-${variant.name.replaceAll('@', '-')}.mp4`,
 			);
 			const command = buildRenderCommand(
 				plan(variant.color) as never,

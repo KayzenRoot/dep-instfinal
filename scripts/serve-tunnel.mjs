@@ -1,5 +1,36 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { isAbsolute, win32 } from 'node:path';
+
+function resolveWindowsSystem32(name) {
+	const systemRoot = process.env.SystemRoot;
+	if (!systemRoot || !/^[a-z]:\\windows\\?$/i.test(win32.normalize(systemRoot))) {
+		return undefined;
+	}
+	return win32.join(systemRoot, 'System32', name);
+}
+
+function resolveCloudflaredCommand() {
+	const configured = process.env.CLOUDFLARED_BIN?.trim();
+	if (configured) {
+		if (!isAbsolute(configured)) throw new Error('CLOUDFLARED_BIN must be an absolute path.');
+		return configured;
+	}
+	const candidates = [
+		'/usr/local/bin/cloudflared',
+		'/usr/bin/cloudflared',
+		'/opt/homebrew/bin/cloudflared',
+		resolveWindowsSystem32('cloudflared.exe'),
+	];
+	const found = candidates
+		.filter((candidate) => candidate !== undefined)
+		.find((candidate) => existsSync(candidate));
+	if (!found)
+		throw new Error(
+			'cloudflared was not found at an absolute path. Set CLOUDFLARED_BIN and retry.',
+		);
+	return found;
+}
 
 const port = process.env.PORT ?? '3000';
 const localUrl = `http://127.0.0.1:${port}`;
@@ -9,9 +40,13 @@ if (!existsSync('build')) {
 	process.exit(1);
 }
 
-const tunnel = spawn('cloudflared', ['tunnel', '--url', localUrl, '--no-autoupdate'], {
-	stdio: ['ignore', 'pipe', 'pipe'],
-});
+const tunnel = spawn(
+	resolveCloudflaredCommand(),
+	['tunnel', '--url', localUrl, '--no-autoupdate'],
+	{
+		stdio: ['ignore', 'pipe', 'pipe'],
+	},
+);
 
 let server;
 let publicUrl;
@@ -83,7 +118,9 @@ tunnel.stderr.on('data', handleTunnelData);
 
 tunnel.on('error', (error) => {
 	if (error.code === 'ENOENT') {
-		console.error('cloudflared was not found on PATH. Install it and retry.');
+		console.error(
+			'cloudflared could not be executed. Install it at an absolute path or set CLOUDFLARED_BIN.',
+		);
 		process.exit(1);
 	}
 	console.error(`Cloudflare tunnel failed: ${error.message}`);

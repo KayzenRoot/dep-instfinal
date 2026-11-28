@@ -1,0 +1,151 @@
+DIF-V2-WO-014 / FASE 02 / CD-04 — CORREÇÃO DE SEGURANÇA (pt-BR)
+Data: 2026-11-27
+Status documental: HISTÓRICO DO CD-04. O status canônico atual é
+`phase02-cd05-2026-11-27.txt` (CD-05, HEAD de código 4b96764).
+Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
+Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
+HEAD de código/teste: 8a1fc2686b11d1b92cf8985b7021bf32836e9a46
+HEAD documental: commit docs-only que contém este arquivo (filho de 8a1fc26)
+Status: CD-04 concluído; aguarda CI no SHA exato e auditoria independente.
+Sem merge, deploy, produção, rotação, VPS ou FASE 03.
+
+====================================================================
+0. FECHAMENTO F01–F05
+====================================================================
+| Achado | Correção CD-04 | Prova |
+| F01 PARCIAL | Supabase `.cmd` não é mais executado como shell: `resolveSupabaseInvocation()` resolve `dist/supabase.js` e invoca `process.execPath` diretamente; `.exe` nativo é direto; sem entrada JS local, falha fechada | §2; transcript com PATH adversarial/fake node.exe e CLI 2.113.0 |
+| F02 INCOMPLETO | ACL Windows allowlist exata via Get-Acl/Set-Acl, removendo ACEs explícitas e herdadas; owner validado fail-closed; hardlink NTFS; testes com ACE explícita, log/lock/rotacionado | §3; transcript com SIDs antes/depois |
+| F03 PARCIAL | Temp privado Windows com ACL allowlist; teste Windows verifica SIDs; base TEMP é pública por natureza e não recebe arquivos sensíveis; TEMP/TMP/TMPDIR do runner apontam ao filho privado | §4; transcript `private_temp_acl` |
+| F04 PASS/OPERATION BLOCKED | Runbook Cloudinary preservado, sem execução/valores; nenhuma rotação/deploy | §5 e `cloudinary-rotation-runbook-2026-11-27.txt` |
+| F05 PARCIAL | README e IMPLEMENTATION_MATRIX atualizados: WO-001/002/003 integradas, WO-004+ planejadas, ADR-001 PROPOSED; PR/#31/#76 atualizados no HEAD final | §6; hashes 9/9 e 22 rotas |
+
+====================================================================
+1. CONTEXTO
+====================================================================
+- O CD-04 não altera design, rotas, auth, migrations, Vercel ou credenciais.
+- Alterações de código: `supabase-command.*`, `windows-batch.*`, `windows-acl.*`,
+  `worker-log-dir.*`, `test-local-e2e*`.
+- Alterações documentais: este arquivo, transcript Windows, checkpoint e os dois
+  documentos canônicos do Master Visual.
+- `config.ts`, `preview-isolation.ts` e `preview-isolation.test.ts` continuam
+  byte-idênticos à main e fora do diff.
+
+====================================================================
+2. F01 — SUPABASE SEM PATH
+====================================================================
+- `resolveSupabaseInvocation()`:
+  - `.exe` nativo: executa direto;
+  - `.cmd/.bat` do npm: deriva
+    `<npm>/node_modules/supabase/dist/supabase.js` e executa
+    `process.execPath` + script, com argumentos separados;
+  - se o `.cmd` não tiver o JS local, lança erro e não cai para PATH;
+  - UNC e caminhos não absolutos continuam rejeitados.
+- `test-local-e2e.mjs` usa `resolveSupabaseInvocation()`; não usa
+  `runWindowsBatchFile()` no caminho do Supabase.
+- Prova real (transcript CD-04):
+  - fixture `.cmd` em `(x86)`/espaços: `alpha`, `beta gamma`, exit 7;
+  - CLI Supabase 2.113.0 por junction com espaços;
+  - `PATH` substituído por diretório hostil contendo `node.exe` vazio;
+  - `supabase_invocation=node-script` e `supabase_node=C:\Program Files\nodejs\node.exe`;
+  - versão 2.113.0 impressa, provando que o Node absoluto foi usado.
+
+====================================================================
+3. F02 — ACL EXATA E OWNER
+====================================================================
+- `windows-acl.mjs` usa `Get-Acl`/`Set-Acl` via PowerShell absoluto de
+  `System32\WindowsPowerShell\v1.0`, com script codificado e caminho via env:
+  - valida owner atual; owner diferente falha fechado;
+  - desabilita herança;
+  - remove TODAS as ACEs (explícitas e herdadas);
+  - adiciona allowlist exata: SID atual, SYSTEM (`S-1-5-18`) e
+    Administrators (`S-1-5-32-544`), FullControl;
+  - relê a ACL e exige exatamente 3 ACEs, `AreAccessRulesProtected=true` e
+    nenhum SID fora da allowlist;
+  - se a ACL já está exata, retorna sem Set-Acl (idempotente).
+- `worker-log-dir.mjs`: hardlink agora é rejeitado também no Windows NTFS
+  (`stat.nlink > 1`), além de symlink final/ancestral, owner e modos POSIX.
+- `workers-service.mjs`: lock e rotação continuam via helpers; arquivo
+  `.log.1` e lock preexistentes são re-allowlisted.
+- Testes Windows reais:
+  - ACE explícita `S-1-1-0` (Everyone/Todos) em diretório e arquivo:
+    antes presente, depois ausente; allowlist com 3 SIDs;
+  - log preexistente, lock e `.log.1` com ACE explícita: allowlist final;
+  - hardlink NTFS rejeitado;
+  - `icacls`/Get-Acl sem `(I)`.
+- Limitações: exige NTFS e PowerShell 5.1; a ACL não expurga ACEs de SACL
+  (auditoria), mas o DACL é allowlist exato; owner de outro usuário exige
+  privilégio para testar e falha fechado por desenho.
+
+====================================================================
+4. F03 — TEMP PRIVADO NO WINDOWS
+====================================================================
+- `preparePrivateTempDir()` no Windows chama
+  `hardenWindowsPrivatePath(dir, { directory: true })`; no POSIX mantém 0700.
+- `test-local-e2e-temp.test.mjs` no Windows verifica a ACL do filho:
+  exatamente SID atual + SYSTEM + Administrators; no POSIX verifica 0700.
+- O diretório base (`tmpdir()`) pode ter ACL herdada ampla (ex.: sandbox);
+  o transcript registra `base_acl` e `private_temp_acl` separados. Nenhum
+  arquivo sensível é escrito na base: o runner usa
+  `TEMP/TMP/TMPDIR=<filho privado>`.
+- S5443 CRITICAL permanece corrigido no new code; a prova agora é
+  cross-platform (POSIX 0700 + Windows allowlist).
+
+====================================================================
+5. F04 — CLOUDINARY
+====================================================================
+- Runbook `cloudinary-rotation-runbook-2026-11-27.txt` preservado.
+- Nenhuma rotação, revogação, atualização de Vercel, leitura/exibição de
+  valores ou deploy. O risco operacional do segredo exposto permanece e exige
+  autorização específica do owner e janela segura antes de merge/produção.
+
+====================================================================
+6. F05 — MASTER VISUAL E METADADOS
+====================================================================
+- `docs/design/neon-glass-v1/README.txt` atualizado: WO-001/002/003
+  integradas (`dfcb1fc`, `54ff92c`, `b8691a3`), WO-004+ planejadas,
+  ADR-001 PROPOSED, PR #75 identificada como branch Draft do WO-014.
+- `IMPLEMENTATION_MATRIX.txt`: baseline main `4ec6f91`; #78 e #79 constam
+  como issues fechadas.
+- Master Visual: 9/9 PNGs com SHA-256 e 1672×941 conferidos; `docs/design`
+  não é alterado em código, apenas os textos canônicos.
+- 22 rotas: `e2e/shell-navigation.spec.ts` mantém 3 asserções
+  `toHaveCount(22)`; `nav-items.json` não foi alterado.
+- PR body, #31 e #76 serão atualizados para o HEAD final antes da auditoria.
+
+====================================================================
+7. TESTES
+====================================================================
+7.1 Windows real (transcript `phase02-windows-cd04-2026-11-27.txt`)
+- Plataforma win32 10.0.26200 x64; Node v26.4.0; SystemRoot C:\WINDOWS.
+- 32 testes Node: 32 pass, 0 fail, 0 skip.
+- Inclui PATH adversarial com `node.exe` falso, CLI Supabase 2.113.0,
+  temp privado com ACL, ACE explícita em dir/arquivo/log/lock/rotacionado,
+  symlink final/ancestral e hardlink NTFS.
+
+7.2 Worktree limpo no HEAD 8a1fc26
+- lint PASS; typecheck 0/0; Vitest 389 passed/3 skipped; Node 32 pass;
+  build PASS; audit:policy 36/41; audit:deps 0 vulnerabilidades;
+  `bash -n` PASS.
+- `npm ci --ignore-scripts` mantido no CI; lock com lifecycle apenas em
+  esbuild/fsevents (opcionais), build/test revalidados.
+
+7.3 CI / Sonar / Socket no SHA exato
+- DIF Studio CI 46036693338 @8a1fc26: SUCCESS (16:48:28–17:03:10,
+  ~14m42s); Vitest 389/3 skip; Node 28 pass/0 fail/4 skip (testes
+  Windows-only pulados no Linux); PgTAP 250; E2E 32/32 (8.3m); build;
+  policy; audit.
+- Color Render ARM64 46036693244 @8a1fc26: SUCCESS.
+- SonarCloud: gate OK, 0 new issues, 0 Security Hotspots, A/A/A, 0,0%
+  duplicação, 0,0% cobertura nova.
+- Socket: Project Report e PR Alerts SUCCESS.
+
+====================================================================
+8. RESIDUAIS
+====================================================================
+- `DIF_WORKER_LOG_DIR` igual ao home é aceito; aplicar 0700/ACL ao próprio
+  home é edge case recomendado para follow-up.
+- `\server\share` com um backslash é root-relative local, não UNC.
+- ACL Windows exige NTFS/PowerShell 5.1; SACL não é alterada.
+- S6505 e as 9 issues Sonar da main só fecham após merge; LCOV/0% permanece.
+- Rotação Cloudinary e eventual Vercel Production exigem autorização.
+- Sem merge, deploy, VPS ou FASE 03; checkpoint PROPOSED.

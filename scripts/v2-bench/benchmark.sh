@@ -107,7 +107,7 @@ generate() {
   local started ended
   started=$(date +%s)
 
-  if [ ! -f "$CLIPS/clip_15.mp4" ]; then
+  if [[ ! -f "$CLIPS/clip_15.mp4" ]]; then
     log "generating 15 synthetic 8 s 1080x1920 clips"
     for i in $(seq 1 15); do
       local hue=$(( (i * 24) % 360 ))
@@ -126,7 +126,7 @@ generate() {
     printf "file '%s'\n" "$CLIPS/clip_$(printf '%02d' "$i").mp4" >>"$CONCAT"
   done
 
-  if [ ! -f "$AUDIO/narration.wav" ]; then
+  if [[ ! -f "$AUDIO/narration.wav" ]]; then
     log "generating synthetic narration/music/sfx"
     "$FFMPEG" -hide_banner -loglevel error -y \
       -f lavfi -i "sine=frequency=210:sample_rate=48000:duration=$DURATION" \
@@ -204,12 +204,12 @@ render() {
   local ffpid=""
   for _ in $(seq 1 50); do
     ffpid=$(pgrep -P "$wrapper" -x ffmpeg 2>/dev/null | head -1 || true)
-    [ -n "$ffpid" ] && break
+    [[ -n "$ffpid" ]] && break
     sleep 0.1
   done
 
   local mon=""
-  if [ -n "$ffpid" ]; then
+  if [[ -n "$ffpid" ]]; then
     monitor_pid "$ffpid" "$out/ps.log" &
     mon=$!
   fi
@@ -219,7 +219,7 @@ render() {
   local rc=$?
   set -e
 
-  if [ -n "$mon" ]; then
+  if [[ -n "$mon" ]]; then
     wait "$mon" 2>/dev/null || true
   fi
   kill "$vmpid" 2>/dev/null || true
@@ -267,12 +267,12 @@ validate() {
 
   local pass=1
   awk -v d="$duration" 'BEGIN{exit !(d >= 119 && d <= 121)}' || pass=0
-  [ "$video_ok" -ge 1 ] || pass=0
-  [ "$audio_ok" -ge 1 ] || pass=0
-  [ "$width_actual" = "$width" ] || pass=0
-  [ "$height_actual" = "$height" ] || pass=0
-  [ "$decode_rc" -eq 0 ] || pass=0
-  if [ -s "$decode_log" ]; then pass=0; fi
+  [[ "$video_ok" -ge 1 ]] || pass=0
+  [[ "$audio_ok" -ge 1 ]] || pass=0
+  [[ "$width_actual" = "$width" ]] || pass=0
+  [[ "$height_actual" = "$height" ]] || pass=0
+  [[ "$decode_rc" -eq 0 ]] || pass=0
+  if [[ -s "$decode_log" ]]; then pass=0; fi
 
   {
     echo "label=$label"
@@ -287,7 +287,7 @@ validate() {
     echo "pass=$pass"
   } >"$out/validation.txt"
   cat "$out/validation.txt"
-  [ "$pass" -eq 1 ]
+  [[ "$pass" -eq 1 ]]
 }
 
 summary() {
@@ -295,11 +295,11 @@ summary() {
   # ps -o pcpu is a cumulative average since process start, not an instantaneous peak.
   echo "label,width,height,wall_s,elapsed_s,rtf,max_rss_kb,avg_cpu_pct,peak_hwm_kb,final_pcpu_avg_pct,output_bytes,duration_s,validation,rc" >"$csv"
   for dir in "$RUNS"/*; do
-    [ -d "$dir" ] || continue
+    [[ -d "$dir" ]] || continue
     local label file elapsed rtf rss cpu peak_hwm final_pcpu size duration val rc width height
     label=$(basename "$dir")
     file="$dir/output.mp4"
-    [ -f "$dir/ffprobe.json" ] || continue
+    [[ -f "$dir/ffprobe.json" ]] || continue
     elapsed=$(field 'Elapsed (wall clock) time' "$dir/time.txt")
     elapsed=$(seconds_from_clock "$elapsed")
     rtf=$(awk -v e="$elapsed" -v d="$DURATION" 'BEGIN{printf "%.4f", e/d}')
@@ -308,7 +308,7 @@ summary() {
     cpu=${cpu%\%}
     peak_hwm=$(awk 'BEGIN{m=0} {if($3+0>m)m=$3+0} END{print m}' "$dir/ps.log" 2>/dev/null || echo 0)
     final_pcpu=$(awk 'BEGIN{m=0} {if($4+0>m)m=$4+0} END{print m}' "$dir/ps.log" 2>/dev/null || echo 0)
-    if [ -f "$file" ]; then
+    if [[ -f "$file" ]]; then
       size=$(stat -c %s "$file")
     else
       size=$(awk -F'"' '/"size"/{print $4; exit}' "$dir/ffprobe.json" 2>/dev/null || echo 0)

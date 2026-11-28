@@ -367,7 +367,7 @@ async function main() {
 	const listPath = resolve(outputDir, 'concat.txt');
 	const list = generated
 		.map((segment) => {
-			const normalized = segment.file.replace(/\\/g, '/');
+			const normalized = segment.file.replaceAll('\\', '/');
 			if (normalized.includes("'")) throw new Error('tts_path_has_quote');
 			return `file '${normalized}'`;
 		})

@@ -172,6 +172,27 @@ describe('CSV import and export', () => {
 		});
 	});
 
+	it('preserves escaped quotes, multiline fields and blank CRLF records', () => {
+		const rows = parseCsvRows('h1,h2,h3\r\n"a""b\nc",,42\r\n\r\n');
+		expect(rows).toEqual([
+			['h1', 'h2', 'h3'],
+			['a"b\nc', '', '42'],
+		]);
+	});
+
+	it('consumes consecutive escaped quote pairs without skipping CSV cells', () => {
+		const rows = parseCsvRows('"a""""b","x,y"\n"q""r",ok\n');
+		expect(rows).toEqual([
+			['a""b', 'x,y'],
+			['q"r', 'ok'],
+		]);
+	});
+
+	it('advances through a long run of escaped quotes exactly once', () => {
+		const csv = `"${'""'.repeat(1_024)}",end\n`;
+		expect(parseCsvRows(csv)).toEqual([['"'.repeat(1_024), 'end']]);
+	});
+
 	it('rejects malformed rows without dropping valid ones', () => {
 		const csv = `${header}\nTikTok,https://www.tiktok.com/@x/video/1,2026-11-01T00:00:00Z,A,2026-11-08T00:00:00Z,2026-11-01T00:00:00Z,2026-11-09T00:00:00Z,100,1,1,1,1,0,30000,50,ok\nTikTok,not-a-url,2026-11-01T00:00:00Z,A,2026-11-01T00:00:00Z,2026-11-08T00:00:00Z,2026-11-09T00:00:00Z,100,1,1,1,1,0,30000,50,ok`;
 		const parsed = parseRetentionCsv(csv);

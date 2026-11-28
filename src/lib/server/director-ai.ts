@@ -82,10 +82,8 @@ Formato: {"points":[{"timeMs":0,"tension":0}],"markers":[{"timeMs":0,"phase":"HO
 }
 
 function parseJson(text: string): unknown {
-	const cleaned = text
-		.trim()
-		.replace(/^```(?:json)?\s*/i, '')
-		.replace(/\s*```$/i, '');
+	const stripped = text.trim().replace(/^```(?:json)?\s*/i, '');
+	const cleaned = stripped.endsWith('```') ? stripped.slice(0, -3).trimEnd() : stripped;
 	try {
 		return JSON.parse(cleaned);
 	} catch {

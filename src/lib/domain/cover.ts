@@ -1,3 +1,4 @@
+import { trimEdgeCharacters } from './trim-edge.js';
 import {
 	COVER_FORMATS,
 	type CoverConfig,
@@ -215,12 +216,14 @@ export interface CoverSvgOptions {
 	background: boolean;
 }
 
+const DEFAULT_COVER_SVG_OPTIONS: CoverSvgOptions = Object.freeze({ background: false });
+
 /** Deterministic overlay for a cover. User strings are XML-escaped. */
 export function buildCoverSvg(
 	config: CoverConfig,
 	template: CoverTemplate,
 	layout: CoverLayout,
-	options: CoverSvgOptions = { background: false },
+	options: CoverSvgOptions = DEFAULT_COVER_SVG_OPTIONS,
 ): string {
 	const fontSize = round(layout.width * 0.078);
 	const lineHeight = round(fontSize * 1.08);
@@ -287,12 +290,11 @@ ${watermark}
 }
 
 export function coverFileBase(config: CoverConfig): string {
-	const slug = config.title
+	const normalized = config.title
 		.normalize('NFD')
 		.replace(/[\u0300-\u036f]/g, '')
 		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '')
-		.slice(0, 48);
+		.replace(/[^a-z0-9]+/g, '-');
+	const slug = trimEdgeCharacters(normalized, '-').slice(0, 48);
 	return `cover-${slug || 'episodio'}-${config.templateId}-${config.format.replace(':', 'x')}`;
 }

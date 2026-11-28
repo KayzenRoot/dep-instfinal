@@ -1,0 +1,37 @@
+DIF-V2-WO-014 / FASE 02 — CHECKPOINT DELTA PROPOSED (pt-BR)
+Data: 2026-11-28
+Status: PROPOSED — NÃO PROMOVIDO
+
+- **PR #75:** Draft; original 9f18254; HEAD de código/teste
+  215aa40c642f98d7a33c8a99af9877c09375430e (CD-06-CORR-01, sucede o
+  CD-06 em 4210a0b/0dafd36); HEAD documental é o commit docs-only que contém
+  este checkpoint.
+- **Base:** main 4ec6f91006ef86d32bd027779cc8ac730b3b394c (inalterada).
+- **Merge:** normal de main na branch da PR75, sem force-push; conflitos de
+  taskkill/preview resolvidos (preview/config da main preservados).
+- **CD-06-CORR-01 (F01):**
+  - fixture APPDATA corrigido para `String.raw`\root-relative`` sem quebra
+    de linha no template literal;
+  - teste dedicado com spy `exists` e `exists_calls=0`;
+  - candidatos UNC por APPDATA/LOCALAPPDATA/USERPROFILE/ProgramFiles e PATH
+    adversarial/CLI 2.113.0 preservados;
+  - investigação canônica do drive mapeado: o contrato exige caminho
+    drive-absolute local, não volume físico; `Z:\` permanece aceito e o
+    residual está documentado, sem mudança silenciosa de contrato.
+- **F02:** APPROVED preservado, sem alteração.
+- **F03/F05:** APPROVED preservados; **F04** runbook-only preservado.
+- **Testes:** worktree limpo em 215aa40 — lint, typecheck, Vitest 389/3 skip,
+  Node 41 pass/0 fail/0 skip, build, audit:policy 36/41, audit:deps 0
+  vulnerabilidades; Windows real 41/41 com APPDATA root-relative, candidatos
+  UNC, ACL por SID, home, lock, temp e PATH hostil.
+- **CI 215aa40:** quality 46147570996 SUCCESS (~10m53s; Vitest 389/3 skip,
+  Node 33 pass/0 fail/8 skip Linux, PgTAP 250, E2E 32/32); Color ARM64
+  46147570926 SUCCESS; Master integrity 46147571033 SUCCESS (9/9); Sonar gate
+  OK/0 new issues; Socket PASS.
+- **Preservado:** preview fail-closed, produção não tocada, 22 rotas, Master
+  9/9, ADR-001 PROPOSED, ruleset 28005320, PR #75 Draft, #31 aberta.
+- **Pendente:** auditoria independente APPROVED; autorização aplicável para
+  eventual merge; decisão sobre rotação Cloudinary/Production; 9 issues da
+  main só fecham após merge; LCOV/cobertura não configurados.
+- **Próxima fase:** FASE 03 (#39–#45) somente após aprovação e integração da
+  FASE 02.

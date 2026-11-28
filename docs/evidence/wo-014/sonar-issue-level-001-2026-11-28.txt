@@ -1,0 +1,114 @@
+DIF-V2-WO-014 / FASE 02 / SONAR-ISSUE-LEVEL-001 — AUDITORIA (pt-BR)
+Data: 2026-11-28
+Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
+
+====================================================================
+1. CONTEXT LOCK
+====================================================================
+- Main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
+- HEAD código/teste: 215aa40c642f98d7a33c8a99af9877c09375430e
+- HEAD documental base: 0ddf5f43035ba10534050dc940941dc0b533fd90
+- Commit desta evidência: docs-only child; SHA exato no read-back da PR
+- PR #75: OPEN, Draft=true, MERGEABLE/CLEAN; sem merge/deploy/rotação.
+- Ruleset: 28005320, active, bypass_actors=[].
+- SonarCloud acessível pela API pública, sem token e sem leitura de segredos.
+
+====================================================================
+2. EXPORTAÇÃO ISSUE-LEVEL
+====================================================================
+Fonte: API pública SonarCloud.
+- Main: /api/issues/search?componentKeys=KayzenRoot_dep-instfinal&branch=main&resolved=false&ps=500&p=1|2&additionalFields=_all
+- PR #75: /api/issues/search?componentKeys=KayzenRoot_dep-instfinal&pullRequest=75&resolved=false&ps=500&p=1&additionalFields=_all
+- Export integral da main: `sonar-main-issues-2026-11-28.csv` (630 linhas + cabeçalho), SHA-256 `79aed6ccbe74c0534bd7f2cf3ad49ad5e22f95f763350842b0d03f413b21986a`, com issue key, regra, tipo, severidade, arquivo, linha, status, origem, se o arquivo está no diff da PR, correção no HEAD, disposição e evidência.
+- Export da PR #75: `sonar-pr75-issues-2026-11-28.json`, SHA-256 `22637e340298b8c1efd1152cc67e1960ba9c9ca237bb4d3ae9dd3dadd0b81134`; total 0 issues abertas; 0 new issues, 0 hotspots; gate OK.
+
+Totais da main:
+- 630 issues abertas: 621 CODE_SMELL, 8 VULNERABILITY, 1 BUG.
+- Por severidade: 329 CRITICAL, 136 MAJOR, 165 MINOR.
+- Cruzamento tipo × severidade:
+  - CODE_SMELL: 327 CRITICAL, 131 MAJOR, 163 MINOR;
+  - VULNERABILITY: 2 CRITICAL (S5443), 4 MAJOR (CI), 2 MINOR (S4036);
+  - BUG: 1 MAJOR (PageWithoutTitleCheck).
+- 327 CRITICAL code smells não são vulnerabilidades: 279 plsql:S1192, 45 typescript:S3776 e 3 javascript:S3776 (complexidade/duplicação de literais SQL).
+- 111 issues estão em arquivos tocados pelo diff da PR; 519 em arquivos não tocados. Nenhuma foi declarada corrigida sem verificação individual; o CSV registra "não comprovado individualmente (issue main OPEN)" para os 621 code smells.
+- Nenhuma issue foi introduzida pela PR (PR=0 new); todas as 630 são herdadas da main.
+
+====================================================================
+3. MATRIZ DOS 9 APONTAMENTOS RELEVANTES
+====================================================================
+| Issue key | Regra | Tipo/Sev. | Arquivo:linha (main) | Main | Introduzida pela PR? | Corrigida no HEAD 215aa40? | Evidência |
+| AaHQJS8SR3naw8Zep2Ff | githubactions:S6505 | VULN/MAJOR | .github/workflows/ci.yml:27 | OPEN | Não (herdada) | Sim, no código; main fecha após merge | `npm ci --ignore-scripts`; lock só tem esbuild/fsevents; build/Vitest/Node verdes |
+| AaHQJS8SR3naw8Zep2Fg | githubactions:S7637 | VULN/MAJOR | .github/workflows/ci.yml:30 | OPEN | Não | Sim, no código; main fecha após merge | actions checkout/setup-node/setup-cli/upload pinadas por SHA completo |
+| AaHQJS8SR3naw8Zep2Fh | githubactions:S6505 | VULN/MAJOR | .github/workflows/ci.yml:35 | OPEN | Não | Sim, no código; main fecha após merge | Playwright via `node_modules/@playwright/test/cli.js`, sem npx |
+| AaHQJS8SR3naw8Zep2Fi | githubactions:S8543 | VULN/MAJOR | .github/workflows/ci.yml:35 | OPEN | Não | Sim, no código; main fecha após merge | versão do Playwright fixada no lockfile (1.65.0) |
+| AaHQJS76R3naw8Zep2EJ | javascript:S4036 | VULN/MINOR | scripts/serve-tunnel.mjs:12 | OPEN | Não | Sim, no código; main fecha após merge | CLOUDFLARED_BIN/candidatos absolutos; sem PATH |
+| AaHQJS73R3naw8Zep2EF | javascript:S4036 | VULN/MINOR | scripts/test-local-e2e.mjs:34 | OPEN | Não | Sim, no código; main fecha após merge | Supabase por `resolveSupabaseInvocation`/process.execPath; cmd.exe absoluto no batch |
+| AaHQJS73R3naw8Zep2EG | javascript:S5443 | VULN/CRITICAL | scripts/test-local-e2e.mjs:182 | OPEN | Não | Sim, no código; main fecha após merge | mkdtemp 0700/ACL allowlist + TEMP/TMP/TMPDIR + cleanup finally |
+| AaHQJS73R3naw8Zep2EH | javascript:S5443 | VULN/CRITICAL | scripts/test-local-e2e.mjs:183 | OPEN | Não | Sim, no código; main fecha após merge | idem S5443; teste Windows real de ACL |
+| AaHQJS70R3naw8Zep2ED | Web:PageWithoutTitleCheck | BUG/MAJOR | src/app.html:3 | OPEN | Não | Sim, no código; main fecha após merge | `<title>DIF Studio</title>` em src/app.html |
+
+Verificação determinística no HEAD (todas true):
+- `npm ci --ignore-scripts` em ci.yml; sem npx; >=4 actions com SHA de 40 hex.
+- serve-tunnel sem PATH; test-local usa `resolveSupabaseInvocation`; temp privado com as três envs.
+- app.html com title; preview guard fail-closed.
+- O gate Sonar da PR tem 0 new issues, 0 hotspots, A/A/A, 0,0% duplicação.
+- As 9 issues da main continuam OPEN até o merge; não se declara fechamento antecipado.
+
+====================================================================
+4. COBERTURA / LCOV
+====================================================================
+- `package.json`: não há script de coverage, nem dependência `@vitest/coverage-*`/`c8`/`nyc`; `test` e `test:unit` executam Vitest sem coverage.
+- `vite.config.ts`: bloco `test` tem include/environment/timeouts, mas não tem `coverage.provider`, `reporter` ou `reportsDirectory`.
+- `.sonarcloud.properties`: contém apenas 3 exclusões CPD de migrations WO-004 append-only; não há `sonar.coverage`/LCOV.
+- GitHub Actions: não gera, publica ou envia LCOV/coverage; não há upload de coverage.
+- Busca por `*lcov*`/`coverage` no repositório (fora node_modules/.git): nenhum artefato.
+- SonarCloud: `new_coverage` não retornado pela API; o check resume 0,0% de cobertura nova. Não há LCOV importado.
+- Conclusão: **NOT CONFIGURED** — cobertura não é configurada, gerada, publicada nem importada. Não é cobertura funcional; nenhum threshold, exclusão ou métrica foi alterado.
+- Proposta mínima futura (não implementada, requer autorização e mudança de dependência/lock): adicionar `@vitest/coverage-v8`, configurar `coverage.provider='v8'`/`reporter=['lcov']`, gerar LCOV no CI e configurar importação Sonar (`sonar.javascript.lcov.reportPaths` ou mecanismo equivalente). Não executar agora.
+
+====================================================================
+5. SEGURANÇA REVALIDADA
+====================================================================
+- S5443 CRITICAL (2): `preparePrivateTempDir` usa `mkdtemp` 0700/ACL allowlist; o runner define TEMP/TMP/TMPDIR para o filho; cleanup em falha e em finally. Testes reais Windows e POSIX/CI.
+- PATH: `resolveSupabaseInvocation` usa `process.execPath` + `dist/supabase.js` ou `.exe` nativo; `windows-batch` usa `cmd.exe` absoluto de System32; não há comando resolvido por PATH. Teste com PATH hostil/fake `node.exe` e CLI 2.113.0.
+- Supabase CLI: `supabase/setup-cli` pinado por SHA e versão 2.113.0; CI exporta `SUPABASE_BIN` absoluto; `npm ci --ignore-scripts`.
+- Preview/Production: `config.ts`, `preview-isolation.ts` e teste têm blobs idênticos à main; guard `VERCEL_ENV==='preview'` remove Supabase/Cloudinary/R2/owner e marca não configurado. `deployments` vazio; produção não tocada.
+- Credenciais: nenhum valor Cloudinary lido/alterado; runbook permanece PROPOSTO/NÃO EXECUTADO; rotação exige autorização do owner. O risco do segredo previamente exposto permanece operacional, não resolvido por este gate.
+- Nenhum secret, token ou valor de credencial foi incluído neste export/evidência.
+
+====================================================================
+6. EVIDÊNCIAS DE CHECKS
+====================================================================
+- CI código/teste 215aa40: quality 46147570996 SUCCESS (Vitest 389/3, Node 33/0/8 skip, PgTAP 250, E2E 32/32); Color 46147570926 SUCCESS; Master 46147571033 SUCCESS (9/9 SHA-256).
+- CI documental 0ddf5f4: quality 46148565841 SUCCESS (mesmos totais), Color 46148565882 SUCCESS, Master 46148565773 SUCCESS.
+- SonarCloud PR #75: gate OK (new_reliability_rating=1, new_security_rating=1,
+  new_maintainability_rating=1, new_duplicated_lines_density=0.0,
+  new_security_hotspots_reviewed=100%), 0 new issues, 0 hotspots; 0 issues
+  abertas na PR. Cobertura não é condição do gate e permanece NOT CONFIGURED.
+- Socket: Project Report e PR Alerts SUCCESS.
+- Vercel: Preview status success; nenhum deployment de produção criado.
+- `deployments` API: 0.
+- Windows: transcript 41/41 Node, incluindo candidatos com spies/APPDATA root-relative, ACL, lock, temp e PATH hostil.
+
+====================================================================
+7. RISCOS / RESIDUAIS
+====================================================================
+- Cobertura/LCOV: NOT CONFIGURED; 0,0% new coverage não é cobertura funcional.
+- 621 code smells históricos: dívida de manutenibilidade; 327 CRITICAL são plsql:S1192/S3776, não vulnerabilidades. Não houve refactor amplo.
+- 111 smells em arquivos tocados pela PR não foram individualmente revalidados; o CSV não os declara corrigidos.
+- As 9 issues de segurança/BUG da main continuam OPEN até o merge; o PR tem 0 new.
+- S6505 e os demais itens da main não podem ser declarados fechados antes da análise pós-merge.
+- Cloudinary: rotação não executada; risco operacional e autorização pendentes.
+- Sem merge, deploy, rotação, VPS, produção ou FASE 03; PR Draft; checkpoint PROPOSED.
+
+====================================================================
+8. VEREDITO TÉCNICO DESTA AUDITORIA
+====================================================================
+**APPROVED WITH RESIDUALS** para o gate de segurança/qualidade issue-level:
+- 9/9 apontamentos de segurança/BUG classificados e corrigidos no HEAD, com evidência de código;
+- 0 vulnerabilidades HIGH/CRITICAL novas na PR; 2 S5443 CRITICAL tratadas;
+- 630/630 apontamentos da main exportados e classificados por tipo/severidade/regra/origem;
+- cobertura **NOT CONFIGURED**, registrada sem invenção ou flexibilização;
+- nenhuma issue da main declarada fechada antes do merge.
+
+Aguarda revisão independente no HEAD exato e autorização do owner para qualquer promoção. Não houve merge, deploy, rotação, alteração de Production/VPS ou início da FASE 03.

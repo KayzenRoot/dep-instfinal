@@ -1,0 +1,16 @@
+DIF-V2-WO-014 / CD-SONAR-20261124 — Correction Delta, NOT PROMOTED
+
+SOURCE CHECK: main 66a997ee5d159a152b3ecb6ffd35bbf3acba855c; PR #75 branch fix/dif-v2-wo-014-portable-worker-logs started 743879119a6b0dc43d058e0348d1b29e93781281. Subsequent commits 6257b321 (Bash conditionals), 9a430197 (regex), b30836a4 (Windows System32). No UI/design modifications, migrations, production deployments, credentials, paid changes or merges.
+
+OBJECTIVE: Address only verifiable SonarCloud findings supplied by owner screenshots. IN SCOPE: 15 Bash [ conditionals replaced with [[; bash -n CI; suffix-trim backtracking in captions/identity/cover/export; trailing AI JSON fence regex; helper + long string Vitest regressions; replace PATH-resolved taskkill with validated absolute Windows SystemRoot\System32 path + Node tests; literal replaceAll and newline split. OUT OF SCOPE: all broader cognitive complexity refactors without separate acceptance/evidence, SonarCloud settings, broad schema rewrites, worker service installation, V2 feature expansion.
+
+TESTS: PR-head CI must rerun npm ci, format, lint, types, Vitest, additional Node tests, build, security/policy audits, PgTAP, authenticated E2E, plus Bash syntax. Prior CI 45390664722 passed 359 Vitest / 3 skips, Node 4, DB 250 and E2E 19; these historical counts are NOT evidence for this new candidate. New tests are pending hosted read-back.
+
+RISKS AND GATES: screenshot shows other reliability/maintainability diagnostics including very high cognitive complexity. SonarCloud main check failed on new-code duplication 3.6% and Security Rating B; which specific issue drives the grade is not proven. Security hotspot about PATH was hardened in code; deployment ACL proof still pending. main protected=false, rulesets empty. Preview Supabase service-role and production/preview URL exposure under investigation. WO-022–028 #39–45 and owner acceptance still open. No HIGH/CRITICAL-free claim and NO MERGE until all gates objectively satisfied.
+
+REVIEW: CORRECTION REQUIRED pending CI, SonarCloud, code review, and full release acceptance. PR must stay Draft. Never weaken the security/quality gate merely to achieve green checks.
+
+CD-SONAR-20261124-B (retention CSV scanner complexity, 24/11/2026)
+Source lock: main 66a997ee, PR #75 parent 5da9940cfd2fca6181a1cc06f54ac9f2578772c0. Objective: reduce the screenshot-reported high cognitive complexity in src/lib/domain/retention.ts parseCsvRows without changing public parse/validation behavior. Scope: only parser and retention tests, plus this evidence delta. Out of scope: render engine, UI, schema, migration, release, SonarCloud configuration.
+Previous parent 5da9940 CI run 45395834787 SUCCESS: 362 Vitest PASS (3 SKIP), 8 Node PASS, 250 PgTAP PASS, 19 E2E PASS, format/lint/typecheck/build/audit PASS, SonarCloud/Socket/color-render PASS. This parent result does not validate this new code.
+Deterministic independent differential check (Node): 10,000 generated inputs compared old parser and proposed parser with JSON-deep-equivalent results, PASS. Added regression for doubled-quote, multiline field and CRLF blank row. New GitHub CI/SonarCloud on candidate HEAD required. No merge/deploy/checkpoint; release BLOCKED until additional issues and gates are proven.

@@ -6,21 +6,24 @@ import { spawn, spawnSync } from 'node:child_process';
 import {
 	createWriteStream,
 	existsSync,
-	mkdirSync,
-	readFileSync,
+	lstatSync,
 	renameSync,
 	statSync,
 	unlinkSync,
-	writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
+import {
+	prepareWorkerLogDir,
+	prepareWorkerLogFile,
+	readWorkerLock,
+	writeWorkerLock,
+} from './worker-log-dir.mjs';
 import { resolveTaskkillPath } from './taskkill-path.mjs';
+import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const logDir = 'C:/Users/csn19/.zcode/dif-secrets/worker-logs';
-mkdirSync(logDir, { recursive: true });
+const logDir = prepareWorkerLogDir();
 const lockPath = join(logDir, 'workers-service.lock');
 
 function isAlive(pid) {
@@ -33,25 +36,32 @@ function isAlive(pid) {
 }
 
 if (existsSync(lockPath)) {
-	const owner = Number.parseInt(readFileSync(lockPath, 'utf8'), 10);
+	const owner = Number.parseInt(readWorkerLock(lockPath), 10);
 	if (Number.isInteger(owner) && owner > 0 && owner !== process.pid && isAlive(owner)) {
 		console.error(JSON.stringify({ event: 'supervisor_already_running', pid: owner }));
 		process.exit(0);
 	}
 }
-writeFileSync(lockPath, String(process.pid), { mode: 0o600 });
+writeWorkerLock(lockPath, process.pid);
 
 function openLog(name) {
 	const path = join(logDir, `${name}.log`);
-	try {
-		if (statSync(path).size > 10 * 1024 * 1024) {
-			const rotated = `${path}.1`;
-			if (existsSync(rotated)) unlinkSync(rotated);
-			renameSync(path, rotated);
+	prepareWorkerLogFile(path);
+	if (statSync(path).size > 10 * 1024 * 1024) {
+		const rotated = `${path}.1`;
+		try {
+			const rotatedStat = lstatSync(rotated);
+			if (rotatedStat.isDirectory()) {
+				throw new Error(`Rotated log path is a directory: ${rotated}`);
+			}
+			unlinkSync(rotated);
+		} catch (error) {
+			if (error.code !== 'ENOENT') throw error;
 		}
-	} catch {
-		// first run
+		renameSync(path, rotated);
+		prepareWorkerLogFile(rotated);
 	}
+	prepareWorkerLogFile(path);
 	return createWriteStream(path, { flags: 'a' });
 }
 

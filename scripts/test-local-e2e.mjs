@@ -2,6 +2,8 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { resolveSupabaseInvocation } from './supabase-command.mjs';
+import { cleanupPrivateTempDir, preparePrivateTempDir } from './test-local-e2e-temp.mjs';
 
 function parseEnvironment(output) {
 	return Object.fromEntries(
@@ -24,18 +26,22 @@ function readSupabaseEnvironment() {
 	};
 
 	try {
-		const output =
-			process.platform === 'win32'
-				? execFileSync(
-						process.env.ComSpec ?? 'cmd.exe',
-						['/d', '/s', '/c', 'supabase status --output env'],
-						options,
-					)
-				: execFileSync('supabase', ['status', '--output', 'env'], options);
+		const invocation = resolveSupabaseInvocation();
+		const output = execFileSync(
+			invocation.command,
+			[...invocation.args, 'status', '--output', 'env'],
+			options,
+		);
 		return parseEnvironment(output);
 	} catch (error) {
-		if (error.code === 'ENOENT') {
-			console.error('Supabase CLI was not found on PATH. Install it and run `supabase start`.');
+		if (
+			error.code === 'ENOENT' ||
+			error.code === 'EINVAL' ||
+			/SUPABASE_BIN|absolute Supabase CLI/.test(error.message)
+		) {
+			console.error(
+				'Supabase CLI could not be executed. Set SUPABASE_BIN to an absolute binary, .exe, or .cmd path and run `supabase start`.',
+			);
 			process.exit(1);
 		}
 		console.error(
@@ -172,47 +178,55 @@ if (dataApiOtherWrite.ok) {
 	throw new Error('The non-owner identity could write through the Supabase Data API.');
 }
 
-const childEnvironment = {
-	PATH: process.env.PATH,
-	CI: process.env.CI ?? '',
-	DEBUG: process.env.DEBUG ?? '',
-	HOME: process.env.HOME ?? '',
-	USERPROFILE: process.env.USERPROFILE ?? '',
-	LOCALAPPDATA: process.env.LOCALAPPDATA ?? '',
-	TEMP: process.env.TEMP ?? '',
-	TMP: process.env.TMP ?? '',
-	SystemRoot: process.env.SystemRoot ?? '',
-	PUBLIC_SUPABASE_URL: apiUrl.origin,
-	PUBLIC_SUPABASE_ANON_KEY: localEnvironment.ANON_KEY,
-	PUBLIC_SUPABASE_PUBLISHABLE_KEY: '',
-	SUPABASE_SERVICE_ROLE_KEY: localEnvironment.SERVICE_ROLE_KEY,
-	SUPABASE_OWNER_USER_ID: ownerId,
-	APP_ORIGIN: 'http://127.0.0.1:4173',
-	CLOUDINARY_CLOUD_NAME: '',
-	CLOUDINARY_API_KEY: '',
-	CLOUDINARY_API_SECRET: '',
-	VIDEO_STORAGE_DRIVER: useR2 ? 'r2' : 'memory',
-	VIDEO_PROBE_DRIVER: 'fixture',
-	MAX_VIDEO_MB: '200',
-	VIDEO_PART_SIZE_MB: '8',
-	R2_ACCOUNT_ID: r2Environment.R2_ACCOUNT_ID ?? '',
-	R2_ACCESS_KEY_ID: r2Environment.R2_ACCESS_KEY_ID ?? '',
-	R2_SECRET_ACCESS_KEY: r2Environment.R2_SECRET_ACCESS_KEY ?? '',
-	R2_BUCKET: r2Environment.R2_BUCKET ?? '',
-	R2_ENDPOINT: r2Environment.R2_ENDPOINT ?? '',
-	E2E_OWNER_EMAIL: ownerEmail,
-	E2E_KEEP_RENDER: process.env.E2E_KEEP_RENDER ?? '',
-	E2E_OWNER_PASSWORD: ownerPassword,
-	E2E_OTHER_EMAIL: otherEmail,
-	E2E_OTHER_PASSWORD: otherPassword,
-};
-
-const runner = fileURLToPath(new URL('../node_modules/@playwright/test/cli.js', import.meta.url));
 const extraArgs = process.argv.slice(2);
-const result = spawnSync(process.execPath, [runner, 'test', ...extraArgs], {
-	cwd: process.cwd(),
-	env: childEnvironment,
-	stdio: 'inherit',
-});
-if (result.error) throw result.error;
-process.exitCode = result.status ?? 1;
+let privateTempDir;
+try {
+	privateTempDir = preparePrivateTempDir();
+
+	const childEnvironment = {
+		PATH: process.env.PATH,
+		CI: process.env.CI ?? '',
+		DEBUG: process.env.DEBUG ?? '',
+		HOME: process.env.HOME ?? '',
+		USERPROFILE: process.env.USERPROFILE ?? '',
+		LOCALAPPDATA: process.env.LOCALAPPDATA ?? '',
+		TEMP: privateTempDir,
+		TMP: privateTempDir,
+		TMPDIR: privateTempDir,
+		SystemRoot: process.env.SystemRoot ?? '',
+		PUBLIC_SUPABASE_URL: apiUrl.origin,
+		PUBLIC_SUPABASE_ANON_KEY: localEnvironment.ANON_KEY,
+		PUBLIC_SUPABASE_PUBLISHABLE_KEY: '',
+		SUPABASE_SERVICE_ROLE_KEY: localEnvironment.SERVICE_ROLE_KEY,
+		SUPABASE_OWNER_USER_ID: ownerId,
+		APP_ORIGIN: 'http://127.0.0.1:4173',
+		CLOUDINARY_CLOUD_NAME: '',
+		CLOUDINARY_API_KEY: '',
+		CLOUDINARY_API_SECRET: '',
+		VIDEO_STORAGE_DRIVER: useR2 ? 'r2' : 'memory',
+		VIDEO_PROBE_DRIVER: 'fixture',
+		MAX_VIDEO_MB: '200',
+		VIDEO_PART_SIZE_MB: '8',
+		R2_ACCOUNT_ID: r2Environment.R2_ACCOUNT_ID ?? '',
+		R2_ACCESS_KEY_ID: r2Environment.R2_ACCESS_KEY_ID ?? '',
+		R2_SECRET_ACCESS_KEY: r2Environment.R2_SECRET_ACCESS_KEY ?? '',
+		R2_BUCKET: r2Environment.R2_BUCKET ?? '',
+		R2_ENDPOINT: r2Environment.R2_ENDPOINT ?? '',
+		E2E_OWNER_EMAIL: ownerEmail,
+		E2E_KEEP_RENDER: process.env.E2E_KEEP_RENDER ?? '',
+		E2E_OWNER_PASSWORD: ownerPassword,
+		E2E_OTHER_EMAIL: otherEmail,
+		E2E_OTHER_PASSWORD: otherPassword,
+	};
+
+	const runner = fileURLToPath(new URL('../node_modules/@playwright/test/cli.js', import.meta.url));
+	const result = spawnSync(process.execPath, [runner, 'test', ...extraArgs], {
+		cwd: process.cwd(),
+		env: childEnvironment,
+		stdio: 'inherit',
+	});
+	if (result.error) throw result.error;
+	process.exitCode = result.status ?? 1;
+} finally {
+	cleanupPrivateTempDir(privateTempDir);
+}

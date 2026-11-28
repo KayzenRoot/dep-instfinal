@@ -19,22 +19,25 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      # esbuild/fsevents are the only install scripts; their binaries ship as optional packages.
+      - run: npm ci --ignore-scripts
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: npm run check:baseline
-      - uses: supabase/setup-cli@v3.2.0
+      - run: bash -n scripts/v2-bench/benchmark.sh
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
           version: 2.113.0
+      - run: echo "SUPABASE_BIN=$(command -v supabase)" >> "$GITHUB_ENV"
       - run: supabase start
       - run: npm run test:db
-      - run: npx playwright install chromium
+      - run: node node_modules/@playwright/test/cli.js install chromium
       - run: npm run test:e2e:local
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
           name: dif-studio-browser-evidence

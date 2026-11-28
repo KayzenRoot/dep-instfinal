@@ -1,8 +1,10 @@
 DIF STUDIO / NEON GLASS - VISUAL MASTER CANDIDATE v1
 Status: SELECTED as design direction by assistant at owner's request, 2026-11-24.
 The nine original PNGs are imported unmodified and read-back verified (commit 9573e4d).
-Integrated into main dfcb1fc (PR #91) with checkpoint promoted; ADR remains PROPOSED and no UI is implemented yet.
-EPIC #76; WO-001 #77; baseline main 66a997ee5d159a152b3ecb6ffd35bbf3acba855c. PR #75 is unrelated and remains Draft / merge blocked.
+WO-001 integrated into main dfcb1fc (PR #91), WO-002 in 54ff92c and WO-003 in b8691a3;
+ADR-001 remains PROPOSED. Screens WO-004 onward are still planned.
+EPIC #76; WO-001 #77; baseline main 4ec6f91006ef86d32bd027779cc8ac730b3b394c.
+PR #75 is the DIF-V2-WO-014 branch and remains Draft; it is not part of this UX scope.
 
 REFERENCE POLICY
 - The nine independently generated PNGs are immutable concept targets, 1672x941, exact SHA256 in manifest.json.
@@ -11,8 +13,8 @@ REFERENCE POLICY
 - IMPORTANT: the nine original PNGs are committed in docs/design/neon-glass-v1/screens/ at commit
   9573e4d and were read back from GitHub with SHA256 and 1672x941 matching this manifest. Do not
   replace, resample, recolor or recompress them.
-- WO-001 is no longer blocked on image binaries. It remains PROPOSED until the final CI/audit and
-  checkpoint decision; this document does not promote the ADR.
+- WO-001, WO-002 and WO-003 are approved and merged; ADR-001 remains PROPOSED and this document
+  does not promote it. Screens WO-004 onward remain planned.
 - Do not replace screenshots with a collage. The final artifact requires one PNG per screen.
 
 SCREEN-TO-ROUTE MAPPING (CURRENT APPLICATION)

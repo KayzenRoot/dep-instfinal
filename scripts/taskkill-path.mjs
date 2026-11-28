@@ -1,12 +1,10 @@
 import { win32 } from 'node:path';
 
-/**
- * Resolve taskkill from the fixed Windows system directory instead of searching
- * PATH, so the supervisor never executes a writable-directory binary.
- */
-export function resolveTaskkillPath(environment = process.env) {
-	const systemRoot = environment.SystemRoot?.trim() || 'C:\\Windows';
-	const command = win32.join(systemRoot, 'System32', 'taskkill.exe');
-	if (!win32.isAbsolute(command)) throw new Error('taskkill path must be absolute');
-	return command;
+/** Use the protected Windows System32 executable, never a PATH-resolved name. */
+export function resolveTaskkillPath(env = process.env) {
+	const systemRoot = env.SystemRoot;
+	if (!systemRoot || !/^[a-z]:\\windows\\?$/i.test(win32.normalize(systemRoot))) {
+		throw new Error('SystemRoot must point to the local Windows system directory.');
+	}
+	return win32.join(systemRoot, 'System32', 'taskkill.exe');
 }

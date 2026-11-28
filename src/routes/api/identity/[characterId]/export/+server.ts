@@ -1,3 +1,4 @@
+import { trimEdgeCharacters } from '#lib/domain/trim-edge.js';
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { ownerDatabase } from '#lib/server/authorized.js';
@@ -36,12 +37,9 @@ export const GET: RequestHandler = async (event) => {
 		version: detail.version,
 		profile: detail.profile,
 	};
-	const base = `identity-${
-		detail.name
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/^-+|-+$/g, '') || 'character'
-	}-v${detail.version}`;
+	const rawSlug = detail.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+	const slug = trimEdgeCharacters(rawSlug, '-') || 'character';
+	const base = `identity-${slug}-v${detail.version}`;
 	if (format === 'md') {
 		const body = buildIdentityChecklistMarkdown(detail.seriesTitle, [record], episodeNumber);
 		return new Response(body, {

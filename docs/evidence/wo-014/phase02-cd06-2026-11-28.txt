@@ -1,0 +1,122 @@
+DIF-V2-WO-014 / FASE 02 / CD-06 — CANDIDATOS E ACL POR SID (pt-BR)
+Data: 2026-11-28
+Status documental: HISTÓRICO DO CD-06. O status canônico atual é
+`phase02-cd06-corr01-2026-11-28.txt` (CD-06-CORR-01, HEAD 215aa40).
+Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
+Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
+HEAD de código/teste: 4210a0b2ef0796c8eae64b0fb2b1f78ed12a644c
+HEAD documental: commit docs-only que contém este arquivo (filho de 4210a0b)
+Status: CD-06 concluído; aguarda CI no SHA exato e auditoria independente.
+Sem merge, deploy, produção, rotação, VPS ou FASE 03.
+
+====================================================================
+0. ESCOPO CD-06
+====================================================================
+Corrigir somente os residuais F01/F02 apontados pela auditoria do CD-05.
+F03 e F05 permanecem APPROVED; F04 permanece runbook-only.
+
+| Achado | Correção | Prova |
+| F01 ordem | todos os candidatos Windows são validados antes de qualquer `existsSync`; UNC/device/root-relative rejeitados; testes por APPDATA/LOCALAPPDATA/USERPROFILE/ProgramFiles com spy de zero chamadas | §2; transcript `candidate_reject` e `candidate_probe_order` |
+| F02 duplicidade | `Test-AclExact` exige uma ACE por SID, três SIDs distintos e conjunto completo; fast-path e pós-hardening usam a mesma validação | §3; teste de fast-path com duplicidade/ausência e teste real de remoção individual |
+| F02 ausência | cada um dos três SIDs foi removido individualmente e reconstruído | §3; transcript `acl_missing_sid` |
+
+====================================================================
+1. CONTEXTO
+====================================================================
+- Código alterado: `supabase-command.*`, `windows-acl.*`.
+- Nenhuma alteração de design, rotas, auth, migrations, Vercel ou credenciais.
+- `config.ts`, `preview-isolation.ts` e `preview-isolation.test.ts` continuam
+  byte-idênticos à main e fora do diff.
+- F03 (temp privado/cleanup) e F05 (Master/README/matriz) não foram alterados
+  e permanecem aprovados. F04 Cloudinary não foi executado nem alterado.
+
+====================================================================
+2. F01 — VALIDAÇÃO ANTES DE existsSync
+====================================================================
+- `resolveSupabaseCommand()` monta os candidatos Windows e aplica
+  `assertLocalWindowsPath()` a TODOS antes de chamar `exists`.
+- `assertLocalWindowsPath()` normaliza e exige `/^[a-z]:\\/i`; rejeita:
+  - `\\server\share\...` (UNC);
+  - `//server/share/...` e `//?/UNC/...`;
+  - `\\?\C:\...` (device);
+  - `\root-relative`;
+  - caminhos relativos.
+- O entry JS do shim npm também passa por `assertLocalWindowsPath()`.
+- Testes:
+  - override UNC/device/root-relative/relativo;
+  - candidatos APPDATA, LOCALAPPDATA, USERPROFILE e ProgramFiles com UNC,
+    usando spy `exists` e exigindo `calls=0`;
+  - ordem de probe em caminho local (`supabase.exe` antes de `.cmd`).
+- CLI real 2.113.0, PATH adversarial/fake `node.exe` e junction com espaços
+  preservados.
+
+====================================================================
+3. F02 — ACL EXATA POR SID
+====================================================================
+- `Test-AclExact` agora:
+  - exige `AreAccessRulesProtected`;
+  - exige exatamente 3 ACEs;
+  - exige uma ACE por SID, sem duplicidade (`$seen`);
+  - exige o conjunto completo SID atual + SYSTEM + Administrators;
+  - exige Allow, FullControl, flags OI/CI para diretório e None para arquivo.
+- Fast-path: `hardenWindowsPrivatePath()` valida o conjunto de SIDs distintos
+  no JS antes de retornar cedo; se duplicado/incompleto, aplica a ACL.
+- Pós-hardening: relê e aplica a mesma validação.
+- Mutação: `icacls /reset`, `/inheritance:r`, `/grant:r` com os três SIDs;
+  releitura e falha fechada.
+- Testes:
+  - fast-path com três ACEs duplicadas do owner, dois SIDs e quatro SIDs:
+    `apply=1` em todos;
+  - remoção individual do SID atual, SYSTEM e Administrators: cada um foi
+    removido e reconstruído (`missing=true restored=true`);
+  - direitos `R` com mesmos SIDs reconstruídos para `F`;
+  - ACE explícita `S-1-1-0`, log/lock/`.log.1`, hardlink NTFS e truncagem
+    preservada (herdados do CD-05).
+
+====================================================================
+4. F03 / F04 / F05
+====================================================================
+- F03: inalterado e aprovado; temp privado com ACL allowlist/0700 e cleanup
+  em falha.
+- F04: runbook Cloudinary preservado, sem execução/valores/rotação.
+- F05: inalterado e aprovado; README/matriz, Master 9/9, 22 rotas e ADR-001
+  PROPOSED.
+
+====================================================================
+5. TESTES
+====================================================================
+5.1 Windows real (transcript `phase02-windows-cd06-2026-11-28.txt`)
+- Plataforma win32 10.0.26200 x64; Node v26.4.0; SystemRoot C:\WINDOWS.
+- 40 testes Node: 40 pass, 0 fail, 0 skip.
+- Inclui candidatos com spy, ACL duplicada/ausente, direitos divergentes,
+  UNC, home/aliases, lock preservado, temp cleanup e PATH hostil.
+
+5.2 Worktree limpo no HEAD 4210a0b
+- lint PASS; typecheck 0/0; Vitest 389 passed/3 skipped; Node 40 pass;
+  build PASS; audit:policy 36/41; audit:deps 0 vulnerabilidades; `bash -n`.
+
+5.3 CI / Sonar / Socket no SHA exato
+- DIF Studio CI 46138735729 @4210a0b: SUCCESS (11:11:55–11:22:33,
+  ~10m38s); Vitest 389/3 skip; Node 32 pass/0 fail/8 skip (testes
+  Windows-only pulados no Linux); PgTAP 250; E2E 32/32 (5.8m); build;
+  policy; audit.
+- Color Render ARM64 46138735801 @4210a0b: SUCCESS.
+- Master integrity 46138735650 @4210a0b: SUCCESS (9/9 SHA-256).
+- SonarCloud: gate OK, 0 new issues, 0 Security Hotspots, A/A/A, 0,0%
+  duplicação, 0,0% cobertura nova.
+- Socket: Project Report e PR Alerts SUCCESS.
+
+====================================================================
+6. RESIDUAIS
+====================================================================
+- `Z:\...` (drive mapeado) é aceito como letra de unidade; não há checagem
+  de `DriveType`.
+- Mutação ACL via `icacls /reset` não é atômica; falha intermediária pode
+  deixar ACL herdada ampla por instantes, embora o processo falhe fechado.
+- Owner fail-closed sem teste com outro owner (exige privilégio).
+- Cleanup de temp POSIX sem teste de falha injetada (o teste é Windows-only;
+  o código é platform-agnostic).
+- SACL não é alterada; NTFS/PowerShell 5.1 exigidos.
+- S6505 e as 9 issues Sonar da main só fecham após merge; LCOV/0% permanece.
+- Rotação Cloudinary e eventual Vercel Production exigem autorização.
+- Sem merge, deploy, VPS ou FASE 03; checkpoint PROPOSED.

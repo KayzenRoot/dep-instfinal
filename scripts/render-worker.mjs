@@ -99,7 +99,7 @@ async function runRealRender(job, signal) {
 			const safeCode = /(?:^|\n)([A-Z][A-Z0-9_]{1,63}):/.exec(stderr.trim())?.[1];
 			throw new Error(safeCode ?? stderr.trim().slice(0, 64) ?? 'WORKER_RENDER_FAILED');
 		}
-		const lines = stdout.trim().split(String.fromCharCode(10));
+		const lines = stdout.trim().split('\n');
 		const lastLine = lines[lines.length - 1];
 		if (!lastLine) throw new Error('WORKER_RENDER_FAILED');
 		return JSON.parse(lastLine);

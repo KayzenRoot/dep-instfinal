@@ -1,0 +1,104 @@
+DIF-V2-WO-014 / FASE 02 / CD-03 — RUNBOOK DE ROTAÇÃO CLOUDINARY (pt-BR)
+Data: 2026-11-27
+Status: PROPOSTO — NÃO EXECUTADO
+Escopo: rotação preventiva do segredo Cloudinary que apareceu uma vez em
+snapshot local em sessão anterior. Nenhum valor de segredo foi lido, copiado
+ou registrado neste documento.
+
+====================================================================
+1. PRÉ-CONDIÇÕES E AUTORIZAÇÃO
+====================================================================
+- Autorização escrita do owner para a rotação e para o deploy de produção.
+- Janela de mudança definida; acesso ao console Cloudinary e ao projeto Vercel.
+- Confirmar que o merge da PR #75 pode disparar Vercel Production; decidir a
+  rotação antes do merge ou congelar o deploy durante a janela.
+- Não executar em CI, teste, PR ou sessão compartilhada. Não imprimir valores
+  em terminal, logs, issues, PRs ou transcripts.
+- Registrar apenas nomes de variáveis, IDs de deployment, horários e
+  resultados de smoke.
+
+====================================================================
+2. INVENTÁRIO SEM SEGREDOS
+====================================================================
+- No console Cloudinary, identificar a chave ativa por label/data de criação
+  (sem exibir o secret).
+- Confirmar quais ambientes usam a mesma chave:
+  - Vercel Production: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
+    `CLOUDINARY_API_SECRET`;
+  - ambiente local/worker: `.env` privado e `C:\Users\<owner>\.zcode\dif-secrets`
+    (sem abrir ou imprimir valores);
+  - Preview: deve permanecer fail-closed/sem Cloudinary; se houver valor em
+    Preview, remover como parte da correção.
+- Verificar se há outras integrações (scripts, workers, automações) que usem a
+  mesma chave; se sim, incluí-las no plano.
+- Consultar logs de uso/auditoria do Cloudinary por acessos anômalos desde a
+  exposição; não excluir evidências.
+
+====================================================================
+3. CRIAÇÃO DA NOVA CHAVE
+====================================================================
+1. No Cloudinary, criar nova API key com label datado (ex.: `dif-prod-AAAA-MM-DD`).
+2. Guardar cloud name/key/secret diretamente no gerenciador de segredos.
+3. Não colar valores em chat, issue, PR, terminal compartilhado ou arquivo
+   versionado.
+4. Manter a chave antiga ativa temporariamente para rollback; não revogar
+   antes do smoke.
+
+====================================================================
+4. ATUALIZAÇÃO DOS AMBIENTES
+====================================================================
+Vercel Production:
+1. Atualizar `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` e
+   `CLOUDINARY_API_SECRET` no escopo Production, sem ecoar valores.
+2. Confirmar que Preview continua sem esses valores (fail-closed).
+3. Disparar novo deployment de produção e registrar o ID.
+4. Verificar `/health` (200, `supabase:true`, `owner:true`) e `/login` (200).
+
+Ambiente local/worker (host do owner):
+1. Atualizar o `.env` privado e o arquivo de segredos do worker por edição
+   local, sem imprimir conteúdo.
+2. Reiniciar o `workers-service` sob a conta do owner (Task Scheduler) e
+   confirmar que media/render sobem e gravam logs privados.
+3. Não usar `set`/`echo` para conferir valores; validar apenas por smoke.
+
+====================================================================
+5. SMOKE OBRIGATÓRIO
+====================================================================
+- Upload de um asset pequeno e inofensivo para uma pasta de teste dedicada.
+- Gerar URL assinada, baixar e confirmar conteúdo/tamanho.
+- Executar um fluxo real de capa/cover ou render que use Cloudinary, conforme
+  o caminho de produção aplicável.
+- Confirmar que os logs não contêm key/secret nem URL com credenciais.
+- Verificar erros 401/403 no Cloudinary/Vercel após a troca.
+- Registrar: deployment ID, horário, asset de teste, status HTTP e resultado.
+
+Critério de sucesso: upload + signed URL + fluxo de produção OK por pelo menos
+uma janela de observação acordada com o owner.
+
+====================================================================
+6. REVOGAÇÃO E ROLLBACK
+====================================================================
+- Após o smoke, desativar a chave antiga no Cloudinary; manter o registro de
+  quando foi desativada.
+- Se o smoke falhar: reverter as variáveis da Vercel para a chave antiga
+  (ainda ativa), redeployar, confirmar `/health` e upload; investigar antes de
+  tentar novamente.
+- Se houver indício de uso não autorizado da chave antiga: revogar
+  imediatamente, revisar logs de uso, verificar assets e comunicar o owner.
+- Excluir a chave antiga somente após a janela de observação e confirmação de
+  que nenhum ambiente a utiliza.
+
+====================================================================
+7. EVIDÊNCIA E ENCERRAMENTO
+====================================================================
+Registrar em evidência privada (sem segredos):
+- autorização do owner e janela;
+- label/data da chave nova e data de desativação da antiga;
+- ID do deployment Vercel e resultados de `/health`;
+- asset de teste, status do upload/signed URL e fluxo exercitado;
+- resultado da revisão de logs de uso;
+- confirmação de que Preview segue sem Cloudinary.
+
+Não promover checkpoint, não fazer merge, não alterar VPS e não iniciar FASE 03
+como parte deste runbook. A execução exige autorização específica e fase
+própria.
