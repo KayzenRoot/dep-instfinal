@@ -99,14 +99,14 @@ test('validates each Windows candidate before existsSync', () => {
 		);
 		assert.equal(calls, 0, `${key} must not be probed by existsSync`);
 	}
+});
+
+test('rejects APPDATA root-relative before existsSync', () => {
 	let calls = 0;
 	assert.throws(
 		() =>
 			resolveSupabaseCommand({
-				env: {
-					APPDATA: String.raw`
-oot-relative`,
-				},
+				env: { APPDATA: String.raw`\root-relative` },
 				platform: 'win32',
 				exists: () => {
 					calls += 1;
@@ -115,7 +115,7 @@ oot-relative`,
 			}),
 		/local drive-absolute/,
 	);
-	assert.equal(calls, 0);
+	assert.equal(calls, 0, 'APPDATA root-relative must not be probed by existsSync');
 });
 
 test('runs an npm Windows shim through the current Node executable, not PATH', () => {
