@@ -1,0 +1,106 @@
+DIF-V2-WO-014 / FASE 02 / CD-06-CORR-01 — EVIDÊNCIA (pt-BR)
+Data: 2026-11-28
+Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
+Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
+HEAD de código/teste: 215aa40c642f98d7a33c8a99af9877c09375430e
+HEAD documental: commit docs-only que contém este arquivo (filho de 215aa40)
+Status: CORR-01 concluído; aguarda CI no SHA exato e auditoria independente.
+Sem merge, deploy, produção, rotação, VPS ou FASE 03.
+
+====================================================================
+0. ESCOPO
+====================================================================
+Corrigir apenas a divergência de evidência F01 do CD-06. F02 permanece
+APPROVED e não foi alterado. F03/F05 permanecem APPROVED; F04 permanece
+runbook-only.
+
+| Item | Correção | Prova |
+| Fixture root-relative | `APPDATA: String.raw`\root-relative`` sem quebra de linha no template literal | §1; teste dedicado e transcript |
+| existsSync | chamada comprovadamente zero para APPDATA root-relative | §1; `exists_calls=0` |
+| Drive mapeado | investigação das fontes canônicas; residual Z:\ documentado, sem mudar o contrato | §2 |
+
+====================================================================
+1. FIXTURE APPDATA ROOT-RELATIVE
+====================================================================
+- O fixture anterior usava um template literal com quebra de linha e um
+  carriage return, produzindo valor incorreto em vez de `\root-relative`.
+- Corrigido para:
+  `APPDATA: String.raw`\root-relative``
+  sem quebra de linha.
+- Novo teste `rejects APPDATA root-relative before existsSync` usa um spy
+  `exists` e exige `calls=0` com mensagem explícita.
+- Teste de candidatos UNC por APPDATA/LOCALAPPDATA/USERPROFILE/ProgramFiles
+  permanece com spy de zero chamadas.
+- Transcript Windows CD-06-CORR-01:
+  `candidate_reject=APPDATA root-relative exists_calls=0 :: SUPABASE_BIN on
+  Windows must be a local drive-absolute path.`
+- 41 testes Node Windows: 41 pass, 0 fail, 0 skip.
+- CLI real 2.113.0, PATH hostil/fake `node.exe` e junction com espaços
+  preservados.
+
+====================================================================
+2. Z:\ MAPEADO — INVESTIGAÇÃO CANÔNICA
+====================================================================
+Fontes consultadas:
+- `PLANO-MESTRE-DIF.md` (plano mestre): não contém requisito de volume
+  físico local, `DriveType` ou verificação de unidade mapeada.
+- Auditoria F01/CD-06: exige "drive absoluto local" e rejeição de UNC,
+  device e root-relative; o residual `Z:\` foi explicitamente classificado
+  como não bloqueante e recomenda documentação/checagem futura.
+- Work order CD-06-CORR-01: condiciona a implementação de validação física
+  apenas se a exigência original determinar volume físico local.
+- Código/documentação do projeto: `assertLocalWindowsPath` valida
+  drive-absolute (`^[a-z]:\\`), não tipo de volume.
+
+Conclusão: o contrato canônico exige caminho drive-absolute local, não
+comprovação de volume fisicamente local. Portanto `Z:\...` permanece aceito
+como caminho drive-qualified; o residual é documentado explicitamente e o
+contrato não foi alterado silenciosamente. Uma checagem `GetDriveTypeW`
+para rejeitar `DRIVE_REMOTE` fica como follow-up, se o owner decidir
+endurecer o contrato.
+
+====================================================================
+3. F02 / F03 / F04 / F05
+====================================================================
+- F02: APPROVED; nenhuma alteração neste delta.
+- F03: APPROVED; nenhuma alteração.
+- F04: runbook Cloudinary preservado; sem execução/valores/rotação.
+- F05: APPROVED; README/matriz, Master 9/9, 22 rotas e ADR-001 PROPOSED
+  preservados.
+
+====================================================================
+4. TESTES
+====================================================================
+4.1 Windows real (transcript `phase02-windows-cd06-2026-11-28.txt`)
+- win32 10.0.26200 x64; Node v26.4.0; SystemRoot C:\WINDOWS.
+- 41 testes Node: 41 pass, 0 fail, 0 skip.
+- Inclui APPDATA root-relative, UNC por quatro origens, ACL por SID,
+  duplicidade/ausência, hardlink NTFS, lock preservado, temp cleanup e
+  PATH hostil.
+
+4.2 Worktree limpo no HEAD 215aa40
+- lint PASS; typecheck 0/0; Vitest 389 passed/3 skipped; Node 41 pass;
+  build PASS; audit:policy 36/41; audit:deps 0 vulnerabilidades; `bash -n`.
+
+4.3 CI / Sonar / Socket no SHA exato
+- DIF Studio CI 46147570996 @215aa40: SUCCESS (13:02:01–13:12:54,
+  ~10m53s); Vitest 389/3 skip; Node 33 pass/0 fail/8 skip (testes
+  Windows-only pulados no Linux); PgTAP 250; E2E 32/32 (6.1m); build;
+  policy; audit.
+- Color Render ARM64 46147570926 @215aa40: SUCCESS.
+- Master integrity 46147571033 @215aa40: SUCCESS (9/9 SHA-256).
+- SonarCloud: gate OK, 0 new issues, 0 Security Hotspots, A/A/A, 0,0%
+  duplicação, 0,0% cobertura nova.
+- Socket: Project Report e PR Alerts SUCCESS.
+
+====================================================================
+5. RESIDUAIS
+====================================================================
+- `Z:\...` mapeado aceito; sem checagem de `DriveType` (documentado).
+- Mutação ACL não atômica; owner fail-closed sem teste; cleanup POSIX sem
+  teste de falha injetada; teste real de ACL duplicada não criado (fast-path
+  injetado cobre).
+- SACL não alterada; NTFS/PowerShell 5.1 exigidos.
+- S6505 e as 9 issues Sonar da main só fecham após merge; LCOV/0% permanece.
+- Rotação Cloudinary e eventual Vercel Production exigem autorização.
+- Sem merge, deploy, VPS ou FASE 03; checkpoint PROPOSED.

@@ -1,5 +1,7 @@
 DIF-V2-WO-014 / FASE 02 / CD-06 — CANDIDATOS E ACL POR SID (pt-BR)
 Data: 2026-11-28
+Status documental: HISTÓRICO DO CD-06. O status canônico atual é
+`phase02-cd06-corr01-2026-11-28.txt` (CD-06-CORR-01, HEAD 215aa40).
 Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
 Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
 HEAD de código/teste: 4210a0b2ef0796c8eae64b0fb2b1f78ed12a644c

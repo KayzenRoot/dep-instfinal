@@ -1,65 +1,67 @@
-DIF-V2-WO-014 / FASE 02 / CD-06 - PROVA WINDOWS REAL
+DIF-V2-WO-014 / FASE 02 / CD-06-CORR-01 - PROVA WINDOWS REAL
 Data: 2026-11-28
-HEAD código/teste: 4210a0b2ef0796c8eae64b0fb2b1f78ed12a644c
+HEAD código/teste: 215aa40c642f98d7a33c8a99af9877c09375430e
 Plataforma: win32 10.0.26200 x64
 Node: v26.4.0
 SystemRoot: C:\WINDOWS
 
-== Node tests (candidatos, ACL por SID, UNC, home, lock, temp, PATH) ==
-✔ uses an absolute SUPABASE_BIN override on POSIX (4.688ms)
-✔ rejects a relative SUPABASE_BIN override (0.8645ms)
-✔ finds the Windows npm shim without resolving it through PATH (0.8248ms)
-✔ rejects UNC, extended UNC, root-relative and device Windows paths (0.6252ms)
-✔ accepts an absolute Windows SUPABASE_BIN override (0.4251ms)
-✔ fails closed when no absolute CLI candidate exists (0.4826ms)
-✔ validates each Windows candidate before existsSync (0.9085ms)
-✔ runs an npm Windows shim through the current Node executable, not PATH (1.9074ms)
-✔ fails closed when a .cmd shim has no local Supabase JS entry (0.7971ms)
-✔ runs a native Supabase executable directly (0.873ms)
-✔ resolves a protected system executable without relying on PATH (3.4475ms)
-✔ supports an alternate local Windows drive (0.7496ms)
-✔ rejects relative, UNC and user-writable directories (5.0012ms)
-✔ does not fall back to an untrusted PATH (0.6056ms)
-✔ creates a private per-run temporary directory (2772.19ms)
-✔ removes the temporary child when hardening fails (4.3366ms)
-✔ removes explicit and inherited ACEs from a directory and file (6217.8056ms)
-✔ rebuilds exact rights when the SIDs are preserved but rights differ (8530.9503ms)
-✔ rebuilds when each principal is individually absent (11558.5922ms)
-✔ does not accept duplicate or incomplete SID sets in the fast path (328.0885ms)
-✔ allowlists preexisting log, lock and rotated file ACLs (8506.4542ms)
-✔ accepts only absolute local .cmd or .bat paths (4.2199ms)
-✔ rejects cmd.exe metacharacters in paths and arguments (1.1407ms)
-✔ builds a double-quoted cmd.exe command line for paths with spaces (0.7914ms)
-✔ executes a real batch fixture from a path with spaces and returns its exit code (78.0543ms)
-✔ executes the real Supabase CLI with a hostile PATH (1810.0229ms)
-✔ uses a per-user log directory by default (5.1013ms)
-✔ allows a custom absolute log directory (0.725ms)
-✔ rejects a custom directory outside the user home (1.5255ms)
-✔ rejects the home itself and aliases before mutating it (5.3489ms)
-✔ rejects a relative override to avoid logs in the repository (0.6429ms)
-✔ treats whitespace-only overrides as unset (0.4498ms)
-✔ restricts Windows overrides to the user profile (0.6282ms)
-✔ creates the private directory and log file with restrictive permissions (3552.0901ms)
-✔ tightens a preexisting log file and lock file (5464.9134ms)
-✔ rejects a symlinked log directory (1705.1412ms)
-✔ rejects a symlinked ancestor in the log path (7.7843ms)
-✔ rejects a symlinked log file (3828.0365ms)
-✔ rejects a hard-linked log file (3849.4243ms)
-✔ preserves lock content when validation rejects it (2156.7873ms)
-ℹ tests 40
+== Node tests (candidatos, APPDATA root-relative, ACL, UNC, home, lock, temp, PATH) ==
+✔ uses an absolute SUPABASE_BIN override on POSIX (10.2008ms)
+✔ rejects a relative SUPABASE_BIN override (1.6792ms)
+✔ finds the Windows npm shim without resolving it through PATH (1.2597ms)
+✔ rejects UNC, extended UNC, root-relative and device Windows paths (1.953ms)
+✔ accepts an absolute Windows SUPABASE_BIN override (0.7245ms)
+✔ fails closed when no absolute CLI candidate exists (4.0864ms)
+✔ validates each Windows candidate before existsSync (1.7192ms)
+✔ rejects APPDATA root-relative before existsSync (0.6784ms)
+✔ runs an npm Windows shim through the current Node executable, not PATH (3.0913ms)
+✔ fails closed when a .cmd shim has no local Supabase JS entry (1.3651ms)
+✔ runs a native Supabase executable directly (0.6391ms)
+✔ resolves a protected system executable without relying on PATH (3.7958ms)
+✔ supports an alternate local Windows drive (1.0493ms)
+✔ rejects relative, UNC and user-writable directories (16.3414ms)
+✔ does not fall back to an untrusted PATH (1.0061ms)
+✔ creates a private per-run temporary directory (4326.7953ms)
+✔ removes the temporary child when hardening fails (6.0519ms)
+✔ removes explicit and inherited ACEs from a directory and file (8309.9707ms)
+✔ rebuilds exact rights when the SIDs are preserved but rights differ (10429.4495ms)
+✔ rebuilds when each principal is individually absent (10954.4576ms)
+✔ does not accept duplicate or incomplete SID sets in the fast path (212.0684ms)
+✔ allowlists preexisting log, lock and rotated file ACLs (7514.7801ms)
+✔ accepts only absolute local .cmd or .bat paths (10.9608ms)
+✔ rejects cmd.exe metacharacters in paths and arguments (1.7094ms)
+✔ builds a double-quoted cmd.exe command line for paths with spaces (0.8669ms)
+✔ executes a real batch fixture from a path with spaces and returns its exit code (89.0432ms)
+✔ executes the real Supabase CLI with a hostile PATH (2798.7546ms)
+✔ uses a per-user log directory by default (13.6014ms)
+✔ allows a custom absolute log directory (0.9059ms)
+✔ rejects a custom directory outside the user home (2.1521ms)
+✔ rejects the home itself and aliases before mutating it (9.3382ms)
+✔ rejects a relative override to avoid logs in the repository (0.9466ms)
+✔ treats whitespace-only overrides as unset (1.2667ms)
+✔ restricts Windows overrides to the user profile (1.0007ms)
+✔ creates the private directory and log file with restrictive permissions (5199.318ms)
+✔ tightens a preexisting log file and lock file (7130.2228ms)
+✔ rejects a symlinked log directory (1920.7969ms)
+✔ rejects a symlinked ancestor in the log path (10.0136ms)
+✔ rejects a symlinked log file (4070.8642ms)
+✔ rejects a hard-linked log file (3576.9646ms)
+✔ preserves lock content when validation rejects it (1799.4334ms)
+ℹ tests 41
 ℹ suites 0
-ℹ pass 40
+ℹ pass 41
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 35403.319
+ℹ duration_ms 37789.084
 
 == Provas Windows dirigidas ==
 candidate_reject=APPDATA calls=0 :: SUPABASE_BIN on Windows must be a local drive-absolute path.
 candidate_reject=LOCALAPPDATA calls=0 :: SUPABASE_BIN on Windows must be a local drive-absolute path.
 candidate_reject=USERPROFILE calls=0 :: SUPABASE_BIN on Windows must be a local drive-absolute path.
 candidate_reject=ProgramFiles calls=0 :: SUPABASE_BIN on Windows must be a local drive-absolute path.
+candidate_reject=APPDATA root-relative exists_calls=0 :: SUPABASE_BIN on Windows must be a local drive-absolute path.
 candidate_probe_order=C:\Users\dif\AppData\Roaming\npm\supabase.exe > C:\Users\dif\AppData\Roaming\npm\supabase.cmd
 acl_fast_path_reject=S-1-5-21-2859145630-2285674291-471913818-1001,S-1-5-21-2859145630-2285674291-471913818-1001,S-1-5-21-2859145630-2285674291-471913818-1001 apply=1
 acl_fast_path_reject=S-1-5-21-2859145630-2285674291-471913818-1001,S-1-5-18 apply=1
