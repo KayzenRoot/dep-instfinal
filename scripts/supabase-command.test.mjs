@@ -82,6 +82,42 @@ test('fails closed when no absolute CLI candidate exists', () => {
 	);
 });
 
+test('validates each Windows candidate before existsSync', () => {
+	for (const key of ['APPDATA', 'LOCALAPPDATA', 'USERPROFILE', 'ProgramFiles']) {
+		let calls = 0;
+		assert.throws(
+			() =>
+				resolveSupabaseCommand({
+					env: { [key]: String.raw`\\server\share` },
+					platform: 'win32',
+					exists: () => {
+						calls += 1;
+						return false;
+					},
+				}),
+			/local drive-absolute/,
+		);
+		assert.equal(calls, 0, `${key} must not be probed by existsSync`);
+	}
+	let calls = 0;
+	assert.throws(
+		() =>
+			resolveSupabaseCommand({
+				env: {
+					APPDATA: String.raw`
+oot-relative`,
+				},
+				platform: 'win32',
+				exists: () => {
+					calls += 1;
+					return false;
+				},
+			}),
+		/local drive-absolute/,
+	);
+	assert.equal(calls, 0);
+});
+
 test('runs an npm Windows shim through the current Node executable, not PATH', () => {
 	const shim = String.raw`C:\Users\dif\AppData\Roaming\npm\supabase.cmd`;
 	const entry = String.raw`C:\Users\dif\AppData\Roaming\npm\node_modules\supabase\dist\supabase.js`;

@@ -79,6 +79,53 @@ test(
 );
 
 test(
+	'rebuilds when each principal is individually absent',
+	{ skip: process.platform !== 'win32' },
+	() => {
+		const workspace = mkdtempSync(join(tmpdir(), 'dif-acl-missing-'));
+		try {
+			const dir = join(workspace, 'private');
+			mkdirSync(dir);
+			hardenWindowsPrivatePath(dir, { directory: true });
+			const icacls = resolveWindowsSystem32('icacls.exe');
+			for (const sid of [getCurrentUserSid(), 'S-1-5-18', 'S-1-5-32-544']) {
+				execFileSync(icacls, [dir, '/remove:g', `*${sid}`]);
+				assert.equal(getWindowsAclSids(dir).includes(sid), false);
+				hardenWindowsPrivatePath(dir, { directory: true });
+				assertAllowlist(dir);
+			}
+		} finally {
+			rmSync(workspace, { recursive: true, force: true });
+		}
+	},
+);
+
+test(
+	'does not accept duplicate or incomplete SID sets in the fast path',
+	{ skip: process.platform !== 'win32' },
+	() => {
+		const expected = [getCurrentUserSid(), 'S-1-5-18', 'S-1-5-32-544'];
+		for (const initial of [
+			[expected[0], expected[0], expected[0]],
+			[expected[0], expected[1]],
+			[...expected, 'S-1-1-0'],
+		]) {
+			let applied = 0;
+			const inspect = () => ({ exact: true, sids: applied === 0 ? initial : expected });
+			const apply = () => {
+				applied += 1;
+			};
+			hardenWindowsPrivatePath(String.raw`C:\fake-private`, {
+				directory: true,
+				inspect,
+				apply,
+			});
+			assert.equal(applied, 1);
+		}
+	},
+);
+
+test(
 	'allowlists preexisting log, lock and rotated file ACLs',
 	{ skip: process.platform !== 'win32' },
 	() => {

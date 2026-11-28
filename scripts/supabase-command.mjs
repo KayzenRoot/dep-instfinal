@@ -49,19 +49,19 @@ export function resolveSupabaseCommand({
 		if (!isAbsolutePath(configured)) throw new Error('SUPABASE_BIN must be an absolute path.');
 		return platform === 'win32' ? assertLocalWindowsPath(configured) : configured;
 	}
-	const candidates = platform === 'win32' ? windowsCandidates(env) : POSIX_CANDIDATES;
+	const rawCandidates = platform === 'win32' ? windowsCandidates(env) : POSIX_CANDIDATES;
+	const candidates =
+		platform === 'win32'
+			? rawCandidates.map((candidate) => assertLocalWindowsPath(candidate))
+			: rawCandidates;
 	const found = candidates.find((candidate) => isAbsolutePath(candidate) && exists(candidate));
 	if (!found) throw new Error('SUPABASE_BIN must point to the absolute Supabase CLI path.');
-	return platform === 'win32' ? assertLocalWindowsPath(found) : found;
+	return found;
 }
 
 function resolveNpmSupabaseEntry(command, exists) {
-	const entry = win32.join(
-		win32.dirname(command),
-		'node_modules',
-		'supabase',
-		'dist',
-		'supabase.js',
+	const entry = assertLocalWindowsPath(
+		win32.join(win32.dirname(command), 'node_modules', 'supabase', 'dist', 'supabase.js'),
 	);
 	return exists(entry) ? entry : undefined;
 }
