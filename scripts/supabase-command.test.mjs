@@ -38,6 +38,26 @@ test('finds the Windows npm shim without resolving it through PATH', () => {
 	);
 });
 
+test('rejects UNC, extended UNC, root-relative and device Windows paths', () => {
+	for (const command of [
+		String.raw`\\server\share\supabase.cmd`,
+		'//server/share/supabase.cmd',
+		'//?/UNC/server/share/supabase.cmd',
+		String.raw`\\?\C:\Tools\supabase.cmd`,
+		String.raw`\Tools\supabase.cmd`,
+	]) {
+		assert.throws(
+			() =>
+				resolveSupabaseCommand({
+					env: { SUPABASE_BIN: command },
+					platform: 'win32',
+					exists: () => false,
+				}),
+			/local drive-absolute/,
+		);
+	}
+});
+
 test('accepts an absolute Windows SUPABASE_BIN override', () => {
 	const override = String.raw`C:\Tools\supabase\supabase.exe`;
 	assert.equal(

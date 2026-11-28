@@ -48,6 +48,37 @@ test(
 );
 
 test(
+	'rebuilds exact rights when the SIDs are preserved but rights differ',
+	{ skip: process.platform !== 'win32' },
+	() => {
+		const workspace = mkdtempSync(join(tmpdir(), 'dif-acl-rights-'));
+		try {
+			const dir = join(workspace, 'private');
+			const file = join(dir, 'supervisor.log');
+			mkdirSync(dir);
+			writeFileSync(file, '', 'utf8');
+			hardenWindowsPrivatePath(dir, { directory: true });
+			hardenWindowsPrivatePath(file);
+			const icacls = resolveWindowsSystem32('icacls.exe');
+			const sid = getCurrentUserSid();
+			execFileSync(icacls, [dir, '/grant:r', `*${sid}:(OI)(CI)R`]);
+			execFileSync(icacls, [file, '/grant:r', `*${sid}:R`]);
+			hardenWindowsPrivatePath(dir, { directory: true });
+			hardenWindowsPrivatePath(file);
+			assertAllowlist(dir);
+			assertAllowlist(file);
+			for (const target of [dir, file]) {
+				const output = execFileSync(icacls, [target], { encoding: 'utf8' });
+				assert.match(output, /\(F\)/);
+				assert.equal(output.includes('(R)'), false);
+			}
+		} finally {
+			rmSync(workspace, { recursive: true, force: true });
+		}
+	},
+);
+
+test(
 	'allowlists preexisting log, lock and rotated file ACLs',
 	{ skip: process.platform !== 'win32' },
 	() => {

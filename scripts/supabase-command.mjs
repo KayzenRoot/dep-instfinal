@@ -30,6 +30,14 @@ function windowsCandidates(env) {
 	return candidates;
 }
 
+function assertLocalWindowsPath(command) {
+	const normalized = win32.normalize(command);
+	if (!/^[a-z]:\\/i.test(normalized)) {
+		throw new Error('SUPABASE_BIN on Windows must be a local drive-absolute path.');
+	}
+	return normalized;
+}
+
 export function resolveSupabaseCommand({
 	env = process.env,
 	platform = process.platform,
@@ -39,12 +47,12 @@ export function resolveSupabaseCommand({
 	const isAbsolutePath = platform === 'win32' ? win32.isAbsolute : isAbsolute;
 	if (configured) {
 		if (!isAbsolutePath(configured)) throw new Error('SUPABASE_BIN must be an absolute path.');
-		return configured;
+		return platform === 'win32' ? assertLocalWindowsPath(configured) : configured;
 	}
 	const candidates = platform === 'win32' ? windowsCandidates(env) : POSIX_CANDIDATES;
 	const found = candidates.find((candidate) => isAbsolutePath(candidate) && exists(candidate));
 	if (!found) throw new Error('SUPABASE_BIN must point to the absolute Supabase CLI path.');
-	return found;
+	return platform === 'win32' ? assertLocalWindowsPath(found) : found;
 }
 
 function resolveNpmSupabaseEntry(command, exists) {

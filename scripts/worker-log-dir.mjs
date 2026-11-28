@@ -4,6 +4,7 @@ import {
 	constants,
 	fchmodSync,
 	fstatSync,
+	ftruncateSync,
 	lstatSync,
 	mkdirSync,
 	openSync,
@@ -18,10 +19,10 @@ function pathApi(platform) {
 	return platform === 'win32' ? win32 : posix;
 }
 
-function isWithin(parent, child, platform) {
+function isStrictlyWithin(parent, child, platform) {
 	const path = pathApi(platform);
 	const relativePath = path.relative(path.resolve(parent), path.resolve(child));
-	return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+	return relativePath !== '' && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
 }
 
 function currentUid() {
@@ -122,7 +123,7 @@ export function resolveWorkerLogDir({
 	if (configured) {
 		if (!path.isAbsolute(configured))
 			throw new Error('DIF_WORKER_LOG_DIR must be an absolute path.');
-		if (!isWithin(homeDir, configured, platform)) {
+		if (!isStrictlyWithin(homeDir, configured, platform)) {
 			throw new Error(
 				platform === 'win32'
 					? 'DIF_WORKER_LOG_DIR on Windows must be under the user profile.'
@@ -157,12 +158,9 @@ export function prepareWorkerLogFile(path, { platform = process.platform } = {})
 }
 
 export function writeWorkerLock(path, pid, { platform = process.platform } = {}) {
-	const fd = openPrivateFile(
-		path,
-		constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC,
-		platform,
-	);
+	const fd = openPrivateFile(path, constants.O_WRONLY | constants.O_CREAT, platform);
 	try {
+		ftruncateSync(fd, 0);
 		writeSync(fd, String(pid));
 	} finally {
 		closeSync(fd);

@@ -4,6 +4,7 @@ import {
 	linkSync,
 	mkdirSync,
 	mkdtempSync,
+	readFileSync,
 	rmSync,
 	statSync,
 	symlinkSync,
@@ -49,6 +50,29 @@ test('rejects a custom directory outside the user home', () => {
 			}),
 		/under the user/,
 	);
+});
+
+test('rejects the home itself and aliases before mutating it', () => {
+	const home = makeBase('dif-home-');
+	const marker = join(home, 'keep.txt');
+	writeFileSync(marker, 'keep', 'utf8');
+	const mode = statSync(home).mode & 0o777;
+	try {
+		for (const configured of [home, join(home, '.'), join(home, 'nested', '..')]) {
+			assert.throws(
+				() =>
+					prepareWorkerLogDir({
+						env: { DIF_WORKER_LOG_DIR: configured },
+						homeDir: home,
+					}),
+				/under the user/,
+			);
+		}
+		assert.equal(statSync(home).mode & 0o777, mode);
+		assert.equal(readFileSync(marker, 'utf8'), 'keep');
+	} finally {
+		rmSync(home, { recursive: true, force: true });
+	}
 });
 
 test('rejects a relative override to avoid logs in the repository', () => {
@@ -196,6 +220,24 @@ test('rejects a hard-linked log file', () => {
 		prepareWorkerLogFile(file);
 		linkSync(file, hardLink);
 		assert.throws(() => prepareWorkerLogFile(file), /hard link/);
+	} finally {
+		rmSync(base, { recursive: true, force: true });
+	}
+});
+
+test('preserves lock content when validation rejects it', () => {
+	const base = makeBase();
+	try {
+		const dir = prepareWorkerLogDir({
+			env: { DIF_WORKER_LOG_DIR: join(base, 'private') },
+			homeDir: base,
+		});
+		const lock = join(dir, 'workers-service.lock');
+		const hardLink = join(dir, 'lock-copy');
+		writeFileSync(lock, 'keep', 'utf8');
+		linkSync(lock, hardLink);
+		assert.throws(() => writeWorkerLock(lock, 2), /hard link/);
+		assert.equal(readFileSync(lock, 'utf8'), 'keep');
 	} finally {
 		rmSync(base, { recursive: true, force: true });
 	}

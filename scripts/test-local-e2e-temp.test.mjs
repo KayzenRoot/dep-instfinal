@@ -26,3 +26,27 @@ test('creates a private per-run temporary directory', () => {
 		cleanupPrivateTempDir(base);
 	}
 });
+
+test(
+	'removes the temporary child when hardening fails',
+	{ skip: process.platform !== 'win32' },
+	() => {
+		const base = mkdtempSync(join(tmpdir(), 'dif-e2e-fail-'));
+		let created;
+		try {
+			assert.throws(
+				() =>
+					preparePrivateTempDir(base, {
+						harden: (dir) => {
+							created = dir;
+							throw new Error('hardening failed');
+						},
+					}),
+				/hardening failed/,
+			);
+			assert.equal(existsSync(created), false);
+		} finally {
+			cleanupPrivateTempDir(base);
+		}
+	},
+);
