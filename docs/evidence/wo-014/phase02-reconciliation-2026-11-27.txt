@@ -1,7 +1,7 @@
 DIF-V2-WO-014 / FASE 02 / CD-02 — RECONCILIAÇÃO E PREFLIGHT (pt-BR)
 Data: 2026-11-27
 Status documental: HISTÓRICO DO CD-02. O status canônico atual é
-`phase02-cd04-2026-11-27.txt` (CD-04, HEAD de código 1232bcc).
+`phase02-cd05-2026-11-27.txt` (CD-05, HEAD de código 4b96764).
 Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
 Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
 PR #75 original: 9f18254bb5bca2fca2690bb4bb5d2b5ac153ffa8

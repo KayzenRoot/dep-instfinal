@@ -3,33 +3,34 @@ Data: 2026-11-27
 Status: PROPOSED — NÃO PROMOVIDO
 
 - **PR #75:** Draft; original 9f18254; HEAD de código/teste
-  8a1fc2686b11d1b92cf8985b7021bf32836e9a46 (CD-04, sucede o CD-03 em
-  2d6797c/a51d968); HEAD documental é o commit docs-only que contém este
+  4b96764429a5dbdc706ecbb630e745cc68d2b7d7 (CD-05, sucede o CD-04 em
+  8a1fc26/60543d6); HEAD documental é o commit docs-only que contém este
   checkpoint.
 - **Base:** main 4ec6f91006ef86d32bd027779cc8ac730b3b394c (inalterada).
 - **Merge:** normal de main na branch da PR75, sem force-push; conflitos de
   taskkill/preview resolvidos (preview/config da main preservados).
-- **CD-04 (F01–F05):**
-  - F01: Supabase `.cmd` não é executado por shell; `resolveSupabaseInvocation`
-    usa `process.execPath` + `dist/supabase.js`, `.exe` nativo direto e falha
-    fechada sem fallback PATH; PATH adversarial com `node.exe` falso testado.
-  - F02: ACL Windows allowlist exata (owner/SYSTEM/Administrators) via
-    Get-Acl/Set-Acl, removendo ACEs explícitas e herdadas; owner fail-closed;
-    hardlink NTFS rejeitado; log/lock/rotacionado preexistentes testados com
-    ACE explícita.
-  - F03: temp privado Windows com ACL allowlist e teste de SIDs; base TEMP
-    pública não recebe arquivos sensíveis; TEMP/TMP/TMPDIR apontam ao filho.
+- **CD-05 (F01/F02/F03):**
+  - F01: `resolveSupabaseCommand()` exige drive local absoluto; rejeita UNC
+    normal/extendido, device path, root-relative e relativo, inclusive no
+    `SUPABASE_BIN` e nos candidatos; PATH adversarial e CLI real preservados.
+  - F02: home estrito (igualdade/aliases rejeitados antes de mutação);
+    validação ACL efetiva (Allow/FullControl/flags/proteção/owner), mutação
+    `icacls /reset` + `/inheritance:r` + `/grant:r`, teste de direitos
+    divergentes; lock sem `O_TRUNC` antes da validação, conteúdo preservado
+    em rejeição; hardlink NTFS.
+  - F03: temp privado Windows com ACL allowlist; cleanup do filho quando o
+    hardening falha; POSIX 0700; TEMP/TMP/TMPDIR no filho.
   - F04: runbook Cloudinary preservado, sem execução/valores.
-  - F05: README/IMPLEMENTATION_MATRIX atualizados (WO-001/002/003 integradas,
-    WO-004+ planejadas, ADR-001 PROPOSED); PR/#31/#76 atualizados no HEAD
-    final; Master 9/9 por SHA-256/1672×941; 22 rotas.
-- **Testes:** worktree limpo em 8a1fc26 — lint, typecheck, Vitest 389/3 skip,
-  Node 32 pass/0 fail/0 skip, build, audit:policy 36/41, audit:deps 0
-  vulnerabilidades; Windows real 32/32 com PATH adversarial, CLI 2.113.0,
-  ACL explícita e temp privado.
-- **CI 8a1fc26:** quality 46036693338 SUCCESS (~14m42s; Vitest 389/3 skip,
-  Node 28 pass/0 fail/4 skip Linux, PgTAP 250, E2E 32/32); Color ARM64
-  46036693244 SUCCESS; Sonar gate OK/0 new issues; Socket PASS.
+  - F05: APPROVED preservado (README/matriz, Master 9/9, 22 rotas); PR/#31/#76
+    atualizados no HEAD final.
+- **Testes:** worktree limpo em 4b96764 — lint, typecheck, Vitest 389/3 skip,
+  Node 37 pass/0 fail/0 skip, build, audit:policy 36/41, audit:deps 0
+  vulnerabilidades; Windows real 37/37 com UNC, home, ACL efetiva, lock e
+  temp cleanup.
+- **CI 4b96764:** quality 46087370154 SUCCESS (~14m06s; Vitest 389/3 skip,
+  Node 31 pass/0 fail/6 skip Linux, PgTAP 250, E2E 32/32); Color ARM64
+  46087370172 SUCCESS; Master integrity 46087370205 SUCCESS (9/9); Sonar gate
+  OK/0 new issues; Socket PASS.
 - **Preservado:** preview fail-closed, produção não tocada, 22 rotas, Master
   9/9, ADR-001 PROPOSED, ruleset 28005320, PR #75 Draft, #31 aberta.
 - **Pendente:** auditoria independente APPROVED; autorização aplicável para

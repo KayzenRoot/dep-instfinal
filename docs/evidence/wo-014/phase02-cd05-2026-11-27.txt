@@ -1,0 +1,150 @@
+DIF-V2-WO-014 / FASE 02 / CD-05 — RESIDUAIS DE SEGURANÇA (pt-BR)
+Data: 2026-11-27
+Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
+Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
+HEAD de código/teste: 4b96764429a5dbdc706ecbb630e745cc68d2b7d7
+HEAD documental: commit docs-only que contém este arquivo (filho de 4b96764)
+Status: CD-05 concluído; aguarda CI no SHA exato e auditoria independente.
+Sem merge, deploy, produção, rotação, VPS ou FASE 03.
+
+====================================================================
+0. ESCOPO CD-05
+====================================================================
+Corrigir somente os residuais F01/F02/F03 apontados na auditoria do CD-04.
+F04 permanece runbook-only, sem execução. F05 permanece APPROVED e não foi
+alterado neste delta.
+
+| Achado | Correção | Prova |
+| F01 UNC | `resolveSupabaseCommand()` exige caminho drive-absolute local no Windows; rejeita UNC `\\`, `//`, `//?/UNC`, `\\?\`, root-relative `\` e caminhos relativos | §2; transcript `unc_reject` para 4 formatos |
+| F02 home | descendente estrito do home/perfil; igualdade e aliases (`home`, `home\.`, `home\nested\..`) rejeitados antes de qualquer mutação | §3; transcript `home_reject`, conteúdo/modo invariantes |
+| F02 ACL | validação efetiva Allow/FullControl/flags/proteção/owner; `icacls /reset` + `/inheritance:r` + `/grant:r`; rejeita ACL com SIDs certos e direitos divergentes | §3; transcript `rights_after_*`; teste dedicado |
+| F02 lock | abertura não destrutiva, validação/hardening e só então `ftruncate`; rejeição preserva conteúdo | §3; transcript `lock_content=keep` |
+| F03 temp | remove o filho se o hardening falhar; ACL allowlist no Windows; 0700 POSIX | §4; teste de falha injetada e transcript `temp_removed=true` |
+
+====================================================================
+1. CONTEXTO
+====================================================================
+- Código alterado: `supabase-command.*`, `worker-log-dir.*`, `windows-acl.*`,
+  `test-local-e2e-temp.*`.
+- Nenhuma alteração de design, rotas, auth, migrations, Vercel ou credenciais.
+- `config.ts`, `preview-isolation.ts` e `preview-isolation.test.ts` continuam
+  byte-idênticos à main e fora do diff.
+- F04 (`cloudinary-rotation-runbook-2026-11-27.txt`) não foi executado nem
+  alterado. F05 (README/matriz, Master 9/9, 22 rotas) permanece aprovado.
+
+====================================================================
+2. F01 — UNC/NÃO-LOCAL NO SUPABASE
+====================================================================
+- `assertLocalWindowsPath()` normaliza e exige `/^[a-z]:\\/i`, ou seja, drive
+  local absoluto. Rejeita:
+  - `\\server\share\...` (UNC);
+  - `//server/share/...` (UNC com barras normais);
+  - `//?/UNC/...` (UNC estendido);
+  - `\\?\C:\...` (device path);
+  - `\Tools\...` (root-relative);
+  - caminhos relativos.
+- A validação é aplicada tanto ao `SUPABASE_BIN` configurado quanto aos
+  candidatos encontrados, antes de `resolveSupabaseInvocation()` derivar o
+  entry JS.
+- Testes em `supabase-command.test.mjs` cobrem override e candidatos.
+- O teste real Windows mantém PATH hostil com `node.exe` falso, junction com
+  espaços e CLI Supabase 2.113.0; `resolveSupabaseInvocation()` continua
+  usando `process.execPath` + `dist/supabase.js`.
+
+====================================================================
+3. F02 — HOME, ACL EFETIVA E TRUNCAGEM
+====================================================================
+Home:
+- `isStrictlyWithin()` exige `relativePath !== ''`; igualdade com home/perfil
+  é rejeitada. Aliases que resolvem para o home também.
+- `prepareWorkerLogDir()` valida antes de `mkdir`/ACL; teste com home fixture
+  mantém conteúdo e modo invariantes.
+
+ACL efetiva:
+- PowerShell `Get-Acl` valida owner contra `WindowsIdentity` e falha fechado.
+- `Test-AclExact()` exige:
+  - `AreAccessRulesProtected=true`;
+  - exatamente 3 ACEs;
+  - SIDs exatamente atuais/SYSTEM/Administrators;
+  - `AccessControlType=Allow`;
+  - `FileSystemRights=FullControl`;
+  - diretório: `ContainerInherit|ObjectInherit`, propagação `None`;
+  - arquivo: `InheritanceFlags=None`.
+- Mutação via `icacls` absoluto: `/reset`, `/inheritance:r`, `/grant:r` com
+  `*SID:(OI)(CI)F` ou `*SID:F`. Isso remove ACEs explícitas e herdadas e evita
+  a falha de `Set-Acl` com `SeSecurityPrivilege` em ACL protegida.
+- Depois da mutação, a ACL é relida e precisa passar em `Test-AclExact`.
+- Testes:
+  - dir/arquivo com ACE explícita `S-1-1-0`: removida;
+  - mesmos SIDs com direito `R`: reconstruído para `F`;
+  - log/lock/`.log.1` preexistentes com ACE explícita: allowlist;
+  - hardlink NTFS rejeitado.
+
+Truncagem/lock:
+- `openPrivateFile` não usa mais `O_TRUNC`.
+- `writeWorkerLock` abre sem truncar, valida owner/ACL/hardlink, e só então
+  `ftruncateSync(fd, 0)` + escrita.
+- Teste com lock hardlinked e conteúdo `keep`: `writeWorkerLock` rejeita e o
+  conteúdo permanece `keep` (transcript).
+- `readWorkerLock` abre sem truncar.
+
+====================================================================
+4. F03 — TEMP PRIVADO E CLEANUP
+====================================================================
+- `preparePrivateTempDir(base, { harden })`:
+  - cria `mkdtemp`;
+  - Windows: `hardenWindowsPrivatePath(dir, {directory:true})`;
+  - POSIX: `chmod 0700`;
+  - se qualquer etapa falhar, remove o filho com `rmSync` e relança o erro.
+- Teste Windows injeta `harden` que falha e comprova que o diretório criado
+  não permanece.
+- Teste de sucesso verifica ACL allowlist no Windows e 0700 no POSIX.
+- Base `TEMP` pública é registrada separadamente; nenhum arquivo sensível é
+  escrito nela. `TEMP/TMP/TMPDIR` do runner apontam ao filho privado.
+- A validação ACL corrigida (direitos/proteção) vale para o temp.
+
+====================================================================
+5. F04 / F05
+====================================================================
+- F04: runbook Cloudinary preservado; nenhuma rotação, revogação, Vercel,
+  leitura/exibição de valores ou deploy. Risco operacional permanece BLOCKED
+  até autorização específica do owner.
+- F05: README/matriz do Master permanecem com o estado aprovado (WO-001/002/003
+  integradas, WO-004+ planejadas, ADR-001 PROPOSED); 9/9 PNGs e 22 rotas;
+  PR/#31/#76 serão atualizados para o HEAD final.
+
+====================================================================
+6. TESTES
+====================================================================
+6.1 Windows real (transcript `phase02-windows-cd05-2026-11-27.txt`)
+- Plataforma win32 10.0.26200 x64; Node v26.4.0; SystemRoot C:\WINDOWS.
+- 37 testes Node: 37 pass, 0 fail, 0 skip.
+- Inclui UNC (4 formatos), home/aliases invariantes, ACL com direitos
+  divergentes, hardlink NTFS, lock preservado, temp cleanup e PATH hostil.
+
+6.2 Worktree limpo no HEAD 4b96764
+- lint PASS; typecheck 0/0; Vitest 389 passed/3 skipped; Node 37 pass;
+  build PASS; audit:policy 36/41; audit:deps 0 vulnerabilidades; `bash -n`.
+- `npm ci --ignore-scripts` mantido.
+
+6.3 CI / Sonar / Socket no SHA exato
+- DIF Studio CI 46087370154 @4b96764: SUCCESS (00:20:37–00:34:43,
+  ~14m06s); Vitest 389/3 skip; Node 31 pass/0 fail/6 skip (testes
+  Windows-only pulados no Linux); PgTAP 250; E2E 32/32 (8.1m); build;
+  policy; audit.
+- Color Render ARM64 46087370172 @4b96764: SUCCESS.
+- Master integrity 46087370205 @4b96764: SUCCESS (9/9 SHA-256).
+- SonarCloud: gate OK, 0 new issues, 0 Security Hotspots, A/A/A, 0,0%
+  duplicação, 0,0% cobertura nova.
+- Socket: Project Report e PR Alerts SUCCESS.
+
+====================================================================
+7. RESIDUAIS
+====================================================================
+- Owner fail-closed não tem teste com outro owner (exige privilégio).
+- ACL exige NTFS/PowerShell 5.1; SACL não é alterada.
+- `DIF_WORKER_LOG_DIR` igual ao home agora é rejeitado; subdiretório dedicado
+  é obrigatório.
+- S6505 e as 9 issues Sonar da main só fecham após merge; LCOV/0% permanece.
+- Rotação Cloudinary e eventual Vercel Production exigem autorização.
+- Sem merge, deploy, VPS ou FASE 03; checkpoint PROPOSED.

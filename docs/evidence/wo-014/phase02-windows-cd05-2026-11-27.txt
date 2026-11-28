@@ -1,0 +1,75 @@
+DIF-V2-WO-014 / FASE 02 / CD-05 - PROVA WINDOWS REAL
+Data: 2026-11-27
+HEAD código/teste: 4b96764429a5dbdc706ecbb630e745cc68d2b7d7
+Plataforma: win32 10.0.26200 x64
+Node: v26.4.0
+SystemRoot: C:\WINDOWS
+
+== Node tests (UNC, ACL efetiva, home, lock, temp, PATH adversarial) ==
+✔ uses an absolute SUPABASE_BIN override on POSIX (6.9081ms)
+✔ rejects a relative SUPABASE_BIN override (0.9648ms)
+✔ finds the Windows npm shim without resolving it through PATH (0.7805ms)
+✔ rejects UNC, extended UNC, root-relative and device Windows paths (0.9216ms)
+✔ accepts an absolute Windows SUPABASE_BIN override (0.395ms)
+✔ fails closed when no absolute CLI candidate exists (0.4636ms)
+✔ runs an npm Windows shim through the current Node executable, not PATH (2.2419ms)
+✔ fails closed when a .cmd shim has no local Supabase JS entry (0.7186ms)
+✔ runs a native Supabase executable directly (0.7639ms)
+✔ resolves a protected system executable without relying on PATH (3.0681ms)
+✔ supports an alternate local Windows drive (0.7223ms)
+✔ rejects relative, UNC and user-writable directories (3.3081ms)
+✔ does not fall back to an untrusted PATH (0.5277ms)
+✔ creates a private per-run temporary directory (3138.3471ms)
+✔ removes the temporary child when hardening fails (4.9354ms)
+✔ removes explicit and inherited ACEs from a directory and file (6837.4199ms)
+✔ rebuilds exact rights when the SIDs are preserved but rights differ (8172.8168ms)
+✔ allowlists preexisting log, lock and rotated file ACLs (7356.619ms)
+✔ accepts only absolute local .cmd or .bat paths (3.4364ms)
+✔ rejects cmd.exe metacharacters in paths and arguments (0.7588ms)
+✔ builds a double-quoted cmd.exe command line for paths with spaces (0.4229ms)
+✔ executes a real batch fixture from a path with spaces and returns its exit code (75.6233ms)
+✔ executes the real Supabase CLI with a hostile PATH (2062.1273ms)
+✔ uses a per-user log directory by default (2.862ms)
+✔ allows a custom absolute log directory (0.4584ms)
+✔ rejects a custom directory outside the user home (1.1012ms)
+✔ rejects the home itself and aliases before mutating it (5.4967ms)
+✔ rejects a relative override to avoid logs in the repository (0.7786ms)
+✔ treats whitespace-only overrides as unset (0.9451ms)
+✔ restricts Windows overrides to the user profile (1.0768ms)
+✔ creates the private directory and log file with restrictive permissions (4043.0006ms)
+✔ tightens a preexisting log file and lock file (5600.8259ms)
+✔ rejects a symlinked log directory (1625.9928ms)
+✔ rejects a symlinked ancestor in the log path (7.6947ms)
+✔ rejects a symlinked log file (3409.5597ms)
+✔ rejects a hard-linked log file (3263.7175ms)
+✔ preserves lock content when validation rejects it (1715.8037ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22671.2733
+
+== Provas Windows dirigidas ==
+unc_reject=\\server\share\supabase.cmd :: SUPABASE_BIN on Windows must be a local drive-absolute path.
+unc_reject=//server/share/supabase.cmd :: SUPABASE_BIN on Windows must be a local drive-absolute path.
+unc_reject=\\?\C:\Tools\supabase.cmd :: SUPABASE_BIN on Windows must be a local drive-absolute path.
+unc_reject=\Tools\supabase.cmd :: SUPABASE_BIN on Windows must be a local drive-absolute path.
+home_reject=DIF_WORKER_LOG_DIR on Windows must be under the user profile.
+home_content=keep
+home_mode_unchanged=true
+supabase_invocation=node-script
+supabase_version=2.113.0
+rights_before=S-1-5-18,S-1-5-32-544,S-1-5-21-2859145630-2285674291-471913818-1001 :: C:\Users\csn19\AppData\Local\Temp\dif-cd05-proof-VTCwyh\rights (private) BUILTIN\Administradores:(OI)(CI)(F)
+rights_after_dir=S-1-5-18,S-1-5-32-544,S-1-5-21-2859145630-2285674291-471913818-1001
+rights_after_file=S-1-5-18,S-1-5-32-544,S-1-5-21-2859145630-2285674291-471913818-1001
+rights_dir_full=true
+rights_file_full=true
+lock_reject=Worker log file must not be a hard link.
+lock_content=keep
+temp_failure=fixture hardening failure
+temp_removed=true
+private_temp_acl=S-1-5-18,S-1-5-32-544,S-1-5-21-2859145630-2285674291-471913818-1001
+mode_note=Windows numérico do Node não representa ACL; controle real é Get-Acl/icacls

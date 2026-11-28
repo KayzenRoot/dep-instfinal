@@ -1,5 +1,7 @@
 DIF-V2-WO-014 / FASE 02 / CD-04 — CORREÇÃO DE SEGURANÇA (pt-BR)
 Data: 2026-11-27
+Status documental: HISTÓRICO DO CD-04. O status canônico atual é
+`phase02-cd05-2026-11-27.txt` (CD-05, HEAD de código 4b96764).
 Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
 Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
 HEAD de código/teste: 8a1fc2686b11d1b92cf8985b7021bf32836e9a46
