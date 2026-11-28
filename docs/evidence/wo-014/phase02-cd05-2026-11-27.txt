@@ -1,5 +1,7 @@
 DIF-V2-WO-014 / FASE 02 / CD-05 — RESIDUAIS DE SEGURANÇA (pt-BR)
 Data: 2026-11-27
+Status documental: HISTÓRICO DO CD-05. O status canônico atual é
+`phase02-cd06-2026-11-28.txt` (CD-06, HEAD de código 4210a0b).
 Repo: KayzenRoot/dep-instfinal · PR #75 (Draft) · issue #31
 Base main: 4ec6f91006ef86d32bd027779cc8ac730b3b394c
 HEAD de código/teste: 4b96764429a5dbdc706ecbb630e745cc68d2b7d7

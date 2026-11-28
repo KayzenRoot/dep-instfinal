@@ -1,36 +1,31 @@
 DIF-V2-WO-014 / FASE 02 — CHECKPOINT DELTA PROPOSED (pt-BR)
-Data: 2026-11-27
+Data: 2026-11-28
 Status: PROPOSED — NÃO PROMOVIDO
 
 - **PR #75:** Draft; original 9f18254; HEAD de código/teste
-  4b96764429a5dbdc706ecbb630e745cc68d2b7d7 (CD-05, sucede o CD-04 em
-  8a1fc26/60543d6); HEAD documental é o commit docs-only que contém este
+  4210a0b2ef0796c8eae64b0fb2b1f78ed12a644c (CD-06, sucede o CD-05 em
+  4b96764/89d0170); HEAD documental é o commit docs-only que contém este
   checkpoint.
 - **Base:** main 4ec6f91006ef86d32bd027779cc8ac730b3b394c (inalterada).
 - **Merge:** normal de main na branch da PR75, sem force-push; conflitos de
   taskkill/preview resolvidos (preview/config da main preservados).
-- **CD-05 (F01/F02/F03):**
-  - F01: `resolveSupabaseCommand()` exige drive local absoluto; rejeita UNC
-    normal/extendido, device path, root-relative e relativo, inclusive no
-    `SUPABASE_BIN` e nos candidatos; PATH adversarial e CLI real preservados.
-  - F02: home estrito (igualdade/aliases rejeitados antes de mutação);
-    validação ACL efetiva (Allow/FullControl/flags/proteção/owner), mutação
-    `icacls /reset` + `/inheritance:r` + `/grant:r`, teste de direitos
-    divergentes; lock sem `O_TRUNC` antes da validação, conteúdo preservado
-    em rejeição; hardlink NTFS.
-  - F03: temp privado Windows com ACL allowlist; cleanup do filho quando o
-    hardening falha; POSIX 0700; TEMP/TMP/TMPDIR no filho.
-  - F04: runbook Cloudinary preservado, sem execução/valores.
-  - F05: APPROVED preservado (README/matriz, Master 9/9, 22 rotas); PR/#31/#76
-    atualizados no HEAD final.
-- **Testes:** worktree limpo em 4b96764 — lint, typecheck, Vitest 389/3 skip,
-  Node 37 pass/0 fail/0 skip, build, audit:policy 36/41, audit:deps 0
-  vulnerabilidades; Windows real 37/37 com UNC, home, ACL efetiva, lock e
-  temp cleanup.
-- **CI 4b96764:** quality 46087370154 SUCCESS (~14m06s; Vitest 389/3 skip,
-  Node 31 pass/0 fail/6 skip Linux, PgTAP 250, E2E 32/32); Color ARM64
-  46087370172 SUCCESS; Master integrity 46087370205 SUCCESS (9/9); Sonar gate
-  OK/0 new issues; Socket PASS.
+- **CD-06 (F01/F02):**
+  - F01: todos os candidatos Windows são validados antes de `existsSync`;
+    UNC normal/extendido, device e root-relative rejeitados; testes por
+    APPDATA/LOCALAPPDATA/USERPROFILE/ProgramFiles com spy de zero chamadas;
+    PATH adversarial e CLI 2.113.0 preservados.
+  - F02: `Test-AclExact` exige uma ACE por SID, três SIDs distintos e conjunto
+    completo; fast-path e pós-hardening usam a mesma validação; testes de
+    duplicidade, ausência individual de cada principal e direitos divergentes.
+  - F03/F05: APPROVED preservados; F04 runbook-only preservado.
+- **Testes:** worktree limpo em 4210a0b — lint, typecheck, Vitest 389/3 skip,
+  Node 40 pass/0 fail/0 skip, build, audit:policy 36/41, audit:deps 0
+  vulnerabilidades; Windows real 40/40 com candidatos, ACL por SID, UNC,
+  home, lock, temp e PATH hostil.
+- **CI 4210a0b:** quality 46138735729 SUCCESS (~10m38s; Vitest 389/3 skip,
+  Node 32 pass/0 fail/8 skip Linux, PgTAP 250, E2E 32/32); Color ARM64
+  46138735801 SUCCESS; Master integrity 46138735650 SUCCESS (9/9); Sonar
+  gate OK/0 new issues; Socket PASS.
 - **Preservado:** preview fail-closed, produção não tocada, 22 rotas, Master
   9/9, ADR-001 PROPOSED, ruleset 28005320, PR #75 Draft, #31 aberta.
 - **Pendente:** auditoria independente APPROVED; autorização aplicável para
