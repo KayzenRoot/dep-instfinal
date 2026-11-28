@@ -20,7 +20,7 @@ Fonte: API pública SonarCloud.
 - Main: /api/issues/search?componentKeys=KayzenRoot_dep-instfinal&branch=main&resolved=false&ps=500&p=1|2&additionalFields=_all
 - PR #75: /api/issues/search?componentKeys=KayzenRoot_dep-instfinal&pullRequest=75&resolved=false&ps=500&p=1&additionalFields=_all
 - Export integral da main: `sonar-main-issues-2026-11-28.csv` (630 linhas + cabeçalho), SHA-256 `79aed6ccbe74c0534bd7f2cf3ad49ad5e22f95f763350842b0d03f413b21986a`, com issue key, regra, tipo, severidade, arquivo, linha, status, origem, se o arquivo está no diff da PR, correção no HEAD, disposição e evidência.
-- Export da PR #75: `sonar-pr75-issues-2026-11-28.json`, SHA-256 `c912d929bed87b4fed5c91a666b4a73ccafb2a7044cd4f850a177e7f731bab56`; total 0 issues abertas; 0 new issues, 0 hotspots; gate OK.
+- Export da PR #75: `sonar-pr75-issues-2026-11-28.json`, SHA-256 `22637e340298b8c1efd1152cc67e1960ba9c9ca237bb4d3ae9dd3dadd0b81134`; total 0 issues abertas; 0 new issues, 0 hotspots; gate OK.
 
 Totais da main:
 - 630 issues abertas: 621 CODE_SMELL, 8 VULNERABILITY, 1 BUG.
